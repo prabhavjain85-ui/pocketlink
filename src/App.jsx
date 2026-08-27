@@ -1,4 +1,73 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
+
+// ---------------------------------------------------------------------------
+// SmilesDrawer is loaded lazily from a CDN (not bundled) — it's only needed
+// once someone actually stages a compound, and this keeps the main bundle
+// free of a chemistry-rendering dependency most page loads never touch.
+// The promise is cached at module scope so multiple <SmilesStructure>
+// instances (or re-renders) never inject the <script> tag twice.
+// ---------------------------------------------------------------------------
+let smilesDrawerPromise = null;
+function loadSmilesDrawer() {
+  if (window.SmilesDrawer) return Promise.resolve(window.SmilesDrawer);
+  if (smilesDrawerPromise) return smilesDrawerPromise;
+  smilesDrawerPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/smiles-drawer@2.1.7/dist/smiles-drawer.min.js";
+    script.async = true;
+    script.onload = () => (window.SmilesDrawer ? resolve(window.SmilesDrawer) : reject(new Error("SmilesDrawer failed to initialize")));
+    script.onerror = () => reject(new Error("Could not load SmilesDrawer from CDN"));
+    document.head.appendChild(script);
+  });
+  return smilesDrawerPromise;
+}
+
+function SmilesStructure({ smiles, width = 220, height = 180 }) {
+  const canvasRef = useRef(null);
+  const [status, setStatus] = useState("loading"); // loading | ready | error
+
+  useEffect(() => {
+    if (!smiles) return;
+    let cancelled = false;
+    setStatus("loading");
+
+    loadSmilesDrawer()
+      .then((SmilesDrawerLib) => {
+        if (cancelled || !canvasRef.current) return;
+        const drawer = new SmilesDrawerLib.Drawer({ width, height, bondThickness: 1.2 });
+        SmilesDrawerLib.parse(
+          smiles,
+          (tree) => {
+            if (cancelled || !canvasRef.current) return;
+            try {
+              drawer.draw(tree, canvasRef.current, "dark", false);
+              setStatus("ready");
+            } catch (e) {
+              setStatus("error");
+            }
+          },
+          () => {
+            if (!cancelled) setStatus("error"); // malformed SMILES, rare but possible
+          }
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setStatus("error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [smiles, width, height]);
+
+  return (
+    <div className="structure-canvas-wrap" style={{ width, height }}>
+      <canvas ref={canvasRef} width={width} height={height} className="structure-canvas" />
+      {status === "loading" && <div className="structure-overlay">Drawing structure…</div>}
+      {status === "error" && <div className="structure-overlay structure-overlay-error">Couldn't render structure</div>}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // PocketLink — a staging bench for early drug discovery.
@@ -196,8 +265,47 @@ export default function App() {
 
   const progress = (protein ? 0.5 : 0) + (compound ? 0.5 : 0);
 
-  const openSwissDock = () => window.open("https://www.swissdock.ch/", "_blank", "noopener,noreferrer");
-  const openSwissADME = () => window.open("https://www.swissadme.ch/", "_blank", "noopener,noreferrer");
+  const [dockCopied, setDockCopied] = useState(false);
+  const [admeCopied, setAdmeCopied] = useState(false);
+
+  const copyToClipboard = async (value) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch (e) {
+      // clipboard blocked (permissions / non-secure context) — caller falls
+      // back to the visible CopyField below, nothing else to do here.
+      return false;
+    }
+  };
+
+  // SwissDock and SwissADME are classic PHP form sites with no public API
+  // and no query-string pre-fill (their submission is a same-origin POST),
+  // so we can't deep-link the PDB ID / SMILES straight into their forms.
+  // The next best thing: copy the value to the clipboard automatically the
+  // moment the tab opens, so it's a single paste once the site loads.
+  // NOTE: window.open() is called synchronously, before any `await`, so the
+  // browser still counts this as a direct response to the click — Safari in
+  // particular will silently block the popup if you open it after an
+  // awaited clipboard write instead of before it.
+  const openSwissDock = () => {
+    window.open("https://www.swissdock.ch/", "_blank", "noopener,noreferrer");
+    if (protein) {
+      copyToClipboard(protein.id).then((ok) => {
+        setDockCopied(ok);
+        if (ok) setTimeout(() => setDockCopied(false), 4000);
+      });
+    }
+  };
+  const openSwissADME = () => {
+    window.open("https://www.swissadme.ch/", "_blank", "noopener,noreferrer");
+    if (smiles) {
+      copyToClipboard(smiles).then((ok) => {
+        setAdmeCopied(ok);
+        if (ok) setTimeout(() => setAdmeCopied(false), 4000);
+      });
+    }
+  };
 
   const smiles = compound ? (compound.IsomericSMILES || compound.CanonicalSMILES) : "";
 
@@ -390,8 +498,29 @@ export default function App() {
           padding: 16px;
           display: flex;
           gap: 14px;
+          align-items: flex-start;
         }
-        .compound-card img { width: 96px; height: 96px; background: #fff; border-radius: 6px; flex-shrink: 0; }
+        .compound-visual { flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; }
+        .structure-canvas-wrap {
+          position: relative;
+          background: #0E1A29;
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          overflow: hidden;
+        }
+        .structure-canvas { display: block; width: 100%; height: 100%; }
+        .structure-overlay {
+          position: absolute; inset: 0;
+          display: flex; align-items: center; justify-content: center;
+          text-align: center;
+          font-size: 11px; color: var(--text-dim);
+          background: #0E1A29;
+          padding: 8px;
+        }
+        .structure-overlay-error { color: var(--red); }
+        .compound-thumb-row { display: flex; align-items: center; gap: 6px; }
+        .compound-thumb-fallback { width: 22px; height: 22px; background: #fff; border-radius: 4px; flex-shrink: 0; }
+        .compound-thumb-label { font-size: 10.5px; color: var(--text-dim); font-family: 'IBM Plex Mono', monospace; }
         .compound-name { font-family: 'Fraunces', serif; font-size: 17px; margin-bottom: 2px; }
         .compound-formula { font-family: 'IBM Plex Mono', monospace; color: var(--amber); font-size: 13px; margin-bottom: 8px; }
         .compound-props { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; font-size: 12.5px; color: var(--text-dim); }
@@ -536,7 +665,18 @@ export default function App() {
           {cResult && (
             <div>
               <div className="compound-card">
-                <img src={`https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=${cResult.CID}&t=l`} alt="" />
+                <div className="compound-visual">
+                  <SmilesStructure smiles={cResult.IsomericSMILES || cResult.CanonicalSMILES} width={200} height={160} />
+                  <div className="compound-thumb-row">
+                    <img
+                      className="compound-thumb-fallback"
+                      src={`https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=${cResult.CID}&t=l`}
+                      alt="PubChem reference structure"
+                      title="PubChem reference image"
+                    />
+                    <span className="compound-thumb-label">PubChem reference</span>
+                  </div>
+                </div>
                 <div>
                   <div className="compound-name">{cResult.IUPACName ? cResult.IUPACName.slice(0, 46) : `CID ${cResult.CID}`}</div>
                   <div className="compound-formula">{cResult.MolecularFormula} · CID {cResult.CID}</div>
@@ -598,16 +738,18 @@ export default function App() {
               {compound && <CopyField label="Candidate — SMILES" value={smiles} />}
               <div className="handoff-actions">
                 <button className="btn btn-handoff" onClick={openSwissDock} disabled={!protein} type="button">
-                  Open SwissDock →
+                  {dockCopied ? "PDB ID copied ✓" : "Open SwissDock →"}
                 </button>
                 <button className="btn btn-handoff" onClick={openSwissADME} disabled={!compound} type="button">
-                  Open SwissADME →
+                  {admeCopied ? "SMILES copied ✓" : "Open SwissADME →"}
                 </button>
               </div>
               <div className="lipinski-note" style={{ marginTop: 14 }}>
-                Both tools open in a new tab. Paste the PDB ID into SwissDock's target field, and the SMILES
-                into SwissADME's molecule list — neither offers a public API for automatic submission, so this
-                last step is a manual paste.
+                Clicking either button copies the value to your clipboard automatically, then opens the tool
+                in a new tab — so the PDB ID or SMILES is already on your clipboard, one paste away from
+                SwissDock's target field or SwissADME's molecule list. Neither tool offers a public API for
+                automatic submission (both are form-based, same-origin only), so a manual paste into their
+                own page is still the last step — but you shouldn't need to come back here to copy it first.
               </div>
             </div>
           )}
