@@ -147,6 +147,11 @@ function CopyField({ label, value, mono = true }) {
   );
 }
 
+function getCompoundSmiles(compound) {
+  if (!compound) return "";
+  return compound.IsomericSMILES || compound.CanonicalSMILES || compound.SMILES || compound.ConnectivitySMILES || "";
+}
+
 function Panel({ title, eyebrow, kind, children }) {
   return (
     <div className="panel">
@@ -321,7 +326,7 @@ export default function App() {
     }
   };
 
-  const smiles = compound ? (compound.IsomericSMILES || compound.CanonicalSMILES) : "";
+  const smiles = getCompoundSmiles(compound);
 
   // Lipinski / Veber screen from PubChem's own computed properties
   const checks = compound
@@ -693,7 +698,7 @@ export default function App() {
             <div>
               <div className="compound-card">
                 <div className="compound-visual">
-                  <SmilesStructure smiles={cResult.IsomericSMILES || cResult.CanonicalSMILES} width={200} height={160} />
+                  <SmilesStructure smiles={getCompoundSmiles(cResult)} width={200} height={160} />
                   <div className="compound-thumb-row">
                     <img
                       className="compound-thumb-fallback"
@@ -709,7 +714,7 @@ export default function App() {
                   <div className="compound-formula">{cResult.MolecularFormula} · CID {cResult.CID}</div>
                   <div className="compound-smiles">
                     <span className="compound-smiles-label">Selected structure SMILES</span>
-                    {cResult.IsomericSMILES || cResult.CanonicalSMILES || "SMILES unavailable"}
+                    {getCompoundSmiles(cResult) || "SMILES unavailable"}
                   </div>
                   <div className="compound-props">
                     <span>MW <b>{Number(cResult.MolecularWeight).toFixed(1)}</b></span>
