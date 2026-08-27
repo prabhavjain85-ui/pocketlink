@@ -537,6 +537,19 @@ export default function App() {
         .compound-thumb-label { font-size: 10.5px; color: var(--text-dim); font-family: 'IBM Plex Mono', monospace; }
         .compound-name { font-family: 'Fraunces', serif; font-size: 17px; margin-bottom: 2px; }
         .compound-formula { font-family: 'IBM Plex Mono', monospace; color: var(--amber); font-size: 13px; margin-bottom: 8px; }
+        .compound-smiles {
+          background: rgba(79, 216, 196, 0.08);
+          border: 1px solid rgba(79, 216, 196, 0.18);
+          border-radius: 7px;
+          color: var(--cyan);
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 12px;
+          line-height: 1.45;
+          margin-bottom: 10px;
+          padding: 8px 10px;
+          word-break: break-all;
+        }
+        .compound-smiles-label { color: var(--text-dim); display: block; font-size: 10px; letter-spacing: .08em; margin-bottom: 3px; text-transform: uppercase; }
         .compound-props { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; font-size: 12.5px; color: var(--text-dim); }
         .compound-props b { color: var(--text); font-weight: 500; }
 
@@ -694,6 +707,10 @@ export default function App() {
                 <div>
                   <div className="compound-name">{cResult.IUPACName ? cResult.IUPACName.slice(0, 46) : `CID ${cResult.CID}`}</div>
                   <div className="compound-formula">{cResult.MolecularFormula} · CID {cResult.CID}</div>
+                  <div className="compound-smiles">
+                    <span className="compound-smiles-label">Selected structure SMILES</span>
+                    {cResult.IsomericSMILES || cResult.CanonicalSMILES || "SMILES unavailable"}
+                  </div>
                   <div className="compound-props">
                     <span>MW <b>{Number(cResult.MolecularWeight).toFixed(1)}</b></span>
                     <span>XLogP <b>{cResult.XLogP !== undefined ? cResult.XLogP : "n/a"}</b></span>
