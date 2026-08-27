@@ -1,85 +1,24 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef } from "react";
 
-// ---------------------------------------------------------------------------
-// SmilesDrawer is loaded lazily from a CDN (not bundled) — it's only needed
-// once someone actually stages a compound, and this keeps the main bundle
-// free of a chemistry-rendering dependency most page loads never touch.
-// The promise is cached at module scope so multiple <SmilesStructure>
-// instances (or re-renders) never inject the <script> tag twice.
-// ---------------------------------------------------------------------------
-let smilesDrawerPromise = null;
-function loadSmilesDrawer() {
-  if (window.SmilesDrawer) return Promise.resolve(window.SmilesDrawer);
-  if (smilesDrawerPromise) return smilesDrawerPromise;
-  smilesDrawerPromise = new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/smiles-drawer@2.1.7/dist/smiles-drawer.min.js";
-    script.async = true;
-    script.onload = () => (window.SmilesDrawer ? resolve(window.SmilesDrawer) : reject(new Error("SmilesDrawer failed to initialize")));
-    script.onerror = () => reject(new Error("Could not load SmilesDrawer from CDN"));
-    document.head.appendChild(script);
-  });
-  return smilesDrawerPromise;
-}
+function PubChemStructureImage({ cid }) {
+  const [failed, setFailed] = useState(false);
 
-function SmilesStructure({ smiles, width = 220, height = 180 }) {
-  const svgRef = useRef(null);
-  const [status, setStatus] = useState("loading"); // loading | ready | error
-
-  useEffect(() => {
-    if (!smiles || !svgRef.current) return;
-    let cancelled = false;
-    setStatus("loading");
-
-    // Clear anything left over from a previous molecule before drawing the new one.
-    while (svgRef.current.firstChild) svgRef.current.removeChild(svgRef.current.firstChild);
-
-    loadSmilesDrawer()
-      .then((SmilesDrawerLib) => {
-        if (cancelled || !svgRef.current) return;
-        // SvgDrawer paints synchronously into a real <svg> element — unlike the
-        // canvas-based Drawer class, there's no internal async image-decode step
-        // (and no malformed data-URI) that can silently fail and leave the
-        // "loading" state stuck forever.
-        const drawer = new SmilesDrawerLib.SvgDrawer({ width, height, bondThickness: 1.2 });
-        SmilesDrawerLib.parse(
-          smiles,
-          (tree) => {
-            if (cancelled || !svgRef.current) return;
-            try {
-              drawer.draw(tree, svgRef.current, "dark", null, false);
-              setStatus("ready");
-            } catch (e) {
-              setStatus("error");
-            }
-          },
-          () => {
-            if (!cancelled) setStatus("error"); // malformed SMILES, rare but possible
-          }
-        );
-      })
-      .catch(() => {
-        if (!cancelled) setStatus("error");
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [smiles, width, height]);
+  if (!cid || failed) {
+    return (
+      <div className="pubchem-structure-fallback">
+        Structure image unavailable
+      </div>
+    );
+  }
 
   return (
-    <div className="structure-canvas-wrap" style={{ width, height }}>
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${width} ${height}`}
-        width={width}
-        height={height}
-        xmlns="http://www.w3.org/2000/svg"
-        className="structure-canvas"
-      />
-      {status === "loading" && <div className="structure-overlay">Drawing structure…</div>}
-      {status === "error" && <div className="structure-overlay structure-overlay-error">Couldn't render structure</div>}
-    </div>
+    <img
+      className="pubchem-structure-image"
+      src={`https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=${cid}&t=l`}
+      alt={`PubChem structure for CID ${cid}`}
+      title={`PubChem structure for CID ${cid}`}
+      onError={() => setFailed(true)}
+    />
   );
 }
 
@@ -537,8 +476,28 @@ export default function App() {
           padding: 8px;
         }
         .structure-overlay-error { color: var(--red); }
-        .compound-thumb-row { display: flex; align-items: center; gap: 6px; }
-        .compound-thumb-fallback { width: 22px; height: 22px; background: #fff; border-radius: 4px; flex-shrink: 0; }
+        .pubchem-structure-image,
+        .pubchem-structure-fallback {
+          width: 200px;
+          height: 160px;
+          background: #fff;
+          border: 1px solid var(--border);
+          border-radius: 6px;
+        }
+        .pubchem-structure-image {
+          display: block;
+          object-fit: contain;
+          padding: 8px;
+        }
+        .pubchem-structure-fallback {
+          align-items: center;
+          color: var(--red);
+          display: flex;
+          font-size: 12px;
+          justify-content: center;
+          padding: 12px;
+          text-align: center;
+        }
         .compound-thumb-label { font-size: 10.5px; color: var(--text-dim); font-family: 'IBM Plex Mono', monospace; }
         .compound-name { font-family: 'Fraunces', serif; font-size: 17px; margin-bottom: 2px; }
         .compound-formula { font-family: 'IBM Plex Mono', monospace; color: var(--amber); font-size: 13px; margin-bottom: 8px; }
@@ -698,16 +657,8 @@ export default function App() {
             <div>
               <div className="compound-card">
                 <div className="compound-visual">
-                  <SmilesStructure smiles={getCompoundSmiles(cResult)} width={200} height={160} />
-                  <div className="compound-thumb-row">
-                    <img
-                      className="compound-thumb-fallback"
-                      src={`https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=${cResult.CID}&t=l`}
-                      alt="PubChem reference structure"
-                      title="PubChem reference image"
-                    />
-                    <span className="compound-thumb-label">PubChem reference</span>
-                  </div>
+                  <PubChemStructureImage cid={cResult.CID} />
+                  <span className="compound-thumb-label">PubChem reference structure</span>
                 </div>
                 <div>
                   <div className="compound-name">{cResult.IUPACName ? cResult.IUPACName.slice(0, 46) : `CID ${cResult.CID}`}</div>
