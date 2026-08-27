@@ -23,24 +23,31 @@ function loadSmilesDrawer() {
 }
 
 function SmilesStructure({ smiles, width = 220, height = 180 }) {
-  const canvasRef = useRef(null);
+  const svgRef = useRef(null);
   const [status, setStatus] = useState("loading"); // loading | ready | error
 
   useEffect(() => {
-    if (!smiles) return;
+    if (!smiles || !svgRef.current) return;
     let cancelled = false;
     setStatus("loading");
 
+    // Clear anything left over from a previous molecule before drawing the new one.
+    while (svgRef.current.firstChild) svgRef.current.removeChild(svgRef.current.firstChild);
+
     loadSmilesDrawer()
       .then((SmilesDrawerLib) => {
-        if (cancelled || !canvasRef.current) return;
-        const drawer = new SmilesDrawerLib.Drawer({ width, height, bondThickness: 1.2 });
+        if (cancelled || !svgRef.current) return;
+        // SvgDrawer paints synchronously into a real <svg> element — unlike the
+        // canvas-based Drawer class, there's no internal async image-decode step
+        // (and no malformed data-URI) that can silently fail and leave the
+        // "loading" state stuck forever.
+        const drawer = new SmilesDrawerLib.SvgDrawer({ width, height, bondThickness: 1.2 });
         SmilesDrawerLib.parse(
           smiles,
           (tree) => {
-            if (cancelled || !canvasRef.current) return;
+            if (cancelled || !svgRef.current) return;
             try {
-              drawer.draw(tree, canvasRef.current, "dark", false);
+              drawer.draw(tree, svgRef.current, "dark", null, false);
               setStatus("ready");
             } catch (e) {
               setStatus("error");
@@ -62,7 +69,14 @@ function SmilesStructure({ smiles, width = 220, height = 180 }) {
 
   return (
     <div className="structure-canvas-wrap" style={{ width, height }}>
-      <canvas ref={canvasRef} width={width} height={height} className="structure-canvas" />
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${width} ${height}`}
+        width={width}
+        height={height}
+        xmlns="http://www.w3.org/2000/svg"
+        className="structure-canvas"
+      />
       {status === "loading" && <div className="structure-overlay">Drawing structure…</div>}
       {status === "error" && <div className="structure-overlay structure-overlay-error">Couldn't render structure</div>}
     </div>
