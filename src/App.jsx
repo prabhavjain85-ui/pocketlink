@@ -1,755 +1,138 @@
-import React, { useState, useCallback, useRef } from "react";
-
-function PubChemStructureImage({ cid }) {
-  const [failed, setFailed] = useState(false);
-
-  if (!cid || failed) {
-    return (
-      <div className="pubchem-structure-fallback">
-        Structure image unavailable
-      </div>
-    );
-  }
-
-  return (
-    <img
-      className="pubchem-structure-image"
-      src={`https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=${cid}&t=l`}
-      alt={`PubChem structure for CID ${cid}`}
-      title={`PubChem structure for CID ${cid}`}
-      onError={() => setFailed(true)}
-    />
-  );
-}
-
-// ---------------------------------------------------------------------------
-// PocketLink — a staging bench for early drug discovery.
-// Live search: RCSB PDB (targets) + PubChem (candidates).
-// SwissDock / SwissADME have no public web API, so PocketLink prepares the
-// exact inputs (PDB ID, SMILES) and hands off to those tools' real sites.
-// ---------------------------------------------------------------------------
+import React, { useCallback, useRef, useState } from "react";
 
 const PDB_ID_RE = /^[0-9][A-Za-z0-9]{3}$/;
+const MAX_CANDIDATES = 5;
 
-function StationIcon({ kind }) {
-  // small line-drawn glyphs, no external image dependency
-  if (kind === "target") {
-    return (
-      <svg viewBox="0 0 32 32" width="18" height="18" fill="none">
-        <path d="M6 16c0-6 4-10 10-10s10 4 10 10-4 10-10 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        <path d="M11 16c0-3.5 2-6 5-6s5 2.5 5 6-2 6-5 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        <circle cx="16" cy="16" r="1.6" fill="currentColor" />
-      </svg>
-    );
-  }
-  if (kind === "candidate") {
-    return (
-      <svg viewBox="0 0 32 32" width="18" height="18" fill="none">
-        <circle cx="9" cy="11" r="2.6" stroke="currentColor" strokeWidth="1.6" />
-        <circle cx="21" cy="9" r="2.6" stroke="currentColor" strokeWidth="1.6" />
-        <circle cx="17" cy="21" r="2.6" stroke="currentColor" strokeWidth="1.6" />
-        <path d="M11.2 12.4L18.8 9.6M11 13.2l4.5 6M19 11.3l-1 7" stroke="currentColor" strokeWidth="1.4" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 32 32" width="18" height="18" fill="none">
-      <path d="M6 10h8M6 16h8M6 22h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M14 10h4a4 4 0 0 1 4 4v0a4 4 0 0 1-4 4h-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M22 16h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M23 13l3 3-3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+function smilesOf(c) {
+  return c?.IsomericSMILES || c?.CanonicalSMILES || c?.SMILES || c?.ConnectivitySMILES || "";
 }
 
-function CopyField({ label, value, mono = true }) {
+function Panel({ eyebrow, title, kind, children }) {
+  return <section className="panel"><div className="panel-head"><div className={`station-icon icon-${kind}`}>{kind === "target" ? "◎" : kind === "candidate" ? "◇" : "✦"}</div><div><div className="panel-eyebrow">{eyebrow}</div><div className="panel-title">{title}</div></div></div>{children}</section>;
+}
+
+function CopyField({ label, value }) {
   const [copied, setCopied] = useState(false);
-  const doCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1400);
-    } catch (e) {
-      // clipboard blocked — no-op, field remains selectable
-    }
-  };
-  return (
-    <div className="copyfield">
-      <div className="copyfield-label">{label}</div>
-      <div className="copyfield-row">
-        <div className={"copyfield-value" + (mono ? " mono" : "")}>{value}</div>
-        <button className="copy-btn" onClick={doCopy} type="button">
-          {copied ? "Copied" : "Copy"}
-        </button>
-      </div>
-    </div>
-  );
+  return <div className="copyfield"><div className="copyfield-label">{label}</div><div className="copyfield-row"><div className="copyfield-value mono">{value}</div><button className="copy-btn" onClick={async () => { try { await navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1200); } catch {} }}>{copied ? "Copied" : "Copy"}</button></div></div>;
 }
 
-function getCompoundSmiles(compound) {
-  if (!compound) return "";
-  return compound.IsomericSMILES || compound.CanonicalSMILES || compound.SMILES || compound.ConnectivitySMILES || "";
-}
-
-function Panel({ title, eyebrow, kind, children }) {
-  return (
-    <div className="panel">
-      <div className="panel-head">
-        <span className={"station-icon icon-" + kind}>
-          <StationIcon kind={kind} />
-        </span>
-        <div>
-          <div className="panel-eyebrow">{eyebrow}</div>
-          <div className="panel-title">{title}</div>
-        </div>
-      </div>
-      <div className="panel-body">{children}</div>
-    </div>
-  );
+function CandidateCard({ c, selected, onToggle }) {
+  const checks = [c.MolecularWeight <= 500, c.XLogP === undefined || c.XLogP <= 5, c.HBondDonorCount <= 5, c.HBondAcceptorCount <= 10, c.RotatableBondCount <= 10, c.TPSA <= 140];
+  const pass = checks.filter(Boolean).length;
+  return <button type="button" className={`candidate-card ${selected ? "candidate-selected" : ""}`} onClick={onToggle}>
+    <img className="candidate-img" src={`https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=${c.CID}&t=l`} alt="" />
+    <div className="candidate-main"><div className="candidate-top"><strong>{c.displayName || `CID ${c.CID}`}</strong><span className="cid">CID {c.CID}</span></div><div className="formula">{c.MolecularFormula}</div><div className="smiles">{smilesOf(c)}</div><div className="mini-props">MW {Number(c.MolecularWeight).toFixed(1)} · XLogP {c.XLogP ?? "n/a"} · HBD {c.HBondDonorCount} · HBA {c.HBondAcceptorCount} · TPSA {c.TPSA}</div><div className="pass-pill">{pass}/6 drug-likeness checks pass</div></div><div className="select-mark">{selected ? "✓" : "+"}</div>
+  </button>;
 }
 
 export default function App() {
-  // --- Target (RCSB PDB) state ---
   const [pQuery, setPQuery] = useState("");
-  const [pLoading, setPLoading] = useState(false);
-  const [pError, setPError] = useState("");
   const [pResults, setPResults] = useState([]);
   const [protein, setProtein] = useState(null);
+  const [pLoading, setPLoading] = useState(false);
+  const [pError, setPError] = useState("");
 
-  // --- Candidate (PubChem) state ---
   const [cQuery, setCQuery] = useState("");
+  const [cResult, setCResult] = useState(null);
   const [cLoading, setCLoading] = useState(false);
   const [cError, setCError] = useState("");
-  const [cResult, setCResult] = useState(null);
-  const [compound, setCompound] = useState(null);
+  const [candidates, setCandidates] = useState([]);
 
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiResult, setAiResult] = useState(null);
   const reqId = useRef(0);
 
   const fetchEntrySummary = async (id) => {
     const res = await fetch(`https://data.rcsb.org/rest/v1/core/entry/${id}`);
     if (!res.ok) return null;
     const d = await res.json();
-    const method = (d.exptl && d.exptl[0] && d.exptl[0].method) || "—";
-    const res_ = d.rcsb_entry_info && d.rcsb_entry_info.resolution_combined;
-    const resolution = res_ && res_.length ? `${res_[0]} Å` : "—";
-    const title = (d.struct && d.struct.title) || "Untitled entry";
-    const date = (d.rcsb_accession_info && d.rcsb_accession_info.initial_release_date) || "";
-    return { id, title, method, resolution, date: date ? date.slice(0, 4) : "—" };
+    const resolution = d.rcsb_entry_info?.resolution_combined?.[0];
+    return { id, title: d.struct?.title || "Untitled entry", method: d.exptl?.[0]?.method || "—", resolution: resolution ? `${resolution} Å` : "—", date: d.rcsb_accession_info?.initial_release_date?.slice(0, 4) || "—" };
   };
 
   const searchProtein = useCallback(async () => {
-    const q = pQuery.trim();
-    if (!q) return;
-    const myReq = ++reqId.current;
-    setPLoading(true);
-    setPError("");
-    setPResults([]);
+    const q = pQuery.trim(); if (!q) return;
+    const id = ++reqId.current; setPLoading(true); setPError(""); setPResults([]);
     try {
-      let ids = [];
-      if (PDB_ID_RE.test(q)) {
-        const direct = await fetchEntrySummary(q.toUpperCase());
-        if (direct) {
-          if (reqId.current === myReq) setPResults([direct]);
-          setPLoading(false);
-          return;
-        }
-      }
-      const res = await fetch("https://search.rcsb.org/rcsbsearch/v2/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: { type: "terminal", service: "full_text", parameters: { value: q } },
-          return_type: "entry",
-          request_options: { paginate: { start: 0, rows: 6 } },
-        }),
-      });
-      if (!res.ok) throw new Error("search failed");
-      const data = await res.json();
-      ids = (data.result_set || []).map((r) => r.identifier);
-      if (!ids.length) {
-        if (reqId.current === myReq) setPError(`No PDB entries matched "${q}". Try a protein name, gene, or a 4-character PDB ID.`);
-        setPLoading(false);
-        return;
-      }
+      if (PDB_ID_RE.test(q)) { const direct = await fetchEntrySummary(q.toUpperCase()); if (direct) { setPResults([direct]); setPLoading(false); return; } }
+      const res = await fetch("https://search.rcsb.org/rcsbsearch/v2/query", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: { type: "terminal", service: "full_text", parameters: { value: q } }, return_type: "entry", request_options: { paginate: { start: 0, rows: 6 } } }) });
+      if (!res.ok) throw new Error();
+      const data = await res.json(); const ids = (data.result_set || []).map(x => x.identifier);
       const summaries = await Promise.all(ids.map(fetchEntrySummary));
-      if (reqId.current === myReq) setPResults(summaries.filter(Boolean));
-    } catch (e) {
-      if (reqId.current === myReq) setPError("Couldn't reach RCSB PDB. Check your connection and try again.");
-    } finally {
-      if (reqId.current === myReq) setPLoading(false);
-    }
+      if (id === reqId.current) setPResults(summaries.filter(Boolean));
+    } catch { if (id === reqId.current) setPError("Couldn't reach RCSB PDB. Check your connection and try again."); }
+    finally { if (id === reqId.current) setPLoading(false); }
   }, [pQuery]);
 
   const searchCompound = useCallback(async () => {
-    const q = cQuery.trim();
-    if (!q) return;
-    setCLoading(true);
-    setCError("");
-    setCResult(null);
+    const q = cQuery.trim(); if (!q) return;
+    setCLoading(true); setCError(""); setCResult(null);
     try {
-      const props = [
-        "MolecularFormula",
-        "MolecularWeight",
-        "CanonicalSMILES",
-        "IsomericSMILES",
-        "XLogP",
-        "HBondDonorCount",
-        "HBondAcceptorCount",
-        "RotatableBondCount",
-        "TPSA",
-        "IUPACName",
-      ].join(",");
-      const url = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(q)}/property/${props}/JSON`;
-      const res = await fetch(url);
-      if (!res.ok) {
-        setCError(`PubChem has no compound named "${q}". Try the common or generic drug name (e.g. "ibuprofen", "imatinib").`);
-        setCLoading(false);
-        return;
-      }
-      const data = await res.json();
-      const p = data.PropertyTable && data.PropertyTable.Properties && data.PropertyTable.Properties[0];
-      if (!p) {
-        setCError(`PubChem returned no usable data for "${q}".`);
-        setCLoading(false);
-        return;
-      }
-      setCResult(p);
-    } catch (e) {
-      setCError("Couldn't reach PubChem. Check your connection and try again.");
-    } finally {
-      setCLoading(false);
-    }
+      const props = ["MolecularFormula","MolecularWeight","CanonicalSMILES","IsomericSMILES","XLogP","HBondDonorCount","HBondAcceptorCount","RotatableBondCount","TPSA","IUPACName"].join(",");
+      const res = await fetch(`https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(q)}/property/${props}/JSON`);
+      if (!res.ok) throw new Error(`PubChem has no compound named "${q}".`);
+      const p = (await res.json()).PropertyTable?.Properties?.[0]; if (!p) throw new Error("PubChem returned no usable compound data.");
+      setCResult({ ...p, displayName: p.IUPACName || q });
+    } catch (e) { setCError(e.message || "Couldn't reach PubChem."); }
+    finally { setCLoading(false); }
   }, [cQuery]);
 
-  const progress = (protein ? 0.5 : 0) + (compound ? 0.5 : 0);
+  const toggleCandidate = () => {
+    if (!cResult) return;
+    setAiResult(null); setAiError("");
+    setCandidates(prev => prev.some(x => x.CID === cResult.CID) ? prev.filter(x => x.CID !== cResult.CID) : prev.length < MAX_CANDIDATES ? [...prev, cResult] : prev);
+  };
 
-  const [dockCopied, setDockCopied] = useState(false);
-  const [admeCopied, setAdmeCopied] = useState(false);
-
-  const copyToClipboard = async (value) => {
+  const analyze = async () => {
+    if (candidates.length < 2) return;
+    setAiLoading(true); setAiError(""); setAiResult(null);
     try {
-      await navigator.clipboard.writeText(value);
-      return true;
-    } catch (e) {
-      // clipboard blocked (permissions / non-secure context) — caller falls
-      // back to the visible CopyField below, nothing else to do here.
-      return false;
-    }
+      const response = await fetch("/api/rank-candidates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ candidates: candidates.map(c => ({ name: c.displayName, cid: c.CID, smiles: smilesOf(c), molecularFormula: c.MolecularFormula, molecularWeight: c.MolecularWeight, xlogp: c.XLogP, hbd: c.HBondDonorCount, hba: c.HBondAcceptorCount, rotatableBonds: c.RotatableBondCount, tpsa: c.TPSA })) }) });
+      const data = await response.json(); if (!response.ok) throw new Error(data.error || "AI analysis failed."); setAiResult(data);
+    } catch (e) { setAiError(e.message || "AI analysis failed."); }
+    finally { setAiLoading(false); }
   };
 
-  // SwissDock and SwissADME are classic PHP form sites with no public API
-  // and no query-string pre-fill (their submission is a same-origin POST),
-  // so we can't deep-link the PDB ID / SMILES straight into their forms.
-  // The next best thing: copy the value to the clipboard automatically the
-  // moment the tab opens, so it's a single paste once the site loads.
-  // NOTE: window.open() is called synchronously, before any `await`, so the
-  // browser still counts this as a direct response to the click — Safari in
-  // particular will silently block the popup if you open it after an
-  // awaited clipboard write instead of before it.
-  const openSwissDock = () => {
-    window.open("https://www.swissdock.ch/", "_blank", "noopener,noreferrer");
-    if (protein) {
-      copyToClipboard(protein.id).then((ok) => {
-        setDockCopied(ok);
-        if (ok) setTimeout(() => setDockCopied(false), 4000);
-      });
-    }
-  };
-  const openSwissADME = () => {
-    window.open("https://www.swissadme.ch/", "_blank", "noopener,noreferrer");
-    if (smiles) {
-      copyToClipboard(smiles).then((ok) => {
-        setAdmeCopied(ok);
-        if (ok) setTimeout(() => setAdmeCopied(false), 4000);
-      });
-    }
-  };
+  const progress = (protein ? 1 : 0) + candidates.length ? 1 : 0;
+  const recommended = aiResult?.recommended;
+  const ranking = aiResult?.ranking || [];
 
-  const smiles = getCompoundSmiles(compound);
+  return <div className="app">
+    <style>{`@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+      :root{--bg:#0B1420;--surface:#121E30;--raised:#192840;--border:#28394F;--text:#E7EDF5;--dim:#8CA0B8;--cyan:#4FD8C4;--amber:#F0A855;--violet:#9C90EE;--green:#6FCF97;--red:#E2725B}*{box-sizing:border-box}body{margin:0}.app{min-height:100vh;background:radial-gradient(1000px 500px at 80% -10%,#16273E 0%,var(--bg) 55%);color:var(--text);font-family:'IBM Plex Sans',sans-serif;padding:40px 24px 64px}.mono{font-family:'IBM Plex Mono',monospace}.hero,.trace,.grid,.handoff,.footer{max-width:1040px;margin-left:auto;margin-right:auto}.hero{margin-bottom:30px}.eyebrow,.panel-eyebrow,.copyfield-label,.section-label{font:11px 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}.hero .eyebrow{color:var(--cyan);margin-bottom:14px}.hero h1{font:500 clamp(32px,5vw,48px)/1.08 Fraunces,serif;margin:0 0 14px}.hero p{max-width:720px;color:var(--dim);line-height:1.6;margin:0}.trace{display:flex;align-items:center;margin-bottom:20px}.node{width:30px;height:30px;border:1px solid var(--border);border-radius:50%;display:grid;place-items:center;background:var(--surface);color:var(--dim)}.node.lit{border-color:var(--cyan);color:var(--cyan)}.line{height:1px;background:var(--border);flex:1;margin:0 8px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:22px}.panel-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:18px}.station-icon{width:34px;height:34px;border:1px solid var(--border);background:var(--raised);border-radius:8px;display:grid;place-items:center;font-size:19px}.icon-target{color:var(--cyan)}.icon-candidate{color:var(--amber)}.icon-handoff{color:var(--violet)}.panel-title{font:500 20px Fraunces,serif;margin-top:2px}.search-row{display:flex;gap:8px;margin-bottom:12px}.search-row input{min-width:0;flex:1;background:var(--raised);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:11px 12px;font:14px 'IBM Plex Sans'}.search-row input:focus{outline:2px solid var(--cyan)}.btn{border:0;border-radius:7px;padding:10px 15px;font:500 14px 'IBM Plex Sans';cursor:pointer}.btn:disabled{opacity:.45;cursor:not-allowed}.target-btn{background:var(--cyan);color:#06201C}.candidate-btn{background:var(--amber);color:#331C04}.ai-btn{background:var(--violet);color:#1C1740}.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}.hint,.note{font-size:12px;line-height:1.5;color:var(--dim)}.error{color:var(--red);font-size:13px;line-height:1.5;margin:10px 0}.results{display:grid;gap:8px;max-height:300px;overflow:auto}.result{width:100%;text-align:left;background:var(--raised);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);cursor:pointer}.result:hover,.result.selected{border-color:var(--cyan)}.result-id{font:500 13px 'IBM Plex Mono';color:var(--cyan)}.result-meta{float:right;color:var(--dim);font:11px 'IBM Plex Mono'}.result-title{margin-top:5px;font-size:13px;line-height:1.4}.compound-preview{margin-top:14px;border:1px solid var(--border);background:var(--raised);border-radius:8px;padding:12px;display:flex;gap:12px}.compound-preview img{width:130px;height:110px;background:#fff;border-radius:6px;object-fit:contain}.compound-name{font:500 17px Fraunces,serif}.formula{font:13px 'IBM Plex Mono';color:var(--amber);margin:4px 0 8px}.smiles{font:11px 'IBM Plex Mono';color:var(--cyan);word-break:break-all;line-height:1.4}.props{font-size:12px;color:var(--dim);margin-top:8px;line-height:1.6}.stage-row{display:flex;gap:8px;margin-top:12px}.candidate-count{margin-top:12px;padding:10px;border:1px dashed var(--border);border-radius:7px;color:var(--dim);font-size:12px}.candidate-list{margin-top:12px;display:grid;gap:8px}.candidate-card{width:100%;display:flex;gap:10px;align-items:center;text-align:left;background:var(--raised);border:1px solid var(--border);border-radius:8px;padding:9px;color:var(--text);cursor:pointer}.candidate-card:hover{border-color:var(--amber)}.candidate-selected{border-color:var(--amber);background:#2b2519}.candidate-img{width:54px;height:54px;background:#fff;border-radius:5px;object-fit:contain;flex-shrink:0}.candidate-main{min-width:0;flex:1}.candidate-top{display:flex;justify-content:space-between;gap:8px}.candidate-top strong{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cid{font:10px 'IBM Plex Mono';color:var(--dim)}.candidate-card .formula{font-size:10px;margin:2px 0}.candidate-card .smiles{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mini-props{font-size:10px;color:var(--dim);margin-top:3px}.pass-pill{font-size:10px;color:var(--green);margin-top:3px}.select-mark{width:24px;height:24px;border:1px solid var(--border);border-radius:50%;display:grid;place-items:center;color:var(--amber);flex-shrink:0}.ai-section{margin-top:20px}.ai-controls{display:flex;justify-content:space-between;gap:12px;align-items:center}.ai-title{font:500 22px Fraunces,serif}.ai-sub{color:var(--dim);font-size:12px;margin-top:3px}.recommend{margin-top:18px;border:1px solid var(--green);background:#14291F;border-radius:9px;padding:16px}.recommend .winner{font:500 23px Fraunces,serif;color:var(--green)}.score{font:500 13px 'IBM Plex Mono';color:var(--green);margin:4px 0 8px}.ranking{margin-top:14px;display:grid;gap:7px}.rank-row{display:grid;grid-template-columns:36px 1fr auto;gap:10px;align-items:center;border-bottom:1px dashed var(--border);padding:9px 0}.rank-num{font:500 12px 'IBM Plex Mono';color:var(--dim)}.rank-name{font-size:13px}.rank-score{font:500 12px 'IBM Plex Mono';color:var(--cyan)}.reason{font-size:12px;color:var(--dim);line-height:1.5}.bullets{margin:6px 0 0;padding-left:17px;color:var(--dim);font-size:11.5px;line-height:1.5}.handoff{margin-top:20px}.copyfield{margin-bottom:13px}.copyfield-label{margin-bottom:6px}.copyfield-row{display:flex;gap:8px}.copyfield-value{flex:1;background:var(--raised);border:1px solid var(--border);border-radius:7px;padding:9px 11px;font-size:12px;word-break:break-all}.copy-btn{background:transparent;border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 11px;cursor:pointer}.actions{display:flex;gap:8px;flex-wrap:wrap}.empty{padding:18px;text-align:center;color:var(--dim);font-size:13px}.footer{margin-top:38px;border-top:1px solid var(--border);padding-top:18px;color:var(--dim);font-size:11.5px;line-height:1.6}.footer a{color:var(--cyan)}@media(max-width:780px){.grid{grid-template-columns:1fr}.app{padding:28px 14px}.compound-preview{flex-direction:column}.ai-controls{align-items:flex-start;flex-direction:column}}
+    `}</style>
 
-  // Lipinski / Veber screen from PubChem's own computed properties
-  const checks = compound
-    ? [
-        { label: "Molecular weight ≤ 500", pass: compound.MolecularWeight <= 500, value: `${Number(compound.MolecularWeight).toFixed(1)} g/mol` },
-        { label: "cLogP ≤ 5", pass: compound.XLogP === undefined || compound.XLogP <= 5, value: compound.XLogP !== undefined ? compound.XLogP : "n/a" },
-        { label: "H-bond donors ≤ 5", pass: compound.HBondDonorCount <= 5, value: compound.HBondDonorCount },
-        { label: "H-bond acceptors ≤ 10", pass: compound.HBondAcceptorCount <= 10, value: compound.HBondAcceptorCount },
-        { label: "Rotatable bonds ≤ 10", pass: compound.RotatableBondCount <= 10, value: compound.RotatableBondCount },
-        { label: "TPSA ≤ 140 Å²", pass: compound.TPSA <= 140, value: `${compound.TPSA} Å²` },
-      ]
-    : [];
-  const passCount = checks.filter((c) => c.pass).length;
+    <div className="hero"><div className="eyebrow">PocketLink · discovery staging bench</div><h1>Stage targets and candidates,<br/>then let AI prioritize the shortlist.</h1><p>Search live structures on RCSB PDB and compounds on PubChem, screen drug-likeness, select up to five molecules, and generate an AI-assisted computational prioritization before handing the finalists to SwissDock and SwissADME.</p></div>
 
-  return (
-    <div className="app">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+    <div className="trace"><span className={`node ${protein ? "lit" : ""}`}>1</span><span className="line"/><span className={`node ${candidates.length ? "lit" : ""}`}>2</span><span className="line"/><span className={`node ${aiResult ? "lit" : ""}`}>3</span></div>
 
-        :root {
-          --bg: #0B1420;
-          --surface: #121E30;
-          --surface-raised: #192840;
-          --border: #28394F;
-          --text: #E7EDF5;
-          --text-dim: #8CA0B8;
-          --cyan: #4FD8C4;
-          --amber: #F0A855;
-          --violet: #9C90EE;
-          --green: #6FCF97;
-          --red: #E2725B;
-        }
-        * { box-sizing: border-box; }
-        .app {
-          background: radial-gradient(1200px 500px at 80% -10%, #16273E 0%, var(--bg) 55%), var(--bg);
-          color: var(--text);
-          font-family: 'IBM Plex Sans', sans-serif;
-          min-height: 100%;
-          padding: 40px 24px 64px;
-        }
-        .mono { font-family: 'IBM Plex Mono', monospace; }
+    <div className="grid">
+      <Panel eyebrow="Station 1 — RCSB PDB" title="Find a target" kind="target">
+        <div className="search-row"><input placeholder="Protein name, gene, or PDB ID (e.g. IKK beta, 4KIK)" value={pQuery} onChange={e=>setPQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&searchProtein()}/><button className="btn target-btn" onClick={searchProtein} disabled={pLoading}>{pLoading?"Searching…":"Search"}</button></div><div className="hint">Live query against RCSB PDB.</div>{pError&&<div className="error">{pError}</div>}
+        {pResults.length>0&&<div className="results">{pResults.map(r=><button key={r.id} className={`result ${protein?.id===r.id?'selected':''}`} onClick={()=>setProtein(r)}><span className="result-id">{r.id}</span><span className="result-meta">{r.method} · {r.resolution} · {r.date}</span><div className="result-title">{r.title}</div></button>)}</div>}
+        {!pResults.length&&!pLoading&&!pError&&<div className="empty">No target staged yet.</div>}
+      </Panel>
 
-        .hero { max-width: 1040px; margin: 0 auto 36px; }
-        .hero-eyebrow {
-          font-family: 'IBM Plex Mono', monospace;
-          font-size: 12px;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          color: var(--cyan);
-          margin-bottom: 14px;
-        }
-        .hero h1 {
-          font-family: 'Fraunces', serif;
-          font-weight: 500;
-          font-size: clamp(32px, 5vw, 48px);
-          line-height: 1.08;
-          margin: 0 0 14px;
-          letter-spacing: -0.01em;
-        }
-        .hero p {
-          color: var(--text-dim);
-          font-size: 16px;
-          line-height: 1.55;
-          max-width: 620px;
-          margin: 0;
-        }
-
-        /* ---- progress trace ---- */
-        .trace-wrap { max-width: 1040px; margin: 0 auto 20px; }
-        .trace {
-          display: flex;
-          align-items: center;
-          gap: 0;
-          padding: 0 6px;
-        }
-        .trace-node {
-          width: 30px; height: 30px; border-radius: 50%;
-          border: 1.5px solid var(--border);
-          display: flex; align-items: center; justify-content: center;
-          color: var(--text-dim);
-          background: var(--surface);
-          flex-shrink: 0;
-          transition: border-color .3s, color .3s;
-        }
-        .trace-node.lit { border-color: var(--cyan); color: var(--cyan); }
-        .trace-line {
-          flex: 1;
-          height: 1.5px;
-          background: var(--border);
-          position: relative;
-          margin: 0 6px;
-          overflow: hidden;
-        }
-        .trace-line-fill {
-          position: absolute; inset: 0;
-          background: linear-gradient(90deg, var(--cyan), var(--amber));
-          width: 0%;
-          transition: width .5s ease;
-        }
-
-        .grid { max-width: 1040px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 780px) { .grid { grid-template-columns: 1fr; } }
-
-        .panel {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 10px;
-          padding: 22px;
-          display: flex;
-          flex-direction: column;
-        }
-        .panel-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
-        .station-icon {
-          width: 34px; height: 34px; border-radius: 8px;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-          background: var(--surface-raised);
-          border: 1px solid var(--border);
-        }
-        .icon-target { color: var(--cyan); }
-        .icon-candidate { color: var(--amber); }
-        .icon-handoff { color: var(--violet); }
-        .panel-eyebrow {
-          font-family: 'IBM Plex Mono', monospace;
-          font-size: 11px;
-          letter-spacing: .1em;
-          text-transform: uppercase;
-          color: var(--text-dim);
-        }
-        .panel-title { font-family: 'Fraunces', serif; font-size: 19px; margin-top: 2px; }
-
-        .search-row { display: flex; gap: 8px; margin-bottom: 14px; }
-        .search-row input {
-          flex: 1;
-          background: var(--surface-raised);
-          border: 1px solid var(--border);
-          border-radius: 7px;
-          padding: 10px 12px;
-          color: var(--text);
-          font-size: 14px;
-          font-family: 'IBM Plex Sans', sans-serif;
-        }
-        .search-row input:focus { outline: 2px solid var(--cyan); outline-offset: 1px; }
-        .search-row input::placeholder { color: var(--text-dim); }
-        .btn {
-          border: none;
-          border-radius: 7px;
-          padding: 10px 16px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          font-family: 'IBM Plex Sans', sans-serif;
-          transition: opacity .15s, transform .1s;
-        }
-        .btn:active { transform: scale(0.97); }
-        .btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
-        .btn-target { background: var(--cyan); color: #06201C; }
-        .btn-candidate { background: var(--amber); color: #331C04; }
-        .btn-handoff { background: var(--violet); color: #1C1740; }
-        .btn:disabled { opacity: .5; cursor: default; }
-        .btn-ghost {
-          background: transparent; border: 1px solid var(--border); color: var(--text);
-        }
-
-        .hint { color: var(--text-dim); font-size: 12.5px; margin: -6px 0 14px; }
-        .error-msg { color: var(--red); font-size: 13.5px; margin: 4px 0 10px; line-height: 1.5; }
-
-        .result-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
-        .result-card {
-          border: 1px solid var(--border);
-          background: var(--surface-raised);
-          border-radius: 8px;
-          padding: 12px 14px;
-          cursor: pointer;
-          text-align: left;
-        }
-        .result-card:hover { border-color: var(--cyan); }
-        .result-card.selected { border-color: var(--cyan); background: #16342E; }
-        .result-card-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
-        .result-id { font-family: 'IBM Plex Mono', monospace; color: var(--cyan); font-size: 13px; font-weight: 500; }
-        .result-meta { color: var(--text-dim); font-size: 11.5px; font-family: 'IBM Plex Mono', monospace; }
-        .result-title { font-size: 13.5px; margin-top: 4px; color: var(--text); line-height: 1.4; }
-
-        .compound-card {
-          border: 1px solid var(--border);
-          background: var(--surface-raised);
-          border-radius: 8px;
-          padding: 16px;
-          display: flex;
-          gap: 14px;
-          align-items: flex-start;
-        }
-        .compound-visual { flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; }
-        .structure-canvas-wrap {
-          position: relative;
-          background: #0E1A29;
-          border: 1px solid var(--border);
-          border-radius: 6px;
-          overflow: hidden;
-        }
-        .structure-canvas { display: block; width: 100%; height: 100%; }
-        .structure-overlay {
-          position: absolute; inset: 0;
-          display: flex; align-items: center; justify-content: center;
-          text-align: center;
-          font-size: 11px; color: var(--text-dim);
-          background: #0E1A29;
-          padding: 8px;
-        }
-        .structure-overlay-error { color: var(--red); }
-        .pubchem-structure-image,
-        .pubchem-structure-fallback {
-          width: 200px;
-          height: 160px;
-          background: #fff;
-          border: 1px solid var(--border);
-          border-radius: 6px;
-        }
-        .pubchem-structure-image {
-          display: block;
-          object-fit: contain;
-          padding: 8px;
-        }
-        .pubchem-structure-fallback {
-          align-items: center;
-          color: var(--red);
-          display: flex;
-          font-size: 12px;
-          justify-content: center;
-          padding: 12px;
-          text-align: center;
-        }
-        .compound-thumb-label { font-size: 10.5px; color: var(--text-dim); font-family: 'IBM Plex Mono', monospace; }
-        .compound-name { font-family: 'Fraunces', serif; font-size: 17px; margin-bottom: 2px; }
-        .compound-formula { font-family: 'IBM Plex Mono', monospace; color: var(--amber); font-size: 13px; margin-bottom: 8px; }
-        .compound-smiles {
-          background: rgba(79, 216, 196, 0.08);
-          border: 1px solid rgba(79, 216, 196, 0.18);
-          border-radius: 7px;
-          color: var(--cyan);
-          font-family: 'IBM Plex Mono', monospace;
-          font-size: 12px;
-          line-height: 1.45;
-          margin-bottom: 10px;
-          padding: 8px 10px;
-          word-break: break-all;
-        }
-        .compound-smiles-label { color: var(--text-dim); display: block; font-size: 10px; letter-spacing: .08em; margin-bottom: 3px; text-transform: uppercase; }
-        .compound-props { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; font-size: 12.5px; color: var(--text-dim); }
-        .compound-props b { color: var(--text); font-weight: 500; }
-
-        .checklist { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 14px; }
-        .checklist-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .checklist-title { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); font-family: 'IBM Plex Mono', monospace; }
-        .checklist-score { font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 2px 8px; border-radius: 5px; }
-        .score-good { background: #163425; color: var(--green); }
-        .score-warn { background: #3A2A17; color: var(--amber); }
-        .check-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; border-bottom: 1px dashed var(--border); }
-        .check-row:last-child { border-bottom: none; }
-        .check-label { color: var(--text-dim); display: flex; align-items: center; gap: 7px; }
-        .check-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-        .dot-pass { background: var(--green); }
-        .dot-fail { background: var(--red); }
-        .check-value { font-family: 'IBM Plex Mono', monospace; color: var(--text); }
-        .lipinski-note { color: var(--text-dim); font-size: 11.5px; margin-top: 10px; line-height: 1.5; }
-
-        .handoff-panel { max-width: 1040px; margin: 20px auto 0; }
-        .copyfield { margin-bottom: 14px; }
-        .copyfield-label { font-size: 11.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .08em; font-family: 'IBM Plex Mono', monospace; margin-bottom: 6px; }
-        .copyfield-row { display: flex; gap: 8px; align-items: center; }
-        .copyfield-value {
-          flex: 1;
-          background: var(--surface-raised);
-          border: 1px solid var(--border);
-          border-radius: 7px;
-          padding: 9px 12px;
-          font-size: 13.5px;
-          word-break: break-all;
-        }
-        .copy-btn {
-          background: transparent;
-          border: 1px solid var(--border);
-          color: var(--text);
-          border-radius: 7px;
-          padding: 9px 12px;
-          font-size: 12.5px;
-          cursor: pointer;
-          flex-shrink: 0;
-          font-family: 'IBM Plex Mono', monospace;
-        }
-        .copy-btn:hover { border-color: var(--cyan); color: var(--cyan); }
-
-        .handoff-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
-        .empty-state { color: var(--text-dim); font-size: 14px; line-height: 1.6; text-align: center; padding: 20px 10px; }
-
-        .footer-note { max-width: 1040px; margin: 40px auto 0; color: var(--text-dim); font-size: 12.5px; line-height: 1.6; border-top: 1px solid var(--border); padding-top: 18px; }
-        .footer-note a { color: var(--cyan); }
-
-        .spinner {
-          width: 14px; height: 14px; border-radius: 50%;
-          border: 2px solid rgba(255,255,255,0.25);
-          border-top-color: currentColor;
-          animation: spin .7s linear infinite;
-          display: inline-block;
-          vertical-align: middle;
-          margin-right: 6px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        @media (prefers-reduced-motion: reduce) {
-          .spinner { animation: none; }
-          .trace-line-fill { transition: none; }
-        }
-      `}</style>
-
-      <div className="hero">
-        <div className="hero-eyebrow">PocketLink · discovery staging bench</div>
-        <h1>Stage a target and a candidate,<br />hand off the heavy lifting.</h1>
-        <p>
-          Search live structures on the Protein Data Bank and compounds on PubChem,
-          run a quick drug-likeness screen, then send the exact PDB ID and SMILES
-          straight to SwissDock and SwissADME to finish the job.
-        </p>
-      </div>
-
-      <div className="trace-wrap">
-        <div className="trace">
-          <span className={"trace-node" + (protein ? " lit" : "")}>1</span>
-          <span className="trace-line"><span className="trace-line-fill" style={{ width: `${Math.min(progress, 0.5) * 200}%` }} /></span>
-          <span className={"trace-node" + (compound ? " lit" : "")}>2</span>
-          <span className="trace-line"><span className="trace-line-fill" style={{ width: `${Math.max(0, progress - 0.5) * 200}%` }} /></span>
-          <span className={"trace-node" + (progress >= 1 ? " lit" : "")}>3</span>
-        </div>
-      </div>
-
-      <div className="grid">
-        <Panel eyebrow="Station 1 — RCSB PDB" title="Find a target" kind="target">
-          <div className="search-row">
-            <input
-              placeholder="Protein name, gene, or PDB ID (e.g. EGFR, 1M17)"
-              value={pQuery}
-              onChange={(e) => setPQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && searchProtein()}
-            />
-            <button className="btn btn-target" onClick={searchProtein} disabled={pLoading}>
-              {pLoading ? <span className="spinner" /> : null}Search
-            </button>
-          </div>
-          <div className="hint">Live query against search.rcsb.org and data.rcsb.org.</div>
-          {pError && <div className="error-msg">{pError}</div>}
-          {pResults.length > 0 && (
-            <div className="result-list">
-              {pResults.map((r) => (
-                <button
-                  key={r.id}
-                  className={"result-card" + (protein && protein.id === r.id ? " selected" : "")}
-                  onClick={() => setProtein(r)}
-                  type="button"
-                >
-                  <div className="result-card-top">
-                    <span className="result-id">{r.id}</span>
-                    <span className="result-meta">{r.method} · {r.resolution} · {r.date}</span>
-                  </div>
-                  <div className="result-title">{r.title}</div>
-                </button>
-              ))}
-            </div>
-          )}
-          {!pResults.length && !pLoading && !pError && (
-            <div className="empty-state">No target staged yet.</div>
-          )}
-        </Panel>
-
-        <Panel eyebrow="Station 2 — PubChem" title="Find a candidate" kind="candidate">
-          <div className="search-row">
-            <input
-              placeholder="Compound name (e.g. imatinib, caffeine)"
-              value={cQuery}
-              onChange={(e) => setCQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && searchCompound()}
-            />
-            <button className="btn btn-candidate" onClick={searchCompound} disabled={cLoading}>
-              {cLoading ? <span className="spinner" /> : null}Search
-            </button>
-          </div>
-          <div className="hint">Live query against PubChem PUG-REST.</div>
-          {cError && <div className="error-msg">{cError}</div>}
-          {cResult && (
-            <div>
-              <div className="compound-card">
-                <div className="compound-visual">
-                  <PubChemStructureImage cid={cResult.CID} />
-                  <span className="compound-thumb-label">PubChem reference structure</span>
-                </div>
-                <div>
-                  <div className="compound-name">{cResult.IUPACName ? cResult.IUPACName.slice(0, 46) : `CID ${cResult.CID}`}</div>
-                  <div className="compound-formula">{cResult.MolecularFormula} · CID {cResult.CID}</div>
-                  <div className="compound-smiles">
-                    <span className="compound-smiles-label">Selected structure SMILES</span>
-                    {getCompoundSmiles(cResult) || "SMILES unavailable"}
-                  </div>
-                  <div className="compound-props">
-                    <span>MW <b>{Number(cResult.MolecularWeight).toFixed(1)}</b></span>
-                    <span>XLogP <b>{cResult.XLogP !== undefined ? cResult.XLogP : "n/a"}</b></span>
-                    <span>HBD <b>{cResult.HBondDonorCount}</b></span>
-                    <span>HBA <b>{cResult.HBondAcceptorCount}</b></span>
-                  </div>
-                </div>
-              </div>
-              <div style={{ marginTop: 12 }}>
-                <button
-                  className={"btn " + (compound && compound.CID === cResult.CID ? "btn-ghost" : "btn-candidate")}
-                  onClick={() => setCompound(cResult)}
-                  type="button"
-                  style={{ width: "100%" }}
-                >
-                  {compound && compound.CID === cResult.CID ? "Staged for handoff ✓" : "Stage this candidate"}
-                </button>
-              </div>
-
-              <div className="checklist">
-                <div className="checklist-head">
-                  <span className="checklist-title">Quick drug-likeness screen</span>
-                  <span className={"checklist-score " + (passCount >= 5 ? "score-good" : "score-warn")}>{passCount}/6 pass</span>
-                </div>
-                {checks.map((c) => (
-                  <div className="check-row" key={c.label}>
-                    <span className="check-label">
-                      <span className={"check-dot " + (c.pass ? "dot-pass" : "dot-fail")} />
-                      {c.label}
-                    </span>
-                    <span className="check-value">{c.value}</span>
-                  </div>
-                ))}
-                <div className="lipinski-note">
-                  Lipinski Rule-of-Five + Veber criteria, computed from PubChem's own properties — a fast pre-screen,
-                  not a substitute for SwissADME's full pharmacokinetic model.
-                </div>
-              </div>
-            </div>
-          )}
-          {!cResult && !cLoading && !cError && <div className="empty-state">No candidate staged yet.</div>}
-        </Panel>
-      </div>
-
-      <div className="handoff-panel">
-        <Panel eyebrow="Station 3 — handoff" title="Send to SwissDock & SwissADME" kind="handoff">
-          {!protein && !compound && (
-            <div className="empty-state">
-              Stage a target and a candidate above — PocketLink will prepare the exact inputs to paste into
-              SwissDock and SwissADME.
-            </div>
-          )}
-          {(protein || compound) && (
-            <div>
-              {protein && <CopyField label="Target — PDB ID" value={protein.id} />}
-              {compound && <CopyField label="Candidate — SMILES" value={smiles} />}
-              <div className="handoff-actions">
-                <button className="btn btn-handoff" onClick={openSwissDock} disabled={!protein} type="button">
-                  {dockCopied ? "PDB ID copied ✓" : "Open SwissDock →"}
-                </button>
-                <button className="btn btn-handoff" onClick={openSwissADME} disabled={!compound} type="button">
-                  {admeCopied ? "SMILES copied ✓" : "Open SwissADME →"}
-                </button>
-              </div>
-              <div className="lipinski-note" style={{ marginTop: 14 }}>
-                Clicking either button copies the value to your clipboard automatically, then opens the tool
-                in a new tab — so the PDB ID or SMILES is already on your clipboard, one paste away from
-                SwissDock's target field or SwissADME's molecule list. Neither tool offers a public API for
-                automatic submission (both are form-based, same-origin only), so a manual paste into their
-                own page is still the last step — but you shouldn't need to come back here to copy it first.
-              </div>
-            </div>
-          )}
-        </Panel>
-      </div>
-
-      <div className="footer-note">
-        Structures from the <a href="https://www.rcsb.org" target="_blank" rel="noreferrer">RCSB Protein Data Bank</a>.
-        Compound data from <a href="https://pubchem.ncbi.nlm.nih.gov" target="_blank" rel="noreferrer">PubChem</a> (NCBI).
-        Docking via <a href="https://www.swissdock.ch" target="_blank" rel="noreferrer">SwissDock</a> and ADME
-        prediction via <a href="https://www.swissadme.ch" target="_blank" rel="noreferrer">SwissADME</a> (SIB Swiss
-        Institute of Bioinformatics) — both run on their own servers and are opened here, not embedded.
-      </div>
+      <Panel eyebrow="Station 2 — PubChem" title="Build a candidate shortlist" kind="candidate">
+        <div className="search-row"><input placeholder="Compound name (e.g. imatinib, caffeine)" value={cQuery} onChange={e=>setCQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&searchCompound()}/><button className="btn candidate-btn" onClick={searchCompound} disabled={cLoading}>{cLoading?"Searching…":"Search"}</button></div><div className="hint">Search and stage up to 5 molecules for comparison.</div>{cError&&<div className="error">{cError}</div>}
+        {cResult&&<><div className="compound-preview"><img src={`https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=${cResult.CID}&t=l`} alt=""/><div><div className="compound-name">{cResult.displayName}</div><div className="formula">{cResult.MolecularFormula} · CID {cResult.CID}</div><div className="smiles">{smilesOf(cResult)}</div><div className="props">MW {Number(cResult.MolecularWeight).toFixed(1)} · XLogP {cResult.XLogP??"n/a"} · HBD {cResult.HBondDonorCount} · HBA {cResult.HBondAcceptorCount} · RotB {cResult.RotatableBondCount} · TPSA {cResult.TPSA}</div></div></div><div className="stage-row"><button className="btn candidate-btn" onClick={toggleCandidate} disabled={!candidates.some(x=>x.CID===cResult.CID)&&candidates.length>=5}>{candidates.some(x=>x.CID===cResult.CID)?"Remove from shortlist":"Add to shortlist"}</button></div></>}
+        <div className="candidate-count">{candidates.length}/5 candidates selected {candidates.length<2?"· select at least 2 to run AI analysis":"· ready for AI comparison"}</div>
+        {candidates.length>0&&<div className="candidate-list">{candidates.map(c=><CandidateCard key={c.CID} c={c} selected onToggle={()=>{setCandidates(prev=>prev.filter(x=>x.CID!==c.CID));setAiResult(null)}}/>)}</div>}
+      </Panel>
     </div>
-  );
+
+    <div className="ai-section"><Panel eyebrow="Station 3 — AI prioritization" title="Which molecule should we take forward?" kind="handoff">
+      <div className="ai-controls"><div><div className="ai-title">AI Candidate Analysis</div><div className="ai-sub">Compares the supplied molecular properties and produces a transparent prioritization score.</div></div><button className="btn ai-btn" onClick={analyze} disabled={candidates.length<2||aiLoading}>{aiLoading?"Analyzing…":"✦ Analyze candidates"}</button></div>
+      {aiError&&<div className="error">{aiError}</div>}
+      {!aiResult&&!aiLoading&&<div className="empty">Select 2–5 molecules above, then run AI Candidate Analysis.</div>}
+      {aiResult&&<div className="recommend"><div className="section-label">Recommended candidate</div><div className="winner">{recommended?.cid ? (candidates.find(c=>String(c.CID)===String(recommended.cid))?.displayName || `CID ${recommended.cid}`) : "—"}</div><div className="score">Prioritization score {recommended?.score ?? "—"}/100</div><div className="reason">{recommended?.reason}</div><div className="ranking">{ranking.map(r=><div className="rank-row" key={r.cid}><div className="rank-num">#{r.rank}</div><div><div className="rank-name">{candidates.find(c=>String(c.CID)===String(r.cid))?.displayName || `CID ${r.cid}`}</div><ul className="bullets">{(r.strengths||[]).slice(0,2).map((x,i)=><li key={i}>{x}</li>)}{(r.concerns||[]).slice(0,1).map((x,i)=><li key={`c${i}`}>Concern: {x}</li>)}</ul></div><div className="rank-score">{r.score}/100</div></div>)}</div><div className="note" style={{marginTop:12}}>{aiResult.summary}</div><div className="note" style={{marginTop:8}}><strong>Limitations:</strong> {(aiResult.limitations||[]).join(" ")}</div></div>}
+    </Panel></div>
+
+    <div className="handoff"><Panel eyebrow="Station 4 — handoff" title="Send selected molecule to SwissDock & SwissADME" kind="handoff">
+      {!protein&&!candidates.length?<div className="empty">Stage a target and candidates above to prepare the next step.</div>:<><div className="note" style={{marginBottom:14}}>The AI ranking is a prioritization aid. It does not replace docking, ADME prediction, toxicity assessment, or experimental validation.</div>{protein&&<CopyField label="Target — PDB ID" value={protein.id}/>} {candidates.length>0&&<div className="candidate-list">{candidates.map(c=><CopyField key={c.CID} label={`${c.displayName} — SMILES`} value={smilesOf(c)}/>)}</div>}<div className="actions">{protein&&<button className="btn ai-btn" onClick={()=>{navigator.clipboard?.writeText(protein.id);window.open("https://www.swissdock.ch/","_blank","noopener,noreferrer")}}>Open SwissDock →</button>}{candidates.length>0&&<button className="btn ghost" onClick={()=>{navigator.clipboard?.writeText(smilesOf(candidates[0]));window.open("https://www.swissadme.ch/","_blank","noopener,noreferrer")}}>Open SwissADME →</button>}</div></>}
+    </Panel></div>
+
+    <div className="footer">Structures from <a href="https://www.rcsb.org" target="_blank" rel="noreferrer">RCSB Protein Data Bank</a>. Compound data from <a href="https://pubchem.ncbi.nlm.nih.gov" target="_blank" rel="noreferrer">PubChem</a>. Docking via <a href="https://www.swissdock.ch" target="_blank" rel="noreferrer">SwissDock</a> and ADME via <a href="https://www.swissadme.ch" target="_blank" rel="noreferrer">SwissADME</a>. AI output is computational prioritization only and should not be treated as evidence of biological activity or clinical efficacy.</div>
+  </div>;
 }
