@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/rank-candidates.js": {
+      "maxDuration": 30
+    }
+  }
+}

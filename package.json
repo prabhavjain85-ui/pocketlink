@@ -1,7 +1,7 @@
 {
   "name": "pocketlink",
   "version": "1.0.0",
-  "description": "Drug Discovery Staging Bench — Search PDB targets, stage PubChem compounds, run Lipinski screen",
+  "description": "Drug Discovery Staging Bench — Search PDB targets, shortlist PubChem compounds, rank the best AI follow-up",
   "private": true,
   "dependencies": {
     "react": "^18.2.0",
