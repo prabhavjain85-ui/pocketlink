@@ -1,4 +1,7 @@
+const { rankCandidatesLocal } = require("../src/scoreCandidates");
+
 const ALLOWED_ORIGIN = "*";
+const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
 function json(res, status, body) {
   res.statusCode = status;
@@ -13,77 +16,163 @@ function clean(value, max = 4000) {
   return String(value ?? "").slice(0, max);
 }
 
+function compactCandidates(raw) {
+  return (Array.isArray(raw) ? raw : []).slice(0, 5).map((c, index) => ({
+    rank_input: index + 1,
+    name: clean(c.name, 180),
+    cid: clean(c.cid, 40),
+    smiles: clean(c.smiles, 1200),
+    molecularFormula: clean(c.molecularFormula, 120),
+    molecularWeight: c.molecularWeight,
+    xlogp: c.xlogp,
+    hbd: c.hbd,
+    hba: c.hba,
+    rotatableBonds: c.rotatableBonds,
+    tpsa: c.tpsa,
+  }));
+}
+
+function extractJson(text) {
+  const cleaned = String(text || "")
+    .replace(/^```json\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]);
+    } catch {
+      return null;
+    }
+  }
+}
+
+function normalizeResult(result, allowedCids) {
+  if (!result || typeof result !== "object") return null;
+  const ranking = Array.isArray(result.ranking) ? result.ranking : [];
+  const rankedCids = ranking.map((row) => String(row.cid));
+  const sameSet =
+    rankedCids.length === allowedCids.length &&
+    allowedCids.every((cid) => rankedCids.includes(cid));
+  const recommendedCid = String(result.recommended?.cid || "");
+  if (!sameSet || !allowedCids.includes(recommendedCid)) return null;
+
+  return {
+    recommended: {
+      cid: recommendedCid,
+      score: Number(result.recommended.score),
+      reason: clean(result.recommended.reason, 800),
+    },
+    ranking: ranking.map((row, index) => ({
+      cid: String(row.cid),
+      rank: Number(row.rank) || index + 1,
+      score: Number(row.score),
+      strengths: Array.isArray(row.strengths) ? row.strengths.map((s) => clean(s, 240)).slice(0, 4) : [],
+      concerns: Array.isArray(row.concerns) ? row.concerns.map((s) => clean(s, 240)).slice(0, 4) : [],
+    })),
+    summary: clean(result.summary, 900),
+    limitations: Array.isArray(result.limitations)
+      ? result.limitations.map((s) => clean(s, 300)).slice(0, 6)
+      : [],
+    source: "llm",
+  };
+}
+
+async function rankWithOpenAI(compact, protein, heuristic) {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) return null;
+
+  const system = `You are an assistant for early-stage computational drug discovery triage.
+Rank the supplied small-molecule candidates for follow-up using ONLY the supplied data.
+Do not invent docking scores, ADME results, toxicity, residue contacts, or experimental evidence.
+If docking data are absent, say that binding affinity cannot be assessed from this dataset.
+Treat Lipinski/Veber rules as screening heuristics, not proof of developability.
+Do not call a molecule a drug or clinically effective.
+A PocketLink heuristic ranking is provided as a starting point — you may reorder if the properties justify it, but stay conservative.
+Return valid JSON only with this schema:
+{"recommended":{"cid":string,"score":number,"reason":string},"ranking":[{"cid":string,"rank":number,"score":number,"strengths":[string],"concerns":[string]}],"summary":string,"limitations":[string]}`;
+
+  const user = `Rank these candidates from best to worst for computational follow-up against ${
+    protein?.id ? `PDB ${protein.id} (${protein.title || "staged target"})` : "an unspecified target"
+  }. Give each an overall prioritization score from 0 to 100.
+
+Candidates:
+${JSON.stringify(compact, null, 2)}
+
+Heuristic ranking (from Lipinski/Veber physicochemical scoring):
+${JSON.stringify(heuristic, null, 2)}`;
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model: DEFAULT_MODEL,
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    const err = new Error(data?.error?.message || "OpenAI request failed.");
+    err.status = response.status;
+    throw err;
+  }
+
+  const text = data?.choices?.[0]?.message?.content || "";
+  return extractJson(text);
+}
+
 module.exports = async (req, res) => {
   if (req.method === "OPTIONS") return json(res, 204, {});
   if (req.method !== "POST") return json(res, 405, { error: "POST required" });
 
-  if (!process.env.OPENAI_API_KEY) {
-    return json(res, 500, {
-      error: "AI is not configured yet. Add OPENAI_API_KEY to the Vercel project environment variables."
-    });
-  }
-
   try {
-    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-    const candidates = Array.isArray(body?.candidates) ? body.candidates.slice(0, 5) : [];
+    const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+    const compact = compactCandidates(body.candidates);
+    const protein = body.protein
+      ? {
+          id: clean(body.protein.id, 12),
+          title: clean(body.protein.title, 240),
+          method: clean(body.protein.method, 80),
+          resolution: clean(body.protein.resolution, 40),
+        }
+      : null;
 
-    if (candidates.length < 2) {
+    if (compact.length < 2) {
       return json(res, 400, { error: "Select at least 2 candidates." });
     }
 
-    const compact = candidates.map((c, index) => ({
-      rank_input: index + 1,
-      name: clean(c.name, 180),
-      cid: clean(c.cid, 40),
-      smiles: clean(c.smiles, 1200),
-      molecularFormula: clean(c.molecularFormula, 120),
-      molecularWeight: c.molecularWeight,
-      xlogp: c.xlogp,
-      hbd: c.hbd,
-      hba: c.hba,
-      rotatableBonds: c.rotatableBonds,
-      tpsa: c.tpsa,
-      dockingScore: c.dockingScore === "" || c.dockingScore == null ? null : Number(c.dockingScore)
-    }));
+    const heuristic = rankCandidatesLocal(compact, protein);
+    const allowedCids = compact.map((c) => String(c.cid));
 
-    const system = `You are an AI assistant for early-stage computational drug discovery prioritization.\n\nYour job is to rank the supplied small-molecule candidates for follow-up. Use ONLY the supplied data. Do not invent docking scores, ADME results, toxicity results, targets, residue interactions, or experimental evidence. A lower (more negative) docking score is better only when a docking score is actually supplied. If docking data are absent, explicitly say that binding affinity cannot be assessed from this dataset.\n\nPrioritize a balanced profile: drug-likeness, physicochemical properties, and any supplied docking evidence. Treat Lipinski/Veber-style rules as screening heuristics, not proof of developability. Do not call a molecule a drug or clinically effective. Return valid JSON only.\n\nOutput schema:\n{\"recommended\":{\"cid\":string,\"score\":number,\"reason\":string},\"ranking\":[{\"cid\":string,\"rank\":number,\"score\":number,\"strengths\":[string],\"concerns\":[string]}],\"summary\":string,\"limitations\":[string]}`;
-
-    const user = `Rank these candidates from best to worst for computational follow-up. Give each an overall prioritization score from 0 to 100.\n\nCandidates:\n${JSON.stringify(compact, null, 2)}`;
-
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-5.6-luna",
-        input: [
-          { role: "system", content: system },
-          { role: "user", content: user }
-        ],
-        max_output_tokens: 1800
-      })
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      return json(res, response.status, {
-        error: data?.error?.message || "OpenAI request failed."
-      });
+    if (!process.env.OPENAI_API_KEY) {
+      return json(res, 200, heuristic);
     }
 
-    const output = data.output_text || data.output?.flatMap((item) => item.content || [])?.map((part) => part.text || "").join("") || "";
-    const cleaned = output.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
-
-    let result;
     try {
-      result = JSON.parse(cleaned);
-    } catch {
-      return json(res, 502, { error: "The AI returned an invalid ranking response." });
+      const llmRaw = await rankWithOpenAI(compact, protein, heuristic);
+      const llm = normalizeResult(llmRaw, allowedCids);
+      if (llm) return json(res, 200, llm);
+    } catch (error) {
+      // Fall through to the local model so the shortlist still gets an answer.
+      heuristic.limitations = [
+        ...(heuristic.limitations || []),
+        `Language-model ranking was unavailable (${clean(error.message, 160)}), so PocketLink used its physicochemical model instead.`,
+      ];
     }
 
-    return json(res, 200, result);
+    return json(res, 200, heuristic);
   } catch (error) {
     return json(res, 500, { error: error?.message || "Unexpected server error." });
   }
