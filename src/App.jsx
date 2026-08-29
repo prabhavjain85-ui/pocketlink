@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { rankCandidates } from "./aiCandidateRanking";
 import { MAX_CANDIDATES, drugLikenessChecks } from "./scoreCandidates";
+import { fetchAndScoreTargets, SCORE_FORMULA_TEXT } from "./targetSelectionScore";
 
 function PubChemStructureImage({ cid, compact }) {
   const [failed, setFailed] = useState(false);
@@ -111,6 +112,129 @@ function Panel({ title, eyebrow, kind, children }) {
   );
 }
 
+function ScoreInfoTip() {
+  return (
+    <span className="score-tip">
+      <button
+        type="button"
+        className="score-tip-btn"
+        aria-label="How the target selection score is calculated"
+        aria-describedby="score-tip-pop"
+        title={SCORE_FORMULA_TEXT}
+      >
+        i
+      </button>
+      <span className="score-tip-pop" id="score-tip-pop" role="tooltip">
+        <strong>Target Selection Score</strong>
+        <span className="score-tip-lead">Rules-based total out of 100 from RCSB metadata. No AI call.</span>
+        <ul>
+          <li><b>Resolution (25)</b> — ≤2.0 Å = 25, ≤2.5 = 20, ≤3.0 = 15, ≤3.5 = 10, worse = 5, missing = 0</li>
+          <li><b>Completeness (25)</b> — linear, 100% = 25 pts</li>
+          <li><b>Ligand (20)</b> — real co-crystallized ligand = 20 (crystallization additives excluded)</li>
+          <li><b>Pocket (15)</b> — residues within ~5 Å of a ligand = 15, unclear = 7, none = 0</li>
+          <li><b>Method (15)</b> — X-ray = 15, Cryo-EM = 12, NMR = 8, other = 5</li>
+        </ul>
+      </span>
+    </span>
+  );
+}
+
+function compareScoreField(a, b, key) {
+  const nullableNum = (va, vb) => {
+    if (va == null && vb == null) return 0;
+    if (va == null) return -1;
+    if (vb == null) return 1;
+    return va < vb ? -1 : va > vb ? 1 : 0;
+  };
+  if (key === "id") return String(a.id).localeCompare(String(b.id));
+  if (key === "resolution") return nullableNum(a.resolutionValue, b.resolutionValue);
+  if (key === "ligand") return Number(Boolean(a.hasLigand)) - Number(Boolean(b.hasLigand));
+  if (key === "completeness") return nullableNum(a.completeness, b.completeness);
+  if (key === "pocket") {
+    const order = { detected: 2, unclear: 1, none: 0 };
+    return (order[a.pocket] ?? -1) - (order[b.pocket] ?? -1);
+  }
+  if (key === "method") return String(a.methodLabel || "").localeCompare(String(b.methodLabel || ""));
+  return (a.score ?? 0) - (b.score ?? 0);
+}
+
+function TargetScoreTable({ results, selectedId, recommendedId, sortKey, sortDir, onSort, onSelect }) {
+  const sorted = useMemo(() => {
+    const mul = sortDir === "asc" ? 1 : -1;
+    return [...results].sort((a, b) => {
+      const cmp = compareScoreField(a, b, sortKey);
+      if (cmp !== 0) return cmp * mul;
+      return String(a.id).localeCompare(String(b.id));
+    });
+  }, [results, sortKey, sortDir]);
+
+  const cols = [
+    { key: "id", label: "PDB ID" },
+    { key: "resolution", label: "Resolution" },
+    { key: "ligand", label: "Ligand" },
+    { key: "completeness", label: "Completeness %" },
+    { key: "pocket", label: "Pocket" },
+    { key: "method", label: "Method" },
+    { key: "score", label: "Score" },
+  ];
+
+  return (
+    <div className="score-table-wrap">
+      <table className="score-table">
+        <thead>
+          <tr>
+            {cols.map((col) => {
+              const active = sortKey === col.key;
+              const ariaSort = active ? (sortDir === "asc" ? "ascending" : "descending") : "none";
+              return (
+                <th key={col.key} aria-sort={ariaSort}>
+                  <button type="button" className={"score-th" + (active ? " active" : "")} onClick={() => onSort(col.key)}>
+                    {col.label}
+                    <span className="sort-ind" aria-hidden="true">
+                      {active ? (sortDir === "asc" ? "▲" : "▼") : "↕"}
+                    </span>
+                  </button>
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((r) => {
+            const selected = selectedId === r.id;
+            const recommended = recommendedId === r.id;
+            return (
+              <tr
+                key={r.id}
+                className={(selected ? "selected" : "") + (recommended ? " recommended" : "")}
+                onClick={() => onSelect(r)}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelect(r);
+                  }
+                }}
+              >
+                <td>
+                  <div className="result-id">{r.id}</div>
+                  <div className="score-title" title={r.title}>{r.title}</div>
+                </td>
+                <td className="mono">{r.resolution || "N/A"}</td>
+                <td className="score-icon-cell">{r.ligandLabel || "❌"}</td>
+                <td className="mono">{r.completenessLabel || "N/A"}</td>
+                <td className="score-icon-cell">{r.pocketLabel || "?"}</td>
+                <td>{r.methodLabel || "N/A"}</td>
+                <td className="mono score-num">{r.score}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function CandidateRow({ candidate, selected, recommended, onToggle, onRemove }) {
   const checks = drugLikenessChecks(candidate);
   const pass = checks.filter((c) => c.pass).length;
@@ -158,20 +282,9 @@ export default function App() {
 
   const [dockCopied, setDockCopied] = useState(false);
   const [admeCopied, setAdmeCopied] = useState(false);
+  const [scoreSort, setScoreSort] = useState({ key: "score", dir: "desc" });
 
   const reqId = useRef(0);
-
-  const fetchEntrySummary = async (id) => {
-    const res = await fetch(`https://data.rcsb.org/rest/v1/core/entry/${id}`);
-    if (!res.ok) return null;
-    const d = await res.json();
-    const method = (d.exptl && d.exptl[0] && d.exptl[0].method) || "—";
-    const res_ = d.rcsb_entry_info && d.rcsb_entry_info.resolution_combined;
-    const resolution = res_ && res_.length ? `${res_[0]} Å` : "—";
-    const title = (d.struct && d.struct.title) || "Untitled entry";
-    const date = (d.rcsb_accession_info && d.rcsb_accession_info.initial_release_date) || "";
-    return { id, title, method, resolution, date: date ? date.slice(0, 4) : "—" };
-  };
 
   const searchProtein = useCallback(async () => {
     const q = pQuery.trim();
@@ -180,34 +293,56 @@ export default function App() {
     setPLoading(true);
     setPError("");
     setPResults([]);
+    setScoreSort({ key: "score", dir: "desc" });
     try {
-      if (PDB_ID_RE.test(q)) {
-        const direct = await fetchEntrySummary(q.toUpperCase());
-        if (direct) {
-          if (reqId.current === myReq) setPResults([direct]);
-          setPLoading(false);
-          return;
-        }
+      let ids = [];
+      const looksLikeId = PDB_ID_RE.test(q);
+      if (looksLikeId) {
+        ids = [q.toUpperCase()];
       }
-      const res = await fetch("https://search.rcsb.org/rcsbsearch/v2/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: { type: "terminal", service: "full_text", parameters: { value: q } },
-          return_type: "entry",
-          request_options: { paginate: { start: 0, rows: 6 } },
-        }),
-      });
-      if (!res.ok) throw new Error("search failed");
-      const data = await res.json();
-      const ids = (data.result_set || []).map((r) => r.identifier);
+      if (!ids.length) {
+        const res = await fetch("https://search.rcsb.org/rcsbsearch/v2/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: { type: "terminal", service: "full_text", parameters: { value: q } },
+            return_type: "entry",
+            request_options: { paginate: { start: 0, rows: 6 } },
+          }),
+        });
+        if (!res.ok) throw new Error("search failed");
+        const data = await res.json();
+        ids = (data.result_set || []).map((r) => r.identifier);
+      }
       if (!ids.length) {
         if (reqId.current === myReq) setPError(`No PDB entries matched "${q}". Try a protein name, gene, or a 4-character PDB ID.`);
         setPLoading(false);
         return;
       }
-      const summaries = await Promise.all(ids.map(fetchEntrySummary));
-      if (reqId.current === myReq) setPResults(summaries.filter(Boolean));
+      let scored = await fetchAndScoreTargets(ids);
+      if (reqId.current !== myReq) return;
+      if (!scored.length && looksLikeId) {
+        const res = await fetch("https://search.rcsb.org/rcsbsearch/v2/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: { type: "terminal", service: "full_text", parameters: { value: q } },
+            return_type: "entry",
+            request_options: { paginate: { start: 0, rows: 6 } },
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const searchIds = (data.result_set || []).map((r) => r.identifier);
+          if (searchIds.length) scored = await fetchAndScoreTargets(searchIds);
+        }
+      }
+      if (reqId.current !== myReq) return;
+      if (!scored.length) {
+        setPError(`No PDB entries matched "${q}". Try a protein name, gene, or a 4-character PDB ID.`);
+        return;
+      }
+      setPResults(scored);
     } catch (e) {
       if (reqId.current === myReq) setPError("Couldn't reach RCSB PDB. Check your connection and try again.");
     } finally {
@@ -294,6 +429,22 @@ export default function App() {
     } finally {
       setAiLoading(false);
     }
+  };
+
+  const recommendedTarget = useMemo(() => {
+    if (!pResults.length) return null;
+    return pResults.reduce((best, row) => {
+      if (!best) return row;
+      if ((row.score ?? 0) > (best.score ?? 0)) return row;
+      return best;
+    }, null);
+  }, [pResults]);
+
+  const toggleScoreSort = (key) => {
+    setScoreSort((prev) => {
+      if (prev.key === key) return { key, dir: prev.dir === "desc" ? "asc" : "desc" };
+      return { key, dir: key === "id" || key === "method" ? "asc" : "desc" };
+    });
   };
 
   const recommendedCid = aiResult?.recommended?.cid;
@@ -422,6 +573,7 @@ export default function App() {
         }
 
         .grid { max-width: 1040px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid.with-scores { grid-template-columns: 1fr; }
         @media (max-width: 780px) { .grid { grid-template-columns: 1fr; } }
 
         .panel {
@@ -503,6 +655,101 @@ export default function App() {
         .result-id { font-family: 'IBM Plex Mono', monospace; color: var(--cyan); font-size: 13px; font-weight: 500; }
         .result-meta { color: var(--text-dim); font-size: 11.5px; font-family: 'IBM Plex Mono', monospace; }
         .result-title { font-size: 13.5px; margin-top: 4px; color: var(--text); line-height: 1.4; }
+
+        .score-block { display: flex; flex-direction: column; gap: 12px; }
+        .score-toolbar { display: flex; align-items: center; gap: 8px; }
+        .score-toolbar-label {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px;
+          letter-spacing: .08em;
+          text-transform: uppercase;
+          color: var(--text-dim);
+        }
+        .score-tip { position: relative; display: inline-flex; }
+        .score-tip-btn {
+          width: 18px; height: 18px; border-radius: 50%;
+          border: 1px solid var(--border);
+          background: var(--surface-raised);
+          color: var(--cyan);
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px;
+          cursor: pointer;
+          line-height: 1;
+          padding: 0;
+        }
+        .score-tip-btn:hover, .score-tip-btn:focus-visible { border-color: var(--cyan); outline: none; }
+        .score-tip-pop {
+          display: none;
+          position: absolute;
+          top: calc(100% + 8px);
+          left: 0;
+          width: min(320px, 72vw);
+          z-index: 8;
+          background: var(--surface-raised);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 12px 14px;
+          box-shadow: 0 12px 32px rgba(0,0,0,.35);
+          color: var(--text);
+        }
+        .score-tip:hover .score-tip-pop, .score-tip:focus-within .score-tip-pop { display: block; }
+        .score-tip-pop strong { display: block; font-size: 13px; margin-bottom: 4px; }
+        .score-tip-lead { display: block; color: var(--text-dim); font-size: 12px; line-height: 1.45; margin-bottom: 8px; }
+        .score-tip-pop ul { margin: 0; padding-left: 16px; color: var(--text-dim); font-size: 12px; line-height: 1.5; }
+        .score-tip-pop b { color: var(--text); font-weight: 500; }
+        .recommend.compact { padding: 12px 14px; }
+        .recommend.compact .winner { font-size: 18px; }
+        .score-table-wrap {
+          overflow-x: auto;
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          background: var(--surface-raised);
+          max-height: 360px;
+          overflow-y: auto;
+        }
+        .score-table { width: 100%; border-collapse: collapse; min-width: 560px; }
+        .score-table th { position: sticky; top: 0; background: #152436; z-index: 1; }
+        .score-th {
+          display: flex; align-items: center; gap: 4px;
+          width: 100%;
+          background: transparent; border: 0;
+          color: var(--text-dim);
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 10px;
+          letter-spacing: .04em;
+          text-transform: uppercase;
+          text-align: left;
+          padding: 8px 10px;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+        .score-th.active { color: var(--cyan); }
+        .sort-ind { font-size: 9px; opacity: .7; }
+        .score-table td {
+          padding: 8px 10px;
+          border-top: 1px solid var(--border);
+          font-size: 12.5px;
+          vertical-align: top;
+        }
+        .score-table tbody tr { cursor: pointer; }
+        .score-table tbody tr:hover td { background: rgba(79, 216, 196, 0.06); }
+        .score-table tbody tr.selected td { background: #16342E; }
+        .score-table tbody tr.recommended td { box-shadow: inset 2px 0 0 var(--green); }
+        .score-table tbody tr.recommended.selected td { background: #16342E; }
+        .score-title {
+          color: var(--text-dim);
+          font-size: 11px;
+          line-height: 1.35;
+          margin-top: 2px;
+          max-width: 140px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+        .score-icon-cell { font-size: 14px; text-align: center; }
+        .score-num { color: var(--cyan); font-weight: 500; }
 
         .compound-card {
           border: 1px solid var(--border);
@@ -775,7 +1022,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="grid">
+      <div className={"grid" + (pResults.length ? " with-scores" : "")}>
         <Panel eyebrow="Station 1 — RCSB PDB" title="Find a target" kind="target">
           <div className="search-row">
             <input
@@ -788,24 +1035,41 @@ export default function App() {
               {pLoading ? <span className="spinner" /> : null}Search
             </button>
           </div>
-          <div className="hint">Live query against search.rcsb.org and data.rcsb.org.</div>
+          <div className="hint">Live query against search.rcsb.org and data.rcsb.org. Matching structures are scored locally for docking/design suitability.</div>
           {pError && <div className="error-msg">{pError}</div>}
           {pResults.length > 0 && (
-            <div className="result-list">
-              {pResults.map((r) => (
-                <button
-                  key={r.id}
-                  className={"result-card" + (protein && protein.id === r.id ? " selected" : "")}
-                  onClick={() => setProtein(r)}
-                  type="button"
-                >
-                  <div className="result-card-top">
-                    <span className="result-id">{r.id}</span>
-                    <span className="result-meta">{r.method} · {r.resolution} · {r.date}</span>
-                  </div>
-                  <div className="result-title">{r.title}</div>
-                </button>
-              ))}
+            <div className="score-block">
+              <div className="score-toolbar">
+                <span className="score-toolbar-label">Target selection score</span>
+                <ScoreInfoTip />
+              </div>
+              {recommendedTarget && (
+                <div className="recommend compact">
+                  <div className="recommend-label">Recommended structure</div>
+                  <div className="winner">🏆 Recommended structure: {recommendedTarget.id}</div>
+                  <div className="winner-score">Target selection score {recommendedTarget.score}/100</div>
+                  <ul className="rank-bullets">
+                    {(recommendedTarget.reasons || []).map((reason, i) => (
+                      <li key={i}>{reason}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <TargetScoreTable
+                results={pResults}
+                selectedId={protein?.id}
+                recommendedId={recommendedTarget?.id}
+                sortKey={scoreSort.key}
+                sortDir={scoreSort.dir}
+                onSort={toggleScoreSort}
+                onSelect={setProtein}
+              />
+              {protein && pResults.some((r) => r.id === protein.id) && (
+                <div className="hint" style={{ margin: 0 }}>
+                  Staged target: <span className="mono">{protein.id}</span>
+                  {protein.title ? ` — ${protein.title}` : ""}
+                </div>
+              )}
             </div>
           )}
           {!pResults.length && !pLoading && !pError && (
