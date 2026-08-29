@@ -20,7 +20,7 @@ This document outlines the rate limits and best practices for external APIs used
 ### Best Practices
 
 ✅ **Do:**
-- Batch multiple entry lookups if you have PDB IDs (use `fetchEntrySummary` in parallel with `Promise.all()`)
+- Batch multiple entry lookups in one GraphQL request (`fetchAndScoreTargets`); REST entry + nonpolymer calls are the fallback
 - Cache results locally (localStorage or IndexedDB)
 - Use GZIP compression (include `Accept-Encoding: gzip`)
 - Implement exponential backoff for retries
@@ -33,22 +33,9 @@ This document outlines the rate limits and best practices for external APIs used
 ### Example: Safe Batch Lookup
 
 ```javascript
-// ✅ Good: Parallel requests with caching
-const fetchMultipleEntries = async (pdbIds) => {
-  const cached = pdbIds.filter(id => cache.has(id));
-  const toFetch = pdbIds.filter(id => !cache.has(id));
-
-  const results = await Promise.all(
-    toFetch.map(id => 
-      fetchEntrySummary(id).catch(e => {
-        console.warn(`Failed to fetch ${id}:`, e);
-        return null;
-      })
-    )
-  );
-
-  return [...cached, ...results];
-};
+// ✅ Good: one GraphQL request for the whole ID batch
+const { fetchAndScoreTargets } = require("./src/targetSelectionScore");
+const ranked = await fetchAndScoreTargets(pdbIds);
 ```
 
 ## PubChem PUG-REST API

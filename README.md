@@ -2,6 +2,13 @@
 
 Drug discovery staging bench: search PDB targets, shortlist up to five PubChem compounds, rank the best computational follow-up, and hand off to SwissDock / SwissADME.
 
+## Target selection score
+
+Station 1 ranks matching PDB structures so you can pick the best one for docking.
+
+- **Always on, no AI:** resolution, completeness, co-crystallized ligand (excluding crystallization additives), binding-pocket proximity (~5 Å), and experimental method are combined into a 100-point score.
+- Metadata is batched from RCSB (`data.rcsb.org/graphql`, with REST fallback). Missing fields score as 0 and show as N/A.
+
 ## AI candidate ranking
 
 Station 3 compares 2–5 staged molecules and recommends one to take forward.
