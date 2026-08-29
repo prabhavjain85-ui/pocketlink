@@ -1064,7 +1064,7 @@ export default function App() {
                 onSort={toggleScoreSort}
                 onSelect={setProtein}
               />
-              {protein && (
+              {protein && pResults.some((r) => r.id === protein.id) && (
                 <div className="hint" style={{ margin: 0 }}>
                   Staged target: <span className="mono">{protein.id}</span>
                   {protein.title ? ` — ${protein.title}` : ""}
