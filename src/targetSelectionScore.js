@@ -192,7 +192,11 @@ function scorePocket(status) {
 function formatAngstrom(value) {
   const n = num(value);
   if (n == null) return "N/A";
-  return `${n % 1 === 0 ? n.toFixed(1) : String(n)} Å`;
+  const rounded = Math.round(n * 100) / 100;
+  let text = rounded.toFixed(2);
+  if (text.endsWith(".00")) text = rounded.toFixed(1);
+  else if (text.endsWith("0")) text = text.slice(0, -1);
+  return `${text} Å`;
 }
 
 function formatPct(value) {

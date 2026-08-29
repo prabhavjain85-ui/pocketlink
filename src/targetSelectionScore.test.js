@@ -24,6 +24,14 @@ test("resolution buckets match the spec", () => {
   expect(scoreResolution(undefined).value).toBeNull();
 });
 
+test("formats noisy RCSB resolution values to two decimal places", () => {
+  const { formatAngstrom } = require("./targetSelectionScore");
+  expect(formatAngstrom(2.5009425482)).toBe("2.5 Å");
+  expect(formatAngstrom(2.83)).toBe("2.83 Å");
+  expect(formatAngstrom(1.783)).toBe("1.78 Å");
+  expect(formatAngstrom(2)).toBe("2.0 Å");
+});
+
 test("completeness scales linearly and handles missing counts", () => {
   expect(completenessPercent({
     deposited_modeled_polymer_monomer_count: 90,
