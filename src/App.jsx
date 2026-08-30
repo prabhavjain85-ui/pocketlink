@@ -129,7 +129,7 @@ function PainsInfoTip() {
         <strong>PAINS &amp; toxicophore flags</strong>
         <span className="score-tip-lead">Deterministic RDKit substructure check. No AI call. Flags are warnings, not hard blocks.</span>
         <ul>
-          <li><b>PAINS</b> — RDKit FilterCatalog families A/B/C (Baell &amp; Holloway). Frequent HTS false-positive chemotypes.</li>
+          <li><b>PAINS</b> — RDKit wehi_pains SMARTS (families A/B/C, Baell &amp; Holloway). Frequent HTS false-positive chemotypes.</li>
           <li><b>Toxicophores</b> — small extra SMARTS list: Michael acceptors, aldehydes, epoxides, alkyl halides.</li>
           <li><b>Unable to check</b> — missing or invalid SMILES, or the checker was unreachable. Not treated as clean.</li>
         </ul>

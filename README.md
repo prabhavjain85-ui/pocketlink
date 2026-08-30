@@ -13,7 +13,7 @@ Station 1 ranks matching PDB structures so you can pick the best one for docking
 
 Station 2 screens each shortlisted PubChem compound with a **rules-based** substructure check before (and alongside) AI ranking. This is not an LLM call.
 
-- **PAINS:** RDKit `FilterCatalog` families `PAINS_A`, `PAINS_B`, and `PAINS_C` (Baell & Holloway).
+- **PAINS:** the official RDKit `wehi_pains.csv` SMARTS (same patterns as FilterCatalog `PAINS_A` / `PAINS_B` / `PAINS_C`, Baell & Holloway).
 - **Toxicophores:** a small extra SMARTS list for reactive groups PAINS does not cover well — Michael acceptors, aldehydes, epoxides, and alkyl halides.
 - Each match returns a plain-language name (e.g. rhodanine, quinone) and a one-line liability explanation.
 - Missing or invalid SMILES is marked **unable to check**, not treated as clean.
@@ -21,7 +21,7 @@ Station 2 screens each shortlisted PubChem compound with a **rules-based** subst
 - Results are cached per CID/SMILES in memory and `sessionStorage`.
 - Alert details are passed into `/api/rank-candidates` so the recommendation can cite them (e.g. “deprioritized due to PAINS alert: rhodanine”).
 
-The checker is a Python Vercel function at `POST /api/pains-check` (`rdkit` in `requirements.txt`). For local CRA development run `npm run pains-api` in a second terminal so `/api/pains-check` can be proxied.
+The checker is a **Node** Vercel function at `POST /api/pains-check` using `@rdkit/rdkit` (official RDKit WebAssembly, ~7 MB). RDKit-JS MinimalLib does not expose `FilterCatalog`, so the function matches the same SMARTS with `get_qmol` / `get_substruct_match`. For local CRA development run `npm run pains-api` in a second terminal so `/api/pains-check` can be proxied.
 
 ## AI candidate ranking
 

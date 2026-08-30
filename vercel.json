@@ -3,8 +3,9 @@
     "api/rank-candidates.js": {
       "maxDuration": 30
     },
-    "api/pains-check.py": {
-      "maxDuration": 15
+    "api/pains-check.js": {
+      "maxDuration": 15,
+      "includeFiles": "node_modules/@rdkit/rdkit/dist/**"
     }
   }
 }

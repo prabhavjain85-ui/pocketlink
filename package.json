@@ -4,6 +4,7 @@
   "description": "Drug Discovery Staging Bench — Search PDB targets, shortlist PubChem compounds, rank the best AI follow-up",
   "private": true,
   "dependencies": {
+    "@rdkit/rdkit": "^2025.3.4-1.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1"
@@ -12,8 +13,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "test:pains": "python3 -m unittest api/_pains_test.py",
-    "pains-api": "python3 api/pains-check.py",
+    "pains-api": "node api/pains-check.js",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
