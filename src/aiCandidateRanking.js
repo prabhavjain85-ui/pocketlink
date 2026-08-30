@@ -1,9 +1,12 @@
+import { compactPainsForRanking } from "./painsCheck";
 import { rankCandidatesLocal } from "./scoreCandidates";
 
-function toApiCandidate(candidate) {
-  return {
+function toApiCandidate(candidate, painsByCid = {}) {
+  const cid = candidate.CID ?? candidate.cid;
+  const pains = painsByCid[String(cid)] || candidate.pains || candidate.painsAlerts;
+  const row = {
     name: candidate.displayName || candidate.IUPACName || candidate.name || `CID ${candidate.CID || candidate.cid}`,
-    cid: candidate.CID ?? candidate.cid,
+    cid,
     smiles: candidate.IsomericSMILES || candidate.CanonicalSMILES || candidate.SMILES || candidate.smiles || "",
     molecularFormula: candidate.MolecularFormula || candidate.molecularFormula,
     molecularWeight: candidate.MolecularWeight ?? candidate.molecularWeight,
@@ -13,11 +16,22 @@ function toApiCandidate(candidate) {
     rotatableBonds: candidate.RotatableBondCount ?? candidate.rotatableBonds,
     tpsa: candidate.TPSA ?? candidate.tpsa,
   };
+  const compact = compactPainsForRanking(pains);
+  if (compact) row.pains = compact;
+  return row;
 }
 
-export async function rankCandidates(candidates, protein) {
+function withPains(candidates, painsByCid = {}) {
+  return (Array.isArray(candidates) ? candidates : []).map((candidate) => {
+    const cid = String(candidate.CID ?? candidate.cid ?? "");
+    const pains = painsByCid[cid] || candidate.pains || candidate.painsAlerts;
+    return pains ? { ...candidate, pains: compactPainsForRanking(pains) } : candidate;
+  });
+}
+
+export async function rankCandidates(candidates, protein, painsByCid = {}) {
   const payload = {
-    candidates: candidates.map(toApiCandidate),
+    candidates: candidates.map((c) => toApiCandidate(c, painsByCid)),
     protein: protein
       ? { id: protein.id, title: protein.title, method: protein.method, resolution: protein.resolution }
       : null,
@@ -36,6 +50,6 @@ export async function rankCandidates(candidates, protein) {
     }
     return data;
   } catch {
-    return rankCandidatesLocal(candidates, protein);
+    return rankCandidatesLocal(withPains(candidates, painsByCid), protein);
   }
 }

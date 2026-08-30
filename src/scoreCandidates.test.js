@@ -88,3 +88,47 @@ test("Lipinski checks flag the oversized molecule", () => {
   const caffeineChecks = drugLikenessChecks(caffeine);
   expect(caffeineChecks.every((c) => c.pass)).toBe(true);
 });
+
+test("PAINS alerts deprioritize a molecule but keep it in the ranking", () => {
+  const flagged = {
+    ...caffeine,
+    cid: "10680",
+    displayName: "benzoquinone-like",
+    pains: {
+      status: "alert",
+      hasAlerts: true,
+      alerts: [
+        {
+          family: "pains",
+          catalog: "PAINS_A",
+          name: "Quinone",
+          explanation: "Quinones are frequent false positives.",
+        },
+      ],
+    },
+  };
+  const result = rankCandidatesLocal([flagged, caffeine]);
+  expect(result.ranking.map((r) => r.cid).sort()).toEqual(["10680", "2519"]);
+  expect(result.recommended.cid).toBe("2519");
+  const flaggedRow = result.ranking.find((r) => r.cid === "10680");
+  expect(flaggedRow.concerns.join(" ")).toMatch(/PAINS alert: Quinone/i);
+  expect(result.summary).toMatch(/PAINS or toxicophore/i);
+});
+
+test("toxicophore alerts are mentioned without dropping the compound", () => {
+  const flagged = {
+    ...ibuprofen,
+    cid: "240",
+    displayName: "benzaldehyde-like",
+    pains: {
+      status: "alert",
+      hasAlerts: true,
+      alerts: [{ family: "toxicophore", catalog: "toxicophore", name: "Aldehyde", explanation: "Reactive carbonyl." }],
+    },
+  };
+  const result = rankCandidatesLocal([flagged, ibuprofen]);
+  expect(result.ranking).toHaveLength(2);
+  const flaggedRow = result.ranking.find((r) => r.cid === "240");
+  expect(flaggedRow).toBeTruthy();
+  expect(flaggedRow.concerns.join(" ")).toMatch(/Toxicophore flag: Aldehyde/i);
+});

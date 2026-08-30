@@ -35,6 +35,25 @@ test("falls back to the local model when the API is unreachable", async () => {
   }
 });
 
+test("local fallback includes supplied PAINS alerts in the heuristic ranking", async () => {
+  const originalFetch = global.fetch;
+  global.fetch = jest.fn(() => Promise.reject(new Error("network down")));
+  try {
+    const result = await rankCandidates([caffeine, ugly], null, {
+      "999999": {
+        status: "alert",
+        hasAlerts: true,
+        alerts: [{ family: "pains", catalog: "PAINS_A", name: "Quinone", explanation: "Redox cycling." }],
+      },
+    });
+    expect(result.source).toBe("heuristic");
+    const uglyRow = result.ranking.find((r) => r.cid === "999999");
+    expect(uglyRow.concerns.join(" ")).toMatch(/PAINS alert: Quinone/i);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
 test("uses a successful API payload when it is well-formed", async () => {
   const originalFetch = global.fetch;
   global.fetch = jest.fn(() =>

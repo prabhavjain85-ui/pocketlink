@@ -16,20 +16,43 @@ function clean(value, max = 4000) {
   return String(value ?? "").slice(0, max);
 }
 
+function compactPains(raw) {
+  if (!raw || typeof raw !== "object") return undefined;
+  const alerts = Array.isArray(raw.alerts)
+    ? raw.alerts.slice(0, 8).map((alert) => ({
+        family: clean(alert.family, 40),
+        catalog: clean(alert.catalog, 40),
+        name: clean(alert.name, 80),
+        explanation: clean(alert.explanation, 240),
+      }))
+    : [];
+  return {
+    status: clean(raw.status, 20),
+    hasAlerts: Boolean(raw.hasAlerts),
+    alerts,
+    reason: raw.reason ? clean(raw.reason, 160) : null,
+  };
+}
+
 function compactCandidates(raw) {
-  return (Array.isArray(raw) ? raw : []).slice(0, 5).map((c, index) => ({
-    rank_input: index + 1,
-    name: clean(c.name, 180),
-    cid: clean(c.cid, 40),
-    smiles: clean(c.smiles, 1200),
-    molecularFormula: clean(c.molecularFormula, 120),
-    molecularWeight: c.molecularWeight,
-    xlogp: c.xlogp,
-    hbd: c.hbd,
-    hba: c.hba,
-    rotatableBonds: c.rotatableBonds,
-    tpsa: c.tpsa,
-  }));
+  return (Array.isArray(raw) ? raw : []).slice(0, 5).map((c, index) => {
+    const pains = compactPains(c.pains || c.painsAlerts);
+    const row = {
+      rank_input: index + 1,
+      name: clean(c.name, 180),
+      cid: clean(c.cid, 40),
+      smiles: clean(c.smiles, 1200),
+      molecularFormula: clean(c.molecularFormula, 120),
+      molecularWeight: c.molecularWeight,
+      xlogp: c.xlogp,
+      hbd: c.hbd,
+      hba: c.hba,
+      rotatableBonds: c.rotatableBonds,
+      tpsa: c.tpsa,
+    };
+    if (pains) row.pains = pains;
+    return row;
+  });
 }
 
 function extractJson(text) {
@@ -90,6 +113,7 @@ Rank the supplied small-molecule candidates for follow-up using ONLY the supplie
 Do not invent docking scores, ADME results, toxicity, residue contacts, or experimental evidence.
 If docking data are absent, say that binding affinity cannot be assessed from this dataset.
 Treat Lipinski/Veber rules as screening heuristics, not proof of developability.
+When a candidate includes pains alerts, those are deterministic RDKit substructure flags (PAINS catalogs and a small toxicophore list), not an LLM judgment. Mention them in concerns and you may deprioritize that molecule (e.g. "deprioritized due to PAINS alert: rhodanine"). Do not invent alerts that are not in the supplied data. Missing or unable-to-check status is not a clean pass. Alerts are warnings, not hard exclusions — some flagged chemotypes become real drugs.
 Do not call a molecule a drug or clinically effective.
 A PocketLink heuristic ranking is provided as a starting point — you may reorder if the properties justify it, but stay conservative.
 Return valid JSON only with this schema:

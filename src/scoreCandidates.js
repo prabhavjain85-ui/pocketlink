@@ -59,11 +59,41 @@ function propsOf(candidate) {
   };
 }
 
+function uniqueNames(values) {
+  const out = [];
+  for (const value of values) {
+    const name = String(value || "").trim();
+    if (name && !out.includes(name)) out.push(name);
+  }
+  return out;
+}
+
+function painsOf(candidate) {
+  return candidate?.pains || candidate?.painsAlerts || null;
+}
+
+function alertSummary(candidate) {
+  const pains = painsOf(candidate);
+  const alerts = Array.isArray(pains?.alerts) ? pains.alerts : [];
+  const painsNames = uniqueNames(alerts.filter((a) => a.family === "pains").map((a) => a.name));
+  const toxNames = uniqueNames(alerts.filter((a) => a.family === "toxicophore").map((a) => a.name));
+  const allNames = uniqueNames([...painsNames, ...toxNames]);
+  return {
+    status: pains?.status || null,
+    hasAlerts: Boolean(pains?.hasAlerts) || allNames.length > 0,
+    painsNames,
+    toxNames,
+    allNames,
+    unable: pains?.status === "unable",
+  };
+}
+
 function scoreOne(candidate) {
   const p = propsOf(candidate);
   const checks = drugLikenessChecks(candidate);
   const passCount = checks.filter((c) => c.pass).length;
   const violations = checks.filter((c) => !c.pass).length;
+  const alerts = alertSummary(candidate);
 
   const weighted =
     0.22 * trap(p.mw, 0, 180, 420, 650) +
@@ -73,7 +103,10 @@ function scoreOne(candidate) {
     0.15 * trap(p.rot, -0.5, 0, 6, 14) +
     0.15 * trap(p.tpsa, 0, 20, 100, 180);
 
-  const score = Math.round(Math.max(0, Math.min(100, 100 * weighted - violations * 6)));
+  let alertPenalty = 0;
+  if (alerts.painsNames.length) alertPenalty += 12;
+  if (alerts.toxNames.length) alertPenalty += 8;
+  const score = Math.round(Math.max(0, Math.min(100, 100 * weighted - violations * 6 - alertPenalty)));
 
   const strengths = [];
   const concerns = [];
@@ -94,25 +127,39 @@ function scoreOne(candidate) {
   if (p.rot != null && p.rot > 10) concerns.push(`High flexibility (${p.rot} rotatable bonds) can penalize binding and oral absorption.`);
   if (p.tpsa != null && p.tpsa > 140) concerns.push(`Polar surface area (${p.tpsa} Å²) is above Veber's typical oral cutoff.`);
 
+  if (alerts.painsNames.length) {
+    concerns.unshift(`Deprioritized due to PAINS alert: ${alerts.painsNames.join(", ")}.`);
+  }
+  if (alerts.toxNames.length) {
+    concerns.unshift(`Toxicophore flag: ${alerts.toxNames.join(", ")}. Reactive-group liability, not a hard exclusion.`);
+  }
+
   if (!strengths.length) strengths.push("No strong drug-likeness advantages versus the rest of this shortlist.");
   if (!concerns.length) concerns.push("No major Lipinski/Veber flags in the supplied properties.");
 
-  return { score, passCount, violations, strengths, concerns, checks };
+  return { score, passCount, violations, strengths, concerns, checks, alerts };
 }
 
 function reasonFor(candidate, scored, protein) {
   const name = nameOf(candidate);
   const targetBit = protein?.title || protein?.id ? ` for follow-up against ${protein.id || "the staged target"}` : "";
+  const alertBit = scored.alerts?.allNames?.length
+    ? ` It still carries ${scored.alerts.painsNames.length ? "PAINS" : "toxicophore"} alert(s): ${scored.alerts.allNames.join(", ")} — a warning, not a hard exclusion.`
+    : "";
   if (scored.violations === 0) {
-    return `${name} has the strongest overall physicochemical profile in this shortlist${targetBit}: ${scored.passCount}/6 drug-likeness checks pass, with a balanced size, polarity, and flexibility profile. Binding affinity is not assessed here — docking still needs to be run.`;
+    return `${name} has the strongest overall physicochemical profile in this shortlist${targetBit}: ${scored.passCount}/6 drug-likeness checks pass, with a balanced size, polarity, and flexibility profile.${alertBit} Binding affinity is not assessed here — docking still needs to be run.`;
   }
-  return `${name} is the best available option in this shortlist${targetBit}, but it still has ${scored.violations} drug-likeness flag(s). Treat this as a computational triage, not evidence of activity.`;
+  return `${name} is the best available option in this shortlist${targetBit}, but it still has ${scored.violations} drug-likeness flag(s).${alertBit} Treat this as a computational triage, not evidence of activity.`;
 }
 
 function summaryFor(ranked, protein) {
   const top = ranked[0];
   const target = protein?.id ? ` the staged target ${protein.id}` : " computational follow-up";
-  return `Among ${ranked.length} staged molecules, ${nameOf(top)} is the strongest candidate to take into${target} based on PubChem physicochemical properties (Lipinski Rule-of-Five and Veber heuristics). This ranking does not include docking poses, ADME models, toxicity, or experimental data.`;
+  const flagged = ranked.filter((row) => row.alerts?.allNames?.length);
+  const flagBit = flagged.length
+    ? ` ${flagged.length} shortlisted molecule(s) carry PAINS or toxicophore alerts and were deprioritized accordingly.`
+    : "";
+  return `Among ${ranked.length} staged molecules, ${nameOf(top)} is the strongest candidate to take into${target} based on PubChem physicochemical properties (Lipinski Rule-of-Five and Veber heuristics).${flagBit} This ranking does not include docking poses, ADME models, toxicity, or experimental data.`;
 }
 
 /**
@@ -160,8 +207,9 @@ function rankCandidatesLocal(candidates, protein = null) {
     ranking,
     summary: summaryFor(scored, protein),
     limitations: [
-      "This ranking uses only the supplied PubChem properties (size, lipophilicity, H-bonding, flexibility, polar surface area).",
+      "This ranking uses only the supplied PubChem properties (size, lipophilicity, H-bonding, flexibility, polar surface area) plus any PAINS/toxicophore substructure flags.",
       "It cannot estimate binding affinity, selectivity, metabolism, toxicity, or clinical efficacy.",
+      "PAINS and toxicophore matches are warnings, not automatic exclusions — some flagged chemotypes become real drugs.",
       "Use SwissDock and SwissADME next, then experimental assays, before treating any molecule as a real lead.",
     ],
     source: "heuristic",
