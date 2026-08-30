@@ -967,11 +967,14 @@ export default function App() {
         .pains-badge.clean { color: var(--green); border-color: rgba(111, 207, 151, 0.45); background: #14291F; }
         .pains-badge.alert { color: var(--amber); border-color: rgba(240, 168, 85, 0.5); background: #3A2A17; }
         .pains-badge.unable, .pains-badge.pending { color: var(--text-dim); cursor: default; }
-        .pains-tip { display: flex; align-items: center; padding: 0 2px; position: relative; }
+        .pains-tip { display: flex; align-items: center; padding: 0 2px; position: relative; z-index: 3; }
         .pains-tip .score-tip-pop {
+          top: auto;
+          bottom: calc(100% + 8px);
           left: auto;
           right: 0;
           width: min(340px, 78vw);
+          z-index: 9;
           text-transform: none;
           letter-spacing: 0;
           font-family: 'IBM Plex Sans', sans-serif;
