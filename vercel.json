@@ -2,6 +2,9 @@
   "functions": {
     "api/rank-candidates.js": {
       "maxDuration": 30
+    },
+    "api/pains-check.py": {
+      "maxDuration": 15
     }
   }
 }

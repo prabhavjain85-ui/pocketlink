@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { rankCandidates } from "./aiCandidateRanking";
+import { checkPainsBatch } from "./painsCheck";
 import { MAX_CANDIDATES, drugLikenessChecks } from "./scoreCandidates";
 import { fetchAndScoreTargets, SCORE_FORMULA_TEXT } from "./targetSelectionScore";
 
@@ -109,6 +110,96 @@ function Panel({ title, eyebrow, kind, children }) {
       </div>
       <div className="panel-body">{children}</div>
     </div>
+  );
+}
+
+function PainsInfoTip() {
+  return (
+    <span className="score-tip">
+      <button
+        type="button"
+        className="score-tip-btn"
+        aria-label="How PAINS and toxicophore flags are calculated"
+        aria-describedby="pains-tip-pop"
+        title="Rules-based RDKit substructure screen: PAINS filter catalogs plus a small toxicophore SMARTS list. Warnings only — flagged compounds stay selectable."
+      >
+        i
+      </button>
+      <span className="score-tip-pop" id="pains-tip-pop" role="tooltip">
+        <strong>PAINS &amp; toxicophore flags</strong>
+        <span className="score-tip-lead">Deterministic RDKit substructure check. No AI call. Flags are warnings, not hard blocks.</span>
+        <ul>
+          <li><b>PAINS</b> — RDKit FilterCatalog families A/B/C (Baell &amp; Holloway). Frequent HTS false-positive chemotypes.</li>
+          <li><b>Toxicophores</b> — small extra SMARTS list: Michael acceptors, aldehydes, epoxides, alkyl halides.</li>
+          <li><b>Unable to check</b> — missing or invalid SMILES, or the checker was unreachable. Not treated as clean.</li>
+        </ul>
+      </span>
+    </span>
+  );
+}
+
+function PainsBadge({ result, tipId }) {
+  const popId = tipId || "pains-pop";
+  if (!result || result.status === "pending") {
+    return (
+      <span className="score-tip pains-tip">
+        <span className="pains-badge pending">Checking…</span>
+      </span>
+    );
+  }
+  if (result.status === "unable") {
+    return (
+      <span className="score-tip pains-tip">
+        <button type="button" className="pains-badge unable" aria-describedby={popId}>
+          Unable to check
+        </button>
+        <span className="score-tip-pop" id={popId} role="tooltip">
+          <strong>Unable to check</strong>
+          <span className="score-tip-lead">
+            {result.reason || "This structure could not be screened."} Missing or invalid SMILES is not treated as a clean pass.
+          </span>
+        </span>
+      </span>
+    );
+  }
+  if (result.hasAlerts || result.status === "alert") {
+    const alerts = Array.isArray(result.alerts) ? result.alerts : [];
+    return (
+      <span className="score-tip pains-tip">
+        <button type="button" className="pains-badge alert" aria-describedby={popId}>
+          ⚠️ Alert(s) found
+        </button>
+        <span className="score-tip-pop" id={popId} role="tooltip">
+          <strong>Substructure alerts</strong>
+          <span className="score-tip-lead">
+            Rules-based PAINS / toxicophore screen. This is a warning, not a hard block — some flagged compounds become real drugs.
+          </span>
+          <ul>
+            {alerts.map((alert, i) => (
+              <li key={`${alert.id || alert.name}-${i}`}>
+                <b>{alert.name}</b>
+                {alert.family === "pains" ? " · PAINS" : alert.family === "toxicophore" ? " · toxicophore" : ""}
+                {" — "}
+                {alert.explanation}
+              </li>
+            ))}
+          </ul>
+        </span>
+      </span>
+    );
+  }
+  return (
+    <span className="score-tip pains-tip">
+      <button type="button" className="pains-badge clean" aria-describedby={popId}>
+        ✅ Clean
+      </button>
+      <span className="score-tip-pop" id={popId} role="tooltip">
+        <strong>No PAINS or toxicophore alerts</strong>
+        <span className="score-tip-lead">
+          RDKit found no matches in the PAINS A/B/C catalogs or the curated reactive-group list. This is not proof of safety or inactivity.
+        </span>
+      </span>
+    </span>
   );
 }
 
@@ -235,7 +326,7 @@ function TargetScoreTable({ results, selectedId, recommendedId, sortKey, sortDir
   );
 }
 
-function CandidateRow({ candidate, selected, recommended, onToggle, onRemove }) {
+function CandidateRow({ candidate, selected, recommended, pains, onToggle, onRemove }) {
   const checks = drugLikenessChecks(candidate);
   const pass = checks.filter((c) => c.pass).length;
   return (
@@ -255,6 +346,7 @@ function CandidateRow({ candidate, selected, recommended, onToggle, onRemove }) 
           <div className={"shortlist-pass " + (pass >= 5 ? "good" : "warn")}>{pass}/6 drug-likeness checks pass{recommended ? " · AI pick" : ""}</div>
         </div>
       </button>
+      <PainsBadge result={pains} tipId={`pains-pop-${candidate.CID}`} />
       <button type="button" className="shortlist-remove" onClick={onRemove} aria-label="Remove from shortlist">
         ×
       </button>
@@ -283,6 +375,7 @@ export default function App() {
   const [dockCopied, setDockCopied] = useState(false);
   const [admeCopied, setAdmeCopied] = useState(false);
   const [scoreSort, setScoreSort] = useState({ key: "score", dir: "desc" });
+  const [painsByCid, setPainsByCid] = useState({});
 
   const reqId = useRef(0);
 
@@ -416,12 +509,31 @@ export default function App() {
     setHandoffCid((current) => (String(current) === String(cid) ? null : current));
   };
 
+  useEffect(() => {
+    const toCheck = [...candidates];
+    if (cResult && !toCheck.some((c) => String(c.CID) === String(cResult.CID))) {
+      toCheck.push(cResult);
+    }
+    if (!toCheck.length) return undefined;
+    let cancelled = false;
+    checkPainsBatch(toCheck).then((next) => {
+      if (!cancelled) {
+        setPainsByCid((prev) => ({ ...prev, ...next }));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [candidates, cResult]);
+
   const analyze = async () => {
     if (candidates.length < 2) return;
     setAiLoading(true);
     setAiError("");
     try {
-      const data = await rankCandidates(candidates, protein);
+      const latestPains = { ...painsByCid, ...(await checkPainsBatch(candidates)) };
+      setPainsByCid((prev) => ({ ...prev, ...latestPains }));
+      const data = await rankCandidates(candidates, protein, latestPains);
       setAiResult(data);
       if (data?.recommended?.cid) setHandoffCid(data.recommended.cid);
     } catch (e) {
@@ -827,7 +939,7 @@ export default function App() {
           margin-top: 16px;
           display: flex;
           justify-content: space-between;
-          align-items: baseline;
+          align-items: center;
           gap: 8px;
           font-size: 12px;
           color: var(--text-dim);
@@ -835,15 +947,51 @@ export default function App() {
           letter-spacing: .06em;
           text-transform: uppercase;
         }
+        .shortlist-head-left { display: inline-flex; align-items: center; gap: 8px; }
+        .pains-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 10px;
+          letter-spacing: .02em;
+          border-radius: 999px;
+          padding: 4px 8px;
+          border: 1px solid var(--border);
+          background: var(--surface);
+          color: var(--text-dim);
+          cursor: pointer;
+          white-space: nowrap;
+          line-height: 1.2;
+        }
+        .pains-badge.clean { color: var(--green); border-color: rgba(111, 207, 151, 0.45); background: #14291F; }
+        .pains-badge.alert { color: var(--amber); border-color: rgba(240, 168, 85, 0.5); background: #3A2A17; }
+        .pains-badge.unable, .pains-badge.pending { color: var(--text-dim); cursor: default; }
+        .pains-tip { display: flex; align-items: center; padding: 0 2px; position: relative; }
+        .pains-tip .score-tip-pop {
+          left: auto;
+          right: 0;
+          width: min(340px, 78vw);
+          text-transform: none;
+          letter-spacing: 0;
+          font-family: 'IBM Plex Sans', sans-serif;
+        }
+        .pains-preview {
+          margin-top: 12px;
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+        }
+        .pains-preview-note { color: var(--text-dim); font-size: 12px; line-height: 1.45; }
         .shortlist { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
         .shortlist-card {
           display: flex;
           gap: 8px;
-          align-items: stretch;
+          align-items: center;
           border: 1px solid var(--border);
           background: var(--surface-raised);
           border-radius: 8px;
-          overflow: hidden;
+          overflow: visible;
         }
         .shortlist-card.selected { border-color: var(--amber); }
         .shortlist-card.recommended { border-color: var(--green); }
@@ -1143,6 +1291,12 @@ export default function App() {
                   Lipinski Rule-of-Five + Veber criteria, computed from PubChem's own properties — a fast pre-screen,
                   not a substitute for SwissADME's full pharmacokinetic model.
                 </div>
+                {painsByCid[String(cResult.CID)] && (
+                  <div className="pains-preview">
+                    <PainsBadge result={painsByCid[String(cResult.CID)]} tipId={`pains-preview-${cResult.CID}`} />
+                    <span className="pains-preview-note">PAINS / toxicophore screen runs when a compound is searched or shortlisted. Alerts do not block adding it.</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1153,7 +1307,10 @@ export default function App() {
           {candidates.length > 0 && (
             <>
               <div className="shortlist-head">
-                <span>Shortlist</span>
+                <span className="shortlist-head-left">
+                  Shortlist
+                  <PainsInfoTip />
+                </span>
                 <span>{candidates.length}/5 selected{candidates.length < 2 ? " · add at least one more for AI" : " · ready for AI"}</span>
               </div>
               <div className="shortlist">
@@ -1163,6 +1320,7 @@ export default function App() {
                     candidate={c}
                     selected={String(compound?.CID) === String(c.CID)}
                     recommended={String(recommendedCid) === String(c.CID)}
+                    pains={painsByCid[String(c.CID)] || { status: "pending" }}
                     onToggle={() => setHandoffCid(c.CID)}
                     onRemove={() => removeCandidate(c.CID)}
                   />
@@ -1179,7 +1337,7 @@ export default function App() {
             <div>
               <div className="ai-kicker">Compare the shortlist</div>
               <div className="hint" style={{ margin: "6px 0 0" }}>
-                Ranks 2–5 molecules from the supplied PubChem properties. If an OpenAI key is configured on Vercel, a language model writes the comparison; otherwise PocketLink uses its built-in drug-likeness model.
+                Ranks 2–5 molecules from the supplied PubChem properties plus any PAINS / toxicophore flags. If an OpenAI key is configured on Vercel, a language model writes the comparison; otherwise PocketLink uses its built-in drug-likeness model.
               </div>
             </div>
             <button className="btn btn-handoff" onClick={analyze} disabled={candidates.length < 2 || aiLoading} type="button">
@@ -1280,6 +1438,7 @@ export default function App() {
         Docking via <a href="https://www.swissdock.ch" target="_blank" rel="noreferrer">SwissDock</a> and ADME
         prediction via <a href="https://www.swissadme.ch" target="_blank" rel="noreferrer">SwissADME</a> (SIB Swiss
         Institute of Bioinformatics) — both run on their own servers and are opened here, not embedded.
+        PAINS filters follow Baell &amp; Holloway as implemented in RDKit; they are computational interference flags, not proof of inactivity or toxicity.
         AI output is computational prioritization only and should not be treated as evidence of biological activity or clinical efficacy.
       </div>
     </div>

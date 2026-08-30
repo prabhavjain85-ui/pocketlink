@@ -49,6 +49,29 @@ test("API requires at least two candidates", async () => {
   expect(res.body.error).toMatch(/at least 2/i);
 });
 
+test("API heuristic ranking references supplied PAINS alerts", async () => {
+  const previous = process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY;
+  const flaggedCaffeine = {
+    ...caffeine,
+    cid: "10680",
+    name: "benzoquinone-like",
+    pains: {
+      status: "alert",
+      hasAlerts: true,
+      alerts: [{ family: "pains", catalog: "PAINS_A", name: "Quinone", explanation: "Redox cycling." }],
+    },
+  };
+  const res = mockRes();
+  await handler({ method: "POST", body: { candidates: [flaggedCaffeine, caffeine] } }, res);
+  if (previous == null) delete process.env.OPENAI_API_KEY;
+  else process.env.OPENAI_API_KEY = previous;
+  expect(res.statusCode).toBe(200);
+  expect(res.body.recommended.cid).toBe("2519");
+  const flaggedRow = res.body.ranking.find((r) => r.cid === "10680");
+  expect(flaggedRow.concerns.join(" ")).toMatch(/PAINS alert: Quinone/i);
+});
+
 test("API returns heuristic ranking when OpenAI is not configured", async () => {
   const previous = process.env.OPENAI_API_KEY;
   delete process.env.OPENAI_API_KEY;
