@@ -5,6 +5,12 @@
     },
     "api/pains-check.py": {
       "maxDuration": 15
+    },
+    "api/contact.js": {
+      "maxDuration": 10
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
 }
