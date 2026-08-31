@@ -1,5 +1,14 @@
 import { compactPainsForRanking } from "./painsCheck";
 import { rankCandidatesLocal } from "./scoreCandidates";
+import { buildTargetContext } from "./targetContext";
+import {
+  clearRankingCache,
+  getCachedScore,
+  hydrateRankingFromCache,
+  pdbIdOf,
+  rankingCacheKey,
+  rememberRanking,
+} from "./rankingCache";
 
 function toApiCandidate(candidate, painsByCid = {}) {
   const cid = candidate.CID ?? candidate.cid;
@@ -29,13 +38,61 @@ function withPains(candidates, painsByCid = {}) {
   });
 }
 
+function rankingFromCachedRows(cachedRows, candidates, protein) {
+  const nameByCid = new Map(
+    (candidates || []).map((c) => [String(c.CID ?? c.cid), c.displayName || c.name || `CID ${c.CID ?? c.cid}`])
+  );
+  const ranking = [...cachedRows]
+    .sort((a, b) => b.score - a.score || String(a.cid).localeCompare(String(b.cid)))
+    .map((row, index) => ({
+      cid: row.cid,
+      rank: index + 1,
+      score: row.score,
+      reasoning: row.reasoning || [],
+      strengths: row.strengths || [],
+      concerns: row.concerns || [],
+    }));
+  const top = ranking[0];
+  const ctx = buildTargetContext(protein);
+  return {
+    target: { name: ctx?.name || "", pdb_id: ctx?.pdb_id || pdbIdOf(protein) },
+    candidates: ranking.map((row) => ({
+      compound_id: row.cid,
+      score: row.score,
+      reasoning: row.reasoning,
+    })),
+    recommended: {
+      cid: top.cid,
+      score: top.score,
+      reason: (top.reasoning || []).join(" ") || `${nameByCid.get(top.cid) || top.cid} is the best fit for this target.`,
+    },
+    ranking,
+    summary: `Cached target-specific scores for ${ctx?.name || "the staged target"} (${pdbIdOf(protein)}).`,
+    limitations: [
+      "These scores were reused from a previous ranking of the same (compound, PDB structure) pairs.",
+      "A score computed for one target is never reused for a different target.",
+    ],
+    source: "cache",
+  };
+}
+
+export function tryCachedRanking(candidates, protein) {
+  const cachedRows = hydrateRankingFromCache(candidates, protein);
+  if (!cachedRows) return null;
+  return rankingFromCachedRows(cachedRows, candidates, protein);
+}
+
 export async function rankCandidates(candidates, protein, painsByCid = {}) {
+  const target = buildTargetContext(protein);
   const payload = {
     candidates: candidates.map((c) => toApiCandidate(c, painsByCid)),
-    protein: protein
-      ? { id: protein.id, title: protein.title, method: protein.method, resolution: protein.resolution }
-      : null,
+    protein: target,
   };
+
+  const cachedRows = hydrateRankingFromCache(candidates, protein);
+  if (cachedRows) {
+    return rankingFromCachedRows(cachedRows, candidates, protein);
+  }
 
   try {
     const response = await fetch("/api/rank-candidates", {
@@ -48,8 +105,19 @@ export async function rankCandidates(candidates, protein, painsByCid = {}) {
     if (!data?.recommended?.cid || !Array.isArray(data.ranking)) {
       throw new Error("The AI returned an incomplete ranking.");
     }
+    rememberRanking(protein, data);
     return data;
   } catch {
-    return rankCandidatesLocal(withPains(candidates, painsByCid), protein);
+    const fallback = rankCandidatesLocal(withPains(candidates, painsByCid), protein);
+    rememberRanking(protein, fallback);
+    return fallback;
   }
 }
+
+export {
+  clearRankingCache,
+  getCachedScore,
+  pdbIdOf,
+  rankingCacheKey,
+  rememberRanking,
+};

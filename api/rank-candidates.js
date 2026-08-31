@@ -1,4 +1,5 @@
-const { rankCandidatesLocal } = require("../src/scoreCandidates");
+const { rankCandidatesLocal, drugLikenessChecks } = require("../src/scoreCandidates");
+const { TARGET_SPECIFIC_INSTRUCTION, buildTargetContext, targetDisplayName } = require("../src/targetContext");
 
 const ALLOWED_ORIGIN = "*";
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
@@ -37,10 +38,12 @@ function compactPains(raw) {
 function compactCandidates(raw) {
   return (Array.isArray(raw) ? raw : []).slice(0, 5).map((c, index) => {
     const pains = compactPains(c.pains || c.painsAlerts);
+    const checks = drugLikenessChecks(c);
     const row = {
       rank_input: index + 1,
       name: clean(c.name, 180),
       cid: clean(c.cid, 40),
+      compound_id: clean(c.cid, 40),
       smiles: clean(c.smiles, 1200),
       molecularFormula: clean(c.molecularFormula, 120),
       molecularWeight: c.molecularWeight,
@@ -49,10 +52,80 @@ function compactCandidates(raw) {
       hba: c.hba,
       rotatableBonds: c.rotatableBonds,
       tpsa: c.tpsa,
+      lipinskiVeber: {
+        passCount: checks.filter((x) => x.pass).length,
+        violations: checks.filter((x) => !x.pass).length,
+      },
     };
     if (pains) row.pains = pains;
     return row;
   });
+}
+
+function compactLigand(raw) {
+  if (!raw || typeof raw !== "object" || raw.present === false) return { present: false };
+  const groups = Array.isArray(raw.functionalGroups)
+    ? raw.functionalGroups.slice(0, 8).map((g) => clean(g, 80))
+    : [];
+  const mw = raw.mw == null || raw.mw === "" ? null : Number(raw.mw);
+  return {
+    present: true,
+    name: clean(raw.name, 180),
+    compId: clean(raw.compId || raw.comp_id, 20),
+    mw: Number.isFinite(mw) ? mw : null,
+    functionalGroups: groups,
+  };
+}
+
+function compactPocket(raw) {
+  if (!raw || typeof raw !== "object") {
+    return {
+      status: "unclear",
+      available: false,
+      residueCount: null,
+      hydrophobicity: null,
+      sizeLabel: null,
+      hydrophobicityLabel: null,
+    };
+  }
+  const residueCount = raw.residueCount == null ? null : Number(raw.residueCount);
+  const hydrophobicity = raw.hydrophobicity == null ? null : Number(raw.hydrophobicity);
+  return {
+    status: clean(raw.status, 20) || "unclear",
+    available: Boolean(raw.available),
+    residueCount: Number.isFinite(residueCount) ? residueCount : null,
+    hydrophobicity: Number.isFinite(hydrophobicity) ? hydrophobicity : null,
+    sizeLabel: raw.sizeLabel ? clean(raw.sizeLabel, 20) : null,
+    hydrophobicityLabel: raw.hydrophobicityLabel ? clean(raw.hydrophobicityLabel, 20) : null,
+  };
+}
+
+function compactProtein(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const packed = raw.pdb_id || raw.ligand || raw.pocket ? raw : buildTargetContext(raw);
+  if (!packed) return null;
+  const ligand = compactLigand(packed.ligand);
+  const pocket = compactPocket(packed.pocket);
+  const gaps = Array.isArray(packed.dataGaps)
+    ? packed.dataGaps.map((s) => clean(s, 200)).slice(0, 6)
+    : [];
+  const pdbId = clean(packed.pdb_id || packed.id, 12);
+  const scoreRaw = packed.targetSelectionScore ?? packed.score;
+  const score = scoreRaw == null || scoreRaw === "" ? null : Number(scoreRaw);
+  return {
+    name: clean(packed.name || packed.queryName || packed.title, 240),
+    queryName: packed.queryName ? clean(packed.queryName, 80) : "",
+    pdb_id: pdbId,
+    id: pdbId,
+    title: clean(packed.title, 240),
+    targetSelectionScore: Number.isFinite(score) ? score : null,
+    resolution: packed.resolution ? clean(packed.resolution, 40) : null,
+    method: packed.method ? clean(packed.method, 80) : null,
+    hasLigand: Boolean(ligand.present),
+    ligand,
+    pocket,
+    dataGaps: gaps,
+  };
 }
 
 function extractJson(text) {
@@ -73,29 +146,67 @@ function extractJson(text) {
   }
 }
 
-function normalizeResult(result, allowedCids) {
+function rowCid(row) {
+  return String(row?.compound_id ?? row?.cid ?? "");
+}
+
+function rowReasoning(row) {
+  if (Array.isArray(row?.reasoning) && row.reasoning.length) {
+    return row.reasoning.map((s) => clean(s, 240)).slice(0, 6);
+  }
+  const mixed = [...(row?.strengths || []), ...(row?.concerns || [])];
+  return mixed.map((s) => clean(s, 240)).slice(0, 6);
+}
+
+function normalizeResult(result, allowedCids, protein) {
   if (!result || typeof result !== "object") return null;
-  const ranking = Array.isArray(result.ranking) ? result.ranking : [];
-  const rankedCids = ranking.map((row) => String(row.cid));
-  const sameSet =
-    rankedCids.length === allowedCids.length &&
-    allowedCids.every((cid) => rankedCids.includes(cid));
-  const recommendedCid = String(result.recommended?.cid || "");
-  if (!sameSet || !allowedCids.includes(recommendedCid)) return null;
+  const fromCandidates = Array.isArray(result.candidates) ? result.candidates : [];
+  const fromRanking = Array.isArray(result.ranking) ? result.ranking : [];
+  const sourceRows = fromCandidates.length ? fromCandidates : fromRanking;
+  if (!sourceRows.length) return null;
+
+  const byCid = new Map();
+  for (const row of sourceRows) {
+    const cid = rowCid(row);
+    if (!allowedCids.includes(cid) || byCid.has(cid)) continue;
+    const score = Number(row.score);
+    if (!Number.isFinite(score)) continue;
+    const reasoning = rowReasoning(row);
+    byCid.set(cid, {
+      cid,
+      compound_id: cid,
+      score: Math.max(0, Math.min(100, Math.round(score))),
+      reasoning,
+      strengths: Array.isArray(row.strengths) ? row.strengths.map((s) => clean(s, 240)).slice(0, 4) : reasoning.slice(0, 3),
+      concerns: Array.isArray(row.concerns) ? row.concerns.map((s) => clean(s, 240)).slice(0, 4) : [],
+    });
+  }
+
+  if (byCid.size !== allowedCids.length) return null;
+  const ranking = allowedCids
+    .map((cid) => byCid.get(cid))
+    .sort((a, b) => b.score - a.score || String(a.cid).localeCompare(String(b.cid)))
+    .map((row, index) => ({ ...row, rank: index + 1 }));
+
+  const recommendedCid = String(result.recommended?.cid || ranking[0].cid);
+  if (!allowedCids.includes(recommendedCid)) return null;
+  const recommendedRow = ranking.find((r) => r.cid === recommendedCid) || ranking[0];
+  const targetName = protein ? targetDisplayName(protein) : clean(result.target?.name, 240);
+  const pdbId = protein?.pdb_id || protein?.id || result.target?.pdb_id || null;
 
   return {
-    recommended: {
-      cid: recommendedCid,
-      score: Number(result.recommended.score),
-      reason: clean(result.recommended.reason, 800),
-    },
-    ranking: ranking.map((row, index) => ({
-      cid: String(row.cid),
-      rank: Number(row.rank) || index + 1,
-      score: Number(row.score),
-      strengths: Array.isArray(row.strengths) ? row.strengths.map((s) => clean(s, 240)).slice(0, 4) : [],
-      concerns: Array.isArray(row.concerns) ? row.concerns.map((s) => clean(s, 240)).slice(0, 4) : [],
+    target: { name: targetName || "", pdb_id: pdbId || null },
+    candidates: ranking.map((row) => ({
+      compound_id: row.compound_id,
+      score: row.score,
+      reasoning: row.reasoning,
     })),
+    recommended: {
+      cid: recommendedRow.cid,
+      score: recommendedRow.score,
+      reason: clean(result.recommended?.reason, 800) || recommendedRow.reasoning.join(" "),
+    },
+    ranking,
     summary: clean(result.summary, 900),
     limitations: Array.isArray(result.limitations)
       ? result.limitations.map((s) => clean(s, 300)).slice(0, 6)
@@ -104,30 +215,54 @@ function normalizeResult(result, allowedCids) {
   };
 }
 
+function buildRankPrompt(compact, protein, heuristic) {
+  const targetLabel = protein?.pdb_id
+    ? `${protein.name || targetDisplayName(protein) || "staged target"} (PDB ${protein.pdb_id})`
+    : "an unspecified target (no PDB structure staged)";
+
+  const gaps = protein?.dataGaps?.length
+    ? `Missing target data:\n${protein.dataGaps.map((g) => `- ${g}`).join("\n")}\nIf pocket or reference-ligand data are missing, still score using drug-likeness and known pharmacology, but explicitly note in reasoning that target-fit assessment is limited without pocket/ligand data. Do not fabricate a confident geometric fit judgment you cannot support.`
+    : "Pocket and/or reference-ligand data are available — use them for size and polarity matching, and still require genuine pharmacological relevance.";
+
+  const system = `You are an assistant for early-stage computational drug discovery triage.
+Score each supplied small-molecule candidate for how well it fits THIS specific target / PDB structure, not how drug-like it is in general.
+${TARGET_SPECIFIC_INSTRUCTION}
+
+Scoring (integer 0–100) is a weighted combination of:
+1. Target/pocket fit (~55%): size and polarity match relative to the pocket and the co-crystallized reference ligand when available, AND genuine pharmacological relevance. If the compound is a known inhibitor class for this target family — for example a tyrosine kinase inhibitor when the target is a tyrosine kinase — that must meaningfully raise the score. Use real chemical and pharmacological knowledge here, not just geometric property matching.
+2. Drug-likeness (~30%): Lipinski Rule-of-Five and Veber compliance from the supplied properties.
+3. PAINS/toxicophore penalty: deduct points if flagged (typically 8–15). Never hard-zero a score solely because of an alert — some flagged chemotypes become real drugs.
+
+You may use established pharmacological knowledge about compound classes and protein families. Do not invent docking scores, IC50 values, ADME results, residue contacts, or unpublished experimental evidence. Do not call a molecule a drug or clinically effective against this target.
+When a candidate includes pains alerts, those are deterministic RDKit substructure flags, not an LLM judgment. Mention them in reasoning. Do not invent alerts that are not in the supplied data.
+A PocketLink heuristic ranking is provided as a starting point — you may reorder if target fit and pharmacology justify it.
+
+Return valid JSON only with this schema:
+{"target":{"name":string,"pdb_id":string},"candidates":[{"compound_id":string,"score":number,"reasoning":[string]}],"summary":string,"limitations":[string]}
+compound_id must be the supplied cid. Include every candidate exactly once. reasoning should be 3–6 short factual bullets explaining what drove the score up or down.`;
+
+  const user = `Score these candidates for ${targetLabel}.
+${TARGET_SPECIFIC_INSTRUCTION}
+
+Selected structure:
+${JSON.stringify(protein, null, 2)}
+
+${gaps}
+
+Candidates (PubChem properties + Lipinski/Veber + PAINS):
+${JSON.stringify(compact, null, 2)}
+
+Heuristic ranking (target-aware physicochemical + class match, for reference only):
+${JSON.stringify(heuristic, null, 2)}`;
+
+  return { system, user };
+}
+
 async function rankWithOpenAI(compact, protein, heuristic) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return null;
 
-  const system = `You are an assistant for early-stage computational drug discovery triage.
-Rank the supplied small-molecule candidates for follow-up using ONLY the supplied data.
-Do not invent docking scores, ADME results, toxicity, residue contacts, or experimental evidence.
-If docking data are absent, say that binding affinity cannot be assessed from this dataset.
-Treat Lipinski/Veber rules as screening heuristics, not proof of developability.
-When a candidate includes pains alerts, those are deterministic RDKit substructure flags (PAINS catalogs and a small toxicophore list), not an LLM judgment. Mention them in concerns and you may deprioritize that molecule (e.g. "deprioritized due to PAINS alert: rhodanine"). Do not invent alerts that are not in the supplied data. Missing or unable-to-check status is not a clean pass. Alerts are warnings, not hard exclusions — some flagged chemotypes become real drugs.
-Do not call a molecule a drug or clinically effective.
-A PocketLink heuristic ranking is provided as a starting point — you may reorder if the properties justify it, but stay conservative.
-Return valid JSON only with this schema:
-{"recommended":{"cid":string,"score":number,"reason":string},"ranking":[{"cid":string,"rank":number,"score":number,"strengths":[string],"concerns":[string]}],"summary":string,"limitations":[string]}`;
-
-  const user = `Rank these candidates from best to worst for computational follow-up against ${
-    protein?.id ? `PDB ${protein.id} (${protein.title || "staged target"})` : "an unspecified target"
-  }. Give each an overall prioritization score from 0 to 100.
-
-Candidates:
-${JSON.stringify(compact, null, 2)}
-
-Heuristic ranking (from Lipinski/Veber physicochemical scoring):
-${JSON.stringify(heuristic, null, 2)}`;
+  const { system, user } = buildRankPrompt(compact, protein, heuristic);
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -157,21 +292,14 @@ ${JSON.stringify(heuristic, null, 2)}`;
   return extractJson(text);
 }
 
-module.exports = async (req, res) => {
+async function handler(req, res) {
   if (req.method === "OPTIONS") return json(res, 204, {});
   if (req.method !== "POST") return json(res, 405, { error: "POST required" });
 
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
     const compact = compactCandidates(body.candidates);
-    const protein = body.protein
-      ? {
-          id: clean(body.protein.id, 12),
-          title: clean(body.protein.title, 240),
-          method: clean(body.protein.method, 80),
-          resolution: clean(body.protein.resolution, 40),
-        }
-      : null;
+    const protein = compactProtein(body.protein);
 
     if (compact.length < 2) {
       return json(res, 400, { error: "Select at least 2 candidates." });
@@ -186,13 +314,12 @@ module.exports = async (req, res) => {
 
     try {
       const llmRaw = await rankWithOpenAI(compact, protein, heuristic);
-      const llm = normalizeResult(llmRaw, allowedCids);
+      const llm = normalizeResult(llmRaw, allowedCids, protein);
       if (llm) return json(res, 200, llm);
     } catch (error) {
-      // Fall through to the local model so the shortlist still gets an answer.
       heuristic.limitations = [
         ...(heuristic.limitations || []),
-        `Language-model ranking was unavailable (${clean(error.message, 160)}), so PocketLink used its physicochemical model instead.`,
+        `Language-model ranking was unavailable (${clean(error.message, 160)}), so PocketLink used its target-aware physicochemical model instead.`,
       ];
     }
 
@@ -200,4 +327,9 @@ module.exports = async (req, res) => {
   } catch (error) {
     return json(res, 500, { error: error?.message || "Unexpected server error." });
   }
-};
+}
+
+handler.buildRankPrompt = buildRankPrompt;
+handler.normalizeResult = normalizeResult;
+handler.compactProtein = compactProtein;
+module.exports = handler;
