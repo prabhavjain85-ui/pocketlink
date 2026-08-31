@@ -45,6 +45,22 @@ const ADDITIVE_NAME_RE =
 
 const SOLVENT_COMP_IDS = new Set(["HOH", "DOD", "WAT", "OH", "OD"]);
 
+const HYDROPHOBIC_RESIDUES = new Set(["ALA", "VAL", "LEU", "ILE", "MET", "PHE", "TRP", "PRO"]);
+
+const LIGAND_GROUP_RULES = [
+  { re: /\b(phosphate|phospho|triphosphate|diphosphate|atp|adp|amp)\b/i, label: "phosphate" },
+  { re: /\b(adenine|adenosine)\b/i, label: "adenine nucleoside" },
+  { re: /\b(indole|indolin)\b/i, label: "indole" },
+  { re: /\b(sulfonamide|sulphonamide)\b/i, label: "sulfonamide" },
+  { re: /\b(nitrile|cyano)\b/i, label: "nitrile" },
+  { re: /\b(pyridine|pyrimidine|purine|quinazoline|quinoline|imidazole)\b/i, label: "nitrogen heterocycle" },
+  { re: /\b(carboxyl|carboxylic|benzoate)\b/i, label: "carboxylate" },
+  { re: /\b(benzamide|carboxamide|\bamide\b)\b/i, label: "amide" },
+  { re: /\b(phenol|hydroxyphenyl)\b/i, label: "phenol" },
+  { re: /\b(staurosporine|imatinib|kinase inhibitor)\b/i, label: "kinase-inhibitor-like scaffold" },
+  { re: /steroid|androstene|estradi|cholest/i, label: "steroid scaffold" },
+];
+
 const WEIGHTS = {
   resolution: 25,
   completeness: 25,
@@ -147,6 +163,7 @@ function ligandEntitiesFromNonpolymers(nonpolymerEntities) {
     ligands.push({
       compId,
       name,
+      formulaWeight: num(meta.formula_weight),
       instances: Array.isArray(entity.nonpolymer_entity_instances)
         ? entity.nonpolymer_entity_instances
         : entity.instances || [],
@@ -187,6 +204,68 @@ function scorePocket(status) {
   if (status === "unclear") return { pts: 7, value: status };
   if (status === "none") return { pts: 0, value: status };
   return { pts: 7, value: "unclear" };
+}
+
+function inferLigandFunctionalGroups(name, compId) {
+  const text = `${name || ""} ${compId || ""}`.trim();
+  if (!text) return [];
+  const groups = [];
+  for (const rule of LIGAND_GROUP_RULES) {
+    if (rule.re.test(text) && !groups.includes(rule.label)) groups.push(rule.label);
+  }
+  return groups;
+}
+
+/**
+ * Derive pocket size / hydrophobicity from already-fetched ligand neighbor
+ * residues. No extra RCSB request.
+ */
+function pocketStatsFromLigands(ligands) {
+  const status = pocketFromLigands(ligands);
+  const nearby = [];
+  for (const ligand of Array.isArray(ligands) ? ligands : []) {
+    for (const inst of ligand.instances || []) {
+      const neighbors = inst.rcsb_target_neighbors || inst.target_neighbors || [];
+      if (!Array.isArray(neighbors)) continue;
+      for (const n of neighbors) {
+        const dist = num(n.distance);
+        const targetId = String(n.target_comp_id || "").toUpperCase();
+        if (!targetId || SOLVENT_COMP_IDS.has(targetId)) continue;
+        if (dist == null || dist > POCKET_DISTANCE_A) continue;
+        nearby.push(targetId);
+      }
+    }
+  }
+
+  if (!nearby.length) {
+    return {
+      status,
+      available: false,
+      residueCount: null,
+      hydrophobicity: null,
+      sizeLabel: null,
+      hydrophobicityLabel: null,
+    };
+  }
+
+  const residueCount = nearby.length;
+  const hydrophobicCount = nearby.filter((res) => HYDROPHOBIC_RESIDUES.has(res)).length;
+  const hydrophobicity = Math.round((100 * hydrophobicCount) / residueCount) / 100;
+  let sizeLabel = "medium";
+  if (residueCount <= 8) sizeLabel = "small";
+  else if (residueCount >= 17) sizeLabel = "large";
+  let hydrophobicityLabel = "mixed";
+  if (hydrophobicity >= 0.6) hydrophobicityLabel = "hydrophobic";
+  else if (hydrophobicity <= 0.35) hydrophobicityLabel = "polar";
+
+  return {
+    status,
+    available: true,
+    residueCount,
+    hydrophobicity,
+    sizeLabel,
+    hydrophobicityLabel,
+  };
 }
 
 function formatAngstrom(value) {
@@ -305,6 +384,8 @@ function scoreTargetFeatures(features) {
     breakdown.method;
   const score = Math.round(Math.max(0, Math.min(100, rawTotal)));
 
+  const ligands = features.ligands || [];
+  const pocketStats = features.pocketStats || pocketStatsFromLigands(ligands);
   const scored = {
     id: features.id,
     title: features.title || "Untitled entry",
@@ -320,9 +401,10 @@ function scoreTargetFeatures(features) {
     ligandLabel: hasLigand ? "✅" : "❌",
     pocket: pocket.value,
     pocketLabel: pocket.value === "detected" ? "✅" : pocket.value === "none" ? "❌" : "?",
+    pocketStats,
     breakdown,
     score,
-    ligands: features.ligands || [],
+    ligands,
   };
   scored.reasons = recommendationReasons(scored);
   return scored;
@@ -352,6 +434,7 @@ function extractFromGraphqlEntry(entry) {
     completeness: completenessPercent(info),
     hasLigand: ligands.length > 0,
     pocket: pocketFromLigands(ligands),
+    pocketStats: pocketStatsFromLigands(ligands),
     ligands,
   };
 }
@@ -380,6 +463,7 @@ function extractFromRestEntry(entry, nonpolymerEntities) {
     completeness: completenessPercent(info),
     hasLigand: ligands.length > 0,
     pocket: pocketFromLigands(ligands),
+    pocketStats: pocketStatsFromLigands(ligands),
     ligands,
   };
 }
@@ -527,6 +611,8 @@ module.exports = {
   scoreCompleteness,
   ligandEntitiesFromNonpolymers,
   pocketFromLigands,
+  pocketStatsFromLigands,
+  inferLigandFunctionalGroups,
   scorePocket,
   scoreTargetFeatures,
   extractFromGraphqlEntry,

@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { rankCandidates } from "./aiCandidateRanking";
+import { rankCandidates, tryCachedRanking } from "./aiCandidateRanking";
 import { checkPainsBatch } from "./painsCheck";
 import { MAX_CANDIDATES, drugLikenessChecks } from "./scoreCandidates";
 import { fetchAndScoreTargets, SCORE_FORMULA_TEXT } from "./targetSelectionScore";
+import { targetDisplayName } from "./targetContext";
 
 function PubChemStructureImage({ cid, compact }) {
   const [failed, setFailed] = useState(false);
@@ -326,6 +327,96 @@ function TargetScoreTable({ results, selectedId, recommendedId, sortKey, sortDir
   );
 }
 
+function compareCandidateField(a, b, key) {
+  if (key === "compound") {
+    return String(a.name || a.cid).localeCompare(String(b.name || b.cid));
+  }
+  return (a.score ?? 0) - (b.score ?? 0);
+}
+
+function CandidateScoreTable({ rows, selectedCid, recommendedCid, sortKey, sortDir, onSort, onSelect }) {
+  const sorted = useMemo(() => {
+    const mul = sortDir === "asc" ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      const cmp = compareCandidateField(a, b, sortKey);
+      if (cmp !== 0) return cmp * mul;
+      return String(a.cid).localeCompare(String(b.cid));
+    });
+  }, [rows, sortKey, sortDir]);
+
+  const cols = [
+    { key: "compound", label: "Compound" },
+    { key: "score", label: "Score" },
+    { key: "reasons", label: "Key reasons" },
+  ];
+
+  return (
+    <div className="score-table-wrap">
+      <table className="score-table candidate-score-table">
+        <thead>
+          <tr>
+            {cols.map((col) => {
+              const active = sortKey === col.key;
+              const ariaSort = active ? (sortDir === "asc" ? "ascending" : "descending") : "none";
+              const sortable = col.key !== "reasons";
+              return (
+                <th key={col.key} aria-sort={ariaSort}>
+                  {sortable ? (
+                    <button type="button" className={"score-th" + (active ? " active" : "")} onClick={() => onSort(col.key)}>
+                      {col.label}
+                      <span className="sort-ind" aria-hidden="true">
+                        {active ? (sortDir === "asc" ? "▲" : "▼") : "↕"}
+                      </span>
+                    </button>
+                  ) : (
+                    <span className="score-th">{col.label}</span>
+                  )}
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((r) => {
+            const selected = String(selectedCid) === String(r.cid);
+            const recommended = String(recommendedCid) === String(r.cid);
+            const reasons = r.reasoning && r.reasoning.length
+              ? r.reasoning
+              : [...(r.strengths || []), ...(r.concerns || [])];
+            return (
+              <tr
+                key={r.cid}
+                className={(selected ? "selected" : "") + (recommended ? " recommended" : "")}
+                onClick={() => onSelect(r.cid)}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelect(r.cid);
+                  }
+                }}
+              >
+                <td>
+                  <div className="result-id">{r.name || `CID ${r.cid}`}</div>
+                  <div className="score-title">CID {r.cid}</div>
+                </td>
+                <td className="mono score-num">{r.score}/100</td>
+                <td>
+                  <ul className="rank-bullets table-reasons">
+                    {reasons.slice(0, 4).map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function CandidateRow({ candidate, selected, recommended, pains, onToggle, onRemove }) {
   const checks = drugLikenessChecks(candidate);
   const pass = checks.filter((c) => c.pass).length;
@@ -375,6 +466,7 @@ export default function App() {
   const [dockCopied, setDockCopied] = useState(false);
   const [admeCopied, setAdmeCopied] = useState(false);
   const [scoreSort, setScoreSort] = useState({ key: "score", dir: "desc" });
+  const [aiSort, setAiSort] = useState({ key: "score", dir: "desc" });
   const [painsByCid, setPainsByCid] = useState({});
 
   const reqId = useRef(0);
@@ -526,6 +618,17 @@ export default function App() {
     };
   }, [candidates, cResult]);
 
+  useEffect(() => {
+    setAiSort({ key: "score", dir: "desc" });
+    if (candidates.length < 2) {
+      setAiResult(null);
+      return;
+    }
+    const cached = tryCachedRanking(candidates, protein);
+    setAiResult(cached);
+    if (cached?.recommended?.cid) setHandoffCid(cached.recommended.cid);
+  }, [protein, candidates]);
+
   const analyze = async () => {
     if (candidates.length < 2) return;
     setAiLoading(true);
@@ -559,8 +662,21 @@ export default function App() {
     });
   };
 
+  const toggleAiSort = (key) => {
+    setAiSort((prev) => {
+      if (prev.key === key) return { key, dir: prev.dir === "desc" ? "asc" : "desc" };
+      return { key, dir: key === "compound" ? "asc" : "desc" };
+    });
+  };
+
   const recommendedCid = aiResult?.recommended?.cid;
   const ranking = aiResult?.ranking || [];
+  const rankingRows = ranking.map((row) => {
+    const match = candidates.find((c) => String(c.CID) === String(row.cid));
+    return { ...row, name: match?.displayName || row.name || `CID ${row.cid}` };
+  });
+  const fitTargetName = aiResult?.target?.name || (protein ? targetDisplayName(protein) : "");
+  const fitPdbId = aiResult?.target?.pdb_id || protein?.id || "";
   const compound = useMemo(() => {
     if (!candidates.length) return null;
     const fromHandoff = candidates.find((c) => String(c.CID) === String(handoffCid));
@@ -862,6 +978,9 @@ export default function App() {
         }
         .score-icon-cell { font-size: 14px; text-align: center; }
         .score-num { color: var(--cyan); font-weight: 500; }
+        .candidate-score-table { min-width: 480px; }
+        .candidate-score-table .score-title { max-width: none; }
+        .table-reasons { margin: 0; padding-left: 16px; }
 
         .compound-card {
           border: 1px solid var(--border);
@@ -1213,7 +1332,7 @@ export default function App() {
                 sortKey={scoreSort.key}
                 sortDir={scoreSort.dir}
                 onSort={toggleScoreSort}
-                onSelect={setProtein}
+                onSelect={(row) => setProtein({ ...row, queryName: pQuery.trim() })}
               />
               {protein && pResults.some((r) => r.id === protein.id) && (
                 <div className="hint" style={{ margin: 0 }}>
@@ -1335,12 +1454,12 @@ export default function App() {
       </div>
 
       <div className="handoff-panel">
-        <Panel eyebrow="Station 3 — AI prioritization" title="Which molecule should we take forward?" kind="handoff">
+        <Panel eyebrow="Station 3 — AI prioritization" title="Which molecule fits this target?" kind="handoff">
           <div className="ai-toolbar">
             <div>
-              <div className="ai-kicker">Compare the shortlist</div>
+              <div className="ai-kicker">Score the shortlist for this target</div>
               <div className="hint" style={{ margin: "6px 0 0" }}>
-                Ranks 2–5 molecules from the supplied PubChem properties plus any PAINS / toxicophore flags. If an OpenAI key is configured on Vercel, a language model writes the comparison; otherwise PocketLink uses its built-in drug-likeness model.
+                Scores 2–5 molecules for the selected PDB structure using pocket/ligand context, known pharmacology, Lipinski/Veber drug-likeness, and PAINS flags. The same compound is scored differently against different targets. If an OpenAI key is configured, a language model writes the comparison; otherwise PocketLink uses its built-in target-aware model.
               </div>
             </div>
             <button className="btn btn-handoff" onClick={analyze} disabled={candidates.length < 2 || aiLoading} type="button">
@@ -1351,37 +1470,40 @@ export default function App() {
           {aiError && <div className="error-msg">{aiError}</div>}
           {!aiResult && !aiLoading && (
             <div className="empty-state">
-              Select 2–5 molecules in Station 2, then run analysis. PocketLink will recommend the best computational follow-up and explain why.
+              Select 2–5 molecules in Station 2, then run analysis. PocketLink will score each compound for the staged target — not as a universal drug-likeness rank.
             </div>
           )}
           {aiResult && (
-            <div className="recommend">
-              <div className="recommend-label">Recommended candidate</div>
-              <div className="winner">{winner?.displayName || (recommendedCid ? `CID ${recommendedCid}` : "—")}</div>
-              <div className="winner-score">Prioritization score {aiResult.recommended?.score ?? "—"}/100</div>
-              <div className="winner-reason">{aiResult.recommended?.reason}</div>
-              <div className="ranking">
-                {ranking.map((row) => {
-                  const match = candidates.find((c) => String(c.CID) === String(row.cid));
-                  return (
-                    <div className="rank-row" key={row.cid}>
-                      <div className="rank-num">#{row.rank}</div>
-                      <div>
-                        <div className="rank-name">{match?.displayName || `CID ${row.cid}`}</div>
-                        <ul className="rank-bullets">
-                          {(row.strengths || []).slice(0, 2).map((item, i) => <li key={`s${i}`}>{item}</li>)}
-                          {(row.concerns || []).slice(0, 1).map((item, i) => <li key={`c${i}`}>Concern: {item}</li>)}
-                        </ul>
-                      </div>
-                      <div className="rank-score">{row.score}/100</div>
-                    </div>
-                  );
-                })}
+            <div className="score-block">
+              <div className="recommend compact">
+                <div className="recommend-label">Best fit for this structure</div>
+                <div className="winner">
+                  {fitPdbId
+                    ? `🏆 Best fit for ${fitTargetName || "this target"} (${fitPdbId})`
+                    : "🏆 Best fit (no structure selected — scores are not pocket-specific)"}
+                </div>
+                <div className="winner-score">
+                  {winner?.displayName || (recommendedCid ? `CID ${recommendedCid}` : "—")} · {aiResult.recommended?.score ?? "—"}/100
+                </div>
+                <div className="winner-reason">{aiResult.recommended?.reason}</div>
               </div>
+              <CandidateScoreTable
+                rows={rankingRows}
+                selectedCid={compound?.CID}
+                recommendedCid={recommendedCid}
+                sortKey={aiSort.key}
+                sortDir={aiSort.dir}
+                onSort={toggleAiSort}
+                onSelect={setHandoffCid}
+              />
               <div className="lipinski-note" style={{ marginTop: 12 }}>{aiResult.summary}</div>
               <div className="lipinski-note"><strong>Limitations:</strong> {(aiResult.limitations || []).join(" ")}</div>
               <div className="source-pill">
-                {aiResult.source === "llm" ? "Ranked with OpenAI, grounded in supplied properties" : "Ranked with PocketLink's drug-likeness model"}
+                {aiResult.source === "llm"
+                  ? "Ranked with OpenAI for this specific target"
+                  : aiResult.source === "cache"
+                    ? "Reused cached scores for this (compound, PDB) pair"
+                    : "Ranked with PocketLink's target-aware model"}
               </div>
             </div>
           )}

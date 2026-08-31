@@ -82,6 +82,73 @@ test("includes the staged target in the summary when provided", () => {
   expect(result.summary).toContain("4KIK");
 });
 
+test("imatinib scores high against ABL1 and noticeably lower against a GPCR", () => {
+  const kinase = {
+    id: "2HYY",
+    queryName: "ABL1",
+    title: "Crystal structure of the c-Abl kinase domain in complex with imatinib",
+    method: "X-RAY DIFFRACTION",
+    resolution: "2.4 Å",
+    score: 88,
+    hasLigand: true,
+    pocket: "detected",
+    pocketStats: {
+      status: "detected",
+      available: true,
+      residueCount: 14,
+      hydrophobicity: 0.64,
+      sizeLabel: "medium",
+      hydrophobicityLabel: "hydrophobic",
+    },
+    ligands: [{ compId: "STI", name: "IMATINIB", formulaWeight: 493.6 }],
+  };
+  const gpcr = {
+    id: "3SN6",
+    queryName: "ADRB2",
+    title: "beta-2 adrenergic receptor GPCR in complex with Gs",
+    method: "X-RAY DIFFRACTION",
+    resolution: "3.2 Å",
+    score: 70,
+    hasLigand: false,
+    pocket: "unclear",
+  };
+  const caffeine = {
+    cid: "2519",
+    displayName: "caffeine",
+    molecularWeight: 194.19,
+    xlogp: -0.1,
+    hbd: 0,
+    hba: 6,
+    rotatableBonds: 0,
+    tpsa: 58.4,
+  };
+  const againstKinase = rankCandidatesLocal([imatinib, caffeine], kinase);
+  const againstGpcr = rankCandidatesLocal([imatinib, caffeine], gpcr);
+  const kinaseImatinib = againstKinase.ranking.find((r) => r.cid === "5291");
+  const gpcrImatinib = againstGpcr.ranking.find((r) => r.cid === "5291");
+  expect(kinaseImatinib.score).toBeGreaterThanOrEqual(75);
+  expect(gpcrImatinib.score).toBeLessThan(kinaseImatinib.score - 15);
+  expect(kinaseImatinib.reasoning.join(" ")).toMatch(/kinase-inhibitor/i);
+  expect(gpcrImatinib.reasoning.join(" ")).toMatch(/no particular GPCR/i);
+  expect(againstKinase.recommended.cid).toBe("5291");
+  expect(againstKinase.target.pdb_id).toBe("2HYY");
+  expect(againstKinase.target.name).toBe("ABL1");
+});
+
+test("notes limited target-fit when pocket and ligand data are missing", () => {
+  const apo = {
+    id: "1D3Z",
+    queryName: "ubiquitin",
+    title: "ubiquitin NMR ensemble",
+    hasLigand: false,
+    pocket: "unclear",
+  };
+  const result = rankCandidatesLocal([ibuprofen, caffeine], apo);
+  const row = result.ranking.find((r) => r.cid === "3672");
+  expect(row.reasoning.join(" ")).toMatch(/limited without pocket\/ligand data/i);
+});
+
+
 test("Lipinski checks flag the oversized molecule", () => {
   const checks = drugLikenessChecks(ugly);
   expect(checks.filter((c) => !c.pass).length).toBeGreaterThanOrEqual(5);

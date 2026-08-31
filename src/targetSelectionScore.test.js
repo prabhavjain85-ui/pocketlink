@@ -6,6 +6,8 @@ import {
   scoreCompleteness,
   ligandEntitiesFromNonpolymers,
   pocketFromLigands,
+  pocketStatsFromLigands,
+  inferLigandFunctionalGroups,
   scoreTargetFeatures,
   extractFromGraphqlEntry,
   rankScoredTargets,
@@ -180,6 +182,7 @@ test("extracts GraphQL payload fields used for scoring", () => {
     nonpolymer_entities: [
       {
         pdbx_entity_nonpoly: { comp_id: "ASD", name: "androstenedione" },
+        rcsb_nonpolymer_entity: { formula_weight: 286.4 },
         nonpolymer_entity_instances: [
           { rcsb_target_neighbors: [{ distance: 2.9, target_comp_id: "MET" }] },
         ],
@@ -191,6 +194,9 @@ test("extracts GraphQL payload fields used for scoring", () => {
   expect(features.hasLigand).toBe(true);
   expect(features.pocket).toBe("detected");
   expect(features.ligands.map((l) => l.compId)).toEqual(["ASD"]);
+  expect(features.ligands[0].formulaWeight).toBe(286.4);
+  expect(features.pocketStats.available).toBe(true);
+  expect(features.pocketStats.hydrophobicityLabel).toBe("hydrophobic");
   expect(features.completeness).toBeCloseTo((452 / 503) * 100);
 });
 
@@ -209,3 +215,47 @@ test("recommendation reasons are deterministic template strings", () => {
   expect(reasons.some((r) => /100%/.test(r))).toBe(true);
   expect(reasons.join(" ")).not.toMatch(/undefined|NaN/);
 });
+
+test("pocket stats estimate size and hydrophobicity from neighbor residues", () => {
+  const stats = pocketStatsFromLigands([
+    {
+      compId: "STI",
+      instances: [
+        {
+          rcsb_target_neighbors: [
+            { distance: 2.8, target_comp_id: "LEU" },
+            { distance: 3.1, target_comp_id: "VAL" },
+            { distance: 3.4, target_comp_id: "MET" },
+            { distance: 2.9, target_comp_id: "PHE" },
+            { distance: 4.1, target_comp_id: "ALA" },
+            { distance: 3.6, target_comp_id: "GLU" },
+            { distance: 8.0, target_comp_id: "ARG" },
+          ],
+        },
+      ],
+    },
+  ]);
+  expect(stats.available).toBe(true);
+  expect(stats.residueCount).toBe(6);
+  expect(stats.sizeLabel).toBe("small");
+  expect(stats.hydrophobicity).toBeGreaterThan(0.6);
+  expect(stats.hydrophobicityLabel).toBe("hydrophobic");
+});
+
+test("pocket stats stay unavailable without neighbor data", () => {
+  const stats = pocketStatsFromLigands([{ compId: "STI", instances: [] }]);
+  expect(stats.available).toBe(false);
+  expect(stats.residueCount).toBeNull();
+  expect(stats.hydrophobicity).toBeNull();
+});
+
+test("infers functional groups from ligand names without extra fetches", () => {
+  expect(inferLigandFunctionalGroups("ADENOSINE-5'-TRIPHOSPHATE", "ATP")).toEqual(
+    expect.arrayContaining(["phosphate", "adenine nucleoside"])
+  );
+  expect(inferLigandFunctionalGroups("androstenedione", "ASD")).toEqual(
+    expect.arrayContaining(["steroid scaffold"])
+  );
+  expect(inferLigandFunctionalGroups("unknown ligand", "LIG")).toEqual([]);
+});
+
