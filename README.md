@@ -43,6 +43,20 @@ Station 3 scores 2–5 staged molecules **for the selected PDB structure**, not 
 
 Without the key, ranking still runs and is labeled as PocketLink's drug-likeness model.
 
+## Contact page
+
+`/contact` is a static page with address, phone, email, and a message form. `POST /api/contact` validates the fields and delivers the note.
+
+| Variable | Purpose |
+| --- | --- |
+| `RESEND_API_KEY` | Send mail with [Resend](https://resend.com) (free tier; recommended in production) |
+| `CONTACT_TO_EMAIL` | Destination address (default `prabhavjain85@gmail.com`) |
+| `CONTACT_FROM_EMAIL` | Resend From header (must be a verified domain/sender) |
+| `FORMSPREE_ID` | Alternative: a Formspree form id, used when no Resend key is set |
+| `CONTACT_DRY_RUN` | Accept the payload without sending (`1`). Set automatically for local `npm start`. |
+
+With none of those mail keys set, the API falls back to [FormSubmit](https://formsubmit.co) (free, no extra infrastructure). The first FormSubmit delivery sends a one-time confirmation email to the destination address.
+
 ## Live data sources
 
 - RCSB PDB search + entry metadata
