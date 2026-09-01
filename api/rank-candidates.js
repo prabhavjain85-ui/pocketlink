@@ -35,8 +35,9 @@ function compactPains(raw) {
   };
 }
 
-function compactCandidates(raw) {
-  return (Array.isArray(raw) ? raw : []).slice(0, 5).map((c, index) => {
+function compactCandidates(raw, limit = 5) {
+  const cap = Number.isFinite(limit) ? Math.max(1, Math.min(30, limit)) : 5;
+  return (Array.isArray(raw) ? raw : []).slice(0, cap).map((c, index) => {
     const pains = compactPains(c.pains || c.painsAlerts);
     const checks = drugLikenessChecks(c);
     const row = {
@@ -298,14 +299,19 @@ async function handler(req, res) {
 
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-    const compact = compactCandidates(body.candidates);
+    const isBatch = body.mode === "batch";
+    const batchLimit = isBatch ? 30 : 5;
+    const compact = compactCandidates(body.candidates, batchLimit);
     const protein = compactProtein(body.protein);
 
-    if (compact.length < 2) {
-      return json(res, 400, { error: "Select at least 2 candidates." });
+    if (compact.length < (isBatch ? 1 : 2)) {
+      return json(res, 400, { error: isBatch ? "Select at least 1 candidate." : "Select at least 2 candidates." });
     }
 
-    const heuristic = rankCandidatesLocal(compact, protein);
+    const heuristic = rankCandidatesLocal(compact, protein, {
+      maxCandidates: batchLimit,
+      minCandidates: isBatch ? 1 : 2,
+    });
     const allowedCids = compact.map((c) => String(c.cid));
 
     if (!process.env.OPENAI_API_KEY) {
@@ -332,4 +338,5 @@ async function handler(req, res) {
 handler.buildRankPrompt = buildRankPrompt;
 handler.normalizeResult = normalizeResult;
 handler.compactProtein = compactProtein;
+handler.compactCandidates = compactCandidates;
 module.exports = handler;

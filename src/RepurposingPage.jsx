@@ -1,0 +1,269 @@
+import React, { useMemo, useState } from "react";
+import { approvedDrugCount } from "./approvedDrugs";
+import { Panel, PainsBadge, PainsInfoTip } from "./benchUi";
+import PdbTargetSearch from "./PdbTargetSearch";
+import {
+  HIGHLIGHT_COUNT,
+  PAGE_SIZE,
+  SERVERLESS_TIMEOUT_NOTE,
+  screenApprovedLibrary,
+} from "./repurposingScreen";
+import { targetDisplayName } from "./targetContext";
+
+function compareRepurposeField(a, b, key) {
+  if (key === "name") return String(a.name || "").localeCompare(String(b.name || ""));
+  if (key === "indication") return String(a.indication || "").localeCompare(String(b.indication || ""));
+  return (a.score ?? 0) - (b.score ?? 0);
+}
+
+function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page, pageSize, onPage }) {
+  const sorted = useMemo(() => {
+    const mul = sortDir === "asc" ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      const cmp = compareRepurposeField(a, b, sortKey);
+      if (cmp !== 0) return cmp * mul;
+      return String(a.name).localeCompare(String(b.name));
+    });
+  }, [rows, sortKey, sortDir]);
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const safePage = Math.min(page, pageCount - 1);
+  const slice = sorted.slice(safePage * pageSize, safePage * pageSize + pageSize);
+
+  const cols = [
+    { key: "name", label: "Drug name", sortable: true },
+    { key: "score", label: "Score", sortable: true },
+    { key: "reasoning", label: "Key reasoning", sortable: false },
+    { key: "indication", label: "Original indication", sortable: true },
+  ];
+
+  return (
+    <>
+      <div className="score-table-wrap repurpose-table-wrap">
+        <table className="score-table candidate-score-table repurpose-table">
+          <thead>
+            <tr>
+              {cols.map((col) => {
+                const active = sortKey === col.key;
+                const ariaSort = active ? (sortDir === "asc" ? "ascending" : "descending") : "none";
+                return (
+                  <th key={col.key} aria-sort={ariaSort}>
+                    {col.sortable ? (
+                      <button type="button" className={"score-th" + (active ? " active" : "")} onClick={() => onSort(col.key)}>
+                        {col.label}
+                        <span className="sort-ind" aria-hidden="true">
+                          {active ? (sortDir === "asc" ? "▲" : "▼") : "↕"}
+                        </span>
+                      </button>
+                    ) : (
+                      <span className="score-th">{col.label}</span>
+                    )}
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {slice.map((r) => {
+              const highlighted = (r.rank || 0) <= highlightCount && sortKey === "score" && sortDir === "desc";
+              const reasons = r.reasoning && r.reasoning.length ? r.reasoning : [];
+              return (
+                <tr key={r.cid} className={highlighted ? "recommended" : ""}>
+                  <td>
+                    <div className="result-id">{r.name}</div>
+                    <div className="score-title">CID {r.cid}{r.class ? ` · ${r.class}` : ""}</div>
+                    <PainsBadge result={r.pains} tipId={`repurpose-pains-${r.cid}`} />
+                  </td>
+                  <td className="mono score-num">{r.score}/100</td>
+                  <td>
+                    <div className="repurpose-blurb">{r.blurb}</div>
+                    <ul className="rank-bullets table-reasons">
+                      {reasons.slice(0, 3).map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                  </td>
+                  <td>{r.indication}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="repurpose-pager">
+        <span>
+          {sorted.length} scored drugs · page {safePage + 1} of {pageCount}
+        </span>
+        <div className="repurpose-pager-btns">
+          <button type="button" className="btn btn-ghost" disabled={safePage <= 0} onClick={() => onPage(safePage - 1)}>
+            Previous
+          </button>
+          <button type="button" className="btn btn-ghost" disabled={safePage >= pageCount - 1} onClick={() => onPage(safePage + 1)}>
+            Next
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export default function RepurposingPage() {
+  const librarySize = approvedDrugCount();
+  const [protein, setProtein] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(null);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+  const [sort, setSort] = useState({ key: "score", dir: "desc" });
+  const [page, setPage] = useState(0);
+  const reqId = React.useRef(0);
+
+  const runScreen = async (target) => {
+    if (!target) return;
+    const myReq = ++reqId.current;
+    setLoading(true);
+    setError("");
+    setResult(null);
+    setPage(0);
+    setSort({ key: "score", dir: "desc" });
+    setProgress({
+      percent: 0,
+      message: `Screening ${librarySize} approved drugs against ${targetDisplayName(target) || target.id}... 0% complete`,
+    });
+    try {
+      const data = await screenApprovedLibrary(target, {
+        onProgress: (info) => {
+          if (reqId.current === myReq) setProgress(info);
+        },
+      });
+      if (reqId.current !== myReq) return;
+      setResult(data);
+    } catch (e) {
+      if (reqId.current === myReq) setError(e.message || "Repurposing screen failed.");
+    } finally {
+      if (reqId.current === myReq) setLoading(false);
+    }
+  };
+
+  const onSelect = (row) => {
+    setProtein(row);
+    runScreen(row);
+  };
+
+  const toggleSort = (key) => {
+    setSort((prev) => {
+      if (prev.key === key) return { key, dir: prev.dir === "desc" ? "asc" : "desc" };
+      return { key, dir: key === "name" || key === "indication" ? "asc" : "desc" };
+    });
+    setPage(0);
+  };
+
+  const targetName = result?.target?.name || (protein ? targetDisplayName(protein) : "");
+  const highlightCount = result?.highlightCount || HIGHLIGHT_COUNT;
+  const topRows = (result?.ranking || []).slice(0, highlightCount);
+
+  return (
+    <>
+      <div className="hero">
+        <div className="hero-eyebrow">PocketLink · drug repurposing screen</div>
+        <h1>Drug Repurposing Screen</h1>
+        <p>
+          Search a target, and PocketLink scores it against hundreds of already-approved drugs to surface unexpected
+          candidates. This page reuses the same target-aware scoring used on the 5-compound shortlist, but runs it across
+          a bundled library of {librarySize} approved small molecules instead of a manual shortlist.
+        </p>
+      </div>
+
+      <div className="grid with-scores">
+        <PdbTargetSearch
+          protein={protein}
+          onSelect={onSelect}
+          eyebrow="Station 1 — RCSB PDB"
+          title="Select a target to screen"
+          hint="Same PDB search and Target Selection Score as the staging bench. Picking a structure starts a batch screen of the approved-drug library — no compound shortlist."
+          emptyText="Search a protein name, gene, or PDB ID to begin a repurposing screen."
+        />
+      </div>
+
+      <div className="handoff-panel">
+        <Panel eyebrow="Station 2 — approved-drug library" title="Batch screen against marketed drugs" kind="candidate">
+          <div className="hint" style={{ marginTop: 0 }}>
+            {librarySize} curated approved drugs (kinase inhibitors, beta-blockers, analgesics, antihistamines, statins, and
+            other classes) are scored in batches of 25. Extreme Lipinski outliers and molecules above 900 g/mol are dropped
+            before the AI pass. Scores are cached as PDB ID + compound CID, and a full screen of the same target is reused
+            for 24 hours so repeat searches do not burn AI credits.
+          </div>
+          {loading && progress && (
+            <div className="repurpose-progress" role="status" aria-live="polite">
+              <div className="repurpose-progress-label">{progress.message}</div>
+              <div className="repurpose-progress-bar">
+                <span style={{ width: `${progress.percent || 0}%` }} />
+              </div>
+            </div>
+          )}
+          {error && <div className="error-msg">{error}</div>}
+          {!loading && !result && !error && (
+            <div className="empty-state">
+              Select a PDB structure above to screen the approved-drug library. This is a longer-running batch than the
+              5-compound shortlist.
+            </div>
+          )}
+          {result && (
+            <div className="score-block">
+              {result.fromDailyCache && (
+                <div className="source-pill">Reused today's screen for {result.target.pdb_id} — cache-first, no new AI calls</div>
+              )}
+              <div className="recommend compact">
+                <div className="recommend-label">Repurposing candidates for {targetName}</div>
+                <div className="winner">
+                  🏆 Repurposing Candidates for {targetName}
+                  {result.target?.pdb_id ? ` (${result.target.pdb_id})` : ""}
+                </div>
+                <div className="winner-score">
+                  Top {highlightCount} of {result.scoredCount} scored drugs
+                  {result.recommended ? ` · lead ${result.recommended.name} ${result.recommended.score}/100` : ""}
+                </div>
+                <ul className="rank-bullets">
+                  {topRows.slice(0, 8).map((row) => (
+                    <li key={row.cid}>
+                      <b>{row.name}</b> ({row.score}/100) — originally approved for {row.indication}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="score-toolbar" style={{ marginTop: 14 }}>
+                <span className="score-toolbar-label">Full library ranking</span>
+                <PainsInfoTip />
+              </div>
+              <RepurposingTable
+                rows={result.ranking}
+                highlightCount={highlightCount}
+                sortKey={sort.key}
+                sortDir={sort.dir}
+                onSort={toggleSort}
+                page={page}
+                pageSize={PAGE_SIZE}
+                onPage={setPage}
+              />
+              {result.excluded?.length > 0 && (
+                <div className="lipinski-note">
+                  Pre-filter excluded {result.excluded.length} library entry{result.excluded.length === 1 ? "" : "ies"} (missing
+                  SMILES, MW &gt; 900, or ≥5 Lipinski/Veber failures) before AI scoring.
+                </div>
+              )}
+              <div className="lipinski-note">{result.summary}</div>
+              <div className="source-pill">
+                {result.usedLlm
+                  ? "Ranked with OpenAI in 25-compound batches for this specific target"
+                  : result.source === "cache" || result.fromDailyCache
+                    ? "Reused cached scores for this (drug, PDB) pair"
+                    : "Ranked with PocketLink's target-aware model (batched locally to stay inside serverless limits)"}
+              </div>
+              <div className="lipinski-note">{SERVERLESS_TIMEOUT_NOTE}</div>
+            </div>
+          )}
+        </Panel>
+      </div>
+    </>
+  );
+}

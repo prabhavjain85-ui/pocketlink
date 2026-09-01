@@ -43,6 +43,15 @@ Station 3 scores 2–5 staged molecules **for the selected PDB structure**, not 
 
 Without the key, ranking still runs and is labeled as PocketLink's drug-likeness model.
 
+## Drug repurposing screen
+
+`/repurposing` is a dedicated page (not a toggle on the staging bench). Search a PDB target with the same Target Selection Score step, and PocketLink scores it against a bundled library of already-approved small-molecule drugs.
+
+- **Library:** `src/data/approvedDrugs.json` — ~300 curated marketed drugs (name, SMILES, PubChem CID, original indication, and PubChem-style physicochemical properties). It is a representative set across kinase inhibitors, beta-blockers, analgesics, antihistamines, statins, and other classes, not a complete pharmacopeia. It is shipped in the repo and is not fetched from an external API at request time.
+- **Batch scoring:** the same target-aware model used for the 5-compound shortlist (`scoreOne` / `/api/rank-candidates`) runs across the library. Compounds are **not** stuffed into one prompt. A cheap Lipinski/MW pre-filter drops missing SMILES, MW &gt; 900 g/mol, and ≥5 Rule-of-Five/Veber failures; the rest are scored in chunks of 25. If a language-model batch is unavailable, remaining chunks use the local target-aware model.
+- **Cache:** per-drug scores still use `${pdb_id}_${cid}` (same store as Station 3). A full screen of the same PDB ID is reused for 24 hours so repeat searches do not burn AI credits.
+- **Timeouts:** Vercel caps `/api/rank-candidates` at 30s. Scoring hundreds of drugs in a **single** serverless invocation would miss that window (especially with OpenAI). The page therefore drives batches from the browser. A background job/queue (Inngest, Vercel Workflows, or a worker + KV) is the fit if this screen must run entirely on the server.
+
 ## Contact page
 
 `/contact` is a static page with address, phone, email, and a message form. `POST /api/contact` validates the fields and delivers the note.
@@ -61,4 +70,5 @@ With none of those mail keys set, the API falls back to [FormSubmit](https://for
 
 - RCSB PDB search + entry metadata
 - PubChem PUG-REST compound properties
+- Bundled approved-drug library (`src/data/approvedDrugs.json`) for `/repurposing`
 - SwissDock and SwissADME are opened in a new tab with the PDB ID / SMILES copied for paste

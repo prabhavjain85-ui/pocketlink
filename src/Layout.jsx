@@ -14,6 +14,7 @@ export default function Layout() {
         prediction via <a href="https://www.swissadme.ch" target="_blank" rel="noreferrer">SwissADME</a> (SIB Swiss
         Institute of Bioinformatics) — both run on their own servers and are opened here, not embedded.
         PAINS filters follow Baell &amp; Holloway as implemented in RDKit; they are computational interference flags, not proof of inactivity or toxicity.
+        The approved-drug library is a curated public subset of marketed small molecules (PubChem CIDs), not a complete pharmacopeia.
         AI output is computational prioritization only and should not be treated as evidence of biological activity or clinical efficacy.
       </div>
     </div>

@@ -153,6 +153,23 @@ export async function checkPainsBatch(candidates) {
   return byCid;
 }
 
+/**
+ * Screen an arbitrary-length library in the same 5-compound PAINS batches
+ * the shortlist uses, so the Python function payload stays small.
+ */
+export async function checkPainsLibrary(candidates, { onProgress } = {}) {
+  const list = Array.isArray(candidates) ? candidates : [];
+  const byCid = {};
+  for (let i = 0; i < list.length; i += MAX_BATCH) {
+    const chunk = list.slice(i, i + MAX_BATCH);
+    Object.assign(byCid, await checkPainsBatch(chunk));
+    if (typeof onProgress === "function") {
+      onProgress({ done: Math.min(i + MAX_BATCH, list.length), total: list.length });
+    }
+  }
+  return byCid;
+}
+
 export function clearPainsCache() {
   MEMORY_CACHE.clear();
   if (typeof sessionStorage !== "undefined") {

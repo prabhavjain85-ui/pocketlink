@@ -1,5 +1,5 @@
 import { compactPainsForRanking } from "./painsCheck";
-import { rankCandidatesLocal } from "./scoreCandidates";
+import { rankCandidatesLocal, scoreLibraryLocal } from "./scoreCandidates";
 import { buildTargetContext } from "./targetContext";
 import {
   clearRankingCache,
@@ -114,10 +114,60 @@ export async function rankCandidates(candidates, protein, painsByCid = {}) {
   }
 }
 
+const BATCH_LIMIT = 30;
+
+/**
+ * Rank a chunk of an approved-drug library (up to 30) with the same
+ * target-aware API used by the 5-compound shortlist.
+ */
+export async function rankCandidatesBatch(candidates, protein, painsByCid = {}) {
+  const list = Array.isArray(candidates) ? candidates : [];
+  if (!list.length) {
+    return scoreLibraryLocal([], protein);
+  }
+  if (list.length === 1) {
+    const fallback = scoreLibraryLocal(withPains(list, painsByCid), protein);
+    rememberRanking(protein, fallback);
+    return fallback;
+  }
+
+  const cachedRows = hydrateRankingFromCache(list, protein);
+  if (cachedRows) {
+    return rankingFromCachedRows(cachedRows, list, protein);
+  }
+
+  const target = buildTargetContext(protein);
+  const payload = {
+    mode: "batch",
+    candidates: list.slice(0, BATCH_LIMIT).map((c) => toApiCandidate(c, painsByCid)),
+    protein: target,
+  };
+
+  try {
+    const response = await fetch("/api/rank-candidates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.error || "AI analysis failed.");
+    if (!Array.isArray(data.ranking) || data.ranking.length !== payload.candidates.length) {
+      throw new Error("The AI returned an incomplete ranking.");
+    }
+    rememberRanking(protein, data);
+    return data;
+  } catch {
+    const fallback = scoreLibraryLocal(withPains(list.slice(0, BATCH_LIMIT), painsByCid), protein);
+    rememberRanking(protein, fallback);
+    return fallback;
+  }
+}
+
 export {
   clearRankingCache,
   getCachedScore,
   pdbIdOf,
   rankingCacheKey,
   rememberRanking,
+  scoreLibraryLocal,
 };

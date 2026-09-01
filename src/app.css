@@ -641,3 +641,51 @@ textarea.field-input {
   .contact-cards, .form-grid { grid-template-columns: 1fr; }
   .site-header { flex-direction: column; align-items: flex-start; gap: 12px; }
 }
+
+.repurpose-progress {
+  margin: 8px 0 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-raised);
+}
+.repurpose-progress-label {
+  color: var(--text);
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+.repurpose-progress-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.repurpose-progress-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyan), var(--amber));
+  transition: width .25s ease;
+}
+.repurpose-table-wrap { max-height: 560px; }
+.repurpose-table td .pains-tip { margin-top: 8px; }
+.repurpose-blurb {
+  color: var(--text);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin-bottom: 8px;
+}
+.repurpose-pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  color: var(--text-dim);
+  font-size: 12.5px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.repurpose-pager-btns { display: flex; gap: 8px; }
+@media (max-width: 780px) {
+  .repurpose-pager { flex-direction: column; align-items: flex-start; }
+}
