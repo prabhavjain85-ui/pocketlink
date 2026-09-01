@@ -1,331 +1,18 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { rankCandidates, tryCachedRanking } from "./aiCandidateRanking";
+import {
+  CopyField,
+  Panel,
+  PainsBadge,
+  PainsInfoTip,
+  PubChemStructureImage,
+  getCompoundSmiles,
+  prettyName,
+} from "./benchUi";
+import PdbTargetSearch from "./PdbTargetSearch";
 import { checkPainsBatch } from "./painsCheck";
 import { MAX_CANDIDATES, drugLikenessChecks } from "./scoreCandidates";
-import { fetchAndScoreTargets, SCORE_FORMULA_TEXT } from "./targetSelectionScore";
 import { targetDisplayName } from "./targetContext";
-
-function PubChemStructureImage({ cid, compact }) {
-  const [failed, setFailed] = useState(false);
-
-  if (!cid || failed) {
-    return (
-      <div className={"pubchem-structure-fallback" + (compact ? " compact" : "")}>
-        Structure image unavailable
-      </div>
-    );
-  }
-
-  return (
-    <img
-      className={"pubchem-structure-image" + (compact ? " compact" : "")}
-      src={`https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=${cid}&t=l`}
-      alt={`PubChem structure for CID ${cid}`}
-      title={`PubChem structure for CID ${cid}`}
-      onError={() => setFailed(true)}
-    />
-  );
-}
-
-const PDB_ID_RE = /^[0-9][A-Za-z0-9]{3}$/;
-
-function StationIcon({ kind }) {
-  if (kind === "target") {
-    return (
-      <svg viewBox="0 0 32 32" width="18" height="18" fill="none">
-        <path d="M6 16c0-6 4-10 10-10s10 4 10 10-4 10-10 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        <path d="M11 16c0-3.5 2-6 5-6s5 2.5 5 6-2 6-5 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        <circle cx="16" cy="16" r="1.6" fill="currentColor" />
-      </svg>
-    );
-  }
-  if (kind === "candidate") {
-    return (
-      <svg viewBox="0 0 32 32" width="18" height="18" fill="none">
-        <circle cx="9" cy="11" r="2.6" stroke="currentColor" strokeWidth="1.6" />
-        <circle cx="21" cy="9" r="2.6" stroke="currentColor" strokeWidth="1.6" />
-        <circle cx="17" cy="21" r="2.6" stroke="currentColor" strokeWidth="1.6" />
-        <path d="M11.2 12.4L18.8 9.6M11 13.2l4.5 6M19 11.3l-1 7" stroke="currentColor" strokeWidth="1.4" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 32 32" width="18" height="18" fill="none">
-      <path d="M6 10h8M6 16h8M6 22h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M14 10h4a4 4 0 0 1 4 4v0a4 4 0 0 1-4 4h-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M22 16h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M23 13l3 3-3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function CopyField({ label, value, mono = true }) {
-  const [copied, setCopied] = useState(false);
-  const doCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1400);
-    } catch (e) {
-      // clipboard blocked — field remains selectable
-    }
-  };
-  return (
-    <div className="copyfield">
-      <div className="copyfield-label">{label}</div>
-      <div className="copyfield-row">
-        <div className={"copyfield-value" + (mono ? " mono" : "")}>{value}</div>
-        <button className="copy-btn" onClick={doCopy} type="button">
-          {copied ? "Copied" : "Copy"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function getCompoundSmiles(compound) {
-  if (!compound) return "";
-  return compound.IsomericSMILES || compound.CanonicalSMILES || compound.SMILES || compound.ConnectivitySMILES || "";
-}
-
-function prettyName(result, query) {
-  const q = (query || "").trim();
-  if (q && q.length <= 48 && !q.includes(",") && q.split(" ").length <= 6) return q;
-  if (result?.IUPACName) {
-    return result.IUPACName.length > 52 ? `${result.IUPACName.slice(0, 50)}…` : result.IUPACName;
-  }
-  return result?.CID ? `CID ${result.CID}` : "Unknown compound";
-}
-
-function Panel({ title, eyebrow, kind, children }) {
-  return (
-    <div className="panel">
-      <div className="panel-head">
-        <span className={"station-icon icon-" + kind}>
-          <StationIcon kind={kind} />
-        </span>
-        <div>
-          <div className="panel-eyebrow">{eyebrow}</div>
-          <div className="panel-title">{title}</div>
-        </div>
-      </div>
-      <div className="panel-body">{children}</div>
-    </div>
-  );
-}
-
-function PainsInfoTip() {
-  return (
-    <span className="score-tip">
-      <button
-        type="button"
-        className="score-tip-btn"
-        aria-label="How PAINS and toxicophore flags are calculated"
-        aria-describedby="pains-tip-pop"
-        title="Rules-based RDKit substructure screen: PAINS filter catalogs plus a small toxicophore SMARTS list. Warnings only — flagged compounds stay selectable."
-      >
-        i
-      </button>
-      <span className="score-tip-pop" id="pains-tip-pop" role="tooltip">
-        <strong>PAINS &amp; toxicophore flags</strong>
-        <span className="score-tip-lead">Deterministic RDKit substructure check. No AI call. Flags are warnings, not hard blocks.</span>
-        <ul>
-          <li><b>PAINS</b> — RDKit FilterCatalog families A/B/C (Baell &amp; Holloway). Frequent HTS false-positive chemotypes.</li>
-          <li><b>Toxicophores</b> — small extra SMARTS list: Michael acceptors, aldehydes, epoxides, alkyl halides.</li>
-          <li><b>Unable to check</b> — missing or invalid SMILES, or the checker was unreachable. Not treated as clean.</li>
-        </ul>
-      </span>
-    </span>
-  );
-}
-
-function PainsBadge({ result, tipId }) {
-  const popId = tipId || "pains-pop";
-  if (!result || result.status === "pending") {
-    return (
-      <span className="score-tip pains-tip">
-        <span className="pains-badge pending">Checking…</span>
-      </span>
-    );
-  }
-  if (result.status === "unable") {
-    return (
-      <span className="score-tip pains-tip">
-        <button type="button" className="pains-badge unable" aria-describedby={popId}>
-          Unable to check
-        </button>
-        <span className="score-tip-pop" id={popId} role="tooltip">
-          <strong>Unable to check</strong>
-          <span className="score-tip-lead">
-            {result.reason || "This structure could not be screened."} Missing or invalid SMILES is not treated as a clean pass.
-          </span>
-        </span>
-      </span>
-    );
-  }
-  if (result.hasAlerts || result.status === "alert") {
-    const alerts = Array.isArray(result.alerts) ? result.alerts : [];
-    return (
-      <span className="score-tip pains-tip">
-        <button type="button" className="pains-badge alert" aria-describedby={popId}>
-          ⚠️ Alert(s) found
-        </button>
-        <span className="score-tip-pop" id={popId} role="tooltip">
-          <strong>Substructure alerts</strong>
-          <span className="score-tip-lead">
-            Rules-based PAINS / toxicophore screen. This is a warning, not a hard block — some flagged compounds become real drugs.
-          </span>
-          <ul>
-            {alerts.map((alert, i) => (
-              <li key={`${alert.id || alert.name}-${i}`}>
-                <b>{alert.name}</b>
-                {alert.family === "pains" ? " · PAINS" : alert.family === "toxicophore" ? " · toxicophore" : ""}
-                {" — "}
-                {alert.explanation}
-              </li>
-            ))}
-          </ul>
-        </span>
-      </span>
-    );
-  }
-  return (
-    <span className="score-tip pains-tip">
-      <button type="button" className="pains-badge clean" aria-describedby={popId}>
-        ✅ Clean
-      </button>
-      <span className="score-tip-pop" id={popId} role="tooltip">
-        <strong>No PAINS or toxicophore alerts</strong>
-        <span className="score-tip-lead">
-          RDKit found no matches in the PAINS A/B/C catalogs or the curated reactive-group list. This is not proof of safety or inactivity.
-        </span>
-      </span>
-    </span>
-  );
-}
-
-function ScoreInfoTip() {
-  return (
-    <span className="score-tip">
-      <button
-        type="button"
-        className="score-tip-btn"
-        aria-label="How the target selection score is calculated"
-        aria-describedby="score-tip-pop"
-        title={SCORE_FORMULA_TEXT}
-      >
-        i
-      </button>
-      <span className="score-tip-pop" id="score-tip-pop" role="tooltip">
-        <strong>Target Selection Score</strong>
-        <span className="score-tip-lead">Rules-based total out of 100 from RCSB metadata. No AI call.</span>
-        <ul>
-          <li><b>Resolution (25)</b> — ≤2.0 Å = 25, ≤2.5 = 20, ≤3.0 = 15, ≤3.5 = 10, worse = 5, missing = 0</li>
-          <li><b>Completeness (25)</b> — linear, 100% = 25 pts</li>
-          <li><b>Ligand (20)</b> — real co-crystallized ligand = 20 (crystallization additives excluded)</li>
-          <li><b>Pocket (15)</b> — residues within ~5 Å of a ligand = 15, unclear = 7, none = 0</li>
-          <li><b>Method (15)</b> — X-ray = 15, Cryo-EM = 12, NMR = 8, other = 5</li>
-        </ul>
-      </span>
-    </span>
-  );
-}
-
-function compareScoreField(a, b, key) {
-  const nullableNum = (va, vb) => {
-    if (va == null && vb == null) return 0;
-    if (va == null) return -1;
-    if (vb == null) return 1;
-    return va < vb ? -1 : va > vb ? 1 : 0;
-  };
-  if (key === "id") return String(a.id).localeCompare(String(b.id));
-  if (key === "resolution") return nullableNum(a.resolutionValue, b.resolutionValue);
-  if (key === "ligand") return Number(Boolean(a.hasLigand)) - Number(Boolean(b.hasLigand));
-  if (key === "completeness") return nullableNum(a.completeness, b.completeness);
-  if (key === "pocket") {
-    const order = { detected: 2, unclear: 1, none: 0 };
-    return (order[a.pocket] ?? -1) - (order[b.pocket] ?? -1);
-  }
-  if (key === "method") return String(a.methodLabel || "").localeCompare(String(b.methodLabel || ""));
-  return (a.score ?? 0) - (b.score ?? 0);
-}
-
-function TargetScoreTable({ results, selectedId, recommendedId, sortKey, sortDir, onSort, onSelect }) {
-  const sorted = useMemo(() => {
-    const mul = sortDir === "asc" ? 1 : -1;
-    return [...results].sort((a, b) => {
-      const cmp = compareScoreField(a, b, sortKey);
-      if (cmp !== 0) return cmp * mul;
-      return String(a.id).localeCompare(String(b.id));
-    });
-  }, [results, sortKey, sortDir]);
-
-  const cols = [
-    { key: "id", label: "PDB ID" },
-    { key: "resolution", label: "Resolution" },
-    { key: "ligand", label: "Ligand" },
-    { key: "completeness", label: "Completeness %" },
-    { key: "pocket", label: "Pocket" },
-    { key: "method", label: "Method" },
-    { key: "score", label: "Score" },
-  ];
-
-  return (
-    <div className="score-table-wrap">
-      <table className="score-table">
-        <thead>
-          <tr>
-            {cols.map((col) => {
-              const active = sortKey === col.key;
-              const ariaSort = active ? (sortDir === "asc" ? "ascending" : "descending") : "none";
-              return (
-                <th key={col.key} aria-sort={ariaSort}>
-                  <button type="button" className={"score-th" + (active ? " active" : "")} onClick={() => onSort(col.key)}>
-                    {col.label}
-                    <span className="sort-ind" aria-hidden="true">
-                      {active ? (sortDir === "asc" ? "▲" : "▼") : "↕"}
-                    </span>
-                  </button>
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((r) => {
-            const selected = selectedId === r.id;
-            const recommended = recommendedId === r.id;
-            return (
-              <tr
-                key={r.id}
-                className={(selected ? "selected" : "") + (recommended ? " recommended" : "")}
-                onClick={() => onSelect(r)}
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onSelect(r);
-                  }
-                }}
-              >
-                <td>
-                  <div className="result-id">{r.id}</div>
-                  <div className="score-title" title={r.title}>{r.title}</div>
-                </td>
-                <td className="mono">{r.resolution || "N/A"}</td>
-                <td className="score-icon-cell">{r.ligandLabel || "❌"}</td>
-                <td className="mono">{r.completenessLabel || "N/A"}</td>
-                <td className="score-icon-cell">{r.pocketLabel || "?"}</td>
-                <td>{r.methodLabel || "N/A"}</td>
-                <td className="mono score-num">{r.score}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
 
 function compareCandidateField(a, b, key) {
   if (key === "compound") {
@@ -446,11 +133,8 @@ function CandidateRow({ candidate, selected, recommended, pains, onToggle, onRem
 }
 
 export default function App() {
-  const [pQuery, setPQuery] = useState("");
-  const [pLoading, setPLoading] = useState(false);
-  const [pError, setPError] = useState("");
-  const [pResults, setPResults] = useState([]);
   const [protein, setProtein] = useState(null);
+  const [hasTargetResults, setHasTargetResults] = useState(false);
 
   const [cQuery, setCQuery] = useState("");
   const [cLoading, setCLoading] = useState(false);
@@ -465,75 +149,8 @@ export default function App() {
 
   const [dockCopied, setDockCopied] = useState(false);
   const [admeCopied, setAdmeCopied] = useState(false);
-  const [scoreSort, setScoreSort] = useState({ key: "score", dir: "desc" });
   const [aiSort, setAiSort] = useState({ key: "score", dir: "desc" });
   const [painsByCid, setPainsByCid] = useState({});
-
-  const reqId = useRef(0);
-
-  const searchProtein = useCallback(async () => {
-    const q = pQuery.trim();
-    if (!q) return;
-    const myReq = ++reqId.current;
-    setPLoading(true);
-    setPError("");
-    setPResults([]);
-    setScoreSort({ key: "score", dir: "desc" });
-    try {
-      let ids = [];
-      const looksLikeId = PDB_ID_RE.test(q);
-      if (looksLikeId) {
-        ids = [q.toUpperCase()];
-      }
-      if (!ids.length) {
-        const res = await fetch("https://search.rcsb.org/rcsbsearch/v2/query", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            query: { type: "terminal", service: "full_text", parameters: { value: q } },
-            return_type: "entry",
-            request_options: { paginate: { start: 0, rows: 6 } },
-          }),
-        });
-        if (!res.ok) throw new Error("search failed");
-        const data = await res.json();
-        ids = (data.result_set || []).map((r) => r.identifier);
-      }
-      if (!ids.length) {
-        if (reqId.current === myReq) setPError(`No PDB entries matched "${q}". Try a protein name, gene, or a 4-character PDB ID.`);
-        setPLoading(false);
-        return;
-      }
-      let scored = await fetchAndScoreTargets(ids);
-      if (reqId.current !== myReq) return;
-      if (!scored.length && looksLikeId) {
-        const res = await fetch("https://search.rcsb.org/rcsbsearch/v2/query", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            query: { type: "terminal", service: "full_text", parameters: { value: q } },
-            return_type: "entry",
-            request_options: { paginate: { start: 0, rows: 6 } },
-          }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const searchIds = (data.result_set || []).map((r) => r.identifier);
-          if (searchIds.length) scored = await fetchAndScoreTargets(searchIds);
-        }
-      }
-      if (reqId.current !== myReq) return;
-      if (!scored.length) {
-        setPError(`No PDB entries matched "${q}". Try a protein name, gene, or a 4-character PDB ID.`);
-        return;
-      }
-      setPResults(scored);
-    } catch (e) {
-      if (reqId.current === myReq) setPError("Couldn't reach RCSB PDB. Check your connection and try again.");
-    } finally {
-      if (reqId.current === myReq) setPLoading(false);
-    }
-  }, [pQuery]);
 
   const searchCompound = useCallback(async () => {
     const q = cQuery.trim();
@@ -646,22 +263,6 @@ export default function App() {
     }
   };
 
-  const recommendedTarget = useMemo(() => {
-    if (!pResults.length) return null;
-    return pResults.reduce((best, row) => {
-      if (!best) return row;
-      if ((row.score ?? 0) > (best.score ?? 0)) return row;
-      return best;
-    }, null);
-  }, [pResults]);
-
-  const toggleScoreSort = (key) => {
-    setScoreSort((prev) => {
-      if (prev.key === key) return { key, dir: prev.dir === "desc" ? "asc" : "desc" };
-      return { key, dir: key === "id" || key === "method" ? "asc" : "desc" };
-    });
-  };
-
   const toggleAiSort = (key) => {
     setAiSort((prev) => {
       if (prev.key === key) return { key, dir: prev.dir === "desc" ? "asc" : "desc" };
@@ -748,60 +349,8 @@ export default function App() {
         </div>
       </div>
 
-      <div className={"grid" + (pResults.length ? " with-scores" : "")}>
-        <Panel eyebrow="Station 1 — RCSB PDB" title="Find a target" kind="target">
-          <div className="search-row">
-            <input
-              placeholder="Protein name, gene, or PDB ID (e.g. EGFR, 1M17)"
-              value={pQuery}
-              onChange={(e) => setPQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && searchProtein()}
-            />
-            <button className="btn btn-target" onClick={searchProtein} disabled={pLoading}>
-              {pLoading ? <span className="spinner" /> : null}Search
-            </button>
-          </div>
-          <div className="hint">Live query against search.rcsb.org and data.rcsb.org. Matching structures are scored locally for docking/design suitability.</div>
-          {pError && <div className="error-msg">{pError}</div>}
-          {pResults.length > 0 && (
-            <div className="score-block">
-              <div className="score-toolbar">
-                <span className="score-toolbar-label">Target selection score</span>
-                <ScoreInfoTip />
-              </div>
-              {recommendedTarget && (
-                <div className="recommend compact">
-                  <div className="recommend-label">Recommended structure</div>
-                  <div className="winner">🏆 Recommended structure: {recommendedTarget.id}</div>
-                  <div className="winner-score">Target selection score {recommendedTarget.score}/100</div>
-                  <ul className="rank-bullets">
-                    {(recommendedTarget.reasons || []).map((reason, i) => (
-                      <li key={i}>{reason}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              <TargetScoreTable
-                results={pResults}
-                selectedId={protein?.id}
-                recommendedId={recommendedTarget?.id}
-                sortKey={scoreSort.key}
-                sortDir={scoreSort.dir}
-                onSort={toggleScoreSort}
-                onSelect={(row) => setProtein({ ...row, queryName: pQuery.trim() })}
-              />
-              {protein && pResults.some((r) => r.id === protein.id) && (
-                <div className="hint" style={{ margin: 0 }}>
-                  Staged target: <span className="mono">{protein.id}</span>
-                  {protein.title ? ` — ${protein.title}` : ""}
-                </div>
-              )}
-            </div>
-          )}
-          {!pResults.length && !pLoading && !pError && (
-            <div className="empty-state">No target staged yet.</div>
-          )}
-        </Panel>
+      <div className={"grid" + (hasTargetResults ? " with-scores" : "")}>
+        <PdbTargetSearch protein={protein} onSelect={setProtein} onResultsChange={(rows) => setHasTargetResults(Boolean(rows?.length))} />
 
         <Panel eyebrow="Station 2 — PubChem" title="Build a 5-molecule shortlist" kind="candidate">
           <div className="search-row">

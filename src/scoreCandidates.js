@@ -288,10 +288,12 @@ function summaryFor(ranked, protein) {
  * when available, known pharmacology, and Lipinski/Veber properties.
  * Returns the same schema as the AI API.
  */
-function rankCandidatesLocal(candidates, protein = null) {
-  const list = (Array.isArray(candidates) ? candidates : []).slice(0, MAX_CANDIDATES);
-  if (list.length < 2) {
-    throw new Error("Select at least 2 candidates.");
+function rankCandidatesLocal(candidates, protein = null, options = {}) {
+  const max = options.maxCandidates ?? MAX_CANDIDATES;
+  const min = options.minCandidates ?? 2;
+  const list = (Array.isArray(candidates) ? candidates : []).slice(0, max);
+  if (list.length < min) {
+    throw new Error(`Select at least ${min} candidates.`);
   }
 
   const ctx = protein ? buildTargetContext(protein) : null;
@@ -354,11 +356,33 @@ function rankCandidatesLocal(candidates, protein = null) {
   };
 }
 
+/**
+ * Score an entire approved-drug library for one target.
+ * Same target-aware model as the 5-compound shortlist, without the 2–5 cap.
+ */
+function scoreLibraryLocal(candidates, protein = null) {
+  const list = Array.isArray(candidates) ? candidates : [];
+  if (!list.length) {
+    return {
+      target: protein ? { name: targetDisplayName(protein), pdb_id: protein.id || protein.pdb_id || null } : { name: "", pdb_id: null },
+      candidates: [],
+      recommended: { cid: null, score: null, reason: "" },
+      ranking: [],
+      summary: "No compounds to score.",
+      limitations: [],
+      source: "heuristic",
+    };
+  }
+  return rankCandidatesLocal(list, protein, { maxCandidates: list.length, minCandidates: 1 });
+}
+
 module.exports = {
   MAX_CANDIDATES,
   drugLikenessChecks,
   nameOf,
   cidOf,
   targetFamily,
+  scoreOne,
   rankCandidatesLocal,
+  scoreLibraryLocal,
 };

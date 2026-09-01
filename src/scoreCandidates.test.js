@@ -1,4 +1,4 @@
-import { rankCandidatesLocal, drugLikenessChecks } from "./scoreCandidates";
+import { drugLikenessChecks, rankCandidatesLocal, scoreLibraryLocal } from "./scoreCandidates";
 
 const caffeine = {
   cid: "2519",
@@ -71,6 +71,38 @@ test("returns a complete ranking schema", () => {
   expect(result.ranking.map((r) => r.cid).sort()).toEqual(["2519", "5291"]);
   expect(result.limitations.length).toBeGreaterThan(0);
   expect(result.source).toBe("heuristic");
+});
+
+test("scoreLibraryLocal ranks more than five compounds without the shortlist cap", () => {
+  const extra = [
+    caffeine,
+    imatinib,
+    ibuprofen,
+    ugly,
+    {
+      cid: "2244",
+      displayName: "aspirin",
+      molecularWeight: 180.16,
+      xlogp: 1.2,
+      hbd: 1,
+      hba: 4,
+      rotatableBonds: 3,
+      tpsa: 63.6,
+    },
+    {
+      cid: "1983",
+      displayName: "paracetamol",
+      molecularWeight: 151.16,
+      xlogp: 0.5,
+      hbd: 2,
+      hba: 2,
+      rotatableBonds: 1,
+      tpsa: 49.3,
+    },
+  ];
+  const result = scoreLibraryLocal(extra, { id: "2HYY", queryName: "ABL1", title: "c-Abl tyrosine kinase" });
+  expect(result.ranking).toHaveLength(6);
+  expect(result.ranking.find((r) => r.cid === "5291").score).toBeGreaterThan(result.ranking.find((r) => r.cid === "1983").score);
 });
 
 test("requires at least two candidates", () => {

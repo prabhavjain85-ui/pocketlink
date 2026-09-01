@@ -42,6 +42,37 @@ test("API rejects non-POST methods", async () => {
   expect(res.statusCode).toBe(405);
 });
 
+test("API batch mode accepts more than five candidates", async () => {
+  const previous = process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY;
+  const many = [];
+  for (let i = 0; i < 12; i += 1) {
+    many.push({
+      ...caffeine,
+      cid: String(2500 + i),
+      name: i % 2 === 0 ? "imatinib analog" : "caffeine analog",
+    });
+  }
+  const res = mockRes();
+  await handler(
+    {
+      method: "POST",
+      body: {
+        mode: "batch",
+        candidates: many,
+        protein: { id: "2HYY", queryName: "ABL1", title: "c-Abl tyrosine kinase" },
+      },
+    },
+    res
+  );
+  if (previous == null) delete process.env.OPENAI_API_KEY;
+  else process.env.OPENAI_API_KEY = previous;
+  expect(res.statusCode).toBe(200);
+  expect(res.body.ranking).toHaveLength(12);
+  expect(handler.compactCandidates(many, 30)).toHaveLength(12);
+  expect(handler.compactCandidates(many, 5)).toHaveLength(5);
+});
+
 test("API requires at least two candidates", async () => {
   const res = mockRes();
   await handler({ method: "POST", body: { candidates: [caffeine] } }, res);

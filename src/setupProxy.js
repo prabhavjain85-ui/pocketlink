@@ -32,6 +32,9 @@ module.exports = function setupProxy(app) {
 
   app.use("/api/contact", vercelOnExpress(contactHandler));
 
+  const rankHandler = require("../api/rank-candidates");
+  app.use("/api/rank-candidates", vercelOnExpress(rankHandler));
+
   const target = process.env.PAINS_API_ORIGIN || "http://127.0.0.1:8787";
   app.use(
     "/api/pains-check",
