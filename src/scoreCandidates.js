@@ -351,7 +351,7 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
         ? "Target-fit assessment is limited without pocket/ligand data — geometric fit was not treated as a confident judgment."
         : "Use SwissDock and SwissADME next, then experimental assays, before treating any molecule as a real lead.",
       "Use SwissDock and SwissADME next, then experimental assays, before treating any molecule as a real lead.",
-    ]    .filter((item, index, arr) => arr.indexOf(item) === index),
+    ].filter((item, index, arr) => arr.indexOf(item) === index),
     source: "heuristic",
   };
 }
