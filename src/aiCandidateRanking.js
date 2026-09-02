@@ -109,10 +109,13 @@ export async function rankCandidates(candidates, protein, painsByCid = {}) {
     }
     rememberRanking(protein, data);
     return data;
-  } catch {
+  } catch (error) {
     const fallback = rankCandidatesLocal(withPains(candidates, painsByCid), protein);
     rememberRanking(protein, fallback);
-    return fallback;
+    return {
+      ...fallback,
+      aiError: error?.message || "The AI ranking request failed or returned malformed data.",
+    };
   }
 }
 
@@ -220,11 +223,15 @@ export async function rankCandidatesBatch(candidates, protein, painsByCid = {}) 
       throw new Error("The AI returned an incomplete ranking.");
     }
     const merged = overlayLocalScores(data, local);
+    if (data?.aiError) merged.aiError = data.aiError;
     rememberRanking(protein, merged);
     return merged;
-  } catch {
+  } catch (error) {
     rememberRanking(protein, local);
-    return local;
+    return {
+      ...local,
+      aiError: error?.message || "The AI ranking request failed or returned malformed data.",
+    };
   }
 }
 

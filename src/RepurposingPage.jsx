@@ -6,6 +6,7 @@ import {
   HIGHLIGHT_COUNT,
   PAGE_SIZE,
   SERVERLESS_TIMEOUT_NOTE,
+  INSUFFICIENT_STRUCTURE_ERROR,
   screenApprovedLibrary,
 } from "./repurposingScreen";
 import { targetDisplayName } from "./targetContext";
@@ -202,6 +203,21 @@ export default function RepurposingPage() {
             </div>
           )}
           {error && <div className="error-msg">{error}</div>}
+          {result?.aiError && (
+            <div className="error-msg">
+              Unable to score against this target with the language model ({result.aiError}).{" "}
+              {result.degraded
+                ? "Insufficient structural data for a target-specific ranking."
+                : "PocketLink used its target-aware model instead."}
+            </div>
+          )}
+          {result?.degraded && !result.aiError && (
+            <div className="error-msg">
+              {INSUFFICIENT_STRUCTURE_ERROR}. This structure has no co-crystallized ligand or pocket, and the target
+              family could not be recognized. The table below is general drug-likeness only — not a repurposing hit list.
+            </div>
+          )}
+          {result?.warning && !result.degraded && <div className="lipinski-note">{result.warning}</div>}
           {!loading && !result && !error && (
             <div className="empty-state">
               Select a PDB structure above to screen the approved-drug library. This is a longer-running batch than the

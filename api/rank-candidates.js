@@ -1,4 +1,4 @@
-const { rankCandidatesLocal, drugLikenessChecks } = require("../src/scoreCandidates");
+const { rankCandidatesLocal, drugLikenessChecks, scoringCapabilities } = require("../src/scoreCandidates");
 const { TARGET_SPECIFIC_INSTRUCTION, buildTargetContext, targetDisplayName } = require("../src/targetContext");
 
 const ALLOWED_ORIGIN = "*";
@@ -120,7 +120,7 @@ function compactProtein(raw) {
   const pdbId = clean(packed.pdb_id || packed.id, 12);
   const scoreRaw = packed.targetSelectionScore ?? packed.score;
   const score = scoreRaw == null || scoreRaw === "" ? null : Number(scoreRaw);
-  return {
+  const packedOut = {
     name: clean(packed.name || packed.queryName || packed.title, 240),
     queryName: packed.queryName ? clean(packed.queryName, 80) : "",
     pdb_id: pdbId,
@@ -134,6 +134,8 @@ function compactProtein(raw) {
     pocket,
     dataGaps: gaps,
   };
+  packedOut.family = scoringCapabilities(packedOut).family;
+  return packedOut;
 }
 
 function extractJson(text) {
@@ -199,7 +201,11 @@ function mergeBatchLlmReasoning(heuristic, llm) {
 function logRankPrompt(system, user, protein) {
   const pdb = protein?.pdb_id || protein?.id || "none";
   const name = protein?.name || protein?.queryName || "";
+  const caps = scoringCapabilities(protein);
   console.log(`[rank-candidates] Full prompt for ${name} (PDB ${pdb})`);
+  console.log(
+    `[rank-candidates] structural data: family=${caps.family} ligand=${caps.hasLigand} pocket=${caps.hasPocket} degraded=${caps.degraded} gaps=${JSON.stringify(caps.dataGaps)}`
+  );
   console.log(`[rank-candidates] --- system ---\n${system}`);
   console.log(`[rank-candidates] --- user ---\n${user}`);
 }
@@ -265,18 +271,22 @@ function buildRankPrompt(compact, protein, heuristic) {
   const targetLabel = protein?.pdb_id
     ? `${protein.name || targetDisplayName(protein) || "staged target"} (PDB ${protein.pdb_id})`
     : "an unspecified target (no PDB structure staged)";
+  const caps = scoringCapabilities(protein);
+  const family = caps.family || "unknown";
 
   const gaps = protein?.dataGaps?.length
-    ? `Missing target data:\n${protein.dataGaps.map((g) => `- ${g}`).join("\n")}\nIf pocket or reference-ligand data are missing, still score using drug-likeness and known pharmacology, but explicitly note in reasoning that target-fit assessment is limited without pocket/ligand data. Do not fabricate a confident geometric fit judgment you cannot support.`
+    ? `Missing target data:\n${protein.dataGaps.map((g) => `- ${g}`).join("\n")}\nGraceful fallback: no reference ligand and/or pocket geometry is available. Score using known pharmacology for this target family plus drug-likeness. Explicitly note in every candidate's reasoning that target-fit assessment is limited without pocket/ligand data. Do not fabricate a confident geometric fit. Do not rank by general drug-likeness alone — a benzodiazepine or anthelmintic must not outrank a known class match just because it is more Lipinski-compliant.`
     : "Pocket and/or reference-ligand data are available — use them for size and polarity matching, and still require genuine pharmacological relevance.";
+
+  const familyLine = `Recognized target family: ${family}. Pharmacological class match for THIS family must drive the ranking. A generally drug-like molecule with no class match (for example alprazolam against HIV protease or COX-2) must score well below a known class match.`;
 
   const system = `You are an assistant for early-stage computational drug discovery triage.
 Score each supplied small-molecule candidate for how well it fits THIS specific target / PDB structure, not how drug-like it is in general.
 ${TARGET_SPECIFIC_INSTRUCTION}
 
 Scoring (integer 0–100) is a weighted combination of:
-1. Target/pocket fit (~55%): size and polarity match relative to the pocket and the co-crystallized reference ligand when available, AND genuine pharmacological relevance. If the compound is a known inhibitor class for this target family — for example a tyrosine kinase inhibitor when the target is a tyrosine kinase — that must meaningfully raise the score. Use real chemical and pharmacological knowledge here, not just geometric property matching.
-2. Drug-likeness (~30%): Lipinski Rule-of-Five and Veber compliance from the supplied properties.
+1. Target/pocket fit (~55%): size and polarity match relative to the pocket and the co-crystallized reference ligand when available, AND genuine pharmacological relevance. If the compound is a known inhibitor class for this target family — for example a tyrosine kinase inhibitor when the target is a tyrosine kinase, a protease inhibitor when the target is HIV protease, or an NSAID when the target is COX-2 — that must meaningfully raise the score. Use real chemical and pharmacological knowledge here, not just geometric property matching.
+2. Drug-likeness (~30%): Lipinski Rule-of-Five and Veber compliance from the supplied properties. This is a tie-breaker, not the ranking.
 3. PAINS/toxicophore penalty: deduct points if flagged (typically 8–15). Never hard-zero a score solely because of an alert — some flagged chemotypes become real drugs.
 
 You may use established pharmacological knowledge about compound classes and protein families. Do not invent docking scores, IC50 values, ADME results, residue contacts, or unpublished experimental evidence. Do not call a molecule a drug or clinically effective against this target.
@@ -289,6 +299,8 @@ compound_id must be the supplied cid. Include every candidate exactly once. reas
 
   const user = `Score these candidates for ${targetLabel}.
 ${TARGET_SPECIFIC_INSTRUCTION}
+
+${familyLine}
 
 Selected structure:
 ${JSON.stringify(protein, null, 2)}
@@ -377,10 +389,16 @@ async function handler(req, res) {
         if (isBatch) return json(res, 200, mergeBatchLlmReasoning(heuristic, llm));
         return json(res, 200, llm);
       }
-    } catch (error) {
+      heuristic.aiError = "The AI returned malformed or incomplete ranking data.";
       heuristic.limitations = [
         ...(heuristic.limitations || []),
-        `Language-model ranking was unavailable (${clean(error.message, 160)}), so PocketLink used its target-aware physicochemical model instead.`,
+        "Language-model ranking returned malformed data, so PocketLink used its target-aware physicochemical model instead.",
+      ];
+    } catch (error) {
+      heuristic.aiError = clean(error.message, 160) || "The AI ranking request failed.";
+      heuristic.limitations = [
+        ...(heuristic.limitations || []),
+        `Language-model ranking was unavailable (${heuristic.aiError}), so PocketLink used its target-aware physicochemical model instead.`,
       ];
     }
 

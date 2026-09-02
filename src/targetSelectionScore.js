@@ -75,6 +75,18 @@ function num(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * RCSB GraphQL `rcsb_nonpolymer_entity.formula_weight` is in kDa
+ * (imatinib ≈ 0.494). REST fixtures and PubChem-style values are already
+ * g/mol. Convert the kDa form so size-matching is not 389 vs 0.5.
+ */
+function ligandWeightDa(raw) {
+  const n = num(raw);
+  if (n == null || n <= 0) return null;
+  if (n < 20) return Math.round(n * 10000) / 10;
+  return n;
+}
+
 function isCrystallizationAdditive(compId, name) {
   const id = String(compId || "").toUpperCase().trim();
   if (id && ADDITIVE_COMP_IDS.has(id)) return true;
@@ -163,7 +175,7 @@ function ligandEntitiesFromNonpolymers(nonpolymerEntities) {
     ligands.push({
       compId,
       name,
-      formulaWeight: num(meta.formula_weight),
+      formulaWeight: ligandWeightDa(meta.formula_weight),
       instances: Array.isArray(entity.nonpolymer_entity_instances)
         ? entity.nonpolymer_entity_instances
         : entity.instances || [],
@@ -604,6 +616,7 @@ const SCORE_FORMULA_TEXT =
 module.exports = {
   WEIGHTS,
   ADDITIVE_COMP_IDS,
+  ligandWeightDa,
   isCrystallizationAdditive,
   classifyMethod,
   scoreResolution,

@@ -59,6 +59,14 @@ test("method buckets and missing method", () => {
   expect(classifyMethod("").label).toBe("N/A");
 });
 
+test("converts RCSB kDa nonpolymer formula_weight to g/mol", () => {
+  const { ligandWeightDa } = require("./targetSelectionScore");
+  expect(ligandWeightDa(0.494)).toBe(494);
+  expect(ligandWeightDa(0.388)).toBe(388);
+  expect(ligandWeightDa(286.4)).toBe(286.4);
+  expect(ligandWeightDa(null)).toBeNull();
+});
+
 test("excludes crystallization additives but keeps real ligands", () => {
   expect(isCrystallizationAdditive("GOL", "glycerol")).toBe(true);
   expect(isCrystallizationAdditive("SO4", "SULFATE ION")).toBe(true);

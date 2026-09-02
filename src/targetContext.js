@@ -3,7 +3,7 @@
  * Built from the already-scored PDB row — never re-fetches RCSB.
  */
 
-const { inferLigandFunctionalGroups } = require("./targetSelectionScore");
+const { inferLigandFunctionalGroups, ligandWeightDa } = require("./targetSelectionScore");
 
 const PDB_ID_RE = /^[0-9][A-Za-z0-9]{3}$/;
 
@@ -26,11 +26,57 @@ function rankingCacheKey(pdbId, cid) {
   return `${pdb}_${compound}`;
 }
 
+const SKIP_REFERENCE_IDS = new Set([
+  "NAG",
+  "NDG",
+  "BMA",
+  "MAN",
+  "FUC",
+  "GAL",
+  "GLC",
+  "SIA",
+  "NAN",
+  "XYL",
+  "HEM",
+  "HEA",
+  "HEB",
+  "HEC",
+]);
+const SKIP_REFERENCE_NAME_RE =
+  /\b(glucopyranose|mannopyranose|fucopyranose|n-acetylglucosamine|protoporphyrin|heme)\b/i;
+
+function isWeakReferenceLigand(ligand) {
+  const id = String(ligand?.compId || ligand?.comp_id || "").toUpperCase();
+  if (SKIP_REFERENCE_IDS.has(id)) return true;
+  return SKIP_REFERENCE_NAME_RE.test(String(ligand?.name || ""));
+}
+
+function ligandList(protein) {
+  if (Array.isArray(protein?.ligands) && protein.ligands.length) return protein.ligands;
+  if (protein?.ligand && typeof protein.ligand === "object" && protein.ligand.present !== false) {
+    return [protein.ligand];
+  }
+  return [];
+}
+
 function primaryLigand(protein) {
-  const ligands = Array.isArray(protein?.ligands) ? protein.ligands : [];
-  if (ligands.length) return ligands[0];
-  if (protein?.ligand && typeof protein.ligand === "object") return protein.ligand;
-  return null;
+  const list = ligandList(protein);
+  if (!list.length) return null;
+  const preferred = list.filter((ligand) => !isWeakReferenceLigand(ligand));
+  const pool = preferred.length ? preferred : list;
+  let best = pool[0];
+  let bestPts = -1;
+  for (const ligand of pool) {
+    const mw = ligandWeightDa(ligand.formulaWeight ?? ligand.mw ?? ligand.molecularWeight);
+    let pts = isWeakReferenceLigand(ligand) ? 0 : 15;
+    if (mw != null && mw >= 150 && mw <= 900) pts += 20;
+    else if (mw != null && mw >= 80 && mw <= 1200) pts += 8;
+    if (pts > bestPts) {
+      bestPts = pts;
+      best = ligand;
+    }
+  }
+  return best;
 }
 
 function compactLigand(protein) {
@@ -43,12 +89,12 @@ function compactLigand(protein) {
   const compId = ligand.compId || ligand.comp_id || "";
   const groupsFromData = Array.isArray(ligand.functionalGroups) ? ligand.functionalGroups : [];
   const groups = groupsFromData.length ? groupsFromData : inferLigandFunctionalGroups(name, compId);
-  const mw = ligand.formulaWeight ?? ligand.mw ?? ligand.molecularWeight ?? null;
+  const mw = ligandWeightDa(ligand.formulaWeight ?? ligand.mw ?? ligand.molecularWeight);
   return {
     present: true,
     name,
     compId,
-    mw: mw == null || mw === "" ? null : Number(mw),
+    mw,
     functionalGroups: groups.slice(0, 8),
   };
 }
@@ -123,10 +169,37 @@ function buildTargetContext(protein) {
   };
 }
 
+function summarizeTargetData(protein) {
+  const ctx = buildTargetContext(protein);
+  if (!ctx) {
+    return {
+      pdb_id: null,
+      name: "",
+      hasLigand: false,
+      hasPocket: false,
+      ligand: { present: false },
+      pocket: { available: false },
+      dataGaps: ["No target structure was provided"],
+    };
+  }
+  return {
+    pdb_id: ctx.pdb_id,
+    name: ctx.name,
+    title: ctx.title,
+    queryName: ctx.queryName,
+    hasLigand: Boolean(ctx.ligand?.present),
+    hasPocket: Boolean(ctx.pocket?.available),
+    ligand: ctx.ligand,
+    pocket: ctx.pocket,
+    dataGaps: ctx.dataGaps,
+  };
+}
+
 module.exports = {
   PDB_ID_RE,
   TARGET_SPECIFIC_INSTRUCTION,
   targetDisplayName,
   rankingCacheKey,
   buildTargetContext,
+  summarizeTargetData,
 };

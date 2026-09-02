@@ -180,6 +180,20 @@ test("notes limited target-fit when pocket and ligand data are missing", () => {
   expect(row.reasoning.join(" ")).toMatch(/limited without pocket\/ligand data/i);
 });
 
+test("kinase apo structures still use pharmacology when ligand/pocket are missing", () => {
+  const apoKinase = {
+    id: "1OPL",
+    queryName: "ABL1",
+    title: "c-Abl tyrosine kinase domain, apo",
+    hasLigand: false,
+    pocket: "unclear",
+  };
+  const result = rankCandidatesLocal([imatinib, caffeine], apoKinase);
+  expect(result.recommended.cid).toBe("5291");
+  expect(result.ranking.find((r) => r.cid === "5291").reasoning.join(" ")).toMatch(/kinase-inhibitor/i);
+  expect(result.ranking.find((r) => r.cid === "5291").reasoning.join(" ")).toMatch(/limited without pocket\/ligand data/i);
+});
+
 
 test("Lipinski checks flag the oversized molecule", () => {
   const checks = drugLikenessChecks(ugly);
