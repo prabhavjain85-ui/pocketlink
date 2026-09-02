@@ -11,8 +11,8 @@ import {
 } from "./rankingCache";
 
 function toApiCandidate(candidate, painsByCid = {}) {
-  const cid = candidate.CID ?? candidate.cid;
-  const pains = painsByCid[String(cid)] || candidate.pains || candidate.painsAlerts;
+  const cid = String(candidate.CID ?? candidate.cid ?? "");
+  const pains = painsByCid[cid] || candidate.pains || candidate.painsAlerts;
   const row = {
     name: candidate.displayName || candidate.IUPACName || candidate.name || `CID ${candidate.CID || candidate.cid}`,
     cid,
@@ -24,6 +24,8 @@ function toApiCandidate(candidate, painsByCid = {}) {
     hba: candidate.HBondAcceptorCount ?? candidate.hba,
     rotatableBonds: candidate.RotatableBondCount ?? candidate.rotatableBonds,
     tpsa: candidate.TPSA ?? candidate.tpsa,
+    class: candidate.drugClass || candidate.class || "",
+    indication: candidate.indication || "",
   };
   const compact = compactPainsForRanking(pains);
   if (compact) row.pains = compact;
@@ -116,30 +118,93 @@ export async function rankCandidates(candidates, protein, painsByCid = {}) {
 
 const BATCH_LIMIT = 30;
 
+function overlayLocalScores(result, local) {
+  if (!result || !local?.ranking?.length) return result || local;
+  const localByCid = new Map(local.ranking.map((row) => [String(row.cid), row]));
+  const merged = [];
+  const seen = new Set();
+  for (const row of result.ranking || []) {
+    const cid = String(row.cid);
+    const loc = localByCid.get(cid);
+    seen.add(cid);
+    if (!loc) {
+      merged.push(row);
+      continue;
+    }
+    merged.push({
+      ...row,
+      score: loc.score,
+      reasoning: Array.isArray(row.reasoning) && row.reasoning.length ? row.reasoning : loc.reasoning,
+      strengths: Array.isArray(row.strengths) && row.strengths.length ? row.strengths : loc.strengths,
+      concerns: Array.isArray(row.concerns) && row.concerns.length ? row.concerns : loc.concerns,
+    });
+  }
+  for (const loc of local.ranking) {
+    if (!seen.has(String(loc.cid))) merged.push(loc);
+  }
+  const ranking = merged
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0) || String(a.cid).localeCompare(String(b.cid)))
+    .map((row, index) => ({ ...row, rank: index + 1 }));
+
+  const top = ranking[0];
+  return {
+    ...local,
+    ...result,
+    ranking,
+    candidates: ranking.map((row) => ({
+      compound_id: row.cid,
+      score: row.score,
+      reasoning: row.reasoning,
+    })),
+    recommended: top
+      ? {
+          cid: top.cid,
+          score: top.score,
+          reason: local.recommended?.reason || (top.reasoning || []).join(" "),
+        }
+      : local.recommended,
+    source: local.source,
+  };
+}
+
 /**
  * Rank a chunk of an approved-drug library (up to 30) with the same
  * target-aware API used by the 5-compound shortlist.
+ *
+ * Numeric scores always come from the local target-aware model so every
+ * 25-compound batch shares one scale. Independent LLM 0–100 scores from
+ * separate calls are not comparable and previously let a single highly
+ * drug-like molecule (alprazolam) win every target after merge.
  */
 export async function rankCandidatesBatch(candidates, protein, painsByCid = {}) {
   const list = Array.isArray(candidates) ? candidates : [];
   if (!list.length) {
     return scoreLibraryLocal([], protein);
   }
-  if (list.length === 1) {
-    const fallback = scoreLibraryLocal(withPains(list, painsByCid), protein);
-    rememberRanking(protein, fallback);
-    return fallback;
-  }
 
-  const cachedRows = hydrateRankingFromCache(list, protein);
-  if (cachedRows) {
-    return rankingFromCachedRows(cachedRows, list, protein);
+  const scored = withPains(list.slice(0, BATCH_LIMIT), painsByCid);
+  const local = scoreLibraryLocal(scored, protein);
+
+  if (list.length === 1) {
+    rememberRanking(protein, local);
+    return local;
   }
 
   const target = buildTargetContext(protein);
+  console.log(
+    `[repurposing] batch target context for ${target?.pdb_id || pdbIdOf(protein)} (${target?.name || ""}):\n${JSON.stringify(target, null, 2)}`
+  );
+
+  const cachedRows = hydrateRankingFromCache(list, protein);
+  if (cachedRows) {
+    const reused = overlayLocalScores(rankingFromCachedRows(cachedRows, list, protein), local);
+    rememberRanking(protein, reused);
+    return reused;
+  }
+
   const payload = {
     mode: "batch",
-    candidates: list.slice(0, BATCH_LIMIT).map((c) => toApiCandidate(c, painsByCid)),
+    candidates: scored.map((c) => toApiCandidate(c, painsByCid)),
     protein: target,
   };
 
@@ -154,12 +219,12 @@ export async function rankCandidatesBatch(candidates, protein, painsByCid = {}) 
     if (!Array.isArray(data.ranking) || data.ranking.length !== payload.candidates.length) {
       throw new Error("The AI returned an incomplete ranking.");
     }
-    rememberRanking(protein, data);
-    return data;
+    const merged = overlayLocalScores(data, local);
+    rememberRanking(protein, merged);
+    return merged;
   } catch {
-    const fallback = scoreLibraryLocal(withPains(list.slice(0, BATCH_LIMIT), painsByCid), protein);
-    rememberRanking(protein, fallback);
-    return fallback;
+    rememberRanking(protein, local);
+    return local;
   }
 }
 
@@ -170,4 +235,5 @@ export {
   rankingCacheKey,
   rememberRanking,
   scoreLibraryLocal,
+  overlayLocalScores,
 };

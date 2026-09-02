@@ -6,7 +6,7 @@
 import { rankingCacheKey } from "./targetContext";
 
 const MEMORY_CACHE = new Map();
-const STORAGE_KEY = "pocketlink-rank-cache-v1";
+const STORAGE_KEY = "pocketlink-rank-cache-v2";
 
 function readSessionCache() {
   if (typeof sessionStorage === "undefined") return {};

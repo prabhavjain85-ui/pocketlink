@@ -14,6 +14,15 @@ const KINASE_TARGET_RE =
 const GPCR_TARGET_RE =
   /\b(gpcr|g protein-coupled|rhodopsin|adrenergic|opioid receptor|dopamine receptor|serotonin|5-hydroxytryptamine|5-ht|chemokine receptor|muscarinic|histamine receptor|cannabinoid|adenosine receptor|beta-2|β2|adrb2)\b/i;
 
+const ION_CHANNEL_TARGET_RE =
+  /\b(ion channel|sodium channel|potassium channel|calcium channel|voltage-gated|nav\d|cav\d|kv\d|herg|nicotinic acetylcholine|nmda receptor|gaba.?a)\b/i;
+
+const KINASE_CLASS_RE = /\bkinase inhibitor\b/i;
+const GPCR_CLASS_RE =
+  /\b(beta-blocker|beta-2 agonist|antihistamine|opioid|antipsychotic|\barb\b|alpha-1|alpha-2 agonist|5-ht3|h2 antagonist|antimuscarinic|triptan|dopamine agonist|nachr)\b/i;
+const ION_CLASS_RE =
+  /\b(calcium channel blocker|local anesthetic|anticonvulsant)\b/i;
+
 function num(value) {
   if (value === undefined || value === null || value === "") return null;
   const n = Number(value);
@@ -102,25 +111,32 @@ function alertSummary(candidate) {
   };
 }
 
+function classOf(candidate) {
+  return String(candidate?.drugClass || candidate?.class || "").trim();
+}
+
 function targetFamily(protein) {
   const ctx = protein?.pdb_id || protein?.id ? protein : null;
   const text = `${protein?.queryName || protein?.name || ""} ${protein?.title || ""} ${protein?.id || protein?.pdb_id || ""}`;
   if (KINASE_TARGET_RE.test(text)) return "kinase";
   if (GPCR_TARGET_RE.test(text)) return "gpcr";
+  if (ION_CHANNEL_TARGET_RE.test(text)) return "ion";
   return ctx ? "other" : null;
 }
 
 function pharmacologyFit(candidate, family) {
   const name = nameOf(candidate);
-  const kinaseDrug = KINASE_INHIBITOR_RE.test(name);
-  const gpcrDrug = GPCR_LIGAND_RE.test(name);
+  const klass = classOf(candidate);
+  const kinaseDrug = KINASE_INHIBITOR_RE.test(name) || KINASE_CLASS_RE.test(klass);
+  const gpcrDrug = GPCR_LIGAND_RE.test(name) || GPCR_CLASS_RE.test(klass);
+  const ionDrug = ION_CLASS_RE.test(klass);
 
   if (family === "kinase") {
     if (kinaseDrug) {
       return { pts: 40, text: "Known kinase-inhibitor-like scaffold for this target family" };
     }
-    if (gpcrDrug) {
-      return { pts: 4, text: "Known GPCR ligand with no particular kinase-pocket relevance" };
+    if (gpcrDrug || ionDrug) {
+      return { pts: 4, text: "Known pharmacology with no particular kinase-pocket relevance" };
     }
     return { pts: 10, text: "No established kinase-inhibitor class match" };
   }
@@ -128,13 +144,22 @@ function pharmacologyFit(candidate, family) {
     if (gpcrDrug) {
       return { pts: 40, text: "Known GPCR ligand class for this target family" };
     }
-    if (kinaseDrug) {
-      return { pts: 4, text: "Known kinase inhibitor with no particular GPCR pocket relevance" };
+    if (kinaseDrug || ionDrug) {
+      return { pts: 4, text: "Known pharmacology with no particular GPCR pocket relevance" };
     }
     return { pts: 10, text: "No established GPCR-ligand class match" };
   }
-  if (family === "other") {
+  if (family === "ion") {
+    if (ionDrug) {
+      return { pts: 40, text: "Known ion-channel / ligand-gated-channel ligand class for this target family" };
+    }
     if (kinaseDrug || gpcrDrug) {
+      return { pts: 4, text: "Known pharmacology with no particular ion-channel relevance" };
+    }
+    return { pts: 10, text: "No established ion-channel ligand class match" };
+  }
+  if (family === "other") {
+    if (kinaseDrug || gpcrDrug || ionDrug) {
       return { pts: 8, text: "Known pharmacology does not specifically match this target family" };
     }
     return { pts: 12, text: null };

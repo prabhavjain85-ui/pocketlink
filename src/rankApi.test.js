@@ -160,3 +160,104 @@ test("normalizeResult accepts the structured candidates JSON schema", () => {
   expect(normalized.ranking[0].reasoning[0]).toMatch(/kinase-inhibitor/i);
   expect(normalized.target.pdb_id).toBe("2HYY");
 });
+
+const kinaseRow = {
+  id: "2HYY",
+  queryName: "ABL1",
+  title: "Crystal structure of the c-Abl tyrosine kinase domain in complex with imatinib",
+  score: 88,
+  resolution: "2.4 Å",
+  method: "X-RAY DIFFRACTION",
+  hasLigand: true,
+  pocket: "detected",
+  ligands: [{ name: "IMATINIB", compId: "STI", formulaWeight: 493.6 }],
+  pocketStats: {
+    status: "detected",
+    available: true,
+    residueCount: 14,
+    hydrophobicity: 0.64,
+    sizeLabel: "medium",
+    hydrophobicityLabel: "hydrophobic",
+  },
+};
+
+const gpcrRow = {
+  id: "3SN6",
+  queryName: "ADRB2",
+  title: "beta-2 adrenergic receptor GPCR in complex with Gs",
+  score: 70,
+  resolution: "3.2 Å",
+  method: "X-RAY DIFFRACTION",
+  hasLigand: true,
+  pocket: "detected",
+  ligands: [{ name: "CARAZOLOL", compId: "P0G", formulaWeight: 298.4 }],
+  pocketStats: {
+    status: "detected",
+    available: true,
+    residueCount: 18,
+    hydrophobicity: 0.55,
+    sizeLabel: "medium",
+    hydrophobicityLabel: "mixed",
+  },
+};
+
+test("compactProtein keeps ligand and pocket from a PDB search row (pocket is a status string)", () => {
+  const packed = handler.compactProtein(kinaseRow);
+  expect(packed.pdb_id).toBe("2HYY");
+  expect(packed.name).toBe("ABL1");
+  expect(packed.hasLigand).toBe(true);
+  expect(packed.ligand.present).toBe(true);
+  expect(packed.ligand.mw).toBe(493.6);
+  expect(packed.pocket.available).toBe(true);
+  expect(packed.pocket.hydrophobicity).toBe(0.64);
+  expect(packed.pocket.status).toBe("detected");
+});
+
+test("prompts for two different targets include distinct target context, not a shared empty pocket", () => {
+  const kinasePacked = handler.compactProtein(kinaseRow);
+  const gpcrPacked = handler.compactProtein(gpcrRow);
+  const kinasePrompt = handler.buildRankPrompt([caffeine, ugly], kinasePacked, { ranking: [] });
+  const gpcrPrompt = handler.buildRankPrompt([caffeine, ugly], gpcrPacked, { ranking: [] });
+
+  handler.logRankPrompt(kinasePrompt.system, kinasePrompt.user, kinasePacked);
+  handler.logRankPrompt(gpcrPrompt.system, gpcrPrompt.user, gpcrPacked);
+
+  expect(kinasePrompt.user).toContain("2HYY");
+  expect(kinasePrompt.user).toContain("ABL1");
+  expect(kinasePrompt.user).toContain("IMATINIB");
+  expect(kinasePrompt.user).toMatch(/"hydrophobicity": 0.64/);
+
+  expect(gpcrPrompt.user).toContain("3SN6");
+  expect(gpcrPrompt.user).toContain("ADRB2");
+  expect(gpcrPrompt.user).toContain("CARAZOLOL");
+  expect(gpcrPrompt.user).toMatch(/"hydrophobicity": 0.55/);
+
+  expect(kinasePrompt.user).not.toBe(gpcrPrompt.user);
+  expect(kinasePrompt.user).not.toContain("3SN6");
+  expect(gpcrPrompt.user).not.toContain("2HYY");
+});
+
+test("batch merge keeps local target-aware scores instead of per-batch LLM numbers", () => {
+  const heuristic = {
+    source: "heuristic",
+    ranking: [
+      { cid: "5291", rank: 1, score: 96, reasoning: ["kinase inhibitor"] },
+      { cid: "2118", rank: 2, score: 64, reasoning: ["no kinase class match"] },
+    ],
+    limitations: [],
+  };
+  const llm = {
+    source: "llm",
+    ranking: [
+      { cid: "2118", rank: 1, score: 99, reasoning: ["very drug-like benzodiazepine"], strengths: ["Ro5"] },
+      { cid: "5291", rank: 2, score: 40, reasoning: ["large kinase inhibitor"] },
+    ],
+  };
+  const merged = handler.mergeBatchLlmReasoning(heuristic, llm);
+  expect(merged.ranking[0].cid).toBe("5291");
+  expect(merged.ranking[0].score).toBe(96);
+  expect(merged.ranking.find((r) => r.cid === "2118").score).toBe(64);
+  expect(merged.ranking.find((r) => r.cid === "2118").reasoning.join(" ")).toMatch(/drug-like benzodiazepine/i);
+  expect(merged.source).toBe("heuristic");
+});
+
