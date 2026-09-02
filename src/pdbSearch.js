@@ -9,6 +9,19 @@ export function noPdbMatchMessage(query, { noStructureHint } = {}) {
   return `No PDB entries matched "${query}". Try a protein name, gene, or a 4-character PDB ID.`;
 }
 
+async function parseRcsbSearchResponse(res) {
+  // RCSB returns 204 No Content (empty body) when the query has zero hits.
+  if (res.status === 204) return { result_set: [] };
+  if (!res.ok) throw new Error("search failed");
+  const text = await res.text();
+  if (!text.trim()) return { result_set: [] };
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("search failed");
+  }
+}
+
 /**
  * Search RCSB for a protein name / gene / PDB ID and return scored structures.
  * Shared by the staging bench, Repurposing Mode, and Target Discovery handoff.
@@ -33,8 +46,7 @@ export async function searchPdbTargets(query, options = {}) {
         request_options: { paginate: { start: 0, rows: 6 } },
       }),
     });
-    if (!res.ok) throw new Error("search failed");
-    const data = await res.json();
+    const data = await parseRcsbSearchResponse(res);
     ids = (data.result_set || []).map((r) => r.identifier);
   }
   if (!ids.length) {
@@ -56,7 +68,7 @@ export async function searchPdbTargets(query, options = {}) {
       }),
     });
     if (res.ok) {
-      const data = await res.json();
+      const data = await parseRcsbSearchResponse(res);
       const searchIds = (data.result_set || []).map((r) => r.identifier);
       if (searchIds.length) scored = await fetchAndScoreTargets(searchIds);
     }

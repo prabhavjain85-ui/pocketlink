@@ -11,7 +11,8 @@ test("searchPdbTargets reports no matches when RCSB returns an empty set", async
   global.fetch = jest.fn(() =>
     Promise.resolve({
       ok: true,
-      json: async () => ({ result_set: [] }),
+      status: 200,
+      text: async () => JSON.stringify({ result_set: [] }),
     })
   );
   try {
@@ -28,12 +29,16 @@ test("noPdbMatchMessage uses the AlphaFold handoff copy when Target Discovery fi
   expect(noPdbMatchMessage("FAKEGENE")).toMatch(/no pdb entries matched/i);
 });
 
-test("searchPdbTargets uses the no-structure hint when RCSB returns nothing", async () => {
+test("searchPdbTargets treats RCSB 204 No Content as no matches", async () => {
   const originalFetch = global.fetch;
   global.fetch = jest.fn(() =>
     Promise.resolve({
       ok: true,
-      json: async () => ({ result_set: [] }),
+      status: 204,
+      json: async () => {
+        throw new Error("Unexpected json() on 204");
+      },
+      text: async () => "",
     })
   );
   try {

@@ -242,7 +242,7 @@ export default function TargetDiscoveryPage() {
       <div className="grid with-scores">
         <Panel eyebrow="Open Targets Platform" title="Search a disease" kind="target">
           <div className="search-row">
-            <div className="search-autocomplete">
+            <div className="search-autocomplete" role="combobox" aria-expanded={suggestOpen} aria-controls="disease-suggest" aria-haspopup="listbox">
               <input
                 placeholder="Disease name (e.g. pancreatic cancer, chronic myeloid leukemia)"
                 value={query}
@@ -251,7 +251,6 @@ export default function TargetDiscoveryPage() {
                 onFocus={() => suggestions.length && setSuggestOpen(true)}
                 onBlur={() => setTimeout(() => setSuggestOpen(false), 180)}
                 aria-autocomplete="list"
-                aria-expanded={suggestOpen}
                 aria-controls="disease-suggest"
               />
               {suggestOpen && suggestions.length > 0 && (
