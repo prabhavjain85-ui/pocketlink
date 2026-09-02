@@ -1,10 +1,10 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel, ScoreInfoTip, TargetScoreTable } from "./benchUi";
 import { searchPdbTargets } from "./pdbSearch";
 
 /**
  * Shared PDB target search + Target Selection Score table.
- * Used by the staging bench and the dedicated /repurposing page.
+ * Used by the staging bench, the dedicated /repurposing page, and Target Discovery handoff.
  */
 export default function PdbTargetSearch({
   protein,
@@ -14,16 +14,20 @@ export default function PdbTargetSearch({
   title = "Find a target",
   hint = "Live query against search.rcsb.org and data.rcsb.org. Matching structures are scored locally for docking/design suitability.",
   emptyText = "No target staged yet.",
+  initialQuery = "",
+  autoSearch = false,
+  noStructureHint = false,
 }) {
-  const [pQuery, setPQuery] = useState("");
+  const [pQuery, setPQuery] = useState(initialQuery || "");
   const [pLoading, setPLoading] = useState(false);
   const [pError, setPError] = useState("");
   const [pResults, setPResults] = useState([]);
   const [scoreSort, setScoreSort] = useState({ key: "score", dir: "desc" });
   const reqId = useRef(0);
+  const autoKey = useRef("");
 
-  const searchProtein = useCallback(async () => {
-    const q = pQuery.trim();
+  const runSearch = useCallback(async (raw) => {
+    const q = String(raw ?? "").trim();
     if (!q) return;
     const myReq = ++reqId.current;
     setPLoading(true);
@@ -32,7 +36,7 @@ export default function PdbTargetSearch({
     if (typeof onResultsChange === "function") onResultsChange([]);
     setScoreSort({ key: "score", dir: "desc" });
     try {
-      const { results, error } = await searchPdbTargets(q);
+      const { results, error } = await searchPdbTargets(q, { noStructureHint });
       if (reqId.current !== myReq) return;
       if (error) {
         setPError(error);
@@ -45,7 +49,18 @@ export default function PdbTargetSearch({
     } finally {
       if (reqId.current === myReq) setPLoading(false);
     }
-  }, [pQuery, onResultsChange]);
+  }, [onResultsChange, noStructureHint]);
+
+  const searchProtein = useCallback(() => runSearch(pQuery), [runSearch, pQuery]);
+
+  useEffect(() => {
+    if (!autoSearch) return;
+    const q = String(initialQuery || "").trim();
+    if (!q || autoKey.current === q) return;
+    autoKey.current = q;
+    setPQuery(q);
+    runSearch(q);
+  }, [autoSearch, initialQuery, runSearch]);
 
   const recommendedTarget = useMemo(() => {
     if (!pResults.length) return null;
@@ -77,6 +92,11 @@ export default function PdbTargetSearch({
         </button>
       </div>
       <div className="hint">{hint}</div>
+      {noStructureHint && pQuery ? (
+        <div className="source-pill" style={{ marginTop: 0, marginBottom: 10 }}>
+          Pre-filled from Target Discovery: {pQuery}
+        </div>
+      ) : null}
       {pError && <div className="error-msg">{pError}</div>}
       {pResults.length > 0 && (
         <div className="score-block">

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { rankCandidates, tryCachedRanking } from "./aiCandidateRanking";
 import {
   CopyField,
@@ -133,6 +134,9 @@ function CandidateRow({ candidate, selected, recommended, pains, onToggle, onRem
 }
 
 export default function App() {
+  const [searchParams] = useSearchParams();
+  const handoffQuery = searchParams.get("q") || "";
+  const fromDiscovery = searchParams.get("from") === "target-discovery";
   const [protein, setProtein] = useState(null);
   const [hasTargetResults, setHasTargetResults] = useState(false);
 
@@ -350,7 +354,14 @@ export default function App() {
       </div>
 
       <div className={"grid" + (hasTargetResults ? " with-scores" : "")}>
-        <PdbTargetSearch protein={protein} onSelect={setProtein} onResultsChange={(rows) => setHasTargetResults(Boolean(rows?.length))} />
+        <PdbTargetSearch
+          protein={protein}
+          onSelect={setProtein}
+          onResultsChange={(rows) => setHasTargetResults(Boolean(rows?.length))}
+          initialQuery={handoffQuery}
+          autoSearch={Boolean(handoffQuery)}
+          noStructureHint={fromDiscovery}
+        />
 
         <Panel eyebrow="Station 2 — PubChem" title="Build a 5-molecule shortlist" kind="candidate">
           <div className="search-row">

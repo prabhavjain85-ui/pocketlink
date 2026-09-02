@@ -9,6 +9,7 @@ export default function Layout() {
       <Outlet />
       <div className="footer-note">
         Structures from the <a href="https://www.rcsb.org" target="_blank" rel="noreferrer">RCSB Protein Data Bank</a>.
+        Disease–target associations from the <a href="https://platform.opentargets.org" target="_blank" rel="noreferrer">Open Targets Platform</a>.
         Compound data from <a href="https://pubchem.ncbi.nlm.nih.gov" target="_blank" rel="noreferrer">PubChem</a> (NCBI).
         Docking via <a href="https://www.swissdock.ch" target="_blank" rel="noreferrer">SwissDock</a> and ADME
         prediction via <a href="https://www.swissadme.ch" target="_blank" rel="noreferrer">SwissADME</a> (SIB Swiss
