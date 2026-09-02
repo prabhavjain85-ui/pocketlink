@@ -111,60 +111,163 @@ function alertSummary(candidate) {
   };
 }
 
+const TARGET_FAMILIES = [
+  {
+    id: "kinase",
+    label: "kinase-inhibitor-like scaffold",
+    target: KINASE_TARGET_RE,
+    ligand: /imatinib|staurosporine|kinase inhibitor/i,
+    drugName: KINASE_INHIBITOR_RE,
+    drugClass: KINASE_CLASS_RE,
+  },
+  {
+    id: "gpcr",
+    label: "GPCR ligand class",
+    target: GPCR_TARGET_RE,
+    drugName: GPCR_LIGAND_RE,
+    drugClass: GPCR_CLASS_RE,
+  },
+  {
+    id: "ion",
+    label: "ion-channel / ligand-gated-channel ligand class",
+    target: ION_CHANNEL_TARGET_RE,
+    drugClass: ION_CLASS_RE,
+  },
+  {
+    id: "protease",
+    label: "protease inhibitor",
+    target: /\b(protease|peptidase|renin|thrombin|hcv ns3)\b/i,
+    ligand: /protease inhibitor|indinavir|ritonavir|saquinavir|lopinavir|nelfinavir|darunavir|atazanavir|l-735/i,
+    drugClass: /\bprotease inhibitor\b/i,
+    relatedClass: /\b(peptidomimetic|hiv protease)\b/i,
+  },
+  {
+    id: "nuclear",
+    label: "nuclear-receptor ligand",
+    target: /\b(estrogen receptor|oestrogen|androgen receptor|nuclear receptor|ppar|glucocorticoid receptor|progesterone receptor|err[ab]|nr3a)\b/i,
+    ligand: /tamoxifen|estradiol|raloxifene|androstene|hydroxytamoxifen/i,
+    drugClass: /\b(serm|aromatase inhibitor)\b/i,
+  },
+  {
+    id: "cox",
+    label: "NSAID / cyclooxygenase ligand",
+    target: /\b(cyclooxygenase|cox-?2|cox-?1|prostaglandin synthase)\b/i,
+    ligand: /celecoxib|sc-558|nsaid|coxib/i,
+    drugClass: /\bnsaid\b/i,
+  },
+  {
+    id: "hmg",
+    label: "statin",
+    target: /\b(hmg-?coa|hydroxymethylglutaryl|hmg reductase)\b/i,
+    ligand: /\bstatin|atorvastatin|simvastatin|rosuvastatin\b/i,
+    drugClass: /\bstatin\b/i,
+  },
+  {
+    id: "ace",
+    label: "ACE inhibitor / ARB",
+    target: /\b(angiotensin-converting|\bace\b|angiotensin ii)\b/i,
+    drugClass: /\b(ace inhibitor|\barb\b)\b/i,
+  },
+  {
+    id: "integrase",
+    label: "integrase inhibitor",
+    target: /\bintegrase\b/i,
+    drugClass: /\bintegrase inhibitor\b/i,
+    relatedClass: /\b(hiv integrase)\b/i,
+  },
+  {
+    id: "rt",
+    label: "reverse-transcriptase inhibitor",
+    target: /\b(reverse transcriptase|nnrti)\b/i,
+    drugClass: /\bnnrti\b/i,
+    relatedClass: /\b(nrti|nucleoside reverse)\b/i,
+  },
+];
+
 function classOf(candidate) {
   return String(candidate?.drugClass || candidate?.class || "").trim();
 }
 
+function targetSearchText(protein) {
+  const ligand = protein?.ligand;
+  const ligandBit = ligand?.present
+    ? `${ligand.name || ""} ${ligand.compId || ""} ${(ligand.functionalGroups || []).join(" ")}`
+    : "";
+  const extraLigands = Array.isArray(protein?.ligands)
+    ? protein.ligands.map((l) => `${l.name || ""} ${l.compId || ""}`).join(" ")
+    : "";
+  return `${protein?.queryName || protein?.name || ""} ${protein?.title || ""} ${protein?.id || protein?.pdb_id || ""} ${ligandBit} ${extraLigands}`;
+}
+
+function familyDef(id) {
+  return TARGET_FAMILIES.find((f) => f.id === id) || null;
+}
+
 function targetFamily(protein) {
   const ctx = protein?.pdb_id || protein?.id ? protein : null;
-  const text = `${protein?.queryName || protein?.name || ""} ${protein?.title || ""} ${protein?.id || protein?.pdb_id || ""}`;
-  if (KINASE_TARGET_RE.test(text)) return "kinase";
-  if (GPCR_TARGET_RE.test(text)) return "gpcr";
-  if (ION_CHANNEL_TARGET_RE.test(text)) return "ion";
+  if (!protein) return null;
+  const text = targetSearchText(protein);
+  for (const family of TARGET_FAMILIES) {
+    if (family.target.test(text)) return family.id;
+    if (family.ligand && family.ligand.test(text)) return family.id;
+  }
   return ctx ? "other" : null;
 }
 
-function pharmacologyFit(candidate, family) {
+function drugMatchesFamily(candidate, family) {
+  const def = familyDef(family);
   const name = nameOf(candidate);
   const klass = classOf(candidate);
-  const kinaseDrug = KINASE_INHIBITOR_RE.test(name) || KINASE_CLASS_RE.test(klass);
-  const gpcrDrug = GPCR_LIGAND_RE.test(name) || GPCR_CLASS_RE.test(klass);
-  const ionDrug = ION_CLASS_RE.test(klass);
+  if (!def) {
+    return { match: false, related: false };
+  }
+  const match = Boolean(
+    (def.drugName && def.drugName.test(name)) || (def.drugClass && def.drugClass.test(klass))
+  );
+  const related = Boolean(def.relatedClass && def.relatedClass.test(klass));
+  return { match, related, label: def.label };
+}
 
-  if (family === "kinase") {
-    if (kinaseDrug) {
-      return { pts: 40, text: "Known kinase-inhibitor-like scaffold for this target family" };
-    }
-    if (gpcrDrug || ionDrug) {
-      return { pts: 4, text: "Known pharmacology with no particular kinase-pocket relevance" };
-    }
-    return { pts: 10, text: "No established kinase-inhibitor class match" };
+const PHARM_MATCH_PTS = 50;
+const PHARM_RELATED_PTS = 8;
+const PHARM_OTHER_FAMILY_PTS = 4;
+const PHARM_UNKNOWN_FAMILY_PTS = 8;
+
+function pharmacologyFit(candidate, family) {
+  if (!family) return { pts: 0, text: null };
+  const own = drugMatchesFamily(candidate, family);
+  if (own.match) {
+    return { pts: PHARM_MATCH_PTS, text: `Known ${own.label} for this target family` };
   }
-  if (family === "gpcr") {
-    if (gpcrDrug) {
-      return { pts: 40, text: "Known GPCR ligand class for this target family" };
-    }
-    if (kinaseDrug || ionDrug) {
-      return { pts: 4, text: "Known pharmacology with no particular GPCR pocket relevance" };
-    }
-    return { pts: 10, text: "No established GPCR-ligand class match" };
+  if (own.related) {
+    return { pts: PHARM_RELATED_PTS, text: `Related pharmacology for this target family (${classOf(candidate) || nameOf(candidate)})` };
   }
-  if (family === "ion") {
-    if (ionDrug) {
-      return { pts: 40, text: "Known ion-channel / ligand-gated-channel ligand class for this target family" };
-    }
-    if (kinaseDrug || gpcrDrug) {
-      return { pts: 4, text: "Known pharmacology with no particular ion-channel relevance" };
-    }
-    return { pts: 10, text: "No established ion-channel ligand class match" };
+
+  const otherHits = TARGET_FAMILIES.filter((f) => f.id !== family).filter((f) => drugMatchesFamily(candidate, f.id).match);
+  if (otherHits.length) {
+    return { pts: PHARM_OTHER_FAMILY_PTS, text: `Known pharmacology with no particular ${family} pocket relevance` };
   }
   if (family === "other") {
-    if (kinaseDrug || gpcrDrug || ionDrug) {
-      return { pts: 8, text: "Known pharmacology does not specifically match this target family" };
-    }
-    return { pts: 12, text: null };
+    return { pts: PHARM_UNKNOWN_FAMILY_PTS, text: "No established class match for this target family" };
   }
-  return { pts: 0, text: null };
+  return { pts: 0, text: `No established ${familyDef(family)?.label || family} class match` };
+}
+
+function scoringCapabilities(protein) {
+  const ctx = protein ? buildTargetContext(protein) : null;
+  const family = targetFamily(ctx || protein);
+  const hasLigand = Boolean(ctx?.ligand?.present);
+  const hasPocket = Boolean(ctx?.pocket?.available);
+  const recognized = Boolean(family && family !== "other");
+  return {
+    family: family || null,
+    hasLigand,
+    hasPocket,
+    recognizedFamily: recognized,
+    missingStructure: !hasLigand || !hasPocket,
+    degraded: !recognized && (!hasLigand || !hasPocket),
+    dataGaps: ctx?.dataGaps || [],
+  };
 }
 
 function sizeMatchPts(mw, ligandMw) {
@@ -221,23 +324,30 @@ function scoreOne(candidate, protein = null) {
   const reasoning = [];
 
   const family = targetFamily(ctx || protein);
+  const exactClass = Boolean(family && drugMatchesFamily(candidate, family).match);
   let fit = null;
   if (ctx) {
     const pharm = pharmacologyFit(candidate, family);
-    const size = sizeMatchPts(p.mw, ctx.ligand?.present ? ctx.ligand.mw : null);
-    const polar = polarityMatchPts(p.xlogp, ctx.pocket);
+    const sizeAvailable = Boolean(ctx.ligand?.present && ctx.ligand.mw);
+    const polarAvailable = Boolean(ctx.pocket?.available && ctx.pocket.hydrophobicity != null);
+    const size = sizeAvailable ? sizeMatchPts(p.mw, ctx.ligand.mw) : { pts: 0, text: null };
+    const polar = polarAvailable ? polarityMatchPts(p.xlogp, ctx.pocket) : { pts: 0, text: null };
+    const maxPts = PHARM_MATCH_PTS + (sizeAvailable ? 10 : 0) + (polarAvailable ? 8 : 0);
     const rawFit = pharm.pts + size.pts + polar.pts;
-    fit = Math.max(0, Math.min(100, Math.round((rawFit / 58) * 100)));
+    fit = maxPts > 0 ? Math.max(0, Math.min(100, Math.round((rawFit / maxPts) * 100))) : 40;
     if (pharm.text) reasoning.push(pharm.text);
     if (size.text) reasoning.push(size.text);
     if (polar.text) reasoning.push(polar.text);
     if (!ctx.ligand?.present || !ctx.pocket?.available) {
-      reasoning.push("Target-fit assessment is limited without pocket/ligand data for this structure");
+      reasoning.push("Target-fit assessment is limited without pocket/ligand data for this structure — ranking uses known pharmacology and drug-likeness only");
     }
   }
 
+  // Known class members (HIV protease inhibitors, etc.) often violate Lipinski
+  // on purpose. Do not let general drug-likeness outrank an exact class match.
+  const druglikeAdj = exactClass ? Math.max(druglike, 36) : druglike;
   const combined = ctx
-    ? 0.6 * (fit == null ? 40 : fit) + 0.4 * druglike
+    ? 0.72 * (fit == null ? 40 : fit) + 0.28 * druglikeAdj
     : druglike;
   const score = Math.round(Math.max(1, Math.min(100, combined - alertPenalty)));
 
@@ -407,6 +517,7 @@ module.exports = {
   nameOf,
   cidOf,
   targetFamily,
+  scoringCapabilities,
   scoreOne,
   rankCandidatesLocal,
   scoreLibraryLocal,

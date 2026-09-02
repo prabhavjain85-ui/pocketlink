@@ -2,8 +2,8 @@ import { rankCandidatesBatch, scoreLibraryLocal } from "./aiCandidateRanking";
 import { drugToCandidate, loadApprovedDrugs } from "./approvedDrugs";
 import { checkPainsLibrary } from "./painsCheck";
 import { getCachedScore, pdbIdOf, rememberRanking } from "./rankingCache";
-import { drugLikenessChecks } from "./scoreCandidates";
-import { rankingCacheKey, targetDisplayName } from "./targetContext";
+import { rankingCacheKey, targetDisplayName, summarizeTargetData } from "./targetContext";
+import { drugLikenessChecks, scoringCapabilities } from "./scoreCandidates";
 
 export const AI_BATCH_SIZE = 25;
 export const HIGHLIGHT_COUNT = 20;
@@ -11,7 +11,7 @@ export const PAGE_SIZE = 20;
 export const DAILY_SCREEN_MS = 24 * 60 * 60 * 1000;
 export const EXTREME_MW_CUTOFF = 900;
 
-const DAILY_STORAGE_KEY = "pocketlink-repurpose-daily-v2";
+const DAILY_STORAGE_KEY = "pocketlink-repurpose-daily-v3";
 
 /**
  * Scoring 200–500 compounds through one Vercel invocation would exceed the
@@ -20,6 +20,8 @@ const DAILY_STORAGE_KEY = "pocketlink-repurpose-daily-v2";
  * (Inngest, Vercel Workflows, or a worker + KV) would be the next step if
  * the full library must be LLM-scored server-side.
  */
+export const INSUFFICIENT_STRUCTURE_ERROR =
+  "Unable to score against this target — insufficient structural data";
 export const SERVERLESS_TIMEOUT_NOTE =
   "Full-library LLM scoring is batched in the browser (25 drugs per /api/rank-candidates call, 30s Vercel limit each). A single serverless function cannot score hundreds of compounds before timeout — use a background job/queue if this screen must run entirely on the server.";
 
@@ -121,16 +123,32 @@ function fitBlurb(row, targetName) {
   return `Originally approved for ${row.indication}, shows ${fit} structural fit for ${targetName} due to ${first.replace(/\.$/, "")}.`;
 }
 
-function assembleResult({ protein, rows, excluded, source, fromDailyCache, usedLlm, librarySize, scoredCount }) {
+function assembleResult({
+  protein,
+  rows,
+  excluded,
+  source,
+  fromDailyCache,
+  usedLlm,
+  librarySize,
+  scoredCount,
+  aiError,
+}) {
   const sorted = [...rows].sort((a, b) => (b.score ?? 0) - (a.score ?? 0) || String(a.name).localeCompare(String(b.name)));
   const ranked = sorted.map((row, index) => ({ ...row, rank: index + 1 }));
   const pdb = pdbIdOf(protein);
   const targetName = targetDisplayName(protein) || pdb;
+  const caps = scoringCapabilities(protein);
   const withBlurbs = ranked.map((row) => ({
     ...row,
     blurb: fitBlurb(row, targetName),
     cacheKey: rankingCacheKey(pdb, row.cid),
   }));
+  let warning = null;
+  if (caps.missingStructure && caps.recognizedFamily) {
+    warning =
+      "No co-crystallized ligand and/or pocket geometry on this structure. Ranking uses known pharmacology and drug-likeness only — geometric fit was not assessed.";
+  }
   return {
     target: { name: targetName, pdb_id: pdb },
     ranking: withBlurbs,
@@ -145,7 +163,16 @@ function assembleResult({ protein, rows, excluded, source, fromDailyCache, usedL
     scoredCount,
     highlightCount: Math.min(HIGHLIGHT_COUNT, withBlurbs.length),
     timeoutNote: SERVERLESS_TIMEOUT_NOTE,
-    summary: `Screened ${scoredCount} approved drugs against ${targetName} (${pdb}). Top hits are computational repurposing candidates — not evidence of activity.`,
+    family: caps.family,
+    hasLigand: caps.hasLigand,
+    hasPocket: caps.hasPocket,
+    dataGaps: caps.dataGaps,
+    degraded: Boolean(caps.degraded),
+    warning,
+    aiError: aiError || null,
+    summary: caps.degraded
+      ? `Screened ${scoredCount} approved drugs against ${targetName} (${pdb}), but this structure has no ligand/pocket and is not a recognized target family. Ranking is general drug-likeness only — not a target-specific repurposing result.`
+      : `Screened ${scoredCount} approved drugs against ${targetName} (${pdb}). Top hits are computational repurposing candidates — not evidence of activity.`,
   };
 }
 
@@ -186,6 +213,22 @@ export async function screenApprovedLibrary(protein, { onProgress, force = false
   const drugs = loadApprovedDrugs();
   const pdb = pdbIdOf(protein);
   const targetName = targetDisplayName(protein) || pdb;
+  const structural = summarizeTargetData(protein);
+  const caps = scoringCapabilities(protein);
+  console.log(
+    `[repurposing] structural data for ${targetName} (${pdb}): family=${caps.family} ligand=${caps.hasLigand} pocket=${caps.hasPocket} degraded=${caps.degraded}`
+  );
+  console.log(`[repurposing] ligand: ${JSON.stringify(structural.ligand)}`);
+  console.log(`[repurposing] pocket: ${JSON.stringify(structural.pocket)}`);
+  console.log(`[repurposing] dataGaps: ${JSON.stringify(structural.dataGaps)}`);
+
+  if (caps.degraded) {
+    const err = new Error(
+      `${INSUFFICIENT_STRUCTURE_ERROR}. This structure has no co-crystallized ligand or pocket, and the target family could not be recognized.`
+    );
+    err.code = "INSUFFICIENT_STRUCTURE";
+    throw err;
+  }
 
   const report = (partial) => {
     if (typeof onProgress === "function") {
@@ -253,6 +296,7 @@ export async function screenApprovedLibrary(protein, { onProgress, force = false
   let usedLlm = false;
   let source = cachedRows.length && !uncached.length ? "cache" : "heuristic";
   const freshRows = [];
+  let aiError = null;
 
   if (uncached.length) {
     const batches = chunk(uncached, AI_BATCH_SIZE);
@@ -270,6 +314,10 @@ export async function screenApprovedLibrary(protein, { onProgress, force = false
       let rankedList = [];
       if (llmAlive) {
         const result = await rankCandidatesBatch(batchCandidates, protein, painsByCid);
+        if (result?.aiError) {
+          aiError = result.aiError;
+          llmAlive = false;
+        }
         if (result?.source === "llm") {
           usedLlm = true;
           source = "llm";
@@ -315,7 +363,25 @@ export async function screenApprovedLibrary(protein, { onProgress, force = false
     usedLlm,
     librarySize: drugs.length,
     scoredCount: rows.length,
+    aiError,
   });
+
+  const uniqueScores = new Set(assembled.ranking.map((row) => row.score ?? 0));
+  const looksUnscored =
+    !assembled.ranking.length ||
+    (assembled.ranking.length > 8 && uniqueScores.size <= 1 && (assembled.ranking[0].score ?? 0) <= 1);
+  if (looksUnscored) {
+    const err = new Error(
+      `${INSUFFICIENT_STRUCTURE_ERROR}. Scoring returned no target-specific values${aiError ? ` (${aiError})` : ""}.`
+    );
+    err.code = "INSUFFICIENT_STRUCTURE";
+    throw err;
+  }
+  if (aiError && assembled.degraded) {
+    const err = new Error(`${INSUFFICIENT_STRUCTURE_ERROR}. ${aiError}`);
+    err.code = "INSUFFICIENT_STRUCTURE";
+    throw err;
+  }
 
   rememberDailyScreen(pdb, {
     ranking: assembled.ranking.map((row) => ({
