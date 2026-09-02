@@ -137,6 +137,94 @@ test("tyrosine kinase screen ranks known kinase inhibitors above unrelated drugs
   expect(imatinib.reasoning.join(" ")).toMatch(/kinase-inhibitor/i);
 });
 
+test("HIV protease with a bound inhibitor does not rank alprazolam or albendazole first", () => {
+  const protease = {
+    id: "1HSG",
+    queryName: "HIV-1 protease",
+    title:
+      "CRYSTAL STRUCTURE OF HUMAN IMMUNODEFICIENCY VIRUS (HIV) II PROTEASE COMPLEXED WITH L-735,524, AN ORALLY BIOAVAILABLE INHIBITOR OF THE HIV PROTEASES",
+    method: "X-RAY DIFFRACTION",
+    resolution: "1.9 Å",
+    score: 95,
+    hasLigand: true,
+    pocket: "detected",
+    pocketStats: {
+      status: "detected",
+      available: true,
+      residueCount: 28,
+      hydrophobicity: 0.54,
+      sizeLabel: "large",
+      hydrophobicityLabel: "mixed",
+    },
+    ligands: [{ compId: "MK1", name: "HIV protease inhibitor L-735,524", formulaWeight: 0.614 }],
+  };
+  const kept = loadApprovedDrugs().filter((d) => prefilterApprovedDrug(d).keep).map(drugToCandidate);
+  const result = scoreLibraryLocal(kept, protease);
+  const top = result.ranking.slice(0, 5).map((r) => findApprovedDrug(r.cid));
+  expect(top[0].name.toLowerCase()).not.toBe("alprazolam");
+  expect(top[0].name.toLowerCase()).not.toBe("albendazole");
+  expect(top.some((d) => d.class === "protease inhibitor")).toBe(true);
+  const alp = result.ranking.find((r) => String(r.cid) === String(findApprovedDrug("alprazolam").cid));
+  const rito = result.ranking.find((r) => String(r.cid) === String(findApprovedDrug("ritonavir").cid));
+  expect(rito.rank).toBeLessThan(alp.rank);
+  expect(rito.score).toBeGreaterThan(alp.score + 10);
+});
+
+test("estrogen receptor with 4-hydroxytamoxifen ranks SERMs above alprazolam", () => {
+  const er = {
+    id: "3ERT",
+    queryName: "estrogen receptor",
+    title: "HUMAN ESTROGEN RECEPTOR ALPHA LIGAND-BINDING DOMAIN IN COMPLEX WITH 4-HYDROXYTAMOXIFEN",
+    hasLigand: true,
+    pocket: "detected",
+    pocketStats: {
+      status: "detected",
+      available: true,
+      residueCount: 19,
+      hydrophobicity: 0.68,
+      sizeLabel: "large",
+      hydrophobicityLabel: "hydrophobic",
+    },
+    ligands: [{ compId: "OHT", name: "4-HYDROXYTAMOXIFEN", formulaWeight: 0.388 }],
+  };
+  const kept = loadApprovedDrugs().filter((d) => prefilterApprovedDrug(d).keep).map(drugToCandidate);
+  const result = scoreLibraryLocal(kept, er);
+  const top = findApprovedDrug(result.ranking[0].cid);
+  expect(["SERM", "aromatase inhibitor"]).toContain(top.class);
+  const alp = result.ranking.find((r) => String(r.cid) === String(findApprovedDrug("alprazolam").cid));
+  const tam = result.ranking.find((r) => String(r.cid) === String(findApprovedDrug("tamoxifen").cid));
+  expect(tam.rank).toBeLessThan(alp.rank);
+  expect(tam.score).toBeGreaterThan(alp.score + 10);
+});
+
+test("COX-2 skips glycan/heme and ranks NSAIDs first", () => {
+  const cox = {
+    id: "1CX2",
+    queryName: "COX-2",
+    title: "CYCLOOXYGENASE-2 (PROSTAGLANDIN SYNTHASE-2) COMPLEXED WITH A SELECTIVE INHIBITOR, SC-558",
+    hasLigand: true,
+    pocket: "detected",
+    pocketStats: {
+      status: "detected",
+      available: true,
+      residueCount: 40,
+      hydrophobicity: 0.38,
+      sizeLabel: "large",
+      hydrophobicityLabel: "mixed",
+    },
+    ligands: [
+      { compId: "NAG", name: "2-acetamido-2-deoxy-beta-D-glucopyranose", formulaWeight: 0.221 },
+      { compId: "HEM", name: "PROTOPORPHYRIN IX CONTAINING FE", formulaWeight: 0.616 },
+      { compId: "S58", name: "1-PHENYLSULFONAMIDE-3-TRIFLUOROMETHYL-5-PARABROMOPHENYLPYRAZOLE", formulaWeight: 0.446 },
+    ],
+  };
+  const kept = loadApprovedDrugs().filter((d) => prefilterApprovedDrug(d).keep).map(drugToCandidate);
+  const result = scoreLibraryLocal(kept, cox);
+  const topClass = findApprovedDrug(result.ranking[0].cid).class;
+  expect(topClass).toBe("NSAID");
+  expect(result.ranking[0].cid).not.toBe(String(findApprovedDrug("alprazolam").cid));
+});
+
 test("kinase vs GPCR screens produce different top 5 and never rank alprazolam first", () => {
   const kept = loadApprovedDrugs().filter((d) => prefilterApprovedDrug(d).keep).map(drugToCandidate);
   const kinaseResult = scoreLibraryLocal(kept, kinase);
@@ -167,6 +255,25 @@ test("kinase vs GPCR screens produce different top 5 and never rank alprazolam f
 test("repurposing scores are cached as pdb_id plus drug cid", () => {
   expect(rankingCacheKey("2HYY", "5291")).toBe("2HYY_5291");
   expect(rankingCacheKey("2HYY", "5291")).not.toBe(rankingCacheKey("3SN6", "5291"));
+});
+
+test("unrecognized apo structures fail visibly instead of ranking alprazolam first", async () => {
+  const originalFetch = global.fetch;
+  global.fetch = jest.fn(() => Promise.reject(new Error("network down")));
+  const apo = {
+    id: "1D3Z",
+    queryName: "ubiquitin",
+    title: "ubiquitin NMR ensemble",
+    hasLigand: false,
+    pocket: "unclear",
+  };
+  try {
+    await expect(screenApprovedLibrary(apo)).rejects.toThrow(
+      /Unable to score against this target — insufficient structural data/i
+    );
+  } finally {
+    global.fetch = originalFetch;
+  }
 });
 
 test("a second screen of the same target within 24h reuses the daily snapshot", async () => {

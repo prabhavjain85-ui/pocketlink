@@ -255,6 +255,9 @@ export default function App() {
       setPainsByCid((prev) => ({ ...prev, ...latestPains }));
       const data = await rankCandidates(candidates, protein, latestPains);
       setAiResult(data);
+      if (data?.aiError) {
+        setAiError(`Unable to score against this target with the language model (${data.aiError}). PocketLink used its target-aware model instead.`);
+      }
       if (data?.recommended?.cid) setHandoffCid(data.recommended.cid);
     } catch (e) {
       setAiError(e.message || "AI analysis failed.");

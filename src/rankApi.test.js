@@ -201,6 +201,25 @@ const gpcrRow = {
   },
 };
 
+test("compactProtein prefers the drug-like ligand over NAG/HEM and converts kDa weights", () => {
+  const packed = handler.compactProtein({
+    id: "1CX2",
+    queryName: "COX-2",
+    title: "CYCLOOXYGENASE-2 COMPLEXED WITH SC-558",
+    hasLigand: true,
+    pocket: "detected",
+    ligands: [
+      { compId: "NAG", name: "2-acetamido-2-deoxy-beta-D-glucopyranose", formulaWeight: 0.221 },
+      { compId: "HEM", name: "PROTOPORPHYRIN IX CONTAINING FE", formulaWeight: 0.616 },
+      { compId: "S58", name: "SC-558", formulaWeight: 0.446 },
+    ],
+    pocketStats: { status: "detected", available: true, residueCount: 20, hydrophobicity: 0.4, sizeLabel: "large", hydrophobicityLabel: "mixed" },
+  });
+  expect(packed.ligand.present).toBe(true);
+  expect(packed.ligand.compId).toBe("S58");
+  expect(packed.ligand.mw).toBe(446);
+});
+
 test("compactProtein keeps ligand and pocket from a PDB search row (pocket is a status string)", () => {
   const packed = handler.compactProtein(kinaseRow);
   expect(packed.pdb_id).toBe("2HYY");
@@ -235,6 +254,23 @@ test("prompts for two different targets include distinct target context, not a s
   expect(kinasePrompt.user).not.toBe(gpcrPrompt.user);
   expect(kinasePrompt.user).not.toContain("3SN6");
   expect(gpcrPrompt.user).not.toContain("2HYY");
+});
+
+test("prompts for missing ligand/pocket use the graceful pharmacology fallback, not a malformed blank target", () => {
+  const apo = handler.compactProtein({
+    id: "1D3Z",
+    queryName: "ubiquitin",
+    title: "ubiquitin NMR ensemble",
+    hasLigand: false,
+    pocket: "unclear",
+  });
+  expect(apo.ligand.present).toBe(false);
+  expect(apo.pocket.available).toBe(false);
+  expect(apo.dataGaps.join(" ")).toMatch(/No co-crystallized ligand/i);
+  const { user } = handler.buildRankPrompt([caffeine, ugly], apo, { ranking: [] });
+  expect(user).toMatch(/Graceful fallback/i);
+  expect(user).toMatch(/Recognized target family: other/i);
+  expect(user).toContain("1D3Z");
 });
 
 test("batch merge keeps local target-aware scores instead of per-batch LLM numbers", () => {
