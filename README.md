@@ -52,6 +52,16 @@ Without the key, ranking still runs and is labeled as PocketLink's drug-likeness
 - **Cache:** per-drug scores still use `${pdb_id}_${cid}` (same store as Station 3). A full screen of the same PDB ID is reused for 24 hours so repeat searches do not burn AI credits.
 - **Timeouts:** Vercel caps `/api/rank-candidates` at 30s. Scoring hundreds of drugs in a **single** serverless invocation would miss that window (especially with OpenAI). The page therefore drives batches from the browser. A background job/queue (Inngest, Vercel Workflows, or a worker + KV) is the fit if this screen must run entirely on the server.
 
+## Target discovery
+
+`/target-discovery` is a dedicated page for finding **genetically validated but underexplored** protein targets — not a dump of every gene associated with a disease.
+
+- **Data:** live queries to the [Open Targets Platform GraphQL API](https://api.platform.opentargets.org/api/v4/graphql). Free-text disease search (`search`, `entityNames: ["disease"]`) resolves to an EFO/MONDO ID; `disease.associatedTargets` returns association scores plus a per-datatype breakdown (`genetic_association`, `somatic_mutation`, `literature`, `affected_pathway`, etc.).
+- **Known-drug count:** Open Targets removed `knownDrugs`. PocketLink uses `target.drugAndClinicalCandidates.count` (approved and investigational molecules that list the gene as a target).
+- **Novelty score:** biology signal (genetic association weighted most heavily) × `1 / (1 + drug count)`. Targets with many existing drugs score low even when overall association is high. Rows with essentially no genetic/somatic/pathway evidence are dropped so novelty is not a random-gene list.
+- **Cache:** disease ID → result payload in memory and `localStorage` for 24 hours.
+- **Handoff:** “Find PDB structures for this target” opens the staging bench with the gene pre-filled. If RCSB has no experimental structure, the bench shows a clear AlphaFold-future-support message instead of failing silently.
+
 ## Contact page
 
 `/contact` is a static page with address, phone, email, and a message form. `POST /api/contact` validates the fields and delivers the note.
@@ -69,6 +79,7 @@ With none of those mail keys set, the API falls back to [FormSubmit](https://for
 ## Live data sources
 
 - RCSB PDB search + entry metadata
+- Open Targets Platform GraphQL API for `/target-discovery` (disease search, association scores, known-drug counts)
 - PubChem PUG-REST compound properties
 - Bundled approved-drug library (`src/data/approvedDrugs.json`) for `/repurposing`
 - SwissDock and SwissADME are opened in a new tab with the PDB ID / SMILES copied for paste

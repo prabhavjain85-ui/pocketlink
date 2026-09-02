@@ -5,6 +5,7 @@ import App from "./App";
 import ContactPage from "./ContactPage";
 import Layout from "./Layout";
 import RepurposingPage from "./RepurposingPage";
+import TargetDiscoveryPage from "./TargetDiscoveryPage";
 import "./app.css";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
@@ -14,6 +15,7 @@ root.render(
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<App />} />
+          <Route path="/target-discovery" element={<TargetDiscoveryPage />} />
           <Route path="/repurposing" element={<RepurposingPage />} />
           <Route path="/contact" element={<ContactPage />} />
         </Route>
