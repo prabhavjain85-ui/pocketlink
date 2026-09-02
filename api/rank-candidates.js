@@ -53,6 +53,8 @@ function compactCandidates(raw, limit = 5) {
       hba: c.hba,
       rotatableBonds: c.rotatableBonds,
       tpsa: c.tpsa,
+      class: clean(c.class || c.drugClass, 80),
+      indication: clean(c.indication, 160),
       lipinskiVeber: {
         passCount: checks.filter((x) => x.pass).length,
         violations: checks.filter((x) => !x.pass).length,
@@ -103,8 +105,13 @@ function compactPocket(raw) {
 
 function compactProtein(raw) {
   if (!raw || typeof raw !== "object") return null;
-  const packed = raw.pdb_id || raw.ligand || raw.pocket ? raw : buildTargetContext(raw);
-  if (!packed) return null;
+  // Always normalize through buildTargetContext. PDB search rows have
+  // `pocket` as a status string ("detected") and `ligands[]` rather than
+  // packed ligand/pocket objects. Treating that string as "already packed"
+  // dropped ligand MW and pocket hydrophobicity, so every target's prompt
+  // looked the same except for the name — the model then scored general
+  // drug-likeness and a molecule like alprazolam won every screen.
+  const packed = buildTargetContext(raw) || raw;
   const ligand = compactLigand(packed.ligand);
   const pocket = compactPocket(packed.pocket);
   const gaps = Array.isArray(packed.dataGaps)
@@ -157,6 +164,44 @@ function rowReasoning(row) {
   }
   const mixed = [...(row?.strengths || []), ...(row?.concerns || [])];
   return mixed.map((s) => clean(s, 240)).slice(0, 6);
+}
+
+function mergeBatchLlmReasoning(heuristic, llm) {
+  const llmByCid = new Map((llm?.ranking || []).map((row) => [String(row.cid), row]));
+  const ranking = (heuristic.ranking || []).map((row) => {
+    const extra = llmByCid.get(String(row.cid));
+    if (!extra) return row;
+    const reasoning = extra.reasoning && extra.reasoning.length ? extra.reasoning : row.reasoning;
+    return {
+      ...row,
+      reasoning,
+      strengths: extra.strengths && extra.strengths.length ? extra.strengths : row.strengths,
+      concerns: extra.concerns && extra.concerns.length ? extra.concerns : row.concerns,
+    };
+  });
+  return {
+    ...heuristic,
+    ranking,
+    candidates: ranking.map((row) => ({
+      compound_id: row.cid,
+      score: row.score,
+      reasoning: row.reasoning,
+    })),
+    limitations: [
+      ...(heuristic.limitations || []),
+      "Numeric scores come from PocketLink's target-aware model so every batch shares one scale. Language-model notes were attached as reasoning only — independent per-batch 0–100 LLM scores are not comparable across the library.",
+    ],
+    source: llm ? "heuristic" : heuristic.source,
+    llmReasoning: Boolean(llm),
+  };
+}
+
+function logRankPrompt(system, user, protein) {
+  const pdb = protein?.pdb_id || protein?.id || "none";
+  const name = protein?.name || protein?.queryName || "";
+  console.log(`[rank-candidates] Full prompt for ${name} (PDB ${pdb})`);
+  console.log(`[rank-candidates] --- system ---\n${system}`);
+  console.log(`[rank-candidates] --- user ---\n${user}`);
 }
 
 function normalizeResult(result, allowedCids, protein) {
@@ -313,6 +358,8 @@ async function handler(req, res) {
       minCandidates: isBatch ? 1 : 2,
     });
     const allowedCids = compact.map((c) => String(c.cid));
+    const prompt = buildRankPrompt(compact, protein, heuristic);
+    logRankPrompt(prompt.system, prompt.user, protein);
 
     if (!process.env.OPENAI_API_KEY) {
       return json(res, 200, heuristic);
@@ -321,7 +368,15 @@ async function handler(req, res) {
     try {
       const llmRaw = await rankWithOpenAI(compact, protein, heuristic);
       const llm = normalizeResult(llmRaw, allowedCids, protein);
-      if (llm) return json(res, 200, llm);
+      if (llm) {
+        // Shortlist (2–5): the LLM ranks a single comparable set.
+        // Library batches (20–30): independent 0–100 LLM scores cannot be
+        // concatenated — that is what made one highly drug-like molecule
+        // (alprazolam) win every target. Keep target-aware local scores
+        // and attach LLM notes as reasoning only.
+        if (isBatch) return json(res, 200, mergeBatchLlmReasoning(heuristic, llm));
+        return json(res, 200, llm);
+      }
     } catch (error) {
       heuristic.limitations = [
         ...(heuristic.limitations || []),
@@ -339,4 +394,6 @@ handler.buildRankPrompt = buildRankPrompt;
 handler.normalizeResult = normalizeResult;
 handler.compactProtein = compactProtein;
 handler.compactCandidates = compactCandidates;
+handler.mergeBatchLlmReasoning = mergeBatchLlmReasoning;
+handler.logRankPrompt = logRankPrompt;
 module.exports = handler;

@@ -11,7 +11,7 @@ export const PAGE_SIZE = 20;
 export const DAILY_SCREEN_MS = 24 * 60 * 60 * 1000;
 export const EXTREME_MW_CUTOFF = 900;
 
-const DAILY_STORAGE_KEY = "pocketlink-repurpose-daily-v1";
+const DAILY_STORAGE_KEY = "pocketlink-repurpose-daily-v2";
 
 /**
  * Scoring 200–500 compounds through one Vercel invocation would exceed the

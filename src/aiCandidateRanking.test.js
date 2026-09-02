@@ -1,10 +1,12 @@
 import {
   rankCandidates,
+  rankCandidatesBatch,
   rankingCacheKey,
   rememberRanking,
   getCachedScore,
   tryCachedRanking,
   clearRankingCache,
+  overlayLocalScores,
 } from "./aiCandidateRanking";
 import { TARGET_SPECIFIC_INSTRUCTION, buildTargetContext, rankingCacheKey as contextKey } from "./targetContext";
 
@@ -192,4 +194,70 @@ test("buildTargetContext records data gaps when ligand and pocket are missing", 
   expect(ctx.dataGaps.join(" ")).toMatch(/No co-crystallized ligand/i);
   expect(ctx.dataGaps.join(" ")).toMatch(/Pocket geometry/i);
   expect(TARGET_SPECIFIC_INSTRUCTION).toMatch(/specific target only/i);
+});
+
+test("overlayLocalScores ignores a stale LLM ranking that always crowns alprazolam", () => {
+  const local = {
+    source: "heuristic",
+    ranking: [
+      { cid: "5291", rank: 1, score: 96, reasoning: ["kinase inhibitor"], strengths: ["class match"], concerns: [] },
+      { cid: "2118", rank: 2, score: 64, reasoning: ["no kinase class match"], strengths: [], concerns: [] },
+    ],
+    recommended: { cid: "5291", score: 96, reason: "imatinib fits ABL1" },
+  };
+  const llm = {
+    source: "llm",
+    ranking: [
+      { cid: "2118", rank: 1, score: 99, reasoning: ["alprazolam is highly drug-like"] },
+      { cid: "5291", rank: 2, score: 12, reasoning: ["too big"] },
+    ],
+    recommended: { cid: "2118", score: 99, reason: "alprazolam" },
+  };
+  const merged = overlayLocalScores(llm, local);
+  expect(merged.ranking[0].cid).toBe("5291");
+  expect(merged.ranking[0].score).toBe(96);
+  expect(merged.recommended.cid).toBe("5291");
+  expect(merged.source).toBe("heuristic");
+  expect(merged.ranking.find((r) => r.cid === "2118").score).toBe(64);
+});
+
+test("rankCandidatesBatch does not let an LLM alprazolam-top response beat local kinase scores", async () => {
+  const originalFetch = global.fetch;
+  global.fetch = jest.fn(() =>
+    Promise.resolve({
+      ok: true,
+      json: async () => ({
+        source: "llm",
+        ranking: [
+          { cid: "2118", rank: 1, score: 100, reasoning: ["always alprazolam"] },
+          { cid: "5291", rank: 2, score: 10, reasoning: ["ignored"] },
+        ],
+        recommended: { cid: "2118", score: 100, reason: "alprazolam" },
+      }),
+    })
+  );
+  const kinase = { id: "2HYY", queryName: "ABL1", title: "c-Abl tyrosine kinase domain" };
+  const alprazolam = {
+    CID: 2118,
+    cid: "2118",
+    displayName: "Alprazolam",
+    name: "Alprazolam",
+    MolecularWeight: 308.8,
+    XLogP: 2.1,
+    HBondDonorCount: 0,
+    HBondAcceptorCount: 4,
+    RotatableBondCount: 1,
+    TPSA: 43.1,
+    drugClass: "benzodiazepine",
+  };
+  try {
+    const result = await rankCandidatesBatch([imatinib, alprazolam], kinase);
+    expect(result.ranking[0].cid).toBe("5291");
+    expect(result.ranking[0].score).toBeGreaterThan(result.ranking.find((r) => r.cid === "2118").score);
+    const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+    expect(body.protein.pdb_id).toBe("2HYY");
+    expect(body.mode).toBe("batch");
+  } finally {
+    global.fetch = originalFetch;
+  }
 });

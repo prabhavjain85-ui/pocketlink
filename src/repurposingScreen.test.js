@@ -32,6 +32,26 @@ const kinase = {
   ligands: [{ compId: "STI", name: "IMATINIB", formulaWeight: 493.6 }],
 };
 
+const gpcr = {
+  id: "3SN6",
+  queryName: "ADRB2",
+  title: "beta-2 adrenergic receptor GPCR in complex with Gs",
+  method: "X-RAY DIFFRACTION",
+  resolution: "3.2 Å",
+  score: 70,
+  hasLigand: true,
+  pocket: "detected",
+  pocketStats: {
+    status: "detected",
+    available: true,
+    residueCount: 18,
+    hydrophobicity: 0.55,
+    sizeLabel: "medium",
+    hydrophobicityLabel: "mixed",
+  },
+  ligands: [{ compId: "P0G", name: "CARAZOLOL", formulaWeight: 298.4 }],
+};
+
 function mockPainsOk() {
   return {
     ok: true,
@@ -117,6 +137,33 @@ test("tyrosine kinase screen ranks known kinase inhibitors above unrelated drugs
   expect(imatinib.reasoning.join(" ")).toMatch(/kinase-inhibitor/i);
 });
 
+test("kinase vs GPCR screens produce different top 5 and never rank alprazolam first", () => {
+  const kept = loadApprovedDrugs().filter((d) => prefilterApprovedDrug(d).keep).map(drugToCandidate);
+  const kinaseResult = scoreLibraryLocal(kept, kinase);
+  const gpcrResult = scoreLibraryLocal(kept, gpcr);
+
+  const kinaseTop = kinaseResult.ranking.slice(0, 5).map((r) => {
+    const drug = findApprovedDrug(r.cid);
+    return { name: drug.name, class: drug.class, score: r.score };
+  });
+  const gpcrTop = gpcrResult.ranking.slice(0, 5).map((r) => {
+    const drug = findApprovedDrug(r.cid);
+    return { name: drug.name, class: drug.class, score: r.score };
+  });
+
+  expect(kinaseTop[0].name.toLowerCase()).not.toBe("alprazolam");
+  expect(gpcrTop[0].name.toLowerCase()).not.toBe("alprazolam");
+  expect(kinaseTop.map((r) => r.name).join(",")).not.toBe(gpcrTop.map((r) => r.name).join(","));
+  expect(kinaseTop.some((r) => r.class === "kinase inhibitor")).toBe(true);
+  expect(gpcrTop.every((r) => r.class !== "kinase inhibitor")).toBe(true);
+  expect(gpcrTop.some((r) => /beta-blocker|antimuscarinic|opioid|antipsychotic|alpha-2|5-HT3|alpha-1/i.test(r.class))).toBe(true);
+
+  const alpKinase = kinaseResult.ranking.find((r) => String(r.cid) === String(findApprovedDrug("alprazolam").cid));
+  const alpGpcr = gpcrResult.ranking.find((r) => String(r.cid) === String(findApprovedDrug("alprazolam").cid));
+  expect(alpKinase.rank).toBeGreaterThan(20);
+  expect(alpGpcr.rank).toBeGreaterThan(10);
+});
+
 test("repurposing scores are cached as pdb_id plus drug cid", () => {
   expect(rankingCacheKey("2HYY", "5291")).toBe("2HYY_5291");
   expect(rankingCacheKey("2HYY", "5291")).not.toBe(rankingCacheKey("3SN6", "5291"));
@@ -125,7 +172,7 @@ test("repurposing scores are cached as pdb_id plus drug cid", () => {
 test("a second screen of the same target within 24h reuses the daily snapshot", async () => {
   const originalFetch = global.fetch;
   let rankCalls = 0;
-  global.fetch = jest.fn((url) => {
+  global.fetch = jest.fn((url, opts) => {
     if (String(url).includes("pains-check")) {
       const body = JSON.parse(opts?.body || "{}");
       return Promise.resolve({
