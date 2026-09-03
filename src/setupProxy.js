@@ -1,4 +1,3 @@
-const { createProxyMiddleware } = require("http-proxy-middleware");
 const contactHandler = require("../api/contact");
 
 function vercelOnExpress(handler) {
@@ -35,12 +34,6 @@ module.exports = function setupProxy(app) {
   const rankHandler = require("../api/rank-candidates");
   app.use("/api/rank-candidates", vercelOnExpress(rankHandler));
 
-  const target = process.env.PAINS_API_ORIGIN || "http://127.0.0.1:8787";
-  app.use(
-    "/api/pains-check",
-    createProxyMiddleware({
-      target,
-      changeOrigin: true,
-    })
-  );
+  const painsHandler = require("../api/pains-check");
+  app.use("/api/pains-check", vercelOnExpress(painsHandler));
 };
