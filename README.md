@@ -21,7 +21,7 @@ Station 2 screens each shortlisted PubChem compound with a **rules-based** subst
 - Results are cached per CID/SMILES in memory and `sessionStorage`.
 - Alert details are passed into `/api/rank-candidates` so the recommendation can cite them (e.g. “deprioritized due to PAINS alert: rhodanine”).
 
-The checker is a Python Vercel function at `POST /api/pains-check` (`rdkit` in `requirements.txt`). For local CRA development run `npm run pains-api` in a second terminal so `/api/pains-check` can be proxied.
+The checker is a serverless function at `POST /api/pains-check` (`api/pains-check.js`) running toxicophore and PAINS substructure pattern screening.
 
 ## AI candidate ranking
 

@@ -3,7 +3,7 @@
     "api/rank-candidates.js": {
       "maxDuration": 30
     },
-    "api/pains-check.py": {
+    "api/pains-check.js": {
       "maxDuration": 15
     },
     "api/contact.js": {
