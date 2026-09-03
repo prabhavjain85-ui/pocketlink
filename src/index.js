@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import App from "./App";
 import ContactPage from "./ContactPage";
 import Layout from "./Layout";
+import MethodologyPage from "./MethodologyPage";
 import RepurposingPage from "./RepurposingPage";
 import TargetDiscoveryPage from "./TargetDiscoveryPage";
 import "./app.css";
@@ -18,6 +19,7 @@ root.render(
           <Route path="/target-discovery" element={<TargetDiscoveryPage />} />
           <Route path="/repurposing" element={<RepurposingPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/methodology" element={<MethodologyPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

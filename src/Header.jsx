@@ -28,6 +28,9 @@ export default function Header() {
         <NavLink to="/repurposing" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
           Repurposing
         </NavLink>
+        <NavLink to="/methodology" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
+          Methodology
+        </NavLink>
         <NavLink to="/contact" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
           Contact
         </NavLink>
