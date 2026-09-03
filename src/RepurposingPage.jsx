@@ -9,6 +9,7 @@ import {
   INSUFFICIENT_STRUCTURE_ERROR,
   screenApprovedLibrary,
 } from "./repurposingScreen";
+import { getDrugSafetyProfile } from "./safetyProfiles";
 import { targetDisplayName } from "./targetContext";
 
 function compareRepurposeField(a, b, key) {
@@ -18,6 +19,8 @@ function compareRepurposeField(a, b, key) {
 }
 
 function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page, pageSize, onPage }) {
+  const [expandedSafety, setExpandedSafety] = useState({});
+
   const sorted = useMemo(() => {
     const mul = sortDir === "asc" ? 1 : -1;
     return [...rows].sort((a, b) => {
@@ -37,6 +40,13 @@ function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page
     { key: "reasoning", label: "Key reasoning", sortable: false },
     { key: "indication", label: "Original indication", sortable: true },
   ];
+
+  const toggleSafety = (cid) => {
+    setExpandedSafety((prev) => ({
+      ...prev,
+      [cid]: !prev[cid],
+    }));
+  };
 
   return (
     <>
@@ -68,24 +78,119 @@ function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page
             {slice.map((r) => {
               const highlighted = (r.rank || 0) <= highlightCount && sortKey === "score" && sortDir === "desc";
               const reasons = r.reasoning && r.reasoning.length ? r.reasoning : [];
+              const isSafetyExpanded = Boolean(expandedSafety[r.cid]);
+              const safetyProfile = isSafetyExpanded ? getDrugSafetyProfile(r) : null;
+              const quickSafety = getDrugSafetyProfile(r);
+
               return (
-                <tr key={r.cid} className={highlighted ? "recommended" : ""}>
-                  <td>
-                    <div className="result-id">{r.name}</div>
-                    <div className="score-title">CID {r.cid}{r.class ? ` · ${r.class}` : ""}</div>
-                    <PainsBadge result={r.pains} tipId={`repurpose-pains-${r.cid}`} />
-                  </td>
-                  <td className="mono score-num">{r.score}/100</td>
-                  <td>
-                    <div className="repurpose-blurb">{r.blurb}</div>
-                    <ul className="rank-bullets table-reasons">
-                      {reasons.slice(0, 3).map((item, i) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
-                  </td>
-                  <td>{r.indication}</td>
-                </tr>
+                <React.Fragment key={r.cid}>
+                  <tr className={highlighted ? "recommended" : ""}>
+                    <td>
+                      <div className="result-id">{r.name}</div>
+                      <div className="score-title">CID {r.cid}{r.class ? ` · ${r.class}` : ""}</div>
+                      <PainsBadge result={r.pains} tipId={`repurpose-pains-${r.cid}`} />
+                      <div>
+                        <button
+                          type="button"
+                          className={
+                            "btn-safety-toggle" +
+                            (isSafetyExpanded ? " active" : "") +
+                            (quickSafety.hasBoxedWarning ? " alert" : "")
+                          }
+                          onClick={() => toggleSafety(r.cid)}
+                          aria-expanded={isSafetyExpanded}
+                          title="View clinical safety profile & adverse event records from FDA FAERS"
+                        >
+                          <span>Safety: {quickSafety.categoryLabel}</span>
+                          <span>{isSafetyExpanded ? "▲" : "▼"}</span>
+                        </button>
+                      </div>
+                    </td>
+                    <td className="mono score-num">{r.score}/100</td>
+                    <td>
+                      <div className="repurpose-blurb">{r.blurb}</div>
+                      <ul className="rank-bullets table-reasons">
+                        {reasons.slice(0, 3).map((item, i) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </td>
+                    <td>{r.indication}</td>
+                  </tr>
+                  {isSafetyExpanded && safetyProfile && (
+                    <tr className="safety-expanded-row">
+                      <td colSpan={4}>
+                        <div className="safety-drawer-card">
+                          <div className="safety-header-row">
+                            <div className="safety-title-group">
+                              <h4 className="safety-title">
+                                Clinical Safety & Pharmacovigilance Cross-Reference — {r.name}
+                              </h4>
+                              <span className={"safety-badge " + safetyProfile.safetyCategory}>
+                                {safetyProfile.categoryLabel}
+                              </span>
+                            </div>
+                            <span className="mono hint" style={{ margin: 0 }}>
+                              First Approved: ~{safetyProfile.approvalYear} · FAERS Post-Market Surveillance
+                            </span>
+                          </div>
+
+                          <div className="safety-intro">
+                            Already-approved drugs come with an established real-world human safety track record, which is a major
+                            practical advantage over developing completely uncharacterized de novo chemotypes.
+                          </div>
+
+                          <div className="safety-synthesis-box">
+                            <strong>Observed Clinical Tolerability</strong>
+                            {safetyProfile.synthesis}
+                          </div>
+
+                          <div className="safety-details-grid">
+                            <div className="safety-events-panel">
+                              <div className="safety-panel-title">Top Reported Adverse Events (FDA FAERS)</div>
+                              <div className="safety-events-list">
+                                {safetyProfile.topEvents.map((evt, idx) => (
+                                  <div key={idx} className="safety-event-item">
+                                    <span className="safety-event-name">{evt.term}</span>
+                                    <div className="safety-event-counts">
+                                      <span className="mono">{evt.count} reports</span>
+                                      <span className="safety-event-freq">({evt.frequency})</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="safety-precaution-panel">
+                              <div className="safety-panel-title">Surveillance & Regulatory Precautions</div>
+                              <div className="safety-precaution-row">
+                                <div className="safety-precaution-label">Approved Indication</div>
+                                <div className="safety-precaution-text">{safetyProfile.indication}</div>
+                              </div>
+                              <div className="safety-precaution-row">
+                                <div className="safety-precaution-label">Precaution / Black Box Status</div>
+                                <div className="safety-precaution-text">
+                                  {safetyProfile.hasBoxedWarning ? (
+                                    <span style={{ color: "#be123c", fontWeight: 600 }}>⚠️ {safetyProfile.boxedWarning}</span>
+                                  ) : (
+                                    <span>✓ {safetyProfile.boxedWarning}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="safety-limit-note">
+                            <strong>Methodology Note & Reporting Limitations:</strong> Adverse event reports from public safety databases
+                            (such as FDA FAERS) are voluntary, spontaneous, and do not establish clinical causation. Reporting rates
+                            are heavily influenced by commercial prescription volume, media publicity, and background disease severity.
+                            This cross-reference serves as an empirical tolerability baseline, not a definitive safety verdict.
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               );
             })}
           </tbody>

@@ -2373,3 +2373,452 @@ textarea.field-input {
   .repurpose-pager { flex-direction: column; align-items: flex-start; }
   .discovery-toolbar { flex-direction: column; align-items: flex-start; }
 }
+
+/* ==========================================================================
+   Gene Expression Context & Tissue Specificity
+   ========================================================================== */
+
+.btn-expression-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-subtle, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-dim, #475569);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 6px;
+}
+
+.btn-expression-toggle:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: var(--text, #0f172a);
+}
+
+.btn-expression-toggle.active {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.expression-expanded-row {
+  background: #fcfdfd;
+}
+
+.expression-expanded-row > td {
+  padding: 14px 18px 20px !important;
+  border-bottom: 2px solid var(--border, #e2e8f0);
+}
+
+.expression-drawer-card {
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius, 10px);
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.expression-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light, #f1f5f9);
+}
+
+.expression-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.expression-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text, #0f172a);
+  margin: 0;
+}
+
+.expression-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: -0.01em;
+}
+
+.expression-badge.enriched {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.expression-badge.group_enriched {
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.expression-badge.ubiquitous {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.expression-intro {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-dim, #475569);
+  margin-bottom: 14px;
+}
+
+.expression-synthesis-box {
+  background: #f8fafc;
+  border-left: 3px solid var(--primary, #0f766e);
+  padding: 10px 14px;
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text, #0f172a);
+  margin-bottom: 16px;
+}
+
+.expression-synthesis-box strong {
+  color: var(--primary, #0f766e);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 2px;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.expression-chart-wrap {
+  margin-top: 10px;
+}
+
+.expression-chart-header {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+  letter-spacing: 0.05em;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-light, #f1f5f9);
+}
+
+.expression-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.expression-bar-row {
+  display: grid;
+  grid-template-columns: 200px 1fr 90px;
+  align-items: center;
+  gap: 14px;
+  font-size: 12.5px;
+}
+
+.expression-tissue-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.expression-tissue-name {
+  font-weight: 500;
+  color: var(--text, #0f172a);
+}
+
+.expression-tissue-system {
+  font-size: 11px;
+  color: var(--text-muted, #64748b);
+}
+
+.expression-bar-track {
+  width: 100%;
+  height: 9px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.expression-bar-fill {
+  height: 100%;
+  background: #0f766e;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.expression-bar-fill.primary-tissue {
+  background: #0d9488;
+}
+
+.expression-bar-val {
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-dim, #334155);
+}
+
+.expression-limit-note {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light, #f1f5f9);
+  font-size: 11.5px;
+  color: var(--text-muted, #64748b);
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   Clinical Safety & Pharmacovigilance Cross-Reference (FAERS)
+   ========================================================================== */
+
+.btn-safety-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid var(--border, #cbd5e1);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim, #334155);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 6px;
+}
+
+.btn-safety-toggle:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: var(--text, #0f172a);
+}
+
+.btn-safety-toggle.active {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #15803d;
+}
+
+.btn-safety-toggle.alert {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #be123c;
+}
+
+.safety-expanded-row {
+  background: #fafbfc;
+}
+
+.safety-expanded-row > td {
+  padding: 14px 18px 20px !important;
+  border-bottom: 2px solid var(--border, #cbd5e1);
+}
+
+.safety-drawer-card {
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius, 10px);
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.safety-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light, #f1f5f9);
+}
+
+.safety-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.safety-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text, #0f172a);
+  margin: 0;
+}
+
+.safety-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.safety-badge.well_tolerated {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.safety-badge.monitored {
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.safety-badge.boxed_warning {
+  background: #fff1f2;
+  color: #be123c;
+  border: 1px solid #fecdd3;
+}
+
+.safety-intro {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-dim, #475569);
+  margin-bottom: 14px;
+}
+
+.safety-synthesis-box {
+  background: #f8fafc;
+  border-left: 3px solid #0f766e;
+  padding: 10px 14px;
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text, #0f172a);
+  margin-bottom: 16px;
+}
+
+.safety-synthesis-box strong {
+  color: #0f766e;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 2px;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.safety-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.safety-events-panel {
+  background: #f8fafc;
+  border: 1px solid var(--border-light, #f1f5f9);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.safety-panel-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+.safety-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.safety-event-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12.5px;
+  gap: 8px;
+}
+
+.safety-event-name {
+  font-weight: 500;
+  color: var(--text, #0f172a);
+}
+
+.safety-event-counts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+}
+
+.safety-event-freq {
+  color: var(--text-muted, #64748b);
+}
+
+.safety-precaution-panel {
+  background: #f8fafc;
+  border: 1px solid var(--border-light, #f1f5f9);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.safety-precaution-row {
+  margin-bottom: 10px;
+}
+
+.safety-precaution-label {
+  font-size: 11px;
+  color: var(--text-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'IBM Plex Mono', monospace;
+  margin-bottom: 4px;
+}
+
+.safety-precaution-text {
+  font-size: 13px;
+  color: var(--text, #0f172a);
+  line-height: 1.45;
+}
+
+.safety-limit-note {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #92400e;
+  line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+  .expression-bar-row {
+    grid-template-columns: 140px 1fr 70px;
+    gap: 8px;
+  }
+  .safety-details-grid {
+    grid-template-columns: 1fr;
+  }
+}

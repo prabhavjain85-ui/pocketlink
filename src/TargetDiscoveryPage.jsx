@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Panel } from "./benchUi";
+import { getTargetExpressionProfile } from "./geneExpression";
 import { runTargetDiscovery, searchDiseases } from "./openTargets";
 
 function compareDiscoveryField(a, b, key) {
@@ -44,6 +45,8 @@ function NoveltyInfoTip() {
 }
 
 function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
+  const [expandedExpression, setExpandedExpression] = useState({});
+
   const sorted = useMemo(() => {
     const mul = sortDir === "asc" ? 1 : -1;
     return [...rows].sort((a, b) => {
@@ -60,6 +63,13 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
     { key: "drugCount", label: "Existing drugs", sortable: true },
     { key: "evidenceSummary", label: "Key evidence summary", sortable: false },
   ];
+
+  const toggleExpression = (symbol) => {
+    setExpandedExpression((prev) => ({
+      ...prev,
+      [symbol]: !prev[symbol],
+    }));
+  };
 
   return (
     <div className="score-table-wrap discovery-table-wrap">
@@ -87,31 +97,115 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
           </tr>
         </thead>
         <tbody>
-          {sorted.map((r) => (
-            <tr key={r.ensemblId || r.symbol} className={r.highNovelty ? "high-novelty" : r.wellEstablished ? "established-target" : ""}>
-              <td>
-                <div className="result-id">{r.symbol}</div>
-                <div className="score-title">{r.name}</div>
-                {r.highNovelty ? <span className="novelty-badge undrugged">🆕 Undrugged target</span> : null}
-                {r.wellEstablished && !r.highNovelty ? (
-                  <span className="novelty-badge established">Well-established</span>
-                ) : null}
-              </td>
-              <td className="mono score-num">{r.noveltyScore.toFixed(1)}</td>
-              <td>
-                <div className={"genetic-strength " + r.geneticLevel}>{r.geneticLabel}</div>
-                <div className="score-title">{(r.geneticScore * 100).toFixed(0)} genetic score</div>
-              </td>
-              <td className="mono">{r.drugCount}</td>
-              <td>
-                <div className="repurpose-blurb">{r.explanation}</div>
-                <div className="score-title">{r.evidenceSummary}</div>
-                <button type="button" className="btn btn-target discovery-handoff" onClick={() => onFindStructures(r)}>
-                  Find PDB structures for this target
-                </button>
-              </td>
-            </tr>
-          ))}
+          {sorted.map((r) => {
+            const isExpanded = Boolean(expandedExpression[r.symbol]);
+            const expProfile = isExpanded ? getTargetExpressionProfile(r.symbol) : null;
+
+            return (
+              <React.Fragment key={r.ensemblId || r.symbol}>
+                <tr className={r.highNovelty ? "high-novelty" : r.wellEstablished ? "established-target" : ""}>
+                  <td>
+                    <div className="result-id">{r.symbol}</div>
+                    <div className="score-title">{r.name}</div>
+                    {r.highNovelty ? <span className="novelty-badge undrugged">🆕 Undrugged target</span> : null}
+                    {r.wellEstablished && !r.highNovelty ? (
+                      <span className="novelty-badge established">Well-established</span>
+                    ) : null}
+                    <div>
+                      <button
+                        type="button"
+                        className={"btn-expression-toggle" + (isExpanded ? " active" : "")}
+                        onClick={() => toggleExpression(r.symbol)}
+                        aria-expanded={isExpanded}
+                        title="View tissue expression distribution across human organs"
+                      >
+                        <span>🧬 Tissue Expression</span>
+                        <span>{isExpanded ? "▲" : "▼"}</span>
+                      </button>
+                    </div>
+                  </td>
+                  <td className="mono score-num">{r.noveltyScore.toFixed(1)}</td>
+                  <td>
+                    <div className={"genetic-strength " + r.geneticLevel}>{r.geneticLabel}</div>
+                    <div className="score-title">{(r.geneticScore * 100).toFixed(0)} genetic score</div>
+                  </td>
+                  <td className="mono">{r.drugCount}</td>
+                  <td>
+                    <div className="repurpose-blurb">{r.explanation}</div>
+                    <div className="score-title">{r.evidenceSummary}</div>
+                    <button type="button" className="btn btn-target discovery-handoff" onClick={() => onFindStructures(r)}>
+                      Find PDB structures for this target
+                    </button>
+                  </td>
+                </tr>
+                {isExpanded && expProfile && (
+                  <tr className="expression-expanded-row">
+                    <td colSpan={5}>
+                      <div className="expression-drawer-card">
+                        <div className="expression-header-row">
+                          <div className="expression-title-group">
+                            <h4 className="expression-title">
+                              Gene Expression Context & Tissue Specificity — {r.symbol}
+                            </h4>
+                            <span className={"expression-badge " + expProfile.specificity}>
+                              {expProfile.specificityBadge}
+                            </span>
+                          </div>
+                          <span className="mono hint" style={{ margin: 0 }}>
+                            Primary: {expProfile.primaryTissue} ({expProfile.primaryTpm} TPM)
+                          </span>
+                        </div>
+
+                        <div className="expression-intro">
+                          A target expressed narrowly in diseased tissue is generally a safer, more selective drug target
+                          than one expressed broadly throughout the body, since broad expression raises the risk of
+                          systemic off-target and mechanism-based side effects.
+                        </div>
+
+                        <div className="expression-synthesis-box">
+                          <strong>Physiological Specificity Assessment</strong>
+                          {expProfile.synthesis}
+                        </div>
+
+                        <div className="expression-chart-wrap">
+                          <div className="expression-chart-header">
+                            <span>Tissue / Anatomical System</span>
+                            <span>Baseline RNA (TPM)</span>
+                          </div>
+                          <div className="expression-bar-list">
+                            {expProfile.tissues.slice(0, 8).map((tissue) => (
+                              <div key={tissue.id} className="expression-bar-row">
+                                <div className="expression-tissue-meta">
+                                  <span className="expression-tissue-name">{tissue.name}</span>
+                                  <span className="expression-tissue-system">{tissue.organSystem}</span>
+                                </div>
+                                <div className="expression-bar-track" title={`${tissue.name}: ${tissue.tpm} TPM`}>
+                                  <div
+                                    className={
+                                      "expression-bar-fill" +
+                                      (tissue.id === expProfile.tissues[0].id ? " primary-tissue" : "")
+                                    }
+                                    style={{ width: `${tissue.relativePercent}%` }}
+                                  />
+                                </div>
+                                <div className="expression-bar-val mono">{tissue.tpm} TPM</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="expression-limit-note">
+                          <strong>Methodology note:</strong> Baseline RNA expression data is grounded in GTEx (Genotype-Tissue Expression v8)
+                          and Human Protein Atlas consensus values (Transcripts Per Million, TPM). Sourced for healthy adult human
+                          tissues. Expression levels in pathological or inflamed disease states may diverge from healthy baselines.
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>

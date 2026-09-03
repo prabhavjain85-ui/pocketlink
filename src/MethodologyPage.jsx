@@ -343,6 +343,26 @@ export default function MethodologyPage() {
               </div>
             </div>
 
+            {/* Gene Expression Specificity Subsection */}
+            <div style={{ marginTop: 24, marginBottom: 20 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
+                Gene Expression Context &amp; Physiological Selectivity
+              </h3>
+              <p className="section-text">
+                Where a target is active inside the human body is just as critical as its role in disease biology. A target
+                expressed narrowly in affected or diseased tissue offers a favorable selectivity profile, allowing therapeutic
+                intervention with minimal disruption to healthy physiology. Conversely, targets expressed ubiquitously across
+                vital organs (such as the heart, liver, or central nervous system) carry an elevated risk of mechanism-based,
+                on-target systemic toxicity.
+              </p>
+              <div style={{ background: '#f8fafc', borderLeft: '3px solid #0f766e', padding: '10px 14px', borderRadius: '0 6px 6px 0', fontSize: '13px', color: '#0f172a', marginBottom: 12 }}>
+                <strong style={{ color: '#0f766e', display: 'block', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>
+                  Result Interpretation Template
+                </strong>
+                <em>"This target is expressed primarily in [tissue], with minimal expression elsewhere — suggesting a favorable selectivity profile with lower risk of systemic on-target side effects."</em>
+              </div>
+            </div>
+
             {/* Limitation Callout */}
             <div className="limitation-callout" id="limitation-discovery">
               <div className="limitation-header">
@@ -354,8 +374,8 @@ export default function MethodologyPage() {
               <p className="limitation-body">
                 Novelty scoring reflects what is currently indexed in public scientific databases (Open Targets, ChEMBL). It does not
                 account for confidential, unreleased biopharma development pipelines or newly published discoveries not yet integrated
-                into ontology indexes. Furthermore, high novelty indicates lack of existing approved medications, not an absolute
-                guarantee that the target is biochemically druggable or clinically tractable.
+                into ontology indexes. Furthermore, tissue baseline RNA expression (GTEx / Human Protein Atlas) reflects healthy adult
+                organs; diseased or inflamed tissue environments may exhibit altered transcription or alternative splicing.
               </p>
             </div>
           </section>
@@ -376,6 +396,25 @@ export default function MethodologyPage() {
               with the target cavity.
             </p>
 
+            {/* Clinical Safety Cross-Reference Subsection */}
+            <div style={{ marginTop: 24, marginBottom: 20 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
+                Clinical Safety &amp; Post-Market Surveillance Cross-Reference (FAERS)
+              </h3>
+              <p className="section-text">
+                Approved therapeutics come with years of documented human clinical experience, tolerability profiles, and real-world
+                safety surveillance. Cross-referencing adverse event records from the FDA Adverse Event Reporting System (FAERS)
+                and regulatory black-box contraindications provides immediate real-world context on patient tolerability before
+                advancing a repurposing lead into biological testing.
+              </p>
+              <div style={{ background: '#f8fafc', borderLeft: '3px solid #0f766e', padding: '10px 14px', borderRadius: '0 6px 6px 0', fontSize: '13px', color: '#0f172a', marginBottom: 12 }}>
+                <strong style={{ color: '#0f766e', display: 'block', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>
+                  Result Interpretation Template
+                </strong>
+                <em>"This drug has an established safety profile from its approved use for [Indication], with [common/rare] reported adverse events including [examples]."</em>
+              </div>
+            </div>
+
             {/* Limitation Callout */}
             <div className="limitation-callout" id="limitation-repurposing">
               <div className="limitation-header">
@@ -385,9 +424,9 @@ export default function MethodologyPage() {
                 <span className="limitation-badge">Methodology Note &amp; Limitations</span>
               </div>
               <p className="limitation-body">
-                Surfaced repurposing candidates represent in silico hypotheses. Achieving target binding in a computational model
-                does not prove that achievable oral plasma or tissue concentrations will reach necessary inhibitory thresholds
-                without causing on-target or off-target adverse effects.
+                Adverse event reports from public safety registries (including FDA FAERS) are voluntary, spontaneous, and <strong>do not prove causation</strong>.
+                Reporting frequency is heavily influenced by commercial prescription volume, indication severity, and multi-drug polypharmacy regimens.
+                This cross-reference provides real-world tolerability context, not a definitive clinical safety verdict.
               </p>
             </div>
           </section>
