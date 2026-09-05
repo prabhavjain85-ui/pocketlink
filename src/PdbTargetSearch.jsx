@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel, ScoreInfoTip, TargetScoreTable } from "./benchUi";
 import { searchPdbTargets } from "./pdbSearch";
+import { saveHistoryEntry } from "./historyService";
 
 /**
  * Shared PDB target search + Target Selection Score table.
@@ -78,6 +79,18 @@ export default function PdbTargetSearch({
     });
   };
 
+  const handleSelect = (row) => {
+    const staged = { ...row, queryName: pQuery.trim() };
+    saveHistoryEntry({
+      type: "pdb-search",
+      title: `PDB Target: ${staged.id} (${staged.title || staged.queryName || "structure"})`,
+      summary: `${staged.id} · Score ${staged.targetSelectionScore ?? staged.score}/100 · ${staged.resolution || "resolution n/a"} · ${staged.method || "METHOD"}`,
+      inputs: { query: pQuery.trim(), pdbId: staged.id },
+      snapshot: { protein: staged, query: pQuery.trim() },
+    });
+    onSelect(staged);
+  };
+
   return (
     <Panel eyebrow={eyebrow} title={title} kind="target">
       <div className="search-row">
@@ -123,7 +136,7 @@ export default function PdbTargetSearch({
             sortKey={scoreSort.key}
             sortDir={scoreSort.dir}
             onSort={toggleScoreSort}
-            onSelect={(row) => onSelect({ ...row, queryName: pQuery.trim() })}
+            onSelect={handleSelect}
           />
           {protein && pResults.some((r) => r.id === protein.id) && (
             <div className="hint" style={{ margin: 0 }}>

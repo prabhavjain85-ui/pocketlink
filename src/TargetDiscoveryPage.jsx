@@ -3,6 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { Panel } from "./benchUi";
 import { getTargetExpressionProfile } from "./geneExpression";
 import { runTargetDiscovery, searchDiseases } from "./openTargets";
+import {
+  ACTIVE_STATE_KEYS,
+  getActiveState,
+  saveHistoryEntry,
+  setActiveState,
+} from "./historyService";
 
 function compareDiscoveryField(a, b, key) {
   if (key === "symbol" || key === "geneticLabel" || key === "evidenceSummary") {
@@ -214,17 +220,23 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
 
 export default function TargetDiscoveryPage() {
   const navigate = useNavigate();
-  const [query, setQuery] = useState("");
+
+  const savedActive = useMemo(() => getActiveState(ACTIVE_STATE_KEYS.TARGET_DISCOVERY), []);
+  const [query, setQuery] = useState(() => savedActive?.query || "");
   const [suggestions, setSuggestions] = useState([]);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState(null);
-  const [view, setView] = useState("novelty");
-  const [sort, setSort] = useState({ key: "noveltyScore", dir: "desc" });
+  const [result, setResult] = useState(() => savedActive?.result || null);
+  const [view, setView] = useState(() => savedActive?.view || "novelty");
+  const [sort, setSort] = useState(() => savedActive?.sort || { key: "noveltyScore", dir: "desc" });
   const reqId = useRef(0);
   const suggestReq = useRef(0);
+
+  useEffect(() => {
+    setActiveState(ACTIVE_STATE_KEYS.TARGET_DISCOVERY, { query, result, view, sort });
+  }, [query, result, view, sort]);
 
   useEffect(() => {
     const q = query.trim();
@@ -269,6 +281,30 @@ export default function TargetDiscoveryPage() {
         return;
       }
       setResult(data);
+
+      const diseaseLabel = data?.disease?.name || q;
+      const targetsList = data?.targets || [];
+      const topTarget = targetsList[0];
+      const summaryText = topTarget
+        ? `${targetsList.length} targets identified · Top lead: ${topTarget.symbol} (novelty ${topTarget.noveltyScore?.toFixed(1) ?? "n/a"})`
+        : `${targetsList.length} candidate targets identified for ${diseaseLabel}`;
+
+      saveHistoryEntry({
+        type: "target-discovery",
+        title: `Target Discovery: ${diseaseLabel}`,
+        summary: summaryText,
+        inputs: {
+          query: q,
+          diseaseName: diseaseLabel,
+          diseaseId: data?.disease?.id || null,
+        },
+        snapshot: {
+          result: data,
+          query: q,
+          view: "novelty",
+          sort: { key: "noveltyScore", dir: "desc" },
+        },
+      });
     } catch (e) {
       if (reqId.current === myReq) setError(e.message || "Target discovery failed.");
     } finally {

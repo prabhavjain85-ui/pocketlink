@@ -11,6 +11,12 @@ import {
 } from "./repurposingScreen";
 import { getDrugSafetyProfile } from "./safetyProfiles";
 import { targetDisplayName } from "./targetContext";
+import {
+  ACTIVE_STATE_KEYS,
+  getActiveState,
+  saveHistoryEntry,
+  setActiveState,
+} from "./historyService";
 
 function compareRepurposeField(a, b, key) {
   if (key === "name") return String(a.name || "").localeCompare(String(b.name || ""));
@@ -215,14 +221,20 @@ function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page
 
 export default function RepurposingPage() {
   const librarySize = approvedDrugCount();
-  const [protein, setProtein] = useState(null);
+
+  const savedActive = React.useMemo(() => getActiveState(ACTIVE_STATE_KEYS.REPURPOSING), []);
+  const [protein, setProtein] = useState(() => savedActive?.protein || null);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(null);
   const [error, setError] = useState("");
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState(() => savedActive?.result || null);
   const [sort, setSort] = useState({ key: "score", dir: "desc" });
   const [page, setPage] = useState(0);
   const reqId = React.useRef(0);
+
+  React.useEffect(() => {
+    setActiveState(ACTIVE_STATE_KEYS.REPURPOSING, { protein, result });
+  }, [protein, result]);
 
   const runScreen = async (target) => {
     if (!target) return;
@@ -244,6 +256,29 @@ export default function RepurposingPage() {
       });
       if (reqId.current !== myReq) return;
       setResult(data);
+
+      const targetLabel = targetDisplayName(target) || target.id;
+      const topDrug = data?.ranking?.[0];
+      const summaryText = topDrug
+        ? `Screened ${librarySize} approved drugs · Top lead: ${topDrug.name} (${topDrug.score}/100) for ${targetLabel}`
+        : `Screened ${librarySize} approved drugs against ${targetLabel}`;
+
+      saveHistoryEntry({
+        type: "repurposing-run",
+        title: `Repurposing Screen: ${targetLabel}`,
+        summary: summaryText,
+        inputs: {
+          target: targetLabel,
+          pdbId: target.id,
+          librarySize,
+        },
+        snapshot: {
+          target,
+          topCandidates: (data?.ranking || []).slice(0, 20),
+          highlightCount: data?.highlightCount || HIGHLIGHT_COUNT,
+          totalDrugs: librarySize,
+        },
+      });
     } catch (e) {
       if (reqId.current === myReq) setError(e.message || "Repurposing screen failed.");
     } finally {

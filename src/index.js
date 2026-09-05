@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import App from "./App";
 import ContactPage from "./ContactPage";
+import HistoryPage from "./HistoryPage";
 import Layout from "./Layout";
 import MethodologyPage from "./MethodologyPage";
 import RepurposingPage from "./RepurposingPage";
@@ -18,6 +19,7 @@ root.render(
           <Route path="/" element={<App />} />
           <Route path="/target-discovery" element={<TargetDiscoveryPage />} />
           <Route path="/repurposing" element={<RepurposingPage />} />
+          <Route path="/history" element={<HistoryPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/methodology" element={<MethodologyPage />} />
         </Route>

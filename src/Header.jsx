@@ -1,8 +1,23 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { ACTIVE_STATE_KEYS, clearActiveState, getHistory, subscribeToHistory } from "./historyService";
 
 export default function Header() {
   const navigate = useNavigate();
+  const [historyCount, setHistoryCount] = useState(0);
+
+  useEffect(() => {
+    setHistoryCount(getHistory().length);
+    const unsub = subscribeToHistory((list) => {
+      setHistoryCount(list.length);
+    });
+    return unsub;
+  }, []);
+
+  const handleNewScreen = () => {
+    clearActiveState(ACTIVE_STATE_KEYS.BENCH);
+    navigate("/");
+  };
 
   return (
     <header className="site-header" id="main-navigation">
@@ -28,6 +43,10 @@ export default function Header() {
         <NavLink to="/repurposing" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
           Repurposing
         </NavLink>
+        <NavLink to="/history" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
+          History
+          {historyCount > 0 && <span className="nav-history-badge">{historyCount}</span>}
+        </NavLink>
         <NavLink to="/methodology" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
           Methodology
         </NavLink>
@@ -41,8 +60,8 @@ export default function Header() {
           type="button"
           id="btn-header-cta"
           className="btn btn-header-cta"
-          onClick={() => navigate("/")}
-          title="Start a new staging or target screening session"
+          onClick={handleNewScreen}
+          title="Start a fresh staging or target screening session"
         >
           <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ marginRight: 6 }}>
             <path d="M10 4v12M4 10h12" />

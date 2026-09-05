@@ -2,6 +2,12 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { rankCandidates, tryCachedRanking } from "./aiCandidateRanking";
 import {
+  ACTIVE_STATE_KEYS,
+  getActiveState,
+  saveHistoryEntry,
+  setActiveState,
+} from "./historyService";
+import {
   CopyField,
   Panel,
   PainsBadge,
@@ -137,24 +143,39 @@ export default function App() {
   const [searchParams] = useSearchParams();
   const handoffQuery = searchParams.get("q") || "";
   const fromDiscovery = searchParams.get("from") === "target-discovery";
-  const [protein, setProtein] = useState(null);
+
+  const savedActive = useMemo(() => {
+    if (handoffQuery) return null;
+    return getActiveState(ACTIVE_STATE_KEYS.BENCH);
+  }, [handoffQuery]);
+
+  const [protein, setProtein] = useState(() => savedActive?.protein || null);
   const [hasTargetResults, setHasTargetResults] = useState(false);
 
   const [cQuery, setCQuery] = useState("");
   const [cLoading, setCLoading] = useState(false);
   const [cError, setCError] = useState("");
   const [cResult, setCResult] = useState(null);
-  const [candidates, setCandidates] = useState([]);
+  const [candidates, setCandidates] = useState(() => savedActive?.candidates || []);
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
-  const [aiResult, setAiResult] = useState(null);
-  const [handoffCid, setHandoffCid] = useState(null);
+  const [aiResult, setAiResult] = useState(() => savedActive?.aiResult || null);
+  const [handoffCid, setHandoffCid] = useState(() => savedActive?.handoffCid || null);
 
   const [dockCopied, setDockCopied] = useState(false);
   const [admeCopied, setAdmeCopied] = useState(false);
   const [aiSort, setAiSort] = useState({ key: "score", dir: "desc" });
   const [painsByCid, setPainsByCid] = useState({});
+
+  useEffect(() => {
+    setActiveState(ACTIVE_STATE_KEYS.BENCH, {
+      protein,
+      candidates,
+      aiResult,
+      handoffCid,
+    });
+  }, [protein, candidates, aiResult, handoffCid]);
 
   const searchCompound = useCallback(async () => {
     const q = cQuery.trim();
@@ -263,6 +284,30 @@ export default function App() {
         setAiError(`Unable to score against this target with the language model (${data.aiError}). PocketLink used its target-aware model instead.`);
       }
       if (data?.recommended?.cid) setHandoffCid(data.recommended.cid);
+
+      // Record in persistent history
+      const winnerRow = data?.ranking?.find((r) => String(r.cid) === String(data?.recommended?.cid)) || data?.ranking?.[0];
+      const winnerCandidate = candidates.find((c) => String(c.CID) === String(winnerRow?.cid));
+      const winnerName = winnerCandidate?.displayName || winnerCandidate?.name || winnerRow?.name || `CID ${winnerRow?.cid}`;
+      const targetLabel = protein ? targetDisplayName(protein) : "Target";
+
+      saveHistoryEntry({
+        type: "staging-bench",
+        title: `Staging Bench: ${targetLabel} (${candidates.length} compounds)`,
+        summary: `Winner: ${winnerName} (${winnerRow?.score ?? "n/a"}/100) · ${candidates.length} candidates scored against ${targetLabel}`,
+        inputs: {
+          target: targetLabel,
+          pdbId: protein?.id,
+          compoundCount: candidates.length,
+          compoundNames: candidates.map((c) => c.displayName || c.name || `CID ${c.CID}`),
+        },
+        snapshot: {
+          protein,
+          candidates,
+          aiResult: data,
+          handoffCid: data?.recommended?.cid,
+        },
+      });
     } catch (e) {
       setAiError(e.message || "AI analysis failed.");
     } finally {
