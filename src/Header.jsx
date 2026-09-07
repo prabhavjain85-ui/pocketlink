@@ -43,6 +43,9 @@ export default function Header() {
         <NavLink to="/repurposing" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
           Repurposing
         </NavLink>
+        <NavLink to="/adme" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
+          ADME
+        </NavLink>
         <NavLink to="/agent" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
           Research Agent
         </NavLink>

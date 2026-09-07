@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { approvedDrugCount } from "./approvedDrugs";
 import { Panel, PainsBadge, PainsInfoTip } from "./benchUi";
 import PdbTargetSearch from "./PdbTargetSearch";
@@ -96,7 +97,7 @@ function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page
                       <div className="result-id">{r.name}</div>
                       <div className="score-title">CID {r.cid}{r.class ? ` · ${r.class}` : ""}</div>
                       <PainsBadge result={r.pains} tipId={`repurpose-pains-${r.cid}`} />
-                      <div>
+                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "4px" }}>
                         <button
                           type="button"
                           className={
@@ -111,6 +112,24 @@ function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page
                           <span>Safety: {quickSafety.categoryLabel}</span>
                           <span>{isSafetyExpanded ? "▲" : "▼"}</span>
                         </button>
+                        <Link
+                          to={`/adme?smiles=${encodeURIComponent(r.canonicalSmiles || r.smiles || "")}&name=${encodeURIComponent(r.name || "")}&cid=${r.cid}`}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            fontSize: "11px",
+                            padding: "3px 7px",
+                            borderRadius: "4px",
+                            background: "var(--surface-subtle)",
+                            border: "1px solid var(--border)",
+                            color: "var(--primary)",
+                            textDecoration: "none",
+                            fontWeight: 600,
+                          }}
+                          title="Compute native ADME profile and BOILED-Egg model for this compound"
+                        >
+                          ADME →
+                        </Link>
                       </div>
                     </td>
                     <td className="mono score-num">{r.score}/100</td>

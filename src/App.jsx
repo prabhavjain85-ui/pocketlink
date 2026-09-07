@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { rankCandidates, tryCachedRanking } from "./aiCandidateRanking";
 import {
   ACTIVE_STATE_KEYS,
@@ -631,6 +631,13 @@ export default function App() {
               {protein && <CopyField label="Target — PDB ID" value={protein.id} />}
               {compound && <CopyField label={`${compound.displayName} — SMILES`} value={smiles} />}
               <div className="handoff-actions">
+                <Link
+                  to={`/adme?smiles=${encodeURIComponent(smiles || "")}&name=${encodeURIComponent(compound?.displayName || "")}&cid=${compound?.CID || ""}`}
+                  className="btn btn-primary"
+                  style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+                >
+                  Predict Native ADME →
+                </Link>
                 <button className="btn btn-handoff" onClick={openSwissDock} disabled={!protein} type="button">
                   {dockCopied ? "PDB ID copied ✓" : "Open SwissDock →"}
                 </button>
@@ -639,9 +646,8 @@ export default function App() {
                 </button>
               </div>
               <div className="lipinski-note" style={{ marginTop: 14 }}>
-                Clicking either button copies the value to your clipboard automatically, then opens the tool
-                in a new tab. Neither tool offers a public API for automatic submission, so a manual paste
-                into their own page is still the last step.
+                PocketLink predicts ADME natively using in-browser RDKit WebAssembly (including BOILED-Egg and Lipinski rules).
+                External handoff buttons copy the value to your clipboard and open SwissDock or SwissADME in a new tab.
               </div>
             </div>
           )}

@@ -5,6 +5,7 @@
   "private": true,
   "dependencies": {
     "@google/genai": "^2.21.0",
+    "@rdkit/rdkit": "^2025.3.4-1.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.30.6",
