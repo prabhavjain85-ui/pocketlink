@@ -96,8 +96,10 @@ export function compactPainsForRanking(result) {
   };
 }
 
-export async function checkPainsBatch(candidates) {
-  const list = (Array.isArray(candidates) ? candidates : []).slice(0, MAX_BATCH);
+export const LIBRARY_PAINS_BATCH = 100;
+
+export async function checkPainsBatch(candidates, maxBatch = MAX_BATCH) {
+  const list = (Array.isArray(candidates) ? candidates : []).slice(0, maxBatch);
   const byCid = {};
   const toFetch = [];
 
@@ -160,11 +162,11 @@ export async function checkPainsBatch(candidates) {
 export async function checkPainsLibrary(candidates, { onProgress } = {}) {
   const list = Array.isArray(candidates) ? candidates : [];
   const byCid = {};
-  for (let i = 0; i < list.length; i += MAX_BATCH) {
-    const chunk = list.slice(i, i + MAX_BATCH);
-    Object.assign(byCid, await checkPainsBatch(chunk));
+  for (let i = 0; i < list.length; i += LIBRARY_PAINS_BATCH) {
+    const chunk = list.slice(i, i + LIBRARY_PAINS_BATCH);
+    Object.assign(byCid, await checkPainsBatch(chunk, LIBRARY_PAINS_BATCH));
     if (typeof onProgress === "function") {
-      onProgress({ done: Math.min(i + MAX_BATCH, list.length), total: list.length });
+      onProgress({ done: Math.min(i + LIBRARY_PAINS_BATCH, list.length), total: list.length });
     }
   }
   return byCid;

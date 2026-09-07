@@ -11,8 +11,8 @@
     "react-scripts": "5.0.1"
   },
   "scripts": {
-    "dev": "PORT=3000 HOST=0.0.0.0 react-scripts start",
-    "start": "PORT=3000 HOST=0.0.0.0 react-scripts start",
+    "dev": "PORT=3000 HOST=0.0.0.0 BROWSER=none react-scripts start",
+    "start": "PORT=3000 HOST=0.0.0.0 BROWSER=none react-scripts start",
     "build": "BUILD_PATH=dist react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",

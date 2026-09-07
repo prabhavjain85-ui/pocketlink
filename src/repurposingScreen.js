@@ -327,26 +327,45 @@ export async function screenApprovedLibrary(protein, { onProgress, force = false
           source = result?.source === "cache" ? source : result?.source || "heuristic";
           rankedList = result.ranking || [];
         }
+
+        const byCid = new Map(rankedList.map((row) => [String(row.cid), row]));
+        for (const drug of batch) {
+          const ranked = byCid.get(String(drug.cid));
+          if (ranked) freshRows.push({ drug, ranked });
+        }
+
+        finished += batch.length;
+        report({
+          phase: "scoring",
+          done: finished,
+          total: kept.length,
+          message: `Screening ${kept.length} approved drugs against ${targetName}... ${Math.round((finished / kept.length) * 100)}% complete`,
+        });
+        await yieldUi();
       } else {
-        const local = scoreLibraryLocal(batchCandidates, protein);
+        // AI is unavailable or failed: score all remaining uncached drugs locally in one fast vectorized pass
+        const remainingDrugs = uncached.slice(finished - cachedRows.length);
+        const remainingCandidates = remainingDrugs.map((drug) => {
+          const candidate = drugToCandidate(drug);
+          const pains = painsByCid[String(drug.cid)];
+          return pains ? { ...candidate, pains } : candidate;
+        });
+        const local = scoreLibraryLocal(remainingCandidates, protein);
         rememberRanking(protein, local);
-        rankedList = local.ranking || [];
+        const byCid = new Map((local.ranking || []).map((row) => [String(row.cid), row]));
+        for (const drug of remainingDrugs) {
+          const ranked = byCid.get(String(drug.cid));
+          if (ranked) freshRows.push({ drug, ranked });
+        }
+        finished += remainingDrugs.length;
+        report({
+          phase: "scoring",
+          done: finished,
+          total: kept.length,
+          message: `Screening ${kept.length} approved drugs against ${targetName}... 100% complete`,
+        });
+        break;
       }
-
-      const byCid = new Map(rankedList.map((row) => [String(row.cid), row]));
-      for (const drug of batch) {
-        const ranked = byCid.get(String(drug.cid));
-        if (ranked) freshRows.push({ drug, ranked });
-      }
-
-      finished += batch.length;
-      report({
-        phase: "scoring",
-        done: finished,
-        total: kept.length,
-        message: `Screening ${kept.length} approved drugs against ${targetName}... ${Math.round((finished / kept.length) * 100)}% complete`,
-      });
-      await yieldUi();
     }
   }
 

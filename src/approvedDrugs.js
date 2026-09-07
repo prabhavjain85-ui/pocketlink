@@ -44,5 +44,12 @@ export function drugToCandidate(drug) {
 
 export function findApprovedDrug(nameOrCid) {
   const q = String(nameOrCid || "").trim().toLowerCase();
-  return loadApprovedDrugs().find((d) => d.name.toLowerCase() === q || String(d.cid) === q) || null;
+  return (
+    loadApprovedDrugs().find(
+      (d) =>
+        d.name.toLowerCase() === q ||
+        String(d.cid).toLowerCase() === q ||
+        String(d.id || "").toLowerCase() === q
+    ) || null
+  );
 }

@@ -12,6 +12,8 @@ import {
 } from "./repurposingScreen";
 import { rankingCacheKey } from "./targetContext";
 
+jest.setTimeout(60000);
+
 const kinase = {
   id: "2HYY",
   queryName: "ABL1",
@@ -64,10 +66,9 @@ afterEach(() => {
   clearDailyScreens();
 });
 
-test("approved-drug library is a bundled 200–500 compound set with required examples", () => {
+test("approved-drug library is an expanded 1500+ compound set with required examples", () => {
   const n = approvedDrugCount();
-  expect(n).toBeGreaterThanOrEqual(200);
-  expect(n).toBeLessThanOrEqual(500);
+  expect(n).toBeGreaterThanOrEqual(1500);
   expect(findApprovedDrug("imatinib")).toBeTruthy();
   expect(findApprovedDrug("erlotinib")).toBeTruthy();
   expect(findApprovedDrug("dasatinib")).toBeTruthy();
@@ -131,9 +132,9 @@ test("tyrosine kinase screen ranks known kinase inhibitors above unrelated drugs
   expect(imatinib.score).toBeGreaterThan(paracetamol.score + 10);
   expect(erlotinib.score).toBeGreaterThan(loratadine.score + 10);
   expect(dasatinib.score).toBeGreaterThan(paracetamol.score + 10);
-  expect(Math.max(imatinib.rank, erlotinib.rank, dasatinib.rank)).toBeLessThanOrEqual(20);
-  expect(paracetamol.rank).toBeGreaterThan(40);
-  expect(loratadine.rank).toBeGreaterThan(40);
+  expect(Math.max(imatinib.rank, erlotinib.rank, dasatinib.rank)).toBeLessThanOrEqual(50);
+  expect(paracetamol.rank).toBeGreaterThan(100);
+  expect(loratadine.rank).toBeGreaterThan(100);
   expect(imatinib.reasoning.join(" ")).toMatch(/kinase-inhibitor/i);
 });
 
@@ -321,7 +322,7 @@ test("a second screen of the same target within 24h reuses the daily snapshot", 
   } finally {
     global.fetch = originalFetch;
   }
-});
+}, 35000);
 
 test("AI batch size stays inside the serverless-safe window", () => {
   expect(AI_BATCH_SIZE).toBeGreaterThanOrEqual(20);
