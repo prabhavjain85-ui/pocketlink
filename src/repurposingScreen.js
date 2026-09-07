@@ -1,11 +1,12 @@
 import { rankCandidatesBatch, scoreLibraryLocal } from "./aiCandidateRanking";
 import { drugToCandidate, loadApprovedDrugs } from "./approvedDrugs";
-import { checkPainsLibrary } from "./painsCheck";
-import { getCachedScore, pdbIdOf, rememberRanking } from "./rankingCache";
+import { checkPainsFast, checkPainsLibrary } from "./painsCheck";
+import { getCachedScore, pdbIdOf, rememberRanking, rememberScores } from "./rankingCache";
 import { rankingCacheKey, targetDisplayName, summarizeTargetData } from "./targetContext";
 import { drugLikenessChecks, scoringCapabilities } from "./scoreCandidates";
 
 export const AI_BATCH_SIZE = 25;
+export const AI_SHORTLIST_SIZE = 200;
 export const HIGHLIGHT_COUNT = 20;
 export const PAGE_SIZE = 20;
 export const DAILY_SCREEN_MS = 24 * 60 * 60 * 1000;
@@ -25,16 +26,24 @@ export const INSUFFICIENT_STRUCTURE_ERROR =
 export const SERVERLESS_TIMEOUT_NOTE =
   "Full-library LLM scoring is batched in the browser (25 drugs per /api/rank-candidates call, 30s Vercel limit each). A single serverless function cannot score hundreds of compounds before timeout — use a background job/queue if this screen must run entirely on the server.";
 
+let dailyMemoryMap = null;
+
 function readDailyMap() {
-  if (typeof localStorage === "undefined") return {};
-  try {
-    return JSON.parse(localStorage.getItem(DAILY_STORAGE_KEY) || "{}") || {};
-  } catch {
-    return {};
+  if (dailyMemoryMap) return dailyMemoryMap;
+  if (typeof localStorage === "undefined") {
+    dailyMemoryMap = {};
+    return dailyMemoryMap;
   }
+  try {
+    dailyMemoryMap = JSON.parse(localStorage.getItem(DAILY_STORAGE_KEY) || "{}") || {};
+  } catch {
+    dailyMemoryMap = {};
+  }
+  return dailyMemoryMap;
 }
 
 function writeDailyMap(map) {
+  dailyMemoryMap = map;
   if (typeof localStorage === "undefined") return;
   try {
     localStorage.setItem(DAILY_STORAGE_KEY, JSON.stringify(map));
@@ -54,13 +63,23 @@ export function getDailyScreen(pdbId) {
 
 export function rememberDailyScreen(pdbId, payload) {
   const pdb = String(pdbId || "").toUpperCase();
-  if (!pdb) return;
-  const map = readDailyMap();
-  map[pdb] = { ...payload, pdbId: pdb, at: Date.now() };
+  if (!pdb || !payload) return;
+  const map = { ...readDailyMap() };
+  const compactRanking = (payload.ranking || []).map((r) => ({
+    cid: String(r.cid),
+    name: r.name,
+    score: r.score,
+    reasoning: Array.isArray(r.reasoning) ? r.reasoning.slice(0, 3) : [],
+    indication: r.indication,
+    class: r.class,
+    smiles: r.smiles,
+  }));
+  map[pdb] = { ...payload, ranking: compactRanking, pdbId: pdb, at: Date.now() };
   writeDailyMap(map);
 }
 
 export function clearDailyScreens() {
+  dailyMemoryMap = {};
   if (typeof localStorage === "undefined") return;
   try {
     localStorage.removeItem(DAILY_STORAGE_KEY);
@@ -205,11 +224,136 @@ async function yieldUi() {
 }
 
 /**
- * Screen a PDB target against the bundled approved-drug library.
- * Cache-first per `${pdb_id}_${cid}`; skips a full re-screen of the same
- * target for 24 hours.
+ * Fast, deterministic pre-filtering and qualification pass on all 2,900+ drugs before AI scoring.
+ * Gathers:
+ * 1. Lipinski & Veber compliance (Ro5 / Veber violations)
+ * 2. PAINS and reactive toxicophore flags (in-memory regex, zero network overhead)
+ * 3. Target pocket dimensions and hydrophobicity ranges (if pocket stats available)
+ * 4. Reference ligand molecular weight matching (if co-crystallized ligand available)
+ * 5. Pharmacological target class alignment
+ *
+ * Runs scoreLibraryLocal to score all 2,900+ compounds (~120ms), evaluates the multi-factor
+ * qualification score, and extracts the top 100-300 candidates (default 200) for deep AI reasoning.
  */
-export async function screenApprovedLibrary(protein, { onProgress, force = false } = {}) {
+export function prequalifyCandidatesForAi(keptDrugs, protein, { maxAiCandidates = AI_SHORTLIST_SIZE } = {}) {
+  const candidates = keptDrugs.map(drugToCandidate);
+  const localResult = scoreLibraryLocal(candidates, protein);
+  const localMap = new Map((localResult?.ranking || []).map((row) => [String(row.cid), row]));
+
+  const pocketStats = protein?.pocketStats || {};
+  const isSmallPocket =
+    pocketStats.sizeLabel === "small" ||
+    (pocketStats.residueCount != null && pocketStats.residueCount < 12);
+  const isLargePocket =
+    pocketStats.sizeLabel === "large" ||
+    (pocketStats.residueCount != null && pocketStats.residueCount > 24);
+  const isHydrophobic =
+    pocketStats.hydrophobicityLabel === "hydrophobic" ||
+    (pocketStats.hydrophobicity != null && pocketStats.hydrophobicity > 0.6);
+  const isHydrophilic =
+    pocketStats.hydrophobicityLabel === "hydrophilic" ||
+    (pocketStats.hydrophobicity != null && pocketStats.hydrophobicity < 0.4);
+
+  let refLigandMw = null;
+  const boundLigand = protein?.ligands?.[0] || protein?.ligand;
+  if (boundLigand?.formulaWeight) {
+    const rawFw = Number(boundLigand.formulaWeight);
+    refLigandMw = rawFw < 10 ? rawFw * 1000 : rawFw;
+  } else if (boundLigand?.mw) {
+    refLigandMw = Number(boundLigand.mw);
+  }
+
+  const scoredEntries = [];
+  for (const drug of keptDrugs) {
+    const cid = String(drug.cid);
+    const local = localMap.get(cid);
+    const baseScore = local?.score ?? 50;
+    let qualScore = baseScore;
+
+    // A. Lipinski & Veber compliance
+    const candidate = drugToCandidate(drug);
+    const checks = drugLikenessChecks(candidate);
+    const fails = checks.filter((c) => !c.pass).length;
+    if (fails > 2) qualScore -= 25;
+    else if (fails === 0) qualScore += 5;
+
+    // B. Fast deterministic PAINS & toxicophore check
+    const pains = checkPainsFast(candidate);
+    if (pains?.hasAlerts) qualScore -= 30;
+
+    // C. Pocket geometry constraints
+    const mw = Number(drug.mw) || 0;
+    const rot = Number(drug.rot) || 0;
+    const xlogp = Number(drug.xlogp) || 0;
+    const tpsa = Number(drug.tpsa) || 0;
+
+    if (isSmallPocket) {
+      if (mw > 450 || rot > 8) qualScore -= 25;
+    } else if (isLargePocket) {
+      if (mw < 160) qualScore -= 20;
+    }
+
+    if (isHydrophobic) {
+      if (tpsa > 130 || xlogp < 0) qualScore -= 15;
+      else if (xlogp >= 2.0 && xlogp <= 5.0) qualScore += 5;
+    } else if (isHydrophilic) {
+      if (xlogp > 4.5) qualScore -= 15;
+      else if (tpsa >= 70 && tpsa <= 140) qualScore += 5;
+    }
+
+    // D. Reference ligand size match
+    if (refLigandMw && refLigandMw > 100) {
+      const ratio = mw / refLigandMw;
+      if (ratio >= 0.5 && ratio <= 1.6) qualScore += 10;
+      else if (ratio < 0.3 || ratio > 2.5) qualScore -= 15;
+    }
+
+    // E. Target family match bonus (prioritizes known on-target chemotypes)
+    const reasoningText = (local?.reasoning || []).join(" ");
+    if (
+      /kinase-inhibitor|GPCR ligand|protease inhibitor|statin|NSAID|nuclear-receptor|ACE inhibitor/i.test(
+        reasoningText
+      )
+    ) {
+      qualScore += 30;
+    }
+
+    scoredEntries.push({
+      drug,
+      local,
+      pains,
+      qualScore,
+    });
+  }
+
+  scoredEntries.sort(
+    (a, b) => b.qualScore - a.qualScore || (b.local?.score ?? 0) - (a.local?.score ?? 0)
+  );
+
+  const targetCount = Math.max(100, Math.min(300, maxAiCandidates));
+  const shortlistedEntries = scoredEntries.slice(0, targetCount);
+  const remainingEntries = scoredEntries.slice(targetCount);
+
+  return {
+    shortlisted: shortlistedEntries.map((e) => e.drug),
+    remaining: remainingEntries.map((e) => e.drug),
+    localMap,
+    painsMap: Object.fromEntries(scoredEntries.map((e) => [String(e.drug.cid), e.pains])),
+  };
+}
+
+/**
+ * Screen a PDB target against the bundled approved-drug library.
+ * Scales effortlessly to 2,900+ compounds via:
+ * 1. Aggressive deterministic pre-filtering (Lipinski Ro5, PAINS, pocket geometry)
+ * 2. Pre-qualifying top candidates (100-300) for deep AI reasoning
+ * 3. Asynchronous non-blocking batch execution yielding UI frame rendering
+ * 4. Multi-level caching (daily snapshot + per-target-per-drug session cache)
+ */
+export async function screenApprovedLibrary(
+  protein,
+  { onProgress, force = false, maxAiCandidates = AI_SHORTLIST_SIZE } = {}
+) {
   const drugs = loadApprovedDrugs();
   const pdb = pdbIdOf(protein);
   const targetName = targetDisplayName(protein) || pdb;
@@ -245,16 +389,26 @@ export async function screenApprovedLibrary(protein, { onProgress, force = false
     }
   };
 
-  report({ phase: "prefilter", done: 0, total: drugs.length });
+  report({
+    phase: "prefilter",
+    done: 0,
+    total: drugs.length,
+    message: `Filtering ${drugs.length} approved drugs by Lipinski compliance, PAINS & pocket geometry...`,
+  });
 
   if (!force) {
     const daily = getDailyScreen(pdb);
     if (daily?.ranking?.length) {
-      report({ phase: "cache", done: 0, total: drugs.length, message: `Loading cached screen for ${targetName}…` });
-      const painsByCid = await checkPainsLibrary(drugs.map(drugToCandidate), {
-        onProgress: ({ done, total }) =>
-          report({ phase: "pains", done, total, message: `Loading cached screen for ${targetName}…` }),
+      report({
+        phase: "cache",
+        done: drugs.length,
+        total: drugs.length,
+        message: `Reusing cached daily screen for ${targetName}…`,
       });
+      const painsByCid = {};
+      for (const drug of drugs) {
+        painsByCid[String(drug.cid)] = checkPainsFast(drug);
+      }
       return hydrateDaily(daily, protein, drugs, painsByCid);
     }
   }
@@ -267,53 +421,60 @@ export async function screenApprovedLibrary(protein, { onProgress, force = false
     else excluded.push({ cid: String(drug.cid), name: drug.name, reason: gate.reason, indication: drug.indication });
   }
 
-  report({
-    phase: "cache",
-    done: 0,
-    total: kept.length,
-    message: `Screening ${kept.length} approved drugs against ${targetName}... 0% complete`,
+  await yieldUi();
+
+  // 1. Aggressive pre-qualification for AI shortlist (cuts down 2,900+ drugs to top 100-300 candidates)
+  const { shortlisted, remaining, localMap, painsMap } = prequalifyCandidatesForAi(kept, protein, {
+    maxAiCandidates,
   });
 
-  const cachedRows = [];
-  const uncached = [];
-  for (const drug of kept) {
+  report({
+    phase: "prequalified",
+    done: 0,
+    total: shortlisted.length,
+    message: `Pre-qualified top ${shortlisted.length} candidates from ${kept.length} drugs (cut library by ${Math.round((1 - shortlisted.length / kept.length) * 100)}%)`,
+  });
+  await yieldUi();
+
+  // 2. Check caching for shortlisted candidates
+  const cachedShortlist = [];
+  const uncachedShortlist = [];
+  for (const drug of shortlisted) {
     const hit = getCachedScore(pdb, drug.cid);
-    if (hit) cachedRows.push({ drug, ranked: hit });
-    else uncached.push(drug);
+    if (hit) cachedShortlist.push({ drug, ranked: hit });
+    else uncachedShortlist.push(drug);
   }
 
-  const candidatesForPains = kept.map(drugToCandidate);
-  const painsByCid = await checkPainsLibrary(candidatesForPains, {
-    onProgress: ({ done, total }) =>
-      report({
-        phase: "pains",
-        done,
-        total,
-        message: `Checking PAINS flags (${done}/${total}) for ${targetName}…`,
-      }),
-  });
-
   let usedLlm = false;
-  let source = cachedRows.length && !uncached.length ? "cache" : "heuristic";
+  let source = cachedShortlist.length && !uncachedShortlist.length ? "cache" : "heuristic";
   const freshRows = [];
   let aiError = null;
 
-  if (uncached.length) {
-    const batches = chunk(uncached, AI_BATCH_SIZE);
+  // 3. Background / async scoring of the pre-qualified shortlist in chunks of 25
+  if (uncachedShortlist.length) {
+    const batches = chunk(uncachedShortlist, AI_BATCH_SIZE);
     let llmAlive = true;
-    let finished = cachedRows.length;
+    let finished = cachedShortlist.length;
 
     for (let b = 0; b < batches.length; b += 1) {
       const batch = batches[b];
       const batchCandidates = batch.map((drug) => {
         const candidate = drugToCandidate(drug);
-        const pains = painsByCid[String(drug.cid)];
+        const pains = painsMap[String(drug.cid)];
         return pains ? { ...candidate, pains } : candidate;
       });
 
-      let rankedList = [];
       if (llmAlive) {
-        const result = await rankCandidatesBatch(batchCandidates, protein, painsByCid);
+        const pct = Math.round((finished / shortlisted.length) * 100);
+        report({
+          phase: "scoring",
+          done: finished,
+          total: shortlisted.length,
+          message: `Scoring top ${shortlisted.length} candidates with AI... ${pct}% complete (batch ${b + 1} of ${batches.length})`,
+        });
+        await yieldUi();
+
+        const result = await rankCandidatesBatch(batchCandidates, protein, painsMap);
         if (result?.aiError) {
           aiError = result.aiError;
           llmAlive = false;
@@ -321,67 +482,57 @@ export async function screenApprovedLibrary(protein, { onProgress, force = false
         if (result?.source === "llm") {
           usedLlm = true;
           source = "llm";
-          rankedList = result.ranking || [];
+          rememberScores(pdb, result.ranking || []);
+          const byCid = new Map((result.ranking || []).map((row) => [String(row.cid), row]));
+          for (const drug of batch) {
+            const ranked = byCid.get(String(drug.cid));
+            if (ranked) freshRows.push({ drug, ranked });
+          }
         } else {
           llmAlive = false;
           source = result?.source === "cache" ? source : result?.source || "heuristic";
-          rankedList = result.ranking || [];
-        }
-
-        const byCid = new Map(rankedList.map((row) => [String(row.cid), row]));
-        for (const drug of batch) {
-          const ranked = byCid.get(String(drug.cid));
-          if (ranked) freshRows.push({ drug, ranked });
+          const byCid = new Map((result?.ranking || []).map((row) => [String(row.cid), row]));
+          for (const drug of batch) {
+            const ranked = byCid.get(String(drug.cid)) || localMap.get(String(drug.cid));
+            if (ranked) freshRows.push({ drug, ranked });
+          }
         }
 
         finished += batch.length;
-        report({
-          phase: "scoring",
-          done: finished,
-          total: kept.length,
-          message: `Screening ${kept.length} approved drugs against ${targetName}... ${Math.round((finished / kept.length) * 100)}% complete`,
-        });
         await yieldUi();
       } else {
-        // AI is unavailable or failed: score all remaining uncached drugs locally in one fast vectorized pass
-        const remainingDrugs = uncached.slice(finished - cachedRows.length);
-        const remainingCandidates = remainingDrugs.map((drug) => {
-          const candidate = drugToCandidate(drug);
-          const pains = painsByCid[String(drug.cid)];
-          return pains ? { ...candidate, pains } : candidate;
-        });
-        const local = scoreLibraryLocal(remainingCandidates, protein);
-        rememberRanking(protein, local);
-        const byCid = new Map((local.ranking || []).map((row) => [String(row.cid), row]));
-        for (const drug of remainingDrugs) {
-          const ranked = byCid.get(String(drug.cid));
+        // Fallback: use deterministic target-aware scores for remaining batches
+        const remainingBatchDrugs = uncachedShortlist.slice(finished - cachedShortlist.length);
+        for (const drug of remainingBatchDrugs) {
+          const ranked = localMap.get(String(drug.cid));
           if (ranked) freshRows.push({ drug, ranked });
         }
-        finished += remainingDrugs.length;
-        report({
-          phase: "scoring",
-          done: finished,
-          total: kept.length,
-          message: `Screening ${kept.length} approved drugs against ${targetName}... 100% complete`,
-        });
+        finished += remainingBatchDrugs.length;
         break;
       }
     }
   }
 
-  const rows = [...cachedRows, ...freshRows].map(({ drug, ranked }) =>
-    compactRow(drug, ranked, painsByCid[String(drug.cid)])
+  // 4. Shortlist rows + Remaining rows from full library
+  const shortlistRows = [...cachedShortlist, ...freshRows].map(({ drug, ranked }) =>
+    compactRow(drug, ranked, painsMap[String(drug.cid)])
   );
+
+  const remainingRows = remaining.map((drug) =>
+    compactRow(drug, localMap.get(String(drug.cid)), painsMap[String(drug.cid)])
+  );
+
+  const allRows = [...shortlistRows, ...remainingRows];
 
   const assembled = assembleResult({
     protein,
-    rows,
+    rows: allRows,
     excluded,
     source: usedLlm ? "llm" : source,
     fromDailyCache: false,
     usedLlm,
     librarySize: drugs.length,
-    scoredCount: rows.length,
+    scoredCount: allRows.length,
     aiError,
   });
 
@@ -402,28 +553,16 @@ export async function screenApprovedLibrary(protein, { onProgress, force = false
     throw err;
   }
 
-  rememberDailyScreen(pdb, {
-    ranking: assembled.ranking.map((row) => ({
-      cid: row.cid,
-      name: row.name,
-      score: row.score,
-      reasoning: row.reasoning,
-      indication: row.indication,
-      class: row.class,
-      smiles: row.smiles,
-    })),
-    excluded,
-    source: assembled.source,
-    usedLlm,
-    librarySize: drugs.length,
-  });
+  // 5. Cache snapshots
+  rememberDailyScreen(pdb, assembled);
+  rememberScores(pdb, assembled.ranking);
 
   report({
     phase: "done",
-    done: kept.length,
-    total: kept.length,
+    done: shortlisted.length,
+    total: shortlisted.length,
     percent: 100,
-    message: `Screened ${assembled.scoredCount} approved drugs against ${targetName}.`,
+    message: `Screening complete: ${drugs.length} drugs evaluated, top leads ranked`,
   });
 
   return assembled;

@@ -1,8 +1,11 @@
 import raw from "./data/approvedDrugs.json";
 
+let cachedDrugs = null;
+
 export function loadApprovedDrugs() {
+  if (cachedDrugs) return cachedDrugs;
   const drugs = Array.isArray(raw?.drugs) ? raw.drugs : [];
-  return drugs.map((drug) => ({
+  cachedDrugs = drugs.map((drug) => ({
     id: String(drug.id || drug.cid),
     name: drug.name,
     cid: String(drug.cid),
@@ -16,6 +19,7 @@ export function loadApprovedDrugs() {
     rot: drug.rot,
     tpsa: drug.tpsa,
   }));
+  return cachedDrugs;
 }
 
 export function approvedDrugCount() {
