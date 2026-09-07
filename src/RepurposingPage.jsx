@@ -130,6 +130,24 @@ function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page
                         >
                           ADME →
                         </Link>
+                        <Link
+                          to={`/docking?pdb=${encodeURIComponent(target?.id || "1IEP")}&smiles=${encodeURIComponent(r.canonicalSmiles || r.smiles || "")}&name=${encodeURIComponent(r.name || "")}&cid=${r.cid}`}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            fontSize: "11px",
+                            padding: "3px 7px",
+                            borderRadius: "4px",
+                            background: "var(--surface-subtle)",
+                            border: "1px solid var(--border)",
+                            color: "var(--primary)",
+                            textDecoration: "none",
+                            fontWeight: 600,
+                          }}
+                          title="Run native molecular docking against target binding cavity"
+                        >
+                          Dock →
+                        </Link>
                       </div>
                     </td>
                     <td className="mono score-num">{r.score}/100</td>

@@ -602,11 +602,11 @@ export default function App() {
       </div>
 
       <div className="handoff-panel">
-        <Panel eyebrow="Station 4 — handoff" title="Send the chosen molecule to SwissDock & SwissADME" kind="handoff">
+        <Panel eyebrow="Station 4 — handoff" title="Follow-up: Native Docking & ADME Prediction" kind="handoff">
           {!protein && !candidates.length && (
             <div className="empty-state">
-              Stage a target and a shortlist above — PocketLink will prepare the exact inputs to paste into
-              SwissDock and SwissADME.
+              Stage a target and a shortlist above — PocketLink will prepare the exact inputs for native
+              docking simulation and ADME prediction.
             </div>
           )}
           {(protein || candidates.length > 0) && (
@@ -632,8 +632,15 @@ export default function App() {
               {compound && <CopyField label={`${compound.displayName} — SMILES`} value={smiles} />}
               <div className="handoff-actions">
                 <Link
-                  to={`/adme?smiles=${encodeURIComponent(smiles || "")}&name=${encodeURIComponent(compound?.displayName || "")}&cid=${compound?.CID || ""}`}
+                  to={`/docking?pdb=${encodeURIComponent(protein?.id || "")}&smiles=${encodeURIComponent(smiles || "")}&name=${encodeURIComponent(compound?.displayName || "")}&cid=${compound?.CID || ""}`}
                   className="btn btn-primary"
+                  style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+                >
+                  Run Native Docking →
+                </Link>
+                <Link
+                  to={`/adme?smiles=${encodeURIComponent(smiles || "")}&name=${encodeURIComponent(compound?.displayName || "")}&cid=${compound?.CID || ""}`}
+                  className="btn btn-secondary"
                   style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
                 >
                   Predict Native ADME →
@@ -646,8 +653,7 @@ export default function App() {
                 </button>
               </div>
               <div className="lipinski-note" style={{ marginTop: 14 }}>
-                PocketLink predicts ADME natively using in-browser RDKit WebAssembly (including BOILED-Egg and Lipinski rules).
-                External handoff buttons copy the value to your clipboard and open SwissDock or SwissADME in a new tab.
+                PocketLink computes native molecular docking and ADME predictions locally in-browser using empirical force fields and RDKit WebAssembly without external server dependencies.
               </div>
             </div>
           )}
