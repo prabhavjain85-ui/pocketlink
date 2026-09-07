@@ -1,5 +1,4 @@
 import {
-  HISTORY_STORAGE_KEY,
   MAX_HISTORY_ENTRIES,
   saveHistoryEntry,
   getHistory,

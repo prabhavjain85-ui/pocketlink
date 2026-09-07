@@ -2,7 +2,6 @@ const painsHandler = require("../api/pains-check");
 
 describe("pains-check node API handler", () => {
   test("clean SMILES returns clean status", async () => {
-    let statusCode = null;
     let responseBody = null;
     const req = {
       method: "POST",

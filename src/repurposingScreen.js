@@ -1,7 +1,7 @@
 import { rankCandidatesBatch, scoreLibraryLocal } from "./aiCandidateRanking";
 import { drugToCandidate, loadApprovedDrugs } from "./approvedDrugs";
-import { checkPainsFast, checkPainsLibrary } from "./painsCheck";
-import { getCachedScore, pdbIdOf, rememberRanking, rememberScores } from "./rankingCache";
+import { checkPainsFast } from "./painsCheck";
+import { getCachedScore, pdbIdOf, rememberScores } from "./rankingCache";
 import { rankingCacheKey, targetDisplayName, summarizeTargetData } from "./targetContext";
 import { drugLikenessChecks, scoringCapabilities } from "./scoreCandidates";
 
