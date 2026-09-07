@@ -5,6 +5,7 @@ import {
   ADME_EXAMPLE_COMPOUNDS,
 } from "./admeCalculator";
 import BoiledEggPlot from "./BoiledEggPlot";
+import OrganToxicityPanel from "./OrganToxicityPanel";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
 
 export default function AdmePage() {
@@ -117,6 +118,19 @@ export default function AdmePage() {
 
   const handleCopyReport = () => {
     if (!admeData) return;
+
+    let toxSummary = "";
+    if (admeData.organToxicity && admeData.organToxicity.valid) {
+      const b = admeData.organToxicity.organBreakdown;
+      toxSummary = `\nOrgan-Specific Toxicity Liabilities (Structural Alerts):
+- Overall Profile: ${admeData.organToxicity.overallRisk} (${admeData.organToxicity.totalAlerts} alert(s))
+- Liver (Hepatotoxicity): ${b.liver?.riskLevel || "Low"} Risk - ${b.liver?.summaryExplanation || "No alerts"}
+- Heart (Cardiotoxicity / hERG): ${b.heart?.riskLevel || "Low"} Risk - ${b.heart?.summaryExplanation || "No alerts"}
+- Kidney (Nephrotoxicity): ${b.kidney?.riskLevel || "Low"} Risk - ${b.kidney?.summaryExplanation || "No alerts"}
+- Genetic Material (Mutagenicity): ${b.mutagenicity?.riskLevel || "Low"} Risk - ${b.mutagenicity?.summaryExplanation || "No alerts"}
+- Cellular Safety (Carcinogenicity): ${b.carcinogenicity?.riskLevel || "Low"} Risk - ${b.carcinogenicity?.summaryExplanation || "No alerts"}\n`;
+    }
+
     const text = `PocketLink ADME Profile
 Compound: ${admeData.compoundName} (CID: ${admeData.cid || "N/A"})
 SMILES: ${admeData.canonicalSmiles}
@@ -139,8 +153,8 @@ Pharmacokinetics & Solubility:
 - GI Absorption (BOILED-Egg): ${admeData.pharmacokinetics.boiledEgg.giAbsorption} (${admeData.pharmacokinetics.boiledEgg.label})
 - BBB Permeation: ${admeData.pharmacokinetics.boiledEgg.bbbPermeation}
 - ESOL Aqueous Solubility: ${admeData.pharmacokinetics.solubility.qualitativeClass} (LogS ${admeData.pharmacokinetics.solubility.logS}, ~${admeData.pharmacokinetics.solubility.mgPerMl} mg/mL)
-
-Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete (2016), Delaney (2004).`;
+${toxSummary}
+Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete (2016), Delaney (2004), Kalgutkar et al. (2005), Aronov (2005).`;
 
     if (navigator?.clipboard?.writeText) {
       navigator.clipboard.writeText(text).then(() => {
@@ -587,6 +601,41 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
                 >
                   Solubility: {admeData.pharmacokinetics.solubility.qualitativeClass}
                 </span>
+
+                {admeData.organToxicity && admeData.organToxicity.valid && (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      padding: "4px 10px",
+                      borderRadius: "20px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      background:
+                        admeData.organToxicity.overallBadgeColor === "red"
+                          ? "var(--red-bg)"
+                          : admeData.organToxicity.overallBadgeColor === "amber"
+                          ? "var(--amber-bg)"
+                          : "var(--green-bg)",
+                      color:
+                        admeData.organToxicity.overallBadgeColor === "red"
+                          ? "var(--red)"
+                          : admeData.organToxicity.overallBadgeColor === "amber"
+                          ? "var(--amber)"
+                          : "var(--green)",
+                      border: `1px solid ${
+                        admeData.organToxicity.overallBadgeColor === "red"
+                          ? "var(--red-border)"
+                          : admeData.organToxicity.overallBadgeColor === "amber"
+                          ? "var(--amber-border)"
+                          : "var(--green-border)"
+                      }`,
+                    }}
+                  >
+                    Organ Toxicity: {admeData.organToxicity.overallRisk}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -1233,6 +1282,14 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
               </div>
             </div>
           </div>
+
+          {/* Organ-Specific Toxicity Predictions Panel */}
+          {admeData.organToxicity && (
+            <OrganToxicityPanel
+              organToxicity={admeData.organToxicity}
+              onSelectPreset={handleSelectPreset}
+            />
+          )}
 
           {/* Scientific Citations & Methodology Card */}
           <div

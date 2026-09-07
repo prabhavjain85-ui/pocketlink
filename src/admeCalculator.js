@@ -1,4 +1,5 @@
 import { getRDKit } from "./rdkitLoader";
+import { evaluateOrganToxicity } from "./organToxicity";
 
 /**
  * Standard ADME Example Compounds for quick 1-click testing
@@ -36,8 +37,22 @@ export const ADME_EXAMPLE_COMPOUNDS = [
     name: "Paracetamol (Acetaminophen)",
     smiles: "CC(=O)Nc1ccc(O)cc1",
     cid: "1983",
-    indication: "Analgesic and antipyretic (Central COX inhibitor)",
+    indication: "Analgesic / Antipyretic (Moderate Hepatotoxicity / NAPQI alert)",
     class: "Analgesic",
+  },
+  {
+    name: "Terfenadine (Withdrawn Cardiotoxicant)",
+    smiles: "CC(C)(C)c1ccc(C(O)CCCN2CCC(C(O)(c3ccccc3)c4ccccc4)CC2)cc1",
+    cid: "5405",
+    indication: "Antihistamine — Withdrawn (FDA 1997) due to lethal hERG blockade & TdP arrhythmia",
+    class: "Cardiotoxic Positive Control",
+  },
+  {
+    name: "Troglitazone (Withdrawn Hepatotoxicant)",
+    smiles: "Cc1c(C)c2c(c(C)c1O)CCC(C)(COc1ccc(CC3C(=O)NC(=O)S3)cc1)O2",
+    cid: "5591",
+    indication: "Antidiabetic (TZD) — Withdrawn (FDA 2000) due to severe DILI & liver failure",
+    class: "Hepatotoxic Positive Control",
   },
   {
     name: "Atorvastatin",
@@ -420,6 +435,13 @@ export async function calculateAdmeProperties(inputSmiles, metadata = {}) {
       aromaticRings,
     });
 
+    // 4. Organ-Specific Toxicity Predictions (Literature-Curated Structural Alert Heuristics)
+    const organToxicity = await evaluateOrganToxicity(
+      canonicalSmiles || rawSmiles,
+      properties,
+      RDKit
+    );
+
     return {
       valid: true,
       inputSmiles: rawSmiles,
@@ -439,6 +461,7 @@ export async function calculateAdmeProperties(inputSmiles, metadata = {}) {
         boiledEgg,
         solubility,
       },
+      organToxicity,
       citations: [
         {
           model: "Physicochemical Descriptors & Crippen cLogP / MR",
@@ -463,6 +486,10 @@ export async function calculateAdmeProperties(inputSmiles, metadata = {}) {
         {
           model: "ESOL Aqueous Solubility",
           reference: "Delaney, J. S. (2004). ESOL: Estimating Aqueous Solubility Directly from Molecular Structure. J. Chem. Inf. Comput. Sci., 44(3), 1000-1005.",
+        },
+        {
+          model: "Organ Toxicity Structural Alerts (DILI, hERG, Nephrotoxicity, Mutagenicity)",
+          reference: "Kalgutkar et al. (2005) Chem. Res. Toxicol. 18(9):1335-1400; Aronov (2005) Drug Discov. Today 10(2):149-155; Stepan et al. (2011) J. Med. Chem. 54(3):773-805; ICH M7(R1) (2017).",
         },
       ],
     };
