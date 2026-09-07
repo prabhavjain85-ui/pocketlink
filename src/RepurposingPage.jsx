@@ -11,6 +11,7 @@ import {
 } from "./repurposingScreen";
 import { getDrugSafetyProfile } from "./safetyProfiles";
 import { targetDisplayName } from "./targetContext";
+import AdversarialCritique from "./AdversarialCritique";
 import {
   ACTIVE_STATE_KEYS,
   getActiveState,
@@ -24,7 +25,7 @@ function compareRepurposeField(a, b, key) {
   return (a.score ?? 0) - (b.score ?? 0);
 }
 
-function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page, pageSize, onPage }) {
+function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page, pageSize, onPage, target }) {
   const [expandedSafety, setExpandedSafety] = useState({});
 
   const sorted = useMemo(() => {
@@ -120,6 +121,14 @@ function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page
                           <li key={i}>{item}</li>
                         ))}
                       </ul>
+                      <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 8 }}>
+                        <AdversarialCritique
+                          candidate={r}
+                          target={target}
+                          compact
+                          label="See the case against this drug"
+                        />
+                      </div>
                     </td>
                     <td>{r.indication}</td>
                   </tr>
@@ -386,6 +395,15 @@ export default function RepurposingPage() {
                     </li>
                   ))}
                 </ul>
+                {result.recommended && (
+                  <div style={{ marginTop: 12 }}>
+                    <AdversarialCritique
+                      candidate={result.recommended}
+                      target={result.target || protein}
+                      label={`See the case against lead drug (${result.recommended.name})`}
+                    />
+                  </div>
+                )}
               </div>
               <div className="score-toolbar" style={{ marginTop: 14 }}>
                 <span className="score-toolbar-label">Full library ranking</span>
@@ -400,6 +418,7 @@ export default function RepurposingPage() {
                 page={page}
                 pageSize={PAGE_SIZE}
                 onPage={setPage}
+                target={result.target || protein}
               />
               {result.excluded?.length > 0 && (
                 <div className="lipinski-note">

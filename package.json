@@ -4,6 +4,7 @@
   "description": "Drug Discovery Staging Bench — Search PDB targets, shortlist PubChem compounds, rank the best AI follow-up",
   "private": true,
   "dependencies": {
+    "@google/genai": "^2.21.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.30.6",

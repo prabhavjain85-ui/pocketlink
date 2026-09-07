@@ -20,6 +20,7 @@ import PdbTargetSearch from "./PdbTargetSearch";
 import { checkPainsBatch } from "./painsCheck";
 import { MAX_CANDIDATES, drugLikenessChecks } from "./scoreCandidates";
 import { targetDisplayName } from "./targetContext";
+import AdversarialCritique from "./AdversarialCritique";
 
 function compareCandidateField(a, b, key) {
   if (key === "compound") {
@@ -28,7 +29,7 @@ function compareCandidateField(a, b, key) {
   return (a.score ?? 0) - (b.score ?? 0);
 }
 
-function CandidateScoreTable({ rows, selectedCid, recommendedCid, sortKey, sortDir, onSort, onSelect }) {
+function CandidateScoreTable({ rows, selectedCid, recommendedCid, sortKey, sortDir, onSort, onSelect, target, candidates }) {
   const sorted = useMemo(() => {
     const mul = sortDir === "asc" ? 1 : -1;
     return [...rows].sort((a, b) => {
@@ -77,6 +78,9 @@ function CandidateScoreTable({ rows, selectedCid, recommendedCid, sortKey, sortD
             const reasons = r.reasoning && r.reasoning.length
               ? r.reasoning
               : [...(r.strengths || []), ...(r.concerns || [])];
+            const fullCandidate = candidates?.find((c) => String(c.CID) === String(r.cid)) || {};
+            const mergedCandidate = { ...fullCandidate, ...r, cid: r.cid };
+
             return (
               <tr
                 key={r.cid}
@@ -101,6 +105,14 @@ function CandidateScoreTable({ rows, selectedCid, recommendedCid, sortKey, sortD
                       <li key={i}>{item}</li>
                     ))}
                   </ul>
+                  <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 8 }}>
+                    <AdversarialCritique
+                      candidate={mergedCandidate}
+                      target={target}
+                      compact
+                      label="See the case against this candidate"
+                    />
+                  </div>
                 </td>
               </tr>
             );
@@ -377,6 +389,10 @@ export default function App() {
   const winner = recommendedCid
     ? candidates.find((c) => String(c.CID) === String(recommendedCid))
     : null;
+  const winnerRow = aiResult?.ranking?.find((r) => String(r.cid) === String(recommendedCid));
+  const winnerCandidate = winner
+    ? { ...winner, cid: winner.CID, score: aiResult?.recommended?.score, reasoning: winnerRow?.reasoning || [aiResult?.recommended?.reason] }
+    : null;
 
   return (
     <>
@@ -550,6 +566,15 @@ export default function App() {
                   {winner?.displayName || (recommendedCid ? `CID ${recommendedCid}` : "—")} · {aiResult.recommended?.score ?? "—"}/100
                 </div>
                 <div className="winner-reason">{aiResult.recommended?.reason}</div>
+                {winnerCandidate && (
+                  <div style={{ marginTop: 10 }}>
+                    <AdversarialCritique
+                      candidate={winnerCandidate}
+                      target={protein}
+                      label="See the case against this top candidate"
+                    />
+                  </div>
+                )}
               </div>
               <CandidateScoreTable
                 rows={rankingRows}
@@ -559,6 +584,8 @@ export default function App() {
                 sortDir={aiSort.dir}
                 onSort={toggleAiSort}
                 onSelect={setHandoffCid}
+                target={protein}
+                candidates={candidates}
               />
               <div className="lipinski-note" style={{ marginTop: 12 }}>{aiResult.summary}</div>
               <div className="lipinski-note"><strong>Limitations:</strong> {(aiResult.limitations || []).join(" ")}</div>
