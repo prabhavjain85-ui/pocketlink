@@ -1,9 +1,6 @@
 import {
   calculateAdmeProperties,
   evaluateBoiledEgg,
-  evaluateLipinski,
-  evaluateVeber,
-  evaluateGhose,
   calculateEsolSolubility,
   ADME_EXAMPLE_COMPOUNDS,
 } from "./admeCalculator";

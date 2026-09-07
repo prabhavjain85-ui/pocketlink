@@ -462,7 +462,7 @@ export function scoreLigandPose(ligandAtoms, pocketAtoms, numRotatableBonds = 0)
 
   for (let i = 0; i < ligandAtoms.length; i++) {
     const la = ligandAtoms[i];
-    const lp = la.params;
+    const lp = la.params || ATOM_PARAMS[la.element] || ATOM_PARAMS.C;
 
     for (let j = 0; j < pocketAtoms.length; j++) {
       const pa = pocketAtoms[j];
@@ -664,7 +664,8 @@ export async function runMolecularDocking(targetPdbText, ligandSmiles, options =
     boxSize / 2 + 2.0
   );
 
-  if (pocketAtoms.length < 10) {
+  const minPocketAtoms = options.minPocketAtoms !== undefined ? options.minPocketAtoms : 10;
+  if (pocketAtoms.length < minPocketAtoms) {
     throw new Error(
       `Insufficient protein residues detected within the specified grid box (${boxSize} Å around [${pocketCenter.x.toFixed(1)}, ${pocketCenter.y.toFixed(1)}, ${pocketCenter.z.toFixed(1)}]). Try centering on a known ligand or residue.`
     );

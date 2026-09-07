@@ -12,9 +12,6 @@ export default function DockingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Target State
-  const [selectedTargetPreset, setSelectedTargetPreset] = useState(
-    DOCKING_REFERENCE_TARGETS[0] // Abl Kinase
-  );
   const [pdbIdInput, setPdbIdInput] = useState(searchParams.get("pdb") || "1IEP");
   const [targetTitle, setTargetTitle] = useState("Abl Tyrosine Kinase Domain");
   const [customCenter, setCustomCenter] = useState(null);
@@ -117,7 +114,6 @@ export default function DockingPage() {
       const matchPreset = DOCKING_REFERENCE_TARGETS.find(
         (t) => t.id.toUpperCase() === (urlPdb || "").toUpperCase()
       );
-      if (matchPreset) setSelectedTargetPreset(matchPreset);
 
       executeDocking(
         urlPdb || pdbIdInput,
@@ -139,7 +135,6 @@ export default function DockingPage() {
 
   // Preset Selection Handlers
   const handleSelectTargetPreset = (preset) => {
-    setSelectedTargetPreset(preset);
     setPdbIdInput(preset.id);
     setTargetTitle(preset.name);
     setCustomCenter(preset.center);

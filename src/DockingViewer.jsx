@@ -14,6 +14,8 @@ const ELEMENT_COLORS = {
   DEFAULT: "#64748B",
 };
 
+const FALLBACK_CENTER = Object.freeze({ x: 0, y: 0, z: 0 });
+
 export default function DockingViewer({
   targetName = "Target Pocket",
   ligandName = "Ligand",
@@ -32,7 +34,7 @@ export default function DockingViewer({
   const [showPocketBackbone, setShowPocketBackbone] = useState(true);
 
   // Compute pocket center
-  const center = activePose?.center || { x: 0, y: 0, z: 0 };
+  const center = activePose?.center || FALLBACK_CENTER;
 
   // Render loop
   const drawScene = useCallback(() => {
