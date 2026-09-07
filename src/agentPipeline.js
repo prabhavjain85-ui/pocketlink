@@ -14,6 +14,7 @@
  */
 
 import { fetchAdversarialCritique } from "./adversarialService";
+import { approvedDrugCount } from "./approvedDrugs";
 import { ACTIVE_STATE_KEYS, saveHistoryEntry, setActiveState } from "./historyService";
 import { pickDiseaseHit, runTargetDiscovery, searchDiseases } from "./openTargets";
 import { searchPdbTargets } from "./pdbSearch";
@@ -89,9 +90,16 @@ function selectBestDiseaseHit(hits, query) {
  * @param {Function} [params.onStepUpdate] - Callback invoked when any step starts, updates, or completes
  * @param {Function} [params.onProgress] - Callback for fine-grained progress messages
  * @param {AbortSignal} [params.signal] - Optional AbortSignal to cancel execution
+ * @param {boolean} [params.forceScreen] - Whether to bypass the 24-hour daily screen cache (default false)
  * @returns {Promise<Object>} Completed research report object
  */
-export async function runResearchAgent({ goal, onStepUpdate, onProgress, signal } = {}) {
+export async function runResearchAgent({
+  goal,
+  onStepUpdate,
+  onProgress,
+  signal,
+  forceScreen = false,
+} = {}) {
   if (!goal || !goal.trim()) {
     throw new Error("Please specify a high-level research goal.");
   }
@@ -421,7 +429,7 @@ export async function runResearchAgent({ goal, onStepUpdate, onProgress, signal 
     checkAborted();
 
     const screenResult = await screenApprovedLibrary(selectedStructure, {
-      force: true,
+      force: forceScreen,
       onProgress: ({ percent, message }) => {
         if (typeof onProgress === "function") {
           onProgress({ step: 3, message: message || `Screening approved drugs... ${percent}%` });
@@ -457,7 +465,11 @@ export async function runResearchAgent({ goal, onStepUpdate, onProgress, signal 
       ? recommendedCandidate.reasoning.slice(0, 3).join("; ")
       : "";
 
-    let step3Narration = `I evaluated 294 clinically approved drugs against the target-specific pocket geometry and pharmacophore constraints of **PDB ${selectedStructure.id}**. `;
+    const libraryCount = screenResult?.librarySize || approvedDrugCount();
+    const scoredCount = screenResult?.scoredCount || ranking.length;
+    const excludedCount = screenResult?.excluded?.length || Math.max(0, libraryCount - scoredCount);
+
+    let step3Narration = `I evaluated the full library of ${libraryCount.toLocaleString()} clinically approved drugs (screening ${scoredCount.toLocaleString()} Lipinski/Veber-compliant small molecules) against the target-specific pocket geometry and pharmacophore constraints of **PDB ${selectedStructure.id}**. `;
     step3Narration += `**${topDrugName}** (CID: ${recommendedCandidate.cid}) emerged as the lead repurposing candidate with a top score of **${topScore}**. `;
     step3Narration += `Currently approved for **${topIndication}**, it demonstrates favorable molecular alignment${topMw ? ` (MW ${topMw}, XLogP ${topXlogp})` : ""}. Key computational rationale: ${topReasoning || "Excellent shape and electrostatic complementarity to the catalytic binding site with full Lipinski drug-likeness compliance."}.`;
 
@@ -466,7 +478,11 @@ export async function runResearchAgent({ goal, onStepUpdate, onProgress, signal 
       narration: step3Narration,
       data: {
         recommended: recommendedCandidate,
-        ranking: ranking.slice(0, 15),
+        ranking: ranking.slice(0, 25),
+        totalScreened: scoredCount,
+        librarySize: libraryCount,
+        excludedCount,
+        source: screenResult?.source,
         summary: screenResult.summary,
         selectedStructure,
       },
@@ -561,8 +577,8 @@ export async function runResearchAgent({ goal, onStepUpdate, onProgress, signal 
       keyConcern: topConcerns[0]?.issue || "Selectivity across homologous pockets",
       keyConcernDetail: topConcerns[0]?.detail || "Requires orthogonal biochemical confirmation.",
       verdict: pivoted
-        ? `Contingency pipeline completed: ${primaryTarget.symbol} was the top genetic candidate, but lacked an experimental pocket. The agent successfully pivoted to ${activeTarget.symbol} (PDB ${selectedStructure.id}) and identified ${topDrugName} as an approved candidate with an itemized adversarial risk assessment.`
-        : `Autonomous pipeline completed: Screened ${activeTarget.symbol} (PDB ${selectedStructure.id}) and identified ${topDrugName} as an approved candidate with an itemized adversarial risk assessment.`,
+        ? `Contingency pipeline completed: ${primaryTarget.symbol} was the top genetic candidate, but lacked an experimental pocket. The agent successfully pivoted to ${activeTarget.symbol} (PDB ${selectedStructure.id}), screened the full ${libraryCount.toLocaleString()}-drug library, and identified ${topDrugName} as an approved candidate with an itemized adversarial risk assessment.`
+        : `Autonomous pipeline completed: Screened ${activeTarget.symbol} (PDB ${selectedStructure.id}) against the full ${libraryCount.toLocaleString()}-drug library and identified ${topDrugName} as an approved candidate with an itemized adversarial risk assessment.`,
     };
 
     // Cache active run for persistence

@@ -638,7 +638,11 @@ export default function AgentPage() {
                 </span>
                 <div className="agent-step-titles">
                   <h3 className="agent-step-title">{step3?.title || "Step 3: Repurposing Screen"}</h3>
-                  <span className="agent-step-sub">{step3?.subtitle}</span>
+                  <span className="agent-step-sub">
+                    {step3?.data?.librarySize
+                      ? `Screened across ${step3.data.librarySize.toLocaleString()} Approved Drugs`
+                      : step3?.subtitle}
+                  </span>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -677,7 +681,14 @@ export default function AgentPage() {
               {/* Recommended Candidate Spotlight */}
               {step3?.data?.recommended && (
                 <div className="agent-result-spotlight">
-                  <div className="agent-spotlight-header">Top Repurposing Candidate (#1 Recommendation)</div>
+                  <div className="agent-spotlight-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+                    <span>Top Repurposing Candidate (#1 Recommendation)</span>
+                    {step3.data.totalScreened && (
+                      <span className="mono" style={{ fontSize: 11, fontWeight: 500, color: "var(--text-dim)" }}>
+                        Screened {step3.data.totalScreened.toLocaleString()} approved small molecules
+                      </span>
+                    )}
+                  </div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
                     <div>
                       <span className="summary-label">Approved Drug</span>
@@ -720,7 +731,7 @@ export default function AgentPage() {
                     >
                       <path d="M6 4l8 6-8 6V4z" />
                     </svg>
-                    {expandedDrawers[3] ? "Hide" : "Inspect"} Repurposing Leaderboard ({step3.data.ranking.length} compounds)
+                    {expandedDrawers[3] ? "Hide" : "Inspect"} Repurposing Leaderboard (Top {step3.data.ranking.length} of {(step3.data.totalScreened || step3.data.librarySize || 2983).toLocaleString()} screened compounds)
                   </button>
 
                   {expandedDrawers[3] && (

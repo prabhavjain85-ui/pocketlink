@@ -109,6 +109,8 @@ describe("agentPipeline", () => {
       // Mock Repurposing Screen
       jest.spyOn(repurposingScreen, "screenApprovedLibrary").mockResolvedValue({
         summary: "Screened approved drugs against 9NTB",
+        librarySize: 2983,
+        scoredCount: 2924,
         recommended: {
           name: "Imatinib",
           cid: "5291",
@@ -180,6 +182,11 @@ describe("agentPipeline", () => {
       // Verify repurposing screen
       expect(report.steps[3].status).toBe("complete");
       expect(report.steps[3].data.recommended.name).toBe("Imatinib");
+      expect(report.steps[3].data.librarySize).toBe(2983);
+      expect(report.steps[3].data.totalScreened).toBe(2924);
+      expect(report.steps[3].narration).not.toContain("294");
+      expect(report.steps[3].narration).toContain("2,983");
+      expect(report.steps[3].narration).toContain("2,924");
 
       // Verify adversarial critique
       expect(report.steps[4].status).toBe("complete");
