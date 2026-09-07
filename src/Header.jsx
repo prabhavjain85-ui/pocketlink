@@ -43,6 +43,9 @@ export default function Header() {
         <NavLink to="/repurposing" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
           Repurposing
         </NavLink>
+        <NavLink to="/agent" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
+          Research Agent
+        </NavLink>
         <NavLink to="/history" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
           History
           {historyCount > 0 && <span className="nav-history-badge">{historyCount}</span>}
