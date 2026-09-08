@@ -100,7 +100,7 @@ test("API heuristic ranking references supplied PAINS alerts", async () => {
   expect(res.statusCode).toBe(200);
   expect(res.body.recommended.cid).toBe("2519");
   const flaggedRow = res.body.ranking.find((r) => r.cid === "10680");
-  expect(flaggedRow.concerns.join(" ")).toMatch(/PAINS alert: Quinone/i);
+  expect(flaggedRow.concerns.join(" ")).toMatch(/PAINS alert.*Quinone/i);
 });
 
 test("API returns heuristic ranking when OpenAI is not configured", async () => {
@@ -111,7 +111,7 @@ test("API returns heuristic ranking when OpenAI is not configured", async () => 
   if (previous == null) delete process.env.OPENAI_API_KEY;
   else process.env.OPENAI_API_KEY = previous;
   expect(res.statusCode).toBe(200);
-  expect(res.body.source).toBe("heuristic");
+  expect(res.body.source).toBe("heuristic-v2");
   expect(res.body.recommended.cid).toBe("2519");
   expect(res.body.ranking).toHaveLength(2);
   expect(res.body.summary).toContain("4KIK");
@@ -275,7 +275,7 @@ test("prompts for missing ligand/pocket use the graceful pharmacology fallback, 
 
 test("batch merge keeps local target-aware scores instead of per-batch LLM numbers", () => {
   const heuristic = {
-    source: "heuristic",
+    source: "heuristic-v2",
     ranking: [
       { cid: "5291", rank: 1, score: 96, reasoning: ["kinase inhibitor"] },
       { cid: "2118", rank: 2, score: 64, reasoning: ["no kinase class match"] },
@@ -294,6 +294,6 @@ test("batch merge keeps local target-aware scores instead of per-batch LLM numbe
   expect(merged.ranking[0].score).toBe(96);
   expect(merged.ranking.find((r) => r.cid === "2118").score).toBe(64);
   expect(merged.ranking.find((r) => r.cid === "2118").reasoning.join(" ")).toMatch(/drug-like benzodiazepine/i);
-  expect(merged.source).toBe("heuristic");
+  expect(merged.source).toBe("heuristic-v2");
 });
 

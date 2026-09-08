@@ -1,4 +1,4 @@
-const { rankCandidatesLocal, drugLikenessChecks, scoringCapabilities } = require("../src/scoreCandidates");
+const { rankCandidatesLocal, drugLikenessChecks, scoringCapabilities, resolveTargetRule } = require("../src/scoreCandidates");
 const { TARGET_SPECIFIC_INSTRUCTION, buildTargetContext, targetDisplayName } = require("../src/targetContext");
 
 const ALLOWED_ORIGIN = "*";
@@ -123,6 +123,7 @@ function compactProtein(raw) {
   const packedOut = {
     name: clean(packed.name || packed.queryName || packed.title, 240),
     queryName: packed.queryName ? clean(packed.queryName, 80) : "",
+    gene: clean(packed.gene || raw?.gene || raw?.symbol || "", 80),
     pdb_id: pdbId,
     id: pdbId,
     title: clean(packed.title, 240),
@@ -134,7 +135,9 @@ function compactProtein(raw) {
     pocket,
     dataGaps: gaps,
   };
-  packedOut.family = scoringCapabilities(packedOut).family;
+  const caps = scoringCapabilities(packedOut);
+  packedOut.family = caps.family;
+  packedOut.targetRule = caps.targetRule;
   return packedOut;
 }
 
@@ -193,7 +196,7 @@ function mergeBatchLlmReasoning(heuristic, llm) {
       ...(heuristic.limitations || []),
       "Numeric scores come from PocketLink's target-aware model so every batch shares one scale. Language-model notes were attached as reasoning only — independent per-batch 0–100 LLM scores are not comparable across the library.",
     ],
-    source: llm ? "heuristic" : heuristic.source,
+    source: "heuristic-v2",
     llmReasoning: Boolean(llm),
   };
 }
@@ -204,7 +207,7 @@ function logRankPrompt(system, user, protein) {
   const caps = scoringCapabilities(protein);
   console.log(`[rank-candidates] Full prompt for ${name} (PDB ${pdb})`);
   console.log(
-    `[rank-candidates] structural data: family=${caps.family} ligand=${caps.hasLigand} pocket=${caps.hasPocket} degraded=${caps.degraded} gaps=${JSON.stringify(caps.dataGaps)}`
+    `[rank-candidates] structural data: rule=${caps.targetRule || "none"} family=${caps.family} ligand=${caps.hasLigand} pocket=${caps.hasPocket} degraded=${caps.degraded} gaps=${JSON.stringify(caps.dataGaps)}`
   );
   console.log(`[rank-candidates] --- system ---\n${system}`);
   console.log(`[rank-candidates] --- user ---\n${user}`);
@@ -273,12 +276,15 @@ function buildRankPrompt(compact, protein, heuristic) {
     : "an unspecified target (no PDB structure staged)";
   const caps = scoringCapabilities(protein);
   const family = caps.family || "unknown";
+  const rule = resolveTargetRule(protein);
 
   const gaps = protein?.dataGaps?.length
     ? `Missing target data:\n${protein.dataGaps.map((g) => `- ${g}`).join("\n")}\nGraceful fallback: no reference ligand and/or pocket geometry is available. Score using known pharmacology for this target family plus drug-likeness. Explicitly note in every candidate's reasoning that target-fit assessment is limited without pocket/ligand data. Do not fabricate a confident geometric fit. Do not rank by general drug-likeness alone — a benzodiazepine or anthelmintic must not outrank a known class match just because it is more Lipinski-compliant.`
     : "Pocket and/or reference-ligand data are available — use them for size and polarity matching, and still require genuine pharmacological relevance.";
 
-  const familyLine = `Recognized target family: ${family}. Pharmacological class match for THIS family must drive the ranking. A generally drug-like molecule with no class match (for example alprazolam against HIV protease or COX-2) must score well below a known class match.`;
+  const familyLine = rule
+    ? `Specific target rule resolved: ${rule.name} (family: ${rule.family}). On-target drugs (${rule.onTargetDrugs.join(", ")}) must be prioritized over off-target or same-family drugs. For example, EGFR inhibitors like erlotinib/gefitinib must score above ABL inhibitors like imatinib against EGFR, and vice versa against ABL.`
+    : `Recognized target family: ${family}. Pharmacological class match for THIS family must drive the ranking. A generally drug-like molecule with no class match (for example alprazolam against HIV protease or COX-2) must score well below a known class match.`;
 
   const system = `You are an assistant for early-stage computational drug discovery triage.
 Score each supplied small-molecule candidate for how well it fits THIS specific target / PDB structure, not how drug-like it is in general.
@@ -386,7 +392,10 @@ async function handler(req, res) {
         // concatenated — that is what made one highly drug-like molecule
         // (alprazolam) win every target. Keep target-aware local scores
         // and attach LLM notes as reasoning only.
-        if (isBatch) return json(res, 200, mergeBatchLlmReasoning(heuristic, llm));
+        // Also guard against LLM returning tied family scores (e.g. all 87).
+        const topScores = llm.ranking.slice(0, 3).map((r) => r.score);
+        const allTied = topScores.length > 1 && topScores.every((s) => s === topScores[0]);
+        if (isBatch || allTied) return json(res, 200, mergeBatchLlmReasoning(heuristic, llm));
         return json(res, 200, llm);
       }
       heuristic.aiError = "The AI returned malformed or incomplete ranking data.";

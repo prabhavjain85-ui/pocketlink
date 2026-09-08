@@ -53,7 +53,7 @@ test("falls back to the local model when the API is unreachable", async () => {
   try {
     const result = await rankCandidates([caffeine, ugly]);
     expect(result.recommended.cid).toBe("2519");
-    expect(result.source).toBe("heuristic");
+    expect(result.source).toBe("heuristic-v2");
     expect(result.ranking).toHaveLength(2);
   } finally {
     global.fetch = originalFetch;
@@ -71,9 +71,9 @@ test("local fallback includes supplied PAINS alerts in the heuristic ranking", a
         alerts: [{ family: "pains", catalog: "PAINS_A", name: "Quinone", explanation: "Redox cycling." }],
       },
     });
-    expect(result.source).toBe("heuristic");
+    expect(result.source).toBe("heuristic-v2");
     const uglyRow = result.ranking.find((r) => r.cid === "999999");
-    expect(uglyRow.concerns.join(" ")).toMatch(/PAINS alert: Quinone/i);
+    expect(uglyRow.concerns.join(" ")).toMatch(/PAINS alert.*Quinone/i);
   } finally {
     global.fetch = originalFetch;
   }
@@ -198,7 +198,7 @@ test("buildTargetContext records data gaps when ligand and pocket are missing", 
 
 test("overlayLocalScores ignores a stale LLM ranking that always crowns alprazolam", () => {
   const local = {
-    source: "heuristic",
+    source: "heuristic-v2",
     ranking: [
       { cid: "5291", rank: 1, score: 96, reasoning: ["kinase inhibitor"], strengths: ["class match"], concerns: [] },
       { cid: "2118", rank: 2, score: 64, reasoning: ["no kinase class match"], strengths: [], concerns: [] },
@@ -217,7 +217,7 @@ test("overlayLocalScores ignores a stale LLM ranking that always crowns alprazol
   expect(merged.ranking[0].cid).toBe("5291");
   expect(merged.ranking[0].score).toBe(96);
   expect(merged.recommended.cid).toBe("5291");
-  expect(merged.source).toBe("heuristic");
+  expect(merged.source).toBe("heuristic-v2");
   expect(merged.ranking.find((r) => r.cid === "2118").score).toBe(64);
 });
 

@@ -3,10 +3,10 @@ const { buildTargetContext, targetDisplayName } = require("./targetContext");
 const MAX_CANDIDATES = 5;
 
 const KINASE_INHIBITOR_RE =
-  /\b(imatinib|gleevec|dasatinib|nilotinib|bosutinib|ponatinib|gefitinib|erlotinib|lapatinib|afatinib|osimertinib|sunitinib|sorafenib|vandetanib|pazopanib|axitinib|cabozantinib|crizotinib|alectinib|ceritinib|brigatinib|lorlatinib|ibrutinib|acalabrutinib|ruxolitinib|tofacitinib|baricitinib|upadacitinib|trametinib|cobimetinib|binimetinib|vemurafenib|dabrafenib|encorafenib|palbociclib|ribociclib|abemaciclib|midostaurin|gilteritinib|quizartinib)\b/i;
+  /\b(imatinib|gleevec|dasatinib|nilotinib|bosutinib|ponatinib|asciminib|gefitinib|erlotinib|lapatinib|afatinib|osimertinib|dacomitinib|neratinib|sunitinib|sorafenib|vandetanib|pazopanib|axitinib|cabozantinib|crizotinib|alectinib|ceritinib|brigatinib|lorlatinib|ibrutinib|acalabrutinib|ruxolitinib|tofacitinib|baricitinib|upadacitinib|trametinib|cobimetinib|binimetinib|vemurafenib|dabrafenib|encorafenib|palbociclib|ribociclib|abemaciclib|midostaurin|gilteritinib|quizartinib)\b/i;
 
 const GPCR_LIGAND_RE =
-  /\b(morphine|fentanyl|oxycodone|codeine|naloxone|propranolol|atenolol|metoprolol|carvedilol|salbutamol|albuterol|losartan|valsartan|olmesartan|risperidone|olanzapine|quetiapine|aripiprazole|prazosin|clonidine|ondansetron|sumatriptan|loratadine|cetirizine|ranitidine|famotidine|diphenhydramine|atropine|scopolamine|nicotine)\b/i;
+  /\b(morphine|fentanyl|oxycodone|codeine|naloxone|propranolol|atenolol|metoprolol|carvedilol|salbutamol|albuterol|salmeterol|formoterol|nadolol|timolol|pindolol|labetalol|bisoprolol|losartan|valsartan|olmesartan|candesartan|telmisartan|risperidone|olanzapine|quetiapine|aripiprazole|haloperidol|prazosin|clonidine|ondansetron|sumatriptan|loratadine|cetirizine|ranitidine|famotidine|diphenhydramine|atropine|scopolamine|nicotine)\b/i;
 
 const KINASE_TARGET_RE =
   /\b(kinase|abl1?\b|egfr|vegfr|jak\d?|ikk|src\b|kit\b|pdgf|btk\b|tyrosine kinase|serine.?threonine|mapk|cdk\d|braf|alk\b|\bmet\b|flt3|syk|lck|her2|erbb)\b/i;
@@ -20,8 +20,235 @@ const ION_CHANNEL_TARGET_RE =
 const KINASE_CLASS_RE = /\bkinase inhibitor\b/i;
 const GPCR_CLASS_RE =
   /\b(beta-blocker|beta-2 agonist|antihistamine|opioid|antipsychotic|\barb\b|alpha-1|alpha-2 agonist|5-ht3|h2 antagonist|antimuscarinic|triptan|dopamine agonist|nachr)\b/i;
-const ION_CLASS_RE =
-  /\b(calcium channel blocker|local anesthetic|anticonvulsant)\b/i;
+
+/**
+ * 12 Curated Target Rules with specific on-target drugs, demotions,
+ * co-crystal ligands, and PDB IDs.
+ */
+const TARGET_RULES = [
+  {
+    id: "egfr",
+    name: "EGFR (Epidermal Growth Factor Receptor)",
+    family: "kinase",
+    pdbs: ["1M17", "1XKK"],
+    targetRe: /\b(egfr|erbb1|epidermal growth factor receptor)\b/i,
+    geneRe: /\begfr\b/i,
+    ligandRe: /\b(erlotinib|gefitinib|lapatinib|osi-?774|aq4|fmm)\b/i,
+    onTargetDrugs: [
+      "gefitinib", "erlotinib", "lapatinib", "afatinib", "osimertinib", "dacomitinib", "neratinib"
+    ],
+    onTargetRe: /\b(gefitinib|erlotinib|lapatinib|afatinib|osimertinib|dacomitinib|neratinib)\b/i,
+    demotedRe: /\b(imatinib|dasatinib|nilotinib|bosutinib|ponatinib|vemurafenib|dabrafenib|encorafenib|palbociclib|ribociclib|abemaciclib|sunitinib|sorafenib)\b/i,
+    demotedConcern: "Same class, different primary target (ABL/BRAF/CDK inhibitor, off-target for EGFR).",
+  },
+  {
+    id: "her2",
+    name: "HER2 / ERBB2",
+    family: "kinase",
+    pdbs: ["3PP0"],
+    targetRe: /\b(her2|erbb2|human epidermal growth factor receptor 2)\b/i,
+    geneRe: /\berbb2\b/i,
+    ligandRe: /\b(lapatinib|neratinib|tucatinib|afatinib|fmm)\b/i,
+    onTargetDrugs: [
+      "lapatinib", "neratinib", "tucatinib", "afatinib"
+    ],
+    onTargetRe: /\b(lapatinib|neratinib|tucatinib|afatinib)\b/i,
+    demotedRe: /\b(gefitinib|erlotinib|imatinib|dasatinib|vemurafenib|palbociclib|sunitinib|sorafenib)\b/i,
+    demotedConcern: "Same class, different primary target (gefitinib/erlotinib are EGFR-primary, lower HER2 potency; other TKIs are off-target).",
+  },
+  {
+    id: "abl",
+    name: "ABL / BCR-ABL tyrosine kinase",
+    family: "kinase",
+    pdbs: ["1IEP", "2HYY"],
+    targetRe: /\b(abl1?|bcr-abl|c-abl|sti-?571)\b/i,
+    geneRe: /\babl1?\b/i,
+    ligandRe: /\b(sti-?571|sti\b|imatinib|gleevec|dasatinib|nilotinib)\b/i,
+    onTargetDrugs: [
+      "imatinib", "dasatinib", "nilotinib", "bosutinib", "ponatinib", "asciminib"
+    ],
+    onTargetRe: /\b(imatinib|dasatinib|nilotinib|bosutinib|ponatinib|asciminib)\b/i,
+    demotedRe: /\b(gefitinib|erlotinib|vemurafenib|dabrafenib|palbociclib|afatinib|osimertinib|lapatinib)\b/i,
+    demotedConcern: "Same class, different primary target (EGFR/BRAF inhibitor, off-target for ABL).",
+  },
+  {
+    id: "braf",
+    name: "BRAF kinase",
+    family: "kinase",
+    pdbs: ["4XV2"],
+    targetRe: /\b(braf|b-raf|v600e)\b/i,
+    geneRe: /\bbraf\b/i,
+    ligandRe: /\b(dabrafenib|vemurafenib|encorafenib|11t)\b/i,
+    onTargetDrugs: [
+      "vemurafenib", "dabrafenib", "encorafenib"
+    ],
+    onTargetRe: /\b(vemurafenib|dabrafenib|encorafenib)\b/i,
+    demotedRe: /\b(imatinib|gefitinib|erlotinib|dasatinib|nilotinib|bosutinib|palbociclib|lapatinib|afatinib|osimertinib)\b/i,
+    demotedConcern: "Same class, different primary target (generic TKI, lacks BRAF V600 selectivity).",
+  },
+  {
+    id: "beta2",
+    name: "β2-Adrenergic Receptor (ADRB2)",
+    family: "gpcr",
+    pdbs: ["3SN6"],
+    targetRe: /\b(beta-?2|adrb2|beta-2 adrenergic|adrenergic receptor)\b/i,
+    geneRe: /\badrb2\b/i,
+    ligandRe: /\b(carazolol|p0g|salbutamol|albuterol|timolol)\b/i,
+    onTargetDrugs: [
+      "salbutamol", "albuterol", "salmeterol", "formoterol", "propranolol", "atenolol", "metoprolol", "carvedilol"
+    ],
+    onTargetRe: /\b(salbutamol|albuterol|salmeterol|formoterol|propranolol|atenolol|metoprolol|carvedilol|nadolol|timolol|pindolol|labetalol|bisoprolol)\b/i,
+    onTargetClassRe: /\b(beta-blocker|beta-2 agonist)\b/i,
+    demotedRe: /\b(morphine|fentanyl|oxycodone|codeine|naloxone|losartan|valsartan|olmesartan|candesartan|telmisartan|risperidone|olanzapine|quetiapine|haloperidol)\b/i,
+    demotedConcern: "Same class, different primary target (opioid receptor / angiotensin receptor ligand, not beta-2 adrenergic).",
+  },
+  {
+    id: "cox",
+    name: "Cyclooxygenase (COX-1 / COX-2)",
+    family: "cox",
+    pdbs: ["4COX", "1PXX", "1CX2"],
+    targetRe: /\b(cyclooxygenase|cox-?2|cox-?1|ptgs1|ptgs2|prostaglandin.*synthase)\b/i,
+    geneRe: /\b(ptgs1|ptgs2|cox1|cox2)\b/i,
+    ligandRe: /\b(indomethacin|celecoxib|sc-?558|diclofenac|aspirin|ibuprofen|s58|inm)\b/i,
+    onTargetDrugs: [
+      "celecoxib", "ibuprofen", "naproxen", "aspirin", "diclofenac", "indomethacin"
+    ],
+    onTargetRe: /\b(celecoxib|ibuprofen|naproxen|aspirin|diclofenac|indomethacin|etodolac|meloxicam|piroxicam|ketorolac|sulindac|nabumetone|rofecoxib|valdecoxib)\b/i,
+    onTargetClassRe: /\bnsaid\b/i,
+    demotedRe: null,
+    demotedConcern: "No cyclooxygenase activity (different drug class).",
+  },
+  {
+    id: "hmgcr",
+    name: "HMG-CoA Reductase (HMGCR)",
+    family: "hmg",
+    pdbs: ["1HWK"],
+    targetRe: /\b(hmg-?coa|hmgcr|hydroxymethylglutaryl.*reductase)\b/i,
+    geneRe: /\bhmgcr\b/i,
+    ligandRe: /\b(atorvastatin|simvastatin|rosuvastatin|pravastatin|fluvastatin|lovastatin|1hw)\b/i,
+    onTargetDrugs: [
+      "atorvastatin", "simvastatin", "rosuvastatin", "pravastatin", "fluvastatin", "lovastatin", "pitavastatin"
+    ],
+    onTargetRe: /\b(atorvastatin|simvastatin|rosuvastatin|pravastatin|fluvastatin|lovastatin|pitavastatin)\b/i,
+    onTargetClassRe: /\bstatin\b/i,
+    demotedRe: null,
+    demotedConcern: "No HMG-CoA reductase activity.",
+  },
+  {
+    id: "dpp4",
+    name: "Dipeptidyl Peptidase 4 (DPP-4)",
+    family: "dpp4",
+    pdbs: ["1X70"],
+    targetRe: /\b(dpp-?4|dpp4|dipeptidyl peptidase (iv|4))\b/i,
+    geneRe: /\bdpp4\b/i,
+    ligandRe: /\b(sitagliptin|saxagliptin|linagliptin|alogliptin|vildagliptin)\b/i,
+    onTargetDrugs: [
+      "sitagliptin", "saxagliptin", "linagliptin", "alogliptin", "vildagliptin"
+    ],
+    onTargetRe: /\b(sitagliptin|saxagliptin|linagliptin|alogliptin|vildagliptin)\b/i,
+    onTargetClassRe: /\bdpp-?4 inhibitor\b/i,
+    demotedRe: /\b(metformin|glipizide|glyburide|glimepiride|pioglitazone|rosiglitazone)\b/i,
+    demotedConcern: "No DPP-4 inhibitor activity (metformin is an antidiabetic biguanide, not a DPP-4 inhibitor).",
+  },
+  {
+    id: "hiv_protease",
+    name: "HIV-1 Protease",
+    family: "protease",
+    pdbs: ["1HVR", "1HSG"],
+    targetRe: /\b(hiv.*protease|hiv-?1 protease|human immunodeficiency virus.*protease)\b/i,
+    geneRe: null,
+    ligandRe: /\b(indinavir|ritonavir|saquinavir|lopinavir|nelfinavir|darunavir|atazanavir|l-?735|xk2|mk1)\b/i,
+    onTargetDrugs: [
+      "ritonavir", "saquinavir", "lopinavir", "nelfinavir", "indinavir", "darunavir", "atazanavir"
+    ],
+    onTargetRe: /\b(ritonavir|saquinavir|lopinavir|nelfinavir|indinavir|darunavir|atazanavir|tipranavir|amprenavir|fosamprenavir)\b/i,
+    demotedRe: /\b(nirmatrelvir|ensitrelvir)\b/i,
+    demotedConcern: "Same class, different primary target (SARS-CoV-2 Mpro inhibitor, not active against HIV protease).",
+  },
+  {
+    id: "sars_mpro",
+    name: "SARS-CoV-2 Main Protease (Mpro / 3CLpro)",
+    family: "protease",
+    pdbs: ["7BQY", "6LU7"],
+    targetRe: /\b(sars-?cov-?2.*(?:mpro|3clpro|main protease|protease)|mpro\b|3clpro\b|covid-?19 main protease)\b/i,
+    geneRe: null,
+    ligandRe: /\b(n3|nirmatrelvir|ensitrelvir|paxlovid)\b/i,
+    onTargetDrugs: [
+      "nirmatrelvir", "ensitrelvir"
+    ],
+    onTargetRe: /\b(nirmatrelvir|ensitrelvir)\b/i,
+    demotedRe: /\b(ritonavir|lopinavir|saquinavir|nelfinavir|indinavir|darunavir|atazanavir)\b/i,
+    demotedConcern: "Same class, different primary target (ritonavir/lopinavir are HIV protease inhibitors; ritonavir is a CYP3A booster in Paxlovid, not an active Mpro inhibitor).",
+  },
+  {
+    id: "pde5",
+    name: "Phosphodiesterase 5 (PDE5)",
+    family: "pde5",
+    pdbs: ["1UDT"],
+    targetRe: /\b(pde-?5a?|phosphodiesterase (5|v))\b/i,
+    geneRe: /\bpde5a?\b/i,
+    ligandRe: /\b(sildenafil|viagra|tadalafil|vardenafil|avanafil|via)\b/i,
+    onTargetDrugs: [
+      "sildenafil", "tadalafil", "vardenafil", "avanafil"
+    ],
+    onTargetRe: /\b(sildenafil|tadalafil|vardenafil|avanafil)\b/i,
+    onTargetClassRe: /\bpde5 inhibitor\b/i,
+    demotedRe: /\b(metformin)\b/i,
+    demotedConcern: "No PDE5 inhibitor activity.",
+  },
+  {
+    id: "hdac",
+    name: "Histone Deacetylase (HDAC)",
+    family: "hdac",
+    pdbs: ["4LXZ"],
+    targetRe: /\b(hdac\d*|histone deacetylase|saha)\b/i,
+    geneRe: /\bhdac\d*\b/i,
+    ligandRe: /\b(vorinostat|saha|panobinostat|belinostat|romidepsin|shh)\b/i,
+    onTargetDrugs: [
+      "vorinostat", "panobinostat", "belinostat", "romidepsin"
+    ],
+    onTargetRe: /\b(vorinostat|panobinostat|belinostat|romidepsin)\b/i,
+    onTargetClassRe: /\bhdac inhibitor\b/i,
+    demotedRe: /\b(metformin)\b/i,
+    demotedConcern: "No HDAC inhibitor activity.",
+  },
+  {
+    id: "er",
+    name: "Estrogen Receptor (ER)",
+    family: "nuclear",
+    pdbs: ["3ERT"],
+    targetRe: /\b(estrogen receptor|oestrogen|esr1|nr3a1)\b/i,
+    geneRe: /\b(esr1|esr2)\b/i,
+    ligandRe: /\b(tamoxifen|4-hydroxytamoxifen|oht|raloxifene|toremifene)\b/i,
+    onTargetDrugs: [
+      "tamoxifen", "raloxifene", "toremifene", "fulvestrant", "4-hydroxytamoxifen"
+    ],
+    onTargetRe: /\b(tamoxifen|raloxifene|toremifene|fulvestrant|hydroxytamoxifen)\b/i,
+    onTargetClassRe: /\b(serm|aromatase inhibitor)\b/i,
+    demotedRe: null,
+    demotedConcern: "No estrogen receptor activity.",
+  },
+];
+
+const LIGAND_SYNONYMS = {
+  STI: ["imatinib", "gleevec", "sti-571", "sti571"],
+  "STI-571": ["imatinib", "gleevec", "sti-571", "sti571"],
+  AQ4: ["erlotinib", "osi-774", "tarceva"],
+  "OSI-774": ["erlotinib", "osi-774", "tarceva"],
+  FMM: ["lapatinib", "gw572016", "tykerb"],
+  GW572016: ["lapatinib", "gw572016", "tykerb"],
+  "11T": ["dabrafenib", "tafinlar"],
+  S58: ["celecoxib", "celebrex", "sc-558"],
+  "SC-558": ["celecoxib", "celebrex", "sc-558"],
+  INM: ["indomethacin", "indocin"],
+  "1HW": ["atorvastatin", "lipitor"],
+  VIA: ["sildenafil", "viagra", "revatio"],
+  SHH: ["vorinostat", "saha", "zolinza"],
+  SAHA: ["vorinostat", "saha", "zolinza"],
+  OHT: ["tamoxifen", "4-hydroxytamoxifen", "nolvadex"],
+  "4-OHT": ["tamoxifen", "4-hydroxytamoxifen", "nolvadex"],
+  N3: ["nirmatrelvir", "paxlovid"],
+};
 
 function num(value) {
   if (value === undefined || value === null || value === "") return null;
@@ -38,228 +265,185 @@ function nameOf(candidate) {
     candidate?.displayName ||
     candidate?.name ||
     candidate?.IUPACName ||
-    (cidOf(candidate) ? `CID ${cidOf(candidate)}` : "Unknown compound")
+    candidate?.title ||
+    (cidOf(candidate) ? `CID ${cidOf(candidate)}` : "Unnamed compound")
   );
 }
 
-/**
- * Trapezoidal desirability: 0 outside [min, max], 1 between [low, high].
- */
-function trap(value, min, low, high, max) {
-  if (value == null) return 0.55;
-  if (value <= min || value >= max) return 0;
-  if (value >= low && value <= high) return 1;
-  if (value < low) return (value - min) / (low - min);
-  return (max - value) / (max - high);
-}
-
-function drugLikenessChecks(candidate) {
-  const mw = num(candidate.molecularWeight ?? candidate.MolecularWeight);
-  const xlogp = num(candidate.xlogp ?? candidate.XLogP);
-  const hbd = num(candidate.hbd ?? candidate.HBondDonorCount);
-  const hba = num(candidate.hba ?? candidate.HBondAcceptorCount);
-  const rot = num(candidate.rotatableBonds ?? candidate.RotatableBondCount);
-  const tpsa = num(candidate.tpsa ?? candidate.TPSA);
-
-  return [
-    { key: "mw", label: "Molecular weight ≤ 500", pass: mw == null || mw <= 500, value: mw == null ? "n/a" : `${mw.toFixed(1)} g/mol` },
-    { key: "xlogp", label: "cLogP ≤ 5", pass: xlogp == null || xlogp <= 5, value: xlogp == null ? "n/a" : String(xlogp) },
-    { key: "hbd", label: "H-bond donors ≤ 5", pass: hbd == null || hbd <= 5, value: hbd == null ? "n/a" : String(hbd) },
-    { key: "hba", label: "H-bond acceptors ≤ 10", pass: hba == null || hba <= 10, value: hba == null ? "n/a" : String(hba) },
-    { key: "rot", label: "Rotatable bonds ≤ 10", pass: rot == null || rot <= 10, value: rot == null ? "n/a" : String(rot) },
-    { key: "tpsa", label: "TPSA ≤ 140 Å²", pass: tpsa == null || tpsa <= 140, value: tpsa == null ? "n/a" : `${tpsa} Å²` },
-  ];
+function classOf(candidate) {
+  return String(candidate?.drugClass || candidate?.class || "");
 }
 
 function propsOf(candidate) {
   return {
-    mw: num(candidate.molecularWeight ?? candidate.MolecularWeight),
-    xlogp: num(candidate.xlogp ?? candidate.XLogP),
-    hbd: num(candidate.hbd ?? candidate.HBondDonorCount),
-    hba: num(candidate.hba ?? candidate.HBondAcceptorCount),
-    rot: num(candidate.rotatableBonds ?? candidate.RotatableBondCount),
-    tpsa: num(candidate.tpsa ?? candidate.TPSA),
+    mw: num(candidate?.molecularWeight ?? candidate?.MolecularWeight),
+    xlogp: num(candidate?.xlogp ?? candidate?.XLogP),
+    hbd: num(candidate?.hbd ?? candidate?.HBondDonorCount),
+    hba: num(candidate?.hba ?? candidate?.HBondAcceptorCount),
+    rot: num(candidate?.rotatableBonds ?? candidate?.RotatableBondCount),
+    tpsa: num(candidate?.tpsa ?? candidate?.TPSA),
   };
 }
 
-function uniqueNames(values) {
-  const out = [];
-  for (const value of values) {
-    const name = String(value || "").trim();
-    if (name && !out.includes(name)) out.push(name);
+function parseAlerts(candidate) {
+  const raw = candidate?.pains || candidate?.painsAlerts;
+  if (!raw || typeof raw !== "object") {
+    return { painsNames: [], toxNames: [], allNames: [] };
   }
-  return out;
-}
-
-function painsOf(candidate) {
-  return candidate?.pains || candidate?.painsAlerts || null;
-}
-
-function alertSummary(candidate) {
-  const pains = painsOf(candidate);
-  const alerts = Array.isArray(pains?.alerts) ? pains.alerts : [];
-  const painsNames = uniqueNames(alerts.filter((a) => a.family === "pains").map((a) => a.name));
-  const toxNames = uniqueNames(alerts.filter((a) => a.family === "toxicophore").map((a) => a.name));
-  const allNames = uniqueNames([...painsNames, ...toxNames]);
+  const alerts = Array.isArray(raw.alerts) ? raw.alerts : [];
+  const painsNames = alerts
+    .filter((a) => (a.catalog || a.family || "").toLowerCase().includes("pains"))
+    .map((a) => a.name || a.family || "alert");
+  const toxNames = alerts
+    .filter((a) => !(a.catalog || a.family || "").toLowerCase().includes("pains"))
+    .map((a) => a.name || a.family || "alert");
   return {
-    status: pains?.status || null,
-    hasAlerts: Boolean(pains?.hasAlerts) || allNames.length > 0,
     painsNames,
     toxNames,
-    allNames,
-    unable: pains?.status === "unable",
+    allNames: [...painsNames, ...toxNames],
   };
 }
 
-const TARGET_FAMILIES = [
-  {
-    id: "kinase",
-    label: "kinase-inhibitor-like scaffold",
-    target: KINASE_TARGET_RE,
-    ligand: /imatinib|staurosporine|kinase inhibitor/i,
-    drugName: KINASE_INHIBITOR_RE,
-    drugClass: KINASE_CLASS_RE,
-  },
-  {
-    id: "gpcr",
-    label: "GPCR ligand class",
-    target: GPCR_TARGET_RE,
-    drugName: GPCR_LIGAND_RE,
-    drugClass: GPCR_CLASS_RE,
-  },
-  {
-    id: "ion",
-    label: "ion-channel / ligand-gated-channel ligand class",
-    target: ION_CHANNEL_TARGET_RE,
-    drugClass: ION_CLASS_RE,
-  },
-  {
-    id: "protease",
-    label: "protease inhibitor",
-    target: /\b(protease|peptidase|renin|thrombin|hcv ns3)\b/i,
-    ligand: /protease inhibitor|indinavir|ritonavir|saquinavir|lopinavir|nelfinavir|darunavir|atazanavir|l-735/i,
-    drugClass: /\bprotease inhibitor\b/i,
-    relatedClass: /\b(peptidomimetic|hiv protease)\b/i,
-  },
-  {
-    id: "nuclear",
-    label: "nuclear-receptor ligand",
-    target: /\b(estrogen receptor|oestrogen|androgen receptor|nuclear receptor|ppar|glucocorticoid receptor|progesterone receptor|err[ab]|nr3a)\b/i,
-    ligand: /tamoxifen|estradiol|raloxifene|androstene|hydroxytamoxifen/i,
-    drugClass: /\b(serm|aromatase inhibitor)\b/i,
-  },
-  {
-    id: "cox",
-    label: "NSAID / cyclooxygenase ligand",
-    target: /\b(cyclooxygenase|cox-?2|cox-?1|prostaglandin synthase)\b/i,
-    ligand: /celecoxib|sc-558|nsaid|coxib/i,
-    drugClass: /\bnsaid\b/i,
-  },
-  {
-    id: "hmg",
-    label: "statin",
-    target: /\b(hmg-?coa|hydroxymethylglutaryl|hmg reductase)\b/i,
-    ligand: /\bstatin|atorvastatin|simvastatin|rosuvastatin\b/i,
-    drugClass: /\bstatin\b/i,
-  },
-  {
-    id: "ace",
-    label: "ACE inhibitor / ARB",
-    target: /\b(angiotensin-converting|\bace\b|angiotensin ii)\b/i,
-    drugClass: /\b(ace inhibitor|\barb\b)\b/i,
-  },
-  {
-    id: "integrase",
-    label: "integrase inhibitor",
-    target: /\bintegrase\b/i,
-    drugClass: /\bintegrase inhibitor\b/i,
-    relatedClass: /\b(hiv integrase)\b/i,
-  },
-  {
-    id: "rt",
-    label: "reverse-transcriptase inhibitor",
-    target: /\b(reverse transcriptase|nnrti)\b/i,
-    drugClass: /\bnnrti\b/i,
-    relatedClass: /\b(nrti|nucleoside reverse)\b/i,
-  },
-];
-
-function classOf(candidate) {
-  return String(candidate?.drugClass || candidate?.class || "").trim();
+function drugLikenessChecks(candidate) {
+  const p = propsOf(candidate);
+  return [
+    {
+      rule: "Lipinski MW <= 500 Da",
+      value: p.mw,
+      pass: p.mw !== null ? p.mw <= 500 : true,
+      boundary: 500,
+    },
+    {
+      rule: "Lipinski XLogP <= 5",
+      value: p.xlogp,
+      pass: p.xlogp !== null ? p.xlogp <= 5 : true,
+      boundary: 5,
+    },
+    {
+      rule: "Lipinski HBD <= 5",
+      value: p.hbd,
+      pass: p.hbd !== null ? p.hbd <= 5 : true,
+      boundary: 5,
+    },
+    {
+      rule: "Lipinski HBA <= 10",
+      value: p.hba,
+      pass: p.hba !== null ? p.hba <= 10 : true,
+      boundary: 10,
+    },
+    {
+      rule: "Veber Rotatable Bonds <= 10",
+      value: p.rot,
+      pass: p.rot !== null ? p.rot <= 10 : true,
+      boundary: 10,
+    },
+    {
+      rule: "Veber TPSA <= 140 A^2",
+      value: p.tpsa,
+      pass: p.tpsa !== null ? p.tpsa <= 140 : true,
+      boundary: 140,
+    },
+  ];
 }
 
-function targetSearchText(protein) {
-  const ligand = protein?.ligand;
-  const ligandBit = ligand?.present
-    ? `${ligand.name || ""} ${ligand.compId || ""} ${(ligand.functionalGroups || []).join(" ")}`
-    : "";
-  const extraLigands = Array.isArray(protein?.ligands)
-    ? protein.ligands.map((l) => `${l.name || ""} ${l.compId || ""}`).join(" ")
-    : "";
-  return `${protein?.queryName || protein?.name || ""} ${protein?.title || ""} ${protein?.id || protein?.pdb_id || ""} ${ligandBit} ${extraLigands}`;
+function targetTextOf(protein) {
+  if (!protein) return "";
+  const name = protein.name || protein.queryName || "";
+  const title = protein.title || "";
+  const gene = protein.gene || protein.symbol || "";
+  const pdb = protein.id || protein.pdb_id || "";
+  const ligand = protein.ligand?.name || "";
+  return `${name} ${queryName(protein)} ${title} ${gene} ${pdb} ${ligand}`.toLowerCase();
 }
 
-function familyDef(id) {
-  return TARGET_FAMILIES.find((f) => f.id === id) || null;
+function queryName(protein) {
+  return protein?.queryName ? String(protein.queryName) : "";
 }
 
-function targetFamily(protein) {
-  const ctx = protein?.pdb_id || protein?.id ? protein : null;
+/**
+ * Resolve specific target rule based on PDB ID, name, queryName, title, gene,
+ * or co-crystal ligand.
+ */
+function resolveTargetRule(protein) {
   if (!protein) return null;
-  const text = targetSearchText(protein);
-  for (const family of TARGET_FAMILIES) {
-    if (family.target.test(text)) return family.id;
-    if (family.ligand && family.ligand.test(text)) return family.id;
+  const pdbId = String(protein.pdb_id || protein.id || "").trim().toUpperCase();
+  const name = String(protein.name || "").trim();
+  const qName = String(protein.queryName || "").trim();
+  const title = String(protein.title || "").trim();
+  const gene = String(protein.gene || protein.symbol || "").trim();
+  const ligand = protein.ligand || (Array.isArray(protein.ligands) ? protein.ligands[0] : {});
+  const ligandName = String(ligand?.name || "").trim();
+  const compId = String(ligand?.compId || ligand?.comp_id || "").trim().toUpperCase();
+
+  // 1. Direct PDB ID match
+  if (pdbId) {
+    const byPdb = TARGET_RULES.find((r) => r.pdbs && r.pdbs.includes(pdbId));
+    if (byPdb) return byPdb;
   }
-  return ctx ? "other" : null;
+
+  // 2. Direct gene match
+  if (gene) {
+    const byGene = TARGET_RULES.find((r) => r.geneRe && r.geneRe.test(gene));
+    if (byGene) return byGene;
+  }
+
+  // 3. Specific target name / queryName / title regex match
+  for (const rule of TARGET_RULES) {
+    if (rule.targetRe) {
+      if (rule.targetRe.test(name) || rule.targetRe.test(qName) || rule.targetRe.test(title)) {
+        return rule;
+      }
+    }
+    if (rule.ligandRe) {
+      if (rule.ligandRe.test(ligandName) || rule.ligandRe.test(compId)) {
+        return rule;
+      }
+    }
+  }
+
+  // 4. Combined text match
+  const allText = `${pdbId} ${name} ${qName} ${title} ${gene} ${ligandName} ${compId}`;
+  for (const rule of TARGET_RULES) {
+    if (rule.targetRe && rule.targetRe.test(allText)) {
+      return rule;
+    }
+  }
+
+  return null;
 }
 
-function drugMatchesFamily(candidate, family) {
-  const def = familyDef(family);
-  const name = nameOf(candidate);
-  const klass = classOf(candidate);
-  if (!def) {
-    return { match: false, related: false };
-  }
-  const match = Boolean(
-    (def.drugName && def.drugName.test(name)) || (def.drugClass && def.drugClass.test(klass))
-  );
-  const related = Boolean(def.relatedClass && def.relatedClass.test(klass));
-  return { match, related, label: def.label };
-}
+/**
+ * Detect general target family when no granular rule matches.
+ */
+function targetFamily(protein) {
+  if (!protein) return null;
+  const rule = resolveTargetRule(protein);
+  if (rule) return rule.family;
 
-const PHARM_MATCH_PTS = 50;
-const PHARM_RELATED_PTS = 8;
-const PHARM_OTHER_FAMILY_PTS = 4;
-const PHARM_UNKNOWN_FAMILY_PTS = 8;
-
-function pharmacologyFit(candidate, family) {
-  if (!family) return { pts: 0, text: null };
-  const own = drugMatchesFamily(candidate, family);
-  if (own.match) {
-    return { pts: PHARM_MATCH_PTS, text: `Known ${own.label} for this target family` };
-  }
-  if (own.related) {
-    return { pts: PHARM_RELATED_PTS, text: `Related pharmacology for this target family (${classOf(candidate) || nameOf(candidate)})` };
-  }
-
-  const otherHits = TARGET_FAMILIES.filter((f) => f.id !== family).filter((f) => drugMatchesFamily(candidate, f.id).match);
-  if (otherHits.length) {
-    return { pts: PHARM_OTHER_FAMILY_PTS, text: `Known pharmacology with no particular ${family} pocket relevance` };
-  }
-  if (family === "other") {
-    return { pts: PHARM_UNKNOWN_FAMILY_PTS, text: "No established class match for this target family" };
-  }
-  return { pts: 0, text: `No established ${familyDef(family)?.label || family} class match` };
+  const text = targetTextOf(protein);
+  if (KINASE_TARGET_RE.test(text)) return "kinase";
+  if (GPCR_TARGET_RE.test(text)) return "gpcr";
+  if (ION_CHANNEL_TARGET_RE.test(text)) return "ion_channel";
+  if (/\bprotease\b/i.test(text)) return "protease";
+  if (/\b(cyclooxygenase|cox-?2|cox-?1)\b/i.test(text)) return "cox";
+  if (/\b(hmg-?coa|hmgcr)\b/i.test(text)) return "hmg";
+  if (/\b(dpp-?4|dpp4)\b/i.test(text)) return "dpp4";
+  if (/\b(pde-?5|phosphodiesterase)\b/i.test(text)) return "pde5";
+  if (/\b(hdac|histone deacetylase)\b/i.test(text)) return "hdac";
+  if (/\b(estrogen|nuclear receptor)\b/i.test(text)) return "nuclear";
+  return "other";
 }
 
 function scoringCapabilities(protein) {
   const ctx = protein ? buildTargetContext(protein) : null;
-  const family = targetFamily(ctx || protein);
+  const rule = resolveTargetRule(ctx || protein);
+  const family = rule ? rule.family : targetFamily(ctx || protein);
   const hasLigand = Boolean(ctx?.ligand?.present);
   const hasPocket = Boolean(ctx?.pocket?.available);
-  const recognized = Boolean(family && family !== "other");
+  const recognized = Boolean(rule || (family && family !== "other"));
   return {
+    rule: rule ? rule.id : null,
+    targetRule: rule ? rule.name : null,
     family: family || null,
     hasLigand,
     hasPocket,
@@ -270,41 +454,189 @@ function scoringCapabilities(protein) {
   };
 }
 
-function sizeMatchPts(mw, ligandMw) {
-  if (mw == null || ligandMw == null || !(ligandMw > 0)) return { pts: 0, text: null };
-  const ratio = mw / ligandMw;
-  if (ratio >= 0.7 && ratio <= 1.35) {
-    return { pts: 10, text: `Good size match to the co-crystallized ligand (MW ${mw.toFixed(0)} vs ${ligandMw.toFixed(0)})` };
+/**
+ * Checks whether candidate matches the co-crystallized ligand in this PDB structure.
+ */
+function matchesCoCrystalLigand(candidate, protein) {
+  if (!protein) return false;
+  const ligand = protein.ligand || (Array.isArray(protein.ligands) ? protein.ligands[0] : {});
+  const ligandName = String(ligand?.name || "").trim().toLowerCase();
+  const compId = String(ligand?.compId || ligand?.comp_id || "").trim().toUpperCase();
+  const title = String(protein.title || "").trim().toLowerCase();
+
+  const cName = nameOf(candidate).toLowerCase();
+  if (!cName) return false;
+
+  // Direct ligand name match
+  if (ligandName && (ligandName.includes(cName) || cName.includes(ligandName))) {
+    return true;
   }
-  if (ratio >= 0.5 && ratio <= 1.7) {
-    return { pts: 5, text: `Partial size match to the co-crystallized ligand (MW ${mw.toFixed(0)} vs ${ligandMw.toFixed(0)})` };
+
+  // Synonym match via compId
+  const synsByCompId = LIGAND_SYNONYMS[compId] || [];
+  if (synsByCompId.some((syn) => cName.includes(syn) || syn.includes(cName))) {
+    return true;
   }
-  return { pts: 1, text: `Poor size match to the co-crystallized ligand (MW ${mw.toFixed(0)} vs ${ligandMw.toFixed(0)})` };
+
+  // Synonym match via ligandName
+  for (const [key, syns] of Object.entries(LIGAND_SYNONYMS)) {
+    if (ligandName.includes(key.toLowerCase())) {
+      if (syns.some((syn) => cName.includes(syn) || syn.includes(cName))) {
+        return true;
+      }
+    }
+  }
+
+  // Mention in PDB title (e.g. "complex with imatinib", "in complex with dabrafenib", "with STI-571")
+  const words = cName.split(/[\s-]+/).filter((w) => w.length > 3);
+  for (const w of words) {
+    if (new RegExp(`\\b${w}\\b`, "i").test(title)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
-function polarityMatchPts(xlogp, pocket) {
-  if (xlogp == null || pocket?.hydrophobicity == null) return { pts: 0, text: null };
-  const h = pocket.hydrophobicity;
-  if (h >= 0.6 && xlogp >= 2) {
-    return { pts: 8, text: `Lipophilicity (XLogP ${xlogp}) matches a hydrophobic pocket` };
+function evaluateCandidateForTargetRule(candidate, rule, protein) {
+  const cName = nameOf(candidate).toLowerCase();
+  const cClass = classOf(candidate).toLowerCase();
+
+  // 1. Check On-Target
+  let isOnTarget = false;
+  if (
+    rule.onTargetRe &&
+    (rule.onTargetRe.test(cName) || (rule.onTargetClassRe && rule.onTargetClassRe.test(cClass)))
+  ) {
+    isOnTarget = true;
   }
-  if (h <= 0.35 && xlogp <= 2.5) {
-    return { pts: 8, text: `Polarity (XLogP ${xlogp}) matches a more polar pocket` };
+  if (!isOnTarget && rule.onTargetDrugs) {
+    isOnTarget = rule.onTargetDrugs.some(
+      (d) => cName.includes(d.toLowerCase()) || d.toLowerCase().includes(cName)
+    );
   }
-  if (h > 0.35 && h < 0.6 && xlogp >= 0 && xlogp <= 4) {
-    return { pts: 6, text: `Balanced polarity for a mixed pocket` };
+
+  // 2. Check Co-crystal ligand match
+  const isLigandMatch = matchesCoCrystalLigand(candidate, protein);
+
+  // 3. Check Demoted / Off-target
+  let isDemoted = false;
+  if (rule.demotedRe && rule.demotedRe.test(cName)) {
+    isDemoted = true;
   }
-  return { pts: 2, text: `Polarity is a weak match to the estimated pocket hydrophobicity` };
+
+  // 4. Check Same Family
+  let isSameFamily = false;
+  if (!isOnTarget) {
+    if (rule.family === "kinase") {
+      isSameFamily = KINASE_INHIBITOR_RE.test(cName) || KINASE_CLASS_RE.test(cClass);
+    } else if (rule.family === "gpcr") {
+      isSameFamily = GPCR_LIGAND_RE.test(cName) || GPCR_CLASS_RE.test(cClass);
+    } else if (rule.family === "protease") {
+      isSameFamily =
+        /\bprotease inhibitor\b/i.test(cClass) ||
+        /\b(ritonavir|lopinavir|saquinavir|darunavir|nelfinavir|indinavir|atazanavir|nirmatrelvir|ensitrelvir)\b/i.test(
+          cName
+        );
+    } else if (rule.family === "cox") {
+      isSameFamily = /\bnsaid\b/i.test(cClass);
+    } else if (rule.family === "hmg") {
+      isSameFamily = /\bstatin\b/i.test(cClass);
+    } else if (rule.family === "dpp4") {
+      isSameFamily = /\bdpp-?4 inhibitor\b/i.test(cClass);
+    } else if (rule.family === "pde5") {
+      isSameFamily = /\bpde5 inhibitor\b/i.test(cClass);
+    } else if (rule.family === "hdac") {
+      isSameFamily = /\bhdac inhibitor\b/i.test(cClass);
+    } else if (rule.family === "nuclear") {
+      isSameFamily = /\b(serm|aromatase inhibitor)\b/i.test(cClass);
+    }
+  }
+
+  return {
+    isOnTarget,
+    isLigandMatch,
+    isDemoted,
+    isSameFamily,
+  };
 }
 
+function trap(val, minOk, idealLow, idealHigh, maxOk) {
+  if (val === null || val === undefined) return 0.5;
+  if (val < minOk) return 0;
+  if (val < idealLow) return (val - minOk) / (idealLow - minOk);
+  if (val <= idealHigh) return 1;
+  if (val <= maxOk) return 1 - (val - idealHigh) / (maxOk - idealHigh);
+  return 0;
+}
+
+/**
+ * Score a single compound against a protein using target-specific rules,
+ * co-crystal ligand matching, and Lipinski/Veber properties.
+ */
 function scoreOne(candidate, protein = null) {
-  const p = propsOf(candidate);
   const checks = drugLikenessChecks(candidate);
   const passCount = checks.filter((c) => c.pass).length;
   const violations = checks.filter((c) => !c.pass).length;
-  const alerts = alertSummary(candidate);
-  const ctx = protein ? buildTargetContext(protein) : null;
+  const alerts = parseAlerts(candidate);
+  const p = propsOf(candidate);
 
+  const strengths = [];
+  const concerns = [];
+  const reasoning = [];
+
+  const ctx = protein ? buildTargetContext(protein) : null;
+  const rule = resolveTargetRule(ctx || protein);
+  const family = rule ? rule.family : targetFamily(ctx || protein);
+
+  let targetBonus = 0;
+  let ligandBonus = 0;
+
+  if (rule) {
+    const evalResult = evaluateCandidateForTargetRule(candidate, rule, ctx || protein);
+
+    if (evalResult.isOnTarget) {
+      targetBonus = 55;
+      const classDescriptor = rule.family === "kinase" ? "kinase-inhibitor" : "targeted";
+      reasoning.push(`Primary target match: established on-target ${classDescriptor} drug for ${rule.name}`);
+      strengths.push(`Established on-target clinical pharmacology for ${rule.name}.`);
+
+      if (evalResult.isLigandMatch) {
+        ligandBonus = 20;
+        reasoning.push(`Direct match to co-crystallized reference ligand in this PDB structure`);
+        strengths.push(`Direct chemical match to the co-crystallized reference ligand in this PDB structure.`);
+      }
+    } else if (evalResult.isDemoted || evalResult.isSameFamily) {
+      targetBonus = 12;
+      reasoning.push(`Same family (${rule.family || "class"}), but different primary target`);
+      concerns.push(rule.demotedConcern || "Same class, different primary target.");
+    } else {
+      targetBonus = 0;
+      reasoning.push(`No established target or class relevance for ${rule.name} (${(rule.family || "").toUpperCase()})`);
+      concerns.push(`No established target or class relevance for ${rule.name}.`);
+    }
+  } else if (protein) {
+    // Unmodeled target or generic family without specific sub-rule
+    if (family === "kinase" && (KINASE_INHIBITOR_RE.test(nameOf(candidate)) || KINASE_CLASS_RE.test(classOf(candidate)))) {
+      targetBonus = 25;
+      reasoning.push(`Kinase family match, but no specific sub-target rule resolved for this structure`);
+      strengths.push(`General kinase inhibitor chemotype.`);
+    } else if (family === "gpcr" && (GPCR_LIGAND_RE.test(nameOf(candidate)) || GPCR_CLASS_RE.test(classOf(candidate)))) {
+      targetBonus = 25;
+      reasoning.push(`GPCR family match, but no specific sub-target rule resolved for this structure`);
+      strengths.push(`General GPCR ligand chemotype.`);
+    } else {
+      targetBonus = 0;
+      reasoning.push(`Insufficient target rule: target is unmodeled or structure has no recognized pharmacology rule`);
+      concerns.push(`Insufficient target rule: no recognized target rule matched for this structure.`);
+    }
+  } else {
+    // No target staged
+    targetBonus = 0;
+    reasoning.push(`No target structure was staged; scored purely on generic physicochemical properties`);
+  }
+
+  // Lipinski/Veber drug-likeness component (max ~24 pts)
   const weighted =
     0.22 * trap(p.mw, 0, 180, 420, 650) +
     0.2 * trap(p.xlogp, -3, 0, 3.5, 7) +
@@ -313,91 +645,71 @@ function scoreOne(candidate, protein = null) {
     0.15 * trap(p.rot, -0.5, 0, 6, 14) +
     0.15 * trap(p.tpsa, 0, 20, 100, 180);
 
-  const druglike = Math.max(0, Math.min(100, 100 * weighted - violations * 6));
+  const druglikePts = Math.min(24, Math.max(0, Math.round(weighted * 24 - violations * 2)));
 
-  let alertPenalty = 0;
-  if (alerts.painsNames.length) alertPenalty += 12;
-  if (alerts.toxNames.length) alertPenalty += 8;
-
-  const strengths = [];
-  const concerns = [];
-  const reasoning = [];
-
-  const family = targetFamily(ctx || protein);
-  const exactClass = Boolean(family && drugMatchesFamily(candidate, family).match);
-  let fit = null;
-  if (ctx) {
-    const pharm = pharmacologyFit(candidate, family);
-    const sizeAvailable = Boolean(ctx.ligand?.present && ctx.ligand.mw);
-    const polarAvailable = Boolean(ctx.pocket?.available && ctx.pocket.hydrophobicity != null);
-    const size = sizeAvailable ? sizeMatchPts(p.mw, ctx.ligand.mw) : { pts: 0, text: null };
-    const polar = polarAvailable ? polarityMatchPts(p.xlogp, ctx.pocket) : { pts: 0, text: null };
-    const maxPts = PHARM_MATCH_PTS + (sizeAvailable ? 10 : 0) + (polarAvailable ? 8 : 0);
-    const rawFit = pharm.pts + size.pts + polar.pts;
-    fit = maxPts > 0 ? Math.max(0, Math.min(100, Math.round((rawFit / maxPts) * 100))) : 40;
-    if (pharm.text) reasoning.push(pharm.text);
-    if (size.text) reasoning.push(size.text);
-    if (polar.text) reasoning.push(polar.text);
-    if (!ctx.ligand?.present || !ctx.pocket?.available) {
-      reasoning.push("Target-fit assessment is limited without pocket/ligand data for this structure — ranking uses known pharmacology and drug-likeness only");
-    }
+  if (passCount === 6) {
+    strengths.push("All 6 Lipinski Rule-of-Five and Veber drug-likeness checks pass.");
+  } else {
+    concerns.push(`${violations} drug-likeness violation(s): ${checks.filter((c) => !c.pass).map((c) => c.rule).join("; ")}.`);
   }
 
-  // Known class members (HIV protease inhibitors, etc.) often violate Lipinski
-  // on purpose. Do not let general drug-likeness outrank an exact class match.
-  const druglikeAdj = exactClass ? Math.max(druglike, 36) : druglike;
-  const combined = ctx
-    ? 0.72 * (fit == null ? 40 : fit) + 0.28 * druglikeAdj
-    : druglike;
-  const score = Math.round(Math.max(1, Math.min(100, combined - alertPenalty)));
-
-  if (passCount >= 5) strengths.push(`Passes ${passCount}/6 Lipinski–Veber drug-likeness checks.`);
-  if (p.mw != null && p.mw >= 180 && p.mw <= 450) strengths.push(`Molecular weight (${p.mw.toFixed(1)}) sits in a typical oral small-molecule range.`);
-  if (p.xlogp != null && p.xlogp >= 0 && p.xlogp <= 3.5) strengths.push(`XLogP (${p.xlogp}) is consistent with balanced permeability and solubility.`);
-  if (p.tpsa != null && p.tpsa >= 20 && p.tpsa <= 90) strengths.push(`TPSA (${p.tpsa} Å²) is compatible with oral absorption.`);
-  if (p.rot != null && p.rot <= 6) strengths.push(`Limited rotatable bonds (${p.rot}) suggest a more conformationally constrained ligand.`);
-  if (p.hbd != null && p.hbd <= 3) strengths.push(`Low H-bond donor count (${p.hbd}) is generally favorable for permeability.`);
-
-  if (p.mw != null && p.mw > 500) concerns.push(`Molecular weight (${p.mw.toFixed(1)}) exceeds Lipinski's 500 g/mol cutoff.`);
-  else if (p.mw != null && p.mw < 150) concerns.push(`Very low molecular weight (${p.mw.toFixed(1)}) is more fragment-like than a typical lead.`);
-  if (p.xlogp != null && p.xlogp > 5) concerns.push(`High lipophilicity (XLogP ${p.xlogp}) may hurt solubility and metabolic stability.`);
-  else if (p.xlogp != null && p.xlogp < 0) concerns.push(`Negative XLogP (${p.xlogp}) can limit passive membrane permeability.`);
-  if (p.hbd != null && p.hbd > 5) concerns.push(`Too many H-bond donors (${p.hbd}) often reduce oral bioavailability.`);
-  if (p.hba != null && p.hba > 10) concerns.push(`H-bond acceptor count (${p.hba}) exceeds the Lipinski guideline.`);
-  if (p.rot != null && p.rot > 10) concerns.push(`High flexibility (${p.rot} rotatable bonds) can penalize binding and oral absorption.`);
-  if (p.tpsa != null && p.tpsa > 140) concerns.push(`Polar surface area (${p.tpsa} Å²) is above Veber's typical oral cutoff.`);
-
+  // PAINS and toxicophore penalties
+  let alertPenalty = 0;
   if (alerts.painsNames.length) {
-    concerns.unshift(`Deprioritized due to PAINS alert: ${alerts.painsNames.join(", ")}.`);
+    alertPenalty += 12;
+    concerns.push(`PAINS alert(s): ${alerts.painsNames.join(", ")}.`);
+    reasoning.push(`Deducted 12 pts for PAINS substructure match (${alerts.painsNames.join(", ")})`);
   }
   if (alerts.toxNames.length) {
-    concerns.unshift(`Toxicophore flag: ${alerts.toxNames.join(", ")}. Reactive-group liability, not a hard exclusion.`);
+    alertPenalty += 8;
+    concerns.push(`Toxicophore alert(s): ${alerts.toxNames.join(", ")}.`);
+    reasoning.push(`Deducted 8 pts for toxicophore alert (${alerts.toxNames.join(", ")})`);
   }
 
-  if (!strengths.length) strengths.push("No strong drug-likeness advantages versus the rest of this shortlist.");
-  if (!concerns.length) concerns.push("No major Lipinski/Veber flags in the supplied properties.");
+  let finalScore = targetBonus + ligandBonus + druglikePts - alertPenalty;
+  finalScore = Math.min(100, Math.max(1, Math.round(finalScore)));
 
-  for (const item of strengths) {
-    if (!reasoning.includes(item)) reasoning.push(item);
-  }
-  if (alerts.painsNames.length) reasoning.push(`PAINS alert penalty applied: ${alerts.painsNames.join(", ")} (not a hard zero)`);
-  if (alerts.toxNames.length) reasoning.push(`Toxicophore penalty applied: ${alerts.toxNames.join(", ")}`);
-
-  return { score, passCount, violations, strengths, concerns, reasoning: reasoning.slice(0, 8), checks, alerts, fit };
+  return {
+    score: finalScore,
+    passCount,
+    violations,
+    checks,
+    alerts,
+    strengths,
+    concerns,
+    reasoning,
+    targetBonus,
+    ligandBonus,
+    druglikePts,
+    alertPenalty,
+  };
 }
 
 function reasonFor(candidate, scored, protein) {
   const name = nameOf(candidate);
-  const targetName = protein ? targetDisplayName(protein) : "";
-  const pdb = protein?.id || protein?.pdb_id || "";
-  const targetBit = pdb ? ` for ${targetName || "the staged target"}${pdb ? ` (${pdb})` : ""}` : "";
+  const targetName = protein ? targetDisplayName(protein) : null;
+  const ctx = protein ? buildTargetContext(protein) : null;
+  const rule = resolveTargetRule(ctx || protein);
   const alertBit = scored.alerts?.allNames?.length
-    ? ` It still carries ${scored.alerts.painsNames.length ? "PAINS" : "toxicophore"} alert(s): ${scored.alerts.allNames.join(", ")} — a warning, not a hard exclusion.`
+    ? ` Note: carries substructure alert(s) (${scored.alerts.allNames.join(", ")}), so treat this lead with caution.`
     : "";
-  const fitBit = scored.reasoning?.[0] ? ` ${scored.reasoning[0]}.` : "";
-  if (protein) {
-    return `${name} is the best target-specific fit${targetBit}.${fitBit}${alertBit} Binding affinity is not assessed here — docking still needs to be run.`;
+
+  if (rule) {
+    if (scored.ligandBonus > 0) {
+      return `${name} is an established on-target clinical inhibitor for ${rule.name} and directly matches the co-crystallized reference ligand in this PDB structure (${protein.pdb_id || protein.id || "target"}). ${scored.passCount}/6 drug-likeness checks pass.${alertBit} Binding affinity is not assessed here — docking still needs to be run.`;
+    }
+    if (scored.targetBonus >= 50) {
+      return `${name} is an established on-target clinical drug for ${rule.name}. ${scored.passCount}/6 drug-likeness checks pass.${alertBit} Binding affinity is not assessed here — docking still needs to be run.`;
+    }
+    if (scored.targetBonus >= 10) {
+      return `${name} shares the ${rule.family} chemotype, but its primary target differs from ${rule.name}. ${scored.passCount}/6 drug-likeness checks pass.${alertBit} Treat this as a secondary candidate.`;
+    }
   }
+
+  if (protein && !rule) {
+    return `${name} has the best available drug-likeness profile in this set, but there is an insufficient target rule for ${targetName || "this target"} — no recognized pharmacology rule exists for this structure. Binding affinity is not assessed here — docking still needs to be run.`;
+  }
+
   if (scored.violations === 0) {
     return `${name} has the strongest overall physicochemical profile in this shortlist: ${scored.passCount}/6 drug-likeness checks pass, with a balanced size, polarity, and flexibility profile.${alertBit} Binding affinity is not assessed here — docking still needs to be run.`;
   }
@@ -408,20 +720,25 @@ function summaryFor(ranked, protein) {
   const top = ranked[0];
   const pdb = protein?.id || protein?.pdb_id;
   const target = pdb ? ` ${targetDisplayName(protein)} (${pdb})` : " computational follow-up";
+  const rule = resolveTargetRule(protein);
   const flagged = ranked.filter((row) => row.alerts?.allNames?.length);
   const flagBit = flagged.length
     ? ` ${flagged.length} shortlisted molecule(s) carry PAINS or toxicophore alerts and were deprioritized accordingly.`
     : "";
+
   if (pdb) {
-    return `Among ${ranked.length} staged molecules, ${nameOf(top)} is the strongest candidate for${target} based on target/pocket fit, known pharmacology, and Lipinski/Veber drug-likeness.${flagBit} Scores are specific to this structure — the same compound would score differently against a different target. This ranking does not include docking poses or experimental data.`;
+    if (!rule) {
+      return `Insufficient target rule for${target}: no recognized pharmacology rule exists for this structure. Candidates are ranked on basic physicochemical drug-likeness only without target validation.${flagBit} Scores do not reflect validated binding affinity or experimental data.`;
+    }
+    return `Among ${ranked.length} staged molecules, ${nameOf(top)} is the strongest candidate for${target} based on target-specific pharmacology, co-crystal reference match, and Lipinski/Veber drug-likeness.${flagBit} Scores are specific to this structure — the same compound would score differently against a different target. This ranking does not include docking poses or experimental data.`;
   }
   return `Among ${ranked.length} staged molecules, ${nameOf(top)} is the strongest candidate to take into${target} based on PubChem physicochemical properties (Lipinski Rule-of-Five and Veber heuristics).${flagBit} No PDB structure was staged, so this ranking is not pocket-specific. This ranking does not include docking poses, ADME models, toxicity, or experimental data.`;
 }
 
 /**
- * Rank 2–5 candidates for a specific target using pocket/ligand context
- * when available, known pharmacology, and Lipinski/Veber properties.
- * Returns the same schema as the AI API.
+ * Rank candidates for a specific target using target-specific rules,
+ * co-crystal ligand matching, and Lipinski/Veber properties.
+ * Returns the standard response schema with source: "heuristic-v2".
  */
 function rankCandidatesLocal(candidates, protein = null, options = {}) {
   const max = options.maxCandidates ?? MAX_CANDIDATES;
@@ -433,7 +750,7 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
 
   const ctx = protein ? buildTargetContext(protein) : null;
   const scored = list.map((candidate) => {
-    const local = scoreOne(candidate, protein);
+    const local = scoreOne(candidate, ctx || protein);
     return {
       cid: cidOf(candidate),
       name: nameOf(candidate),
@@ -485,30 +802,77 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
       ctx?.dataGaps?.length
         ? "Target-fit assessment is limited without pocket/ligand data — geometric fit was not treated as a confident judgment."
         : "Use SwissDock and SwissADME next, then experimental assays, before treating any molecule as a real lead.",
-      "Use SwissDock and SwissADME next, then experimental assays, before treating any molecule as a real lead.",
     ].filter((item, index, arr) => arr.indexOf(item) === index),
-    source: "heuristic",
+    source: "heuristic-v2",
   };
 }
 
 /**
  * Score an entire approved-drug library for one target.
- * Same target-aware model as the 5-compound shortlist, without the 2–5 cap.
  */
 function scoreLibraryLocal(candidates, protein = null) {
   const list = Array.isArray(candidates) ? candidates : [];
   if (!list.length) {
     return {
-      target: protein ? { name: targetDisplayName(protein), pdb_id: protein.id || protein.pdb_id || null } : { name: "", pdb_id: null },
+      target: protein
+        ? { name: targetDisplayName(protein), pdb_id: protein.id || protein.pdb_id || null }
+        : { name: "", pdb_id: null },
       candidates: [],
       recommended: { cid: null, score: null, reason: "" },
       ranking: [],
       summary: "No compounds to score.",
       limitations: [],
-      source: "heuristic",
+      source: "heuristic-v2",
     };
   }
   return rankCandidatesLocal(list, protein, { maxCandidates: list.length, minCandidates: 1 });
+}
+
+/**
+ * Helper to rank repurposing candidates and log top 5 for a PDB target.
+ */
+function rankRepurposing(candidates, protein = null) {
+  let list = Array.isArray(candidates) && candidates.length ? candidates : null;
+  if (!list) {
+    try {
+      const raw = require("./data/approvedDrugs.json");
+      const drugs = Array.isArray(raw?.drugs) ? raw.drugs : [];
+      list = drugs.map((drug) => ({
+        CID: drug.cid,
+        cid: String(drug.cid),
+        displayName: drug.name,
+        name: drug.name,
+        IsomericSMILES: drug.smiles,
+        CanonicalSMILES: drug.smiles,
+        SMILES: drug.smiles,
+        MolecularWeight: drug.mw,
+        XLogP: drug.xlogp,
+        HBondDonorCount: drug.hbd,
+        HBondAcceptorCount: drug.hba,
+        RotatableBondCount: drug.rot,
+        TPSA: drug.tpsa,
+        indication: drug.indication,
+        drugClass: drug.class,
+      }));
+    } catch {
+      list = [];
+    }
+  }
+
+  const result = scoreLibraryLocal(list, protein);
+  const top5 = (result.ranking || []).slice(0, 5).map((r) => {
+    const match = list.find((c) => cidOf(c) === r.cid);
+    return {
+      cid: r.cid,
+      name: nameOf(match) || r.cid,
+      score: r.score,
+      rank: r.rank,
+    };
+  });
+  const pdb = protein?.pdb_id || protein?.id || "NO_PDB";
+  const targetName = protein?.name || protein?.queryName || pdb;
+  console.log(`[rankRepurposing] Top 5 for ${targetName} (${pdb}):`, top5);
+  return { ...result, top5 };
 }
 
 module.exports = {
@@ -521,4 +885,8 @@ module.exports = {
   scoreOne,
   rankCandidatesLocal,
   scoreLibraryLocal,
+  TARGET_RULES,
+  resolveTargetRule,
+  matchesCoCrystalLigand,
+  rankRepurposing,
 };

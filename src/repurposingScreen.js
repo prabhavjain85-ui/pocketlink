@@ -446,7 +446,7 @@ export async function screenApprovedLibrary(
   }
 
   let usedLlm = false;
-  let source = cachedShortlist.length && !uncachedShortlist.length ? "cache" : "heuristic";
+  let source = cachedShortlist.length && !uncachedShortlist.length ? "cache" : "heuristic-v2";
   const freshRows = [];
   let aiError = null;
 
@@ -490,7 +490,7 @@ export async function screenApprovedLibrary(
           }
         } else {
           llmAlive = false;
-          source = result?.source === "cache" ? source : result?.source || "heuristic";
+          source = result?.source === "cache" ? source : result?.source || "heuristic-v2";
           const byCid = new Map((result?.ranking || []).map((row) => [String(row.cid), row]));
           for (const drug of batch) {
             const ranked = byCid.get(String(drug.cid)) || localMap.get(String(drug.cid));

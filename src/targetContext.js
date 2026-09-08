@@ -153,10 +153,13 @@ function buildTargetContext(protein) {
   const ligand = compactLigand(protein);
   const pocket = compactPocket(protein);
   const pdbId = protein.id || protein.pdb_id || null;
+  const gene = String(protein.gene || protein.symbol || "").trim();
+  const name = protein.name || targetDisplayName(protein);
   return {
-    name: targetDisplayName(protein),
+    name,
     pdb_id: pdbId,
     id: pdbId,
+    gene,
     title: protein.title || "",
     queryName: protein.queryName || protein.name || "",
     targetSelectionScore: protein.targetSelectionScore ?? protein.score ?? null,
@@ -175,6 +178,7 @@ function summarizeTargetData(protein) {
     return {
       pdb_id: null,
       name: "",
+      gene: "",
       hasLigand: false,
       hasPocket: false,
       ligand: { present: false },
@@ -185,6 +189,7 @@ function summarizeTargetData(protein) {
   return {
     pdb_id: ctx.pdb_id,
     name: ctx.name,
+    gene: ctx.gene,
     title: ctx.title,
     queryName: ctx.queryName,
     hasLigand: Boolean(ctx.ligand?.present),
