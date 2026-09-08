@@ -47,6 +47,17 @@ export const ORGAN_TOXICITY_ALERTS = [
     evidence: "Troglitazone market withdrawal (FDA 2000); mitochondrial respiratory chain disruption and reactive imine formation.",
   },
   {
+    id: "dili_chromane_quinone_methide",
+    organ: "liver",
+    name: "Chromane-6-ol / Quinone-methide precursor",
+    severity: "high",
+    smarts: "Oc1ccc2OCCCc2c1",
+    regex: /Oc1c\(C\)c2c\(c\(C\)c1O\)CCC|Oc1ccc2OCCCc2c1/i,
+    explanation:
+      "6-Hydroxychromane core bioactivated by hepatic CYPs to reactive, electrophilic quinone-methides that covalently adduct cellular macromolecules.",
+    evidence: "Troglitazone DILI mechanism; Kassahun et al. (2001) Chem. Res. Toxicol. 14:62-70; Neuschwander-Tetri et al. (1998) Ann. Intern. Med. 129:38-41.",
+  },
+  {
     id: "dili_p_aminophenol",
     organ: "liver",
     name: "p-Aminophenol / Acetamido-phenol",
@@ -121,8 +132,8 @@ export const ORGAN_TOXICITY_ALERTS = [
     organ: "heart",
     name: "Diaryl-alkylpiperidine hERG pharmacophore",
     severity: "high",
-    smarts: "c1ccccc1C(c2ccccc2)C3CCNCC3",
-    regex: /c1ccccc1C\([Cc]2ccccc2\).*N|C\(c1ccccc1\)\(c2ccccc2\).*N1CCC/i,
+    smarts: "c1ccccc1C([#6,#8,*])(c2ccccc2)C3CCN(*)CC3",
+    regex: /c1ccccc1C\([Cc]2ccccc2\)|C\(c1ccccc1\)\(c2ccccc2\).*N1CCC|C\(O\)\(c1ccccc1\)\(c2ccccc2\)C3CCN|c1ccc\(C\(O\)CCCN2CCC/i,
     explanation:
       "Canonical high-affinity hERG K+ channel pore-blocker motif. Highly associated with QT prolongation and fatal Torsades de Pointes arrhythmia.",
     evidence: "Terfenadine (Seldane) worldwide withdrawal (FDA 1997); Astemizole withdrawal; Cavalli et al. (2002) J. Med. Chem. 45:3844-3853.",
@@ -464,16 +475,14 @@ export async function evaluateOrganToxicity(inputSmiles, properties = {}, rdkitI
     };
   }
 
-  // Overall candidate profile summary
-  let overallRisk = "Low Risk Profile";
+  // Overall candidate profile summary (Structural alerts count & names, never a safety verdict)
+  const alertNames = triggeredAlerts.map((a) => a.name);
+  let overallRisk = "Structural alerts: 0";
   let overallBadgeColor = "green";
 
-  if (totalHighAlerts > 0) {
-    overallRisk = "Elevated Toxicity Liabilities";
-    overallBadgeColor = "red";
-  } else if (totalModerateAlerts > 0) {
-    overallRisk = "Moderate Risk Warnings";
-    overallBadgeColor = "amber";
+  if (triggeredAlerts.length > 0) {
+    overallRisk = `Structural alerts: ${triggeredAlerts.length} (${alertNames.join(", ")})`;
+    overallBadgeColor = totalHighAlerts > 0 ? "red" : "amber";
   }
 
   return {

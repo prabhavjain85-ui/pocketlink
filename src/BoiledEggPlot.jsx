@@ -31,7 +31,7 @@ export default function BoiledEggPlot({ tpsa = 0, logp = 0, compoundName = "Mole
   // SVG canvas bounds and chart coordinates
   const width = 520;
   const height = 360;
-  const margin = { top: 24, right: 30, bottom: 44, left: 52 };
+  const margin = { top: 24, right: 30, bottom: 44, left: 62 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
@@ -272,13 +272,13 @@ export default function BoiledEggPlot({ tpsa = 0, logp = 0, compoundName = "Mole
           <text
             x={-(margin.top + innerHeight / 2)}
             y="14"
-            fontSize="11"
+            fontSize="10"
             fontWeight="600"
             fill="#334155"
             textAnchor="middle"
             transform="rotate(-90)"
           >
-            cLogP (Lipophilicity)
+            cLogP (Crippen; BOILED-Egg trained on WLOGP)
           </text>
 
           {/* Active Molecule Marker */}
@@ -399,6 +399,18 @@ export default function BoiledEggPlot({ tpsa = 0, logp = 0, compoundName = "Mole
             <strong>Point:</strong> Active Molecule
           </span>
         </div>
+      </div>
+
+      <div
+        style={{
+          marginTop: "6px",
+          fontSize: "11px",
+          color: "var(--text-muted)",
+          lineHeight: 1.4,
+          fontStyle: "italic",
+        }}
+      >
+        * Note: BOILED-Egg (Daina &amp; Zoete 2016) was trained on WLOGP. Plotted using Wildman–Crippen cLogP. Transporters, active efflux (P-gp), and CYPs are not modeled.
       </div>
     </div>
   );

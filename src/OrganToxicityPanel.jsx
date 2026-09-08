@@ -96,8 +96,9 @@ export default function OrganToxicityPanel({ organToxicity, onSelectPreset }) {
                 }`,
               }}
             >
-              Overall: {overallRisk} ({totalAlerts} alert{totalAlerts === 1 ? "" : "s"}
-              {totalAlerts > 0 ? ` • ${totalHighAlerts} high, ${totalModerateAlerts} mod` : ""})
+              {totalAlerts === 0
+                ? "Structural alerts: 0"
+                : `Structural alerts: ${totalAlerts} (${totalHighAlerts} high, ${totalModerateAlerts} mod)`}
             </span>
           </div>
 

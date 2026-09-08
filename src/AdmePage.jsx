@@ -4,6 +4,7 @@ import {
   calculateAdmeProperties,
   ADME_EXAMPLE_COMPOUNDS,
 } from "./admeCalculator";
+import { getRDKit } from "./rdkitLoader";
 import BoiledEggPlot from "./BoiledEggPlot";
 import OrganToxicityPanel from "./OrganToxicityPanel";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
@@ -19,6 +20,7 @@ export default function AdmePage() {
   const [cidInput, setCidInput] = useState(searchParams.get("cid") || "5291");
 
   const [loading, setLoading] = useState(false);
+  const [rdkitReady, setRdkitReady] = useState(false);
   const [error, setError] = useState(null);
   const [admeData, setAdmeData] = useState(null);
   const [copiedSmiles, setCopiedSmiles] = useState(false);
@@ -65,8 +67,14 @@ export default function AdmePage() {
     }
   };
 
-  // Run automatically on first mount or when URL params change
+  // Initialize RDKit readiness and run prediction
   useEffect(() => {
+    getRDKit()
+      .then((r) => {
+        if (r) setRdkitReady(true);
+      })
+      .catch(() => {});
+
     const paramSmiles = searchParams.get("smiles");
     const paramName = searchParams.get("name");
     const paramCid = searchParams.get("cid");
@@ -122,8 +130,7 @@ export default function AdmePage() {
     let toxSummary = "";
     if (admeData.organToxicity && admeData.organToxicity.valid) {
       const b = admeData.organToxicity.organBreakdown;
-      toxSummary = `\nOrgan-Specific Toxicity Liabilities (Structural Alerts):
-- Overall Profile: ${admeData.organToxicity.overallRisk} (${admeData.organToxicity.totalAlerts} alert(s))
+      toxSummary = `\nStructural Alerts: ${admeData.organToxicity.totalAlerts === 0 ? "0" : `${admeData.organToxicity.totalAlerts} (${admeData.organToxicity.flaggedCategories.join(", ")})`}
 - Liver (Hepatotoxicity): ${b.liver?.riskLevel || "Low"} Risk - ${b.liver?.summaryExplanation || "No alerts"}
 - Heart (Cardiotoxicity / hERG): ${b.heart?.riskLevel || "Low"} Risk - ${b.heart?.summaryExplanation || "No alerts"}
 - Kidney (Nephrotoxicity): ${b.kidney?.riskLevel || "Low"} Risk - ${b.kidney?.summaryExplanation || "No alerts"}
@@ -137,24 +144,30 @@ SMILES: ${admeData.canonicalSmiles}
 
 Physicochemical Properties:
 - Molecular Weight: ${admeData.properties.mw.toFixed(1)} g/mol
-- cLogP (Lipophilicity): ${admeData.properties.logp.toFixed(2)}
+- cLogP (Crippen): ${admeData.properties.logp.toFixed(2)}
+- WLOGP (approx): ${admeData.properties.wlogp.toFixed(2)}
 - TPSA: ${admeData.properties.tpsa.toFixed(1)} Å²
 - H-Bond Donors (HBD): ${admeData.properties.hbd}
 - H-Bond Acceptors (HBA): ${admeData.properties.hba}
 - Rotatable Bonds: ${admeData.properties.rotb}
 - Molar Refractivity: ${admeData.properties.mr.toFixed(1)}
+- Heavy Atoms: ${admeData.properties.heavyAtoms}
 
 Druglikeness Assessment:
-- Lipinski Rule of 5: ${admeData.druglikeness.lipinski.status} (${admeData.druglikeness.lipinski.violations} violations)
-- Veber Bioavailability: ${admeData.druglikeness.veber.status} (${admeData.druglikeness.veber.violations} violations)
-- Ghose Filter: ${admeData.druglikeness.ghose.status} (${admeData.druglikeness.ghose.violations} violations)
+- Lipinski Rule of 5: ${admeData.druglikeness.lipinski.status}
+- Veber Bioavailability: ${admeData.druglikeness.veber.status}
+- Ghose Filter: ${admeData.druglikeness.ghose.status}
 
-Pharmacokinetics & Solubility:
-- GI Absorption (BOILED-Egg): ${admeData.pharmacokinetics.boiledEgg.giAbsorption} (${admeData.pharmacokinetics.boiledEgg.label})
-- BBB Permeation: ${admeData.pharmacokinetics.boiledEgg.bbbPermeation}
-- ESOL Aqueous Solubility: ${admeData.pharmacokinetics.solubility.qualitativeClass} (LogS ${admeData.pharmacokinetics.solubility.logS}, ~${admeData.pharmacokinetics.solubility.mgPerMl} mg/mL)
+Pharmacokinetics (rules & models):
+- Passive HIA: ${admeData.pharmacokinetics.boiledEgg.giAbsorption}
+- Passive BBB: ${admeData.pharmacokinetics.boiledEgg.passiveBbb}
+- ESOL Aqueous Solubility: ${admeData.pharmacokinetics.solubility.qualitativeClass} (logS ${admeData.pharmacokinetics.solubility.logS})
+- P-gp Substrate (heuristic): ${admeData.pharmacokinetics.rules?.pgpSubstrate.value || "N/A"}
+- CYP: not modeled
+- Bioavailability Score: ${admeData.pharmacokinetics.rules?.bioavailabilityScore.score || "N/A"}
 ${toxSummary}
-Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete (2016), Delaney (2004), Kalgutkar et al. (2005), Aronov (2005).`;
+Disclaimer: Passive BOILED-Egg only. Transporters, Pgp, CYPs, and clinical toxicity are not measured.
+Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete (2016), Delaney (2004), Martin (2005).`;
 
     if (navigator?.clipboard?.writeText) {
       navigator.clipboard.writeText(text).then(() => {
@@ -278,13 +291,22 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
               }}
             />
             <button
+              id="predict-adme-btn"
               type="button"
               className="btn btn-primary"
               onClick={() => runPrediction(smilesInput, compoundNameInput, cidInput)}
-              disabled={loading || !smilesInput.trim()}
-              style={{ padding: "9px 20px" }}
+              disabled={loading || !smilesInput.trim() || !rdkitReady}
+              style={{
+                padding: "9px 20px",
+                fontWeight: 600,
+                background: !smilesInput.trim() || !rdkitReady ? "var(--surface-muted)" : "var(--primary)",
+                borderColor: !smilesInput.trim() || !rdkitReady ? "var(--border)" : "var(--primary)",
+                color: !smilesInput.trim() || !rdkitReady ? "var(--text-muted)" : "#FFFFFF",
+                cursor: !smilesInput.trim() || !rdkitReady || loading ? "not-allowed" : "pointer",
+                boxShadow: !smilesInput.trim() || !rdkitReady ? "none" : "0 1px 2px rgba(15, 118, 110, 0.18)",
+              }}
             >
-              {loading ? "Calculating..." : "Predict ADME"}
+              {!rdkitReady ? "RDKit loading…" : loading ? "Calculating..." : "Predict ADME"}
             </button>
           </div>
         </div>
@@ -500,15 +522,21 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
                     background:
                       admeData.druglikeness.lipinski.violations === 0
                         ? "var(--green-bg)"
-                        : "var(--amber-bg)",
+                        : admeData.druglikeness.lipinski.violations === 1
+                        ? "var(--amber-bg)"
+                        : "var(--red-bg)",
                     color:
                       admeData.druglikeness.lipinski.violations === 0
                         ? "var(--green)"
-                        : "var(--amber)",
+                        : admeData.druglikeness.lipinski.violations === 1
+                        ? "var(--amber)"
+                        : "var(--red)",
                     border: `1px solid ${
                       admeData.druglikeness.lipinski.violations === 0
                         ? "var(--green-border)"
-                        : "var(--amber-border)"
+                        : admeData.druglikeness.lipinski.violations === 1
+                        ? "var(--amber-border)"
+                        : "var(--red-border)"
                     }`,
                   }}
                 >
@@ -539,7 +567,7 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
                     }`,
                   }}
                 >
-                  GI Absorption: {admeData.pharmacokinetics.boiledEgg.giAbsorption}
+                  Passive HIA: {admeData.pharmacokinetics.boiledEgg.giAbsorption}
                 </span>
 
                 <span
@@ -552,21 +580,21 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
                     fontSize: "12px",
                     fontWeight: 600,
                     background:
-                      admeData.pharmacokinetics.boiledEgg.inBbb
+                      admeData.pharmacokinetics.boiledEgg.passiveBbb === "Yes"
                         ? "var(--amber-bg)"
                         : "var(--surface-subtle)",
                     color:
-                      admeData.pharmacokinetics.boiledEgg.inBbb
+                      admeData.pharmacokinetics.boiledEgg.passiveBbb === "Yes"
                         ? "var(--amber)"
                         : "var(--text-dim)",
                     border: `1px solid ${
-                      admeData.pharmacokinetics.boiledEgg.inBbb
+                      admeData.pharmacokinetics.boiledEgg.passiveBbb === "Yes"
                         ? "var(--amber-border)"
                         : "var(--border)"
                     }`,
                   }}
                 >
-                  BBB Permeant: {admeData.pharmacokinetics.boiledEgg.inBbb ? "Yes" : "No"}
+                  Passive BBB: {admeData.pharmacokinetics.boiledEgg.passiveBbb}
                 </span>
 
                 <span
@@ -599,7 +627,7 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
                     }`,
                   }}
                 >
-                  Solubility: {admeData.pharmacokinetics.solubility.qualitativeClass}
+                  Solubility: {admeData.pharmacokinetics.solubility.qualitativeClass} (logS {admeData.pharmacokinetics.solubility.logS}, est.)
                 </span>
 
                 {admeData.organToxicity && admeData.organToxicity.valid && (
@@ -633,10 +661,101 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
                       }`,
                     }}
                   >
-                    Organ Toxicity: {admeData.organToxicity.overallRisk}
+                    Structural alerts: {admeData.organToxicity.totalAlerts === 0
+                      ? "0"
+                      : `${admeData.organToxicity.totalAlerts} (${admeData.organToxicity.flaggedCategories.join(", ")})`}
                   </span>
                 )}
               </div>
+
+              {/* Scope & Methodology Disclaimer */}
+              <p style={{ margin: "8px 0 0", fontSize: "12px", color: "var(--text-muted)", fontStyle: "italic" }}>
+                Passive BOILED-Egg only. Transporters, Pgp, CYPs, and clinical toxicity are not measured.
+              </p>
+
+              {/* Extra Pharmacokinetics (rules) row */}
+              {admeData.pharmacokinetics.rules && (
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    gap: "8px",
+                    marginTop: "10px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      color: "var(--text-muted)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    Pharmacokinetics (rules):
+                  </span>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      padding: "3px 9px",
+                      borderRadius: "16px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      background: admeData.pharmacokinetics.rules.pgpSubstrate.isSubstrate
+                        ? "var(--amber-bg)"
+                        : "var(--surface-subtle)",
+                      color: admeData.pharmacokinetics.rules.pgpSubstrate.isSubstrate
+                        ? "var(--amber)"
+                        : "var(--text-dim)",
+                      border: `1px solid ${
+                        admeData.pharmacokinetics.rules.pgpSubstrate.isSubstrate
+                          ? "var(--amber-border)"
+                          : "var(--border)"
+                      }`,
+                    }}
+                    title={admeData.pharmacokinetics.rules.pgpSubstrate.rationale}
+                  >
+                    P-gp Substrate (heuristic): {admeData.pharmacokinetics.rules.pgpSubstrate.value}
+                  </span>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      padding: "3px 9px",
+                      borderRadius: "16px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      background: "var(--surface-subtle)",
+                      color: "var(--text-dim)",
+                      border: "1px solid var(--border)",
+                    }}
+                    title={admeData.pharmacokinetics.rules.cypRisk.rationale}
+                  >
+                    CYP: not modeled
+                  </span>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      padding: "3px 9px",
+                      borderRadius: "16px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      background: "var(--surface-subtle)",
+                      color: "var(--text-dim)",
+                      border: "1px solid var(--border)",
+                    }}
+                    title={admeData.pharmacokinetics.rules.bioavailabilityScore.rule}
+                  >
+                    Bioavailability Score: {admeData.pharmacokinetics.rules.bioavailabilityScore.score}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Quick Actions */}
@@ -772,7 +891,7 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
                 </h3>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  {/* GI Absorption */}
+                  {/* Passive HIA */}
                   <div
                     style={{
                       display: "flex",
@@ -786,7 +905,7 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
                   >
                     <div>
                       <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>
-                        Gastrointestinal Absorption (GI)
+                        Passive Intestinal Absorption (HIA)
                       </div>
                       <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
                         Passive human intestinal permeability (BOILED-Egg model)
@@ -806,7 +925,7 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
                     </span>
                   </div>
 
-                  {/* BBB Permeation */}
+                  {/* Passive BBB */}
                   <div
                     style={{
                       display: "flex",
@@ -820,22 +939,23 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
                   >
                     <div>
                       <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>
-                        Blood-Brain Barrier (BBB) Permeation
+                        Passive Blood-Brain Barrier (BBB) Permeation
                       </div>
                       <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-                        Likelihood of crossing capillary endothelial tight junctions
+                        Likelihood of crossing capillary endothelial tight junctions passively
                       </div>
                     </div>
                     <span
                       style={{
                         fontWeight: 700,
                         fontSize: "13px",
-                        color: admeData.pharmacokinetics.boiledEgg.inBbb
-                          ? "var(--amber)"
-                          : "var(--text-dim)",
+                        color:
+                          admeData.pharmacokinetics.boiledEgg.passiveBbb === "Yes"
+                            ? "var(--amber)"
+                            : "var(--text-dim)",
                       }}
                     >
-                      {admeData.pharmacokinetics.boiledEgg.inBbb ? "Yes (Permeant)" : "No (Low)"}
+                      {admeData.pharmacokinetics.boiledEgg.passiveBbb}
                     </span>
                   </div>
 
@@ -883,6 +1003,106 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
                       </div>
                     </div>
                   </div>
+
+                  {/* Extra PK Rules */}
+                  {admeData.pharmacokinetics.rules && (
+                    <>
+                      {/* P-gp Efflux Substrate */}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "10px 14px",
+                          background: "var(--surface-muted)",
+                          borderRadius: "var(--radius)",
+                          border: "1px solid var(--border-light)",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>
+                            P-gp Substrate (heuristic)
+                          </div>
+                          <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                            {admeData.pharmacokinetics.rules.pgpSubstrate.criterion}
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            fontSize: "13px",
+                            color: admeData.pharmacokinetics.rules.pgpSubstrate.isSubstrate
+                              ? "var(--amber)"
+                              : "var(--text-dim)",
+                          }}
+                        >
+                          {admeData.pharmacokinetics.rules.pgpSubstrate.value}
+                        </span>
+                      </div>
+
+                      {/* CYP Liability */}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "10px 14px",
+                          background: "var(--surface-muted)",
+                          borderRadius: "var(--radius)",
+                          border: "1px solid var(--border-light)",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>
+                            Cytochrome P450 (CYP) Liability
+                          </div>
+                          <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                            Metabolic clearance &amp; isoform inhibition
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            fontWeight: 600,
+                            fontSize: "12px",
+                            color: "var(--text-muted)",
+                          }}
+                        >
+                          not modeled
+                        </span>
+                      </div>
+
+                      {/* Bioavailability Score */}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "10px 14px",
+                          background: "var(--surface-muted)",
+                          borderRadius: "var(--radius)",
+                          border: "1px solid var(--border-light)",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>
+                            Bioavailability Score
+                          </div>
+                          <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                            Martin (2005) Abbott rule (Ro5 violations ≤ 1 &amp; TPSA ≤ 140 Å²)
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            fontSize: "13px",
+                            color: "var(--text)",
+                          }}
+                        >
+                          {admeData.pharmacokinetics.rules.bioavailabilityScore.score}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -945,6 +1165,21 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
                     </div>
                     <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text)" }}>
                       {admeData.properties.logp.toFixed(2)}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      background: "var(--surface-subtle)",
+                      borderRadius: "var(--radius)",
+                    }}
+                  >
+                    <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                      WLOGP (approximate)
+                    </div>
+                    <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text)" }}>
+                      {admeData.properties.wlogp !== undefined ? admeData.properties.wlogp.toFixed(2) : "N/A"}
                     </div>
                   </div>
 

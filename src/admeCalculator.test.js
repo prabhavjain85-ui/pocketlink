@@ -85,4 +85,145 @@ describe("ADME Calculator Engine", () => {
     expect(sol.logS).toBeCloseTo(-1.93, 1);
     expect(sol.qualitativeClass).toBe("Soluble");
   });
+
+  describe("10-Drug Reference Benchmark Suite", () => {
+    const REFERENCE_TEST_DRUGS = [
+      {
+        name: "Aspirin",
+        smiles: "CC(=O)Oc1ccccc1C(=O)O",
+        expected: {
+          lipinskiViolations: 0,
+          passiveBbb: "Borderline",
+          passiveHia: "High",
+        },
+      },
+      {
+        name: "Paracetamol",
+        smiles: "CC(=O)Nc1ccc(O)cc1",
+        expected: {
+          lipinskiViolations: 0,
+          passiveBbb: "Borderline",
+          passiveHia: "High",
+        },
+      },
+      {
+        name: "Metformin",
+        smiles: "CN(C)C(=N)NC(=N)N",
+        expected: {
+          lipinskiViolations: 0,
+          passiveBbb: "No",
+          passiveHia: "High", // BOILED-Egg passive HIA model puts it in the white
+        },
+      },
+      {
+        name: "Atorvastatin",
+        smiles:
+          "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CC[C@@H](O)C[C@@H](O)CC(=O)O",
+        expected: {
+          lipinskiViolations: 2,
+          failingSummarySubstring: "MW",
+          cLogPSubstring: "cLogP",
+        },
+      },
+      {
+        name: "Imatinib",
+        smiles:
+          "Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1",
+        expected: {
+          lipinskiViolations: 0,
+          pgpSubstrate: true,
+          passiveBbb: "No",
+        },
+      },
+      {
+        name: "Gefitinib",
+        smiles: "COc1cc2ncnc(Nc3ccc(F)c(Cl)c3)c2cc1OCCCN1CCOCC1",
+        expected: {
+          lipinskiViolations: 0,
+          pgpSubstrate: true,
+          passiveBbb: "No",
+        },
+      },
+      {
+        name: "Diazepam",
+        smiles: "CN1C(=O)CN=C(c2ccccc2)c2cc(Cl)ccc21",
+        expected: {
+          lipinskiViolations: 0,
+          passiveBbb: "Yes",
+          passiveHia: "High",
+        },
+      },
+      {
+        name: "Morphine",
+        smiles: "CN1CC[C@]23c4c5ccc(O)c4O[C@H]2[C@@H](O)C=C[C@H]3[C@H]1C5",
+        expected: {
+          lipinskiViolations: 0,
+          passiveHia: "High",
+        },
+      },
+      {
+        name: "Paclitaxel",
+        smiles:
+          "CC(=O)O[C@H]1C(=O)[C@@]2(C)[C@H](O)C[C@@H]3OC[C@]3(OC(=O)C)[C@H]2[C@H](OC(=O)c2ccccc2)[C@]2(O)C[C@@H](OC(=O)[C@H](O)[C@@H](NC(=O)c3ccccc3)c3ccccc3)C(C)=C1C2(C)C",
+        expected: {
+          minLipinskiViolations: 2,
+          passiveHia: "Low",
+          pgpSubstrate: true,
+        },
+      },
+      {
+        name: "Remdesivir",
+        smiles:
+          "CCC(CC)COC(=O)[C@H](C)N[P@](=O)(OC[C@H]1O[C@](C#N)(c2ccc3n2ncnc3N)[C@H](O)[C@@H]1O)Oc1ccccc1",
+        expected: {
+          lipinskiViolations: 2,
+          failingSummarySubstring: "MW",
+          pgpSubstrate: true,
+        },
+      },
+    ];
+
+    REFERENCE_TEST_DRUGS.forEach(({ name, smiles, expected }) => {
+      test(`evaluates ${name} with expected ADME & PK flags`, async () => {
+        const res = await calculateAdmeProperties(smiles, { name });
+        expect(res.valid).toBe(true);
+
+        if (expected.lipinskiViolations !== undefined) {
+          expect(res.druglikeness.lipinski.violations).toBe(
+            expected.lipinskiViolations
+          );
+        }
+        if (expected.minLipinskiViolations !== undefined) {
+          expect(res.druglikeness.lipinski.violations).toBeGreaterThanOrEqual(
+            expected.minLipinskiViolations
+          );
+        }
+        if (expected.failingSummarySubstring) {
+          expect(res.druglikeness.lipinski.status).toContain(
+            expected.failingSummarySubstring
+          );
+        }
+        if (expected.cLogPSubstring) {
+          expect(res.druglikeness.lipinski.status).toContain(
+            expected.cLogPSubstring
+          );
+        }
+        if (expected.passiveBbb) {
+          expect(res.pharmacokinetics.boiledEgg.passiveBbb).toBe(
+            expected.passiveBbb
+          );
+        }
+        if (expected.passiveHia) {
+          expect(res.pharmacokinetics.boiledEgg.giAbsorption).toBe(
+            expected.passiveHia
+          );
+        }
+        if (expected.pgpSubstrate !== undefined) {
+          expect(
+            res.pharmacokinetics.rules?.pgpSubstrate.isSubstrate
+          ).toBe(expected.pgpSubstrate);
+        }
+      });
+    });
+  });
 });

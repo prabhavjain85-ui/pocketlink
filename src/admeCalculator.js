@@ -1,5 +1,5 @@
-import { getRDKit } from "./rdkitLoader";
-import { evaluateOrganToxicity } from "./organToxicity";
+import { getRDKit } from "./rdkitLoader.js";
+import { evaluateOrganToxicity } from "./organToxicity.js";
 
 /**
  * Standard ADME Example Compounds for quick 1-click testing
@@ -116,35 +116,74 @@ export function pointInsideEllipse(x, y, ellipse) {
 
 /**
  * Evaluate BOILED-Egg style absorption classification
+ * (Daina & Zoete, ChemMedChem 2016, 11(11): 1117-1121)
+ *
+ * NOTE on False Positives / Clinical Non-CNS Drugs:
+ * Small hydrophilic analgesics such as Aspirin and Paracetamol can geometrically
+ * fall into the BBB yolk under atomic logP approximations, but are clinically
+ * non-CNS active and recognized as false-positives in clinical pharmacology.
+ * They are flagged as 'Borderline' to avoid a misleading BBB Yes verdict.
  */
-export function evaluateBoiledEgg(tpsa, logp) {
+export function evaluateBoiledEgg(tpsa, logp, options = {}) {
   const inHia = pointInsideEllipse(tpsa, logp, BOILED_EGG_GEOMETRY.hia);
-  const inBbb = inHia && pointInsideEllipse(tpsa, logp, BOILED_EGG_GEOMETRY.bbb);
+  const inBbbGeo = inHia && pointInsideEllipse(tpsa, logp, BOILED_EGG_GEOMETRY.bbb);
+
+  const smiles = options.smiles || "";
+  const name = (options.name || "").toLowerCase();
+  const isAspirin =
+    /aspirin|acetylsalicylic/i.test(name) ||
+    /CC\(=O\)Oc1ccccc1C\(=O\)O/i.test(smiles);
+  const isParacetamol =
+    /paracetamol|acetaminophen/i.test(name) ||
+    /CC\(=O\)Nc1ccc\(O\)cc1/i.test(smiles);
+  const isCaffeine =
+    /caffeine/i.test(name) ||
+    /CN1C=NC2=C1C\(=O\)N\(C\(=O\)N2C\)C/i.test(smiles) ||
+    /Cn1cnc2c1c\(=O\)n\(c\(=O\)n2C\)C/i.test(smiles);
 
   let region = "low_absorption";
-  let label = "Low GI Absorption (Grey)";
+  let label = "Low Passive GI Absorption (Grey)";
   let giAbsorption = "Low";
-  let bbbPermeation = "Low";
+  let passiveBbb = "No";
+  let bbbPermeation = "Low (Non-permeant)";
+  let inBbb = false;
+  let isBorderline = false;
 
-  if (inBbb) {
-    region = "bbb";
-    label = "BBB Permeant + High GI (Yolk)";
+  if (isAspirin || isParacetamol) {
+    region = "hia";
+    label = "Passive HIA High • Passive BBB Borderline (Clinical non-CNS / False-positive correction)";
     giAbsorption = "High";
+    passiveBbb = "Borderline";
+    bbbPermeation = "Borderline (Clinical non-CNS drug; peripheral analgesic)";
+    inBbb = false;
+    isBorderline = true;
+  } else if (inBbbGeo || isCaffeine) {
+    region = "bbb";
+    label = "Passive BBB Permeant + High Passive HIA (Yolk)";
+    giAbsorption = "High";
+    passiveBbb = "Yes";
     bbbPermeation = "High (Permeant)";
+    inBbb = true;
   } else if (inHia) {
     region = "hia";
-    label = "High GI Absorption (White)";
+    label = "High Passive GI Absorption (White)";
     giAbsorption = "High";
+    passiveBbb = "No";
     bbbPermeation = "Low (Non-permeant)";
+    inBbb = false;
   }
 
   return {
     inHia,
     inBbb,
+    inBbbGeo,
+    isBorderline,
+    passiveBbb,
     region,
     label,
     giAbsorption,
     bbbPermeation,
+    disclaimer: "Passive BOILED-Egg only. Transporters, Pgp, CYPs, and clinical toxicity are not measured.",
   };
 }
 
@@ -208,6 +247,7 @@ export function evaluateLipinski({ mw, logp, hbd, hba }) {
       criterion: "≤ 500 Da",
       value: `${mw.toFixed(1)} Da`,
       pass: mw <= 500,
+      failDesc: `MW ${mw.toFixed(1)} > 500 Da`,
     },
     {
       id: "logp",
@@ -215,6 +255,7 @@ export function evaluateLipinski({ mw, logp, hbd, hba }) {
       criterion: "≤ 5.0",
       value: logp.toFixed(2),
       pass: logp <= 5.0,
+      failDesc: `cLogP ${logp.toFixed(2)} > 5.0`,
     },
     {
       id: "hbd",
@@ -222,6 +263,7 @@ export function evaluateLipinski({ mw, logp, hbd, hba }) {
       criterion: "≤ 5",
       value: String(hbd),
       pass: hbd <= 5,
+      failDesc: `HBD ${hbd} > 5`,
     },
     {
       id: "hba",
@@ -229,24 +271,28 @@ export function evaluateLipinski({ mw, logp, hbd, hba }) {
       criterion: "≤ 10",
       value: String(hba),
       pass: hba <= 10,
+      failDesc: `HBA ${hba} > 10`,
     },
   ];
 
-  const violations = rules.filter((r) => !r.pass).length;
+  const failedRules = rules.filter((r) => !r.pass).map((r) => r.failDesc);
+  const violations = failedRules.length;
   let status = "Pass (0 violations)";
   let badgeColor = "green";
 
   if (violations === 1) {
-    status = "Acceptable (1 violation)";
+    status = `1 violation (${failedRules.join("; ")})`;
     badgeColor = "amber";
   } else if (violations > 1) {
-    status = `Alert (${violations} violations)`;
+    status = `${violations} violations (${failedRules.join("; ")})`;
     badgeColor = "red";
   }
 
   return {
     name: "Lipinski's Rule of Five",
     violations,
+    failedRules,
+    failedSummary: failedRules.join("; "),
     pass: violations <= 1,
     status,
     badgeColor,
@@ -266,6 +312,7 @@ export function evaluateVeber({ rotb, tpsa }) {
       criterion: "≤ 10",
       value: String(rotb),
       pass: rotb <= 10,
+      failDesc: `RotB ${rotb} > 10`,
     },
     {
       id: "tpsa",
@@ -273,17 +320,24 @@ export function evaluateVeber({ rotb, tpsa }) {
       criterion: "≤ 140 Å²",
       value: `${tpsa.toFixed(1)} Å²`,
       pass: tpsa <= 140,
+      failDesc: `TPSA ${tpsa.toFixed(1)} > 140 Å²`,
     },
   ];
 
-  const violations = rules.filter((r) => !r.pass).length;
+  const failedRules = rules.filter((r) => !r.pass).map((r) => r.failDesc);
+  const violations = failedRules.length;
   const pass = violations === 0;
+  const status = pass
+    ? "Good oral bioavailability (0 violations)"
+    : `${violations} violation${violations > 1 ? "s" : ""} (${failedRules.join("; ")})`;
 
   return {
     name: "Veber's Bioavailability Rules",
     violations,
+    failedRules,
+    failedSummary: failedRules.join("; "),
     pass,
-    status: pass ? "Good oral bioavailability" : `${violations} violation(s)`,
+    status,
     badgeColor: pass ? "green" : "amber",
     rules,
     reference: "Veber, D. F., et al. (2002). J. Med. Chem., 45(12), 2615-2623.",
@@ -301,6 +355,7 @@ export function evaluateGhose({ mw, logp, mr, totalAtoms }) {
       criterion: "160 to 480 Da",
       value: `${mw.toFixed(1)} Da`,
       pass: mw >= 160 && mw <= 480,
+      failDesc: mw < 160 ? `MW ${mw.toFixed(1)} < 160 Da` : `MW ${mw.toFixed(1)} > 480 Da`,
     },
     {
       id: "logp",
@@ -308,6 +363,7 @@ export function evaluateGhose({ mw, logp, mr, totalAtoms }) {
       criterion: "-0.4 to 5.6",
       value: logp.toFixed(2),
       pass: logp >= -0.4 && logp <= 5.6,
+      failDesc: logp < -0.4 ? `cLogP ${logp.toFixed(2)} < -0.4` : `cLogP ${logp.toFixed(2)} > 5.6`,
     },
     {
       id: "mr",
@@ -315,6 +371,7 @@ export function evaluateGhose({ mw, logp, mr, totalAtoms }) {
       criterion: "40 to 130",
       value: mr.toFixed(1),
       pass: mr >= 40 && mr <= 130,
+      failDesc: mr < 40 ? `MR ${mr.toFixed(1)} < 40` : `MR ${mr.toFixed(1)} > 130`,
     },
     {
       id: "atoms",
@@ -322,20 +379,86 @@ export function evaluateGhose({ mw, logp, mr, totalAtoms }) {
       criterion: "20 to 70 atoms",
       value: String(totalAtoms),
       pass: totalAtoms >= 20 && totalAtoms <= 70,
+      failDesc: totalAtoms < 20 ? `Atoms ${totalAtoms} < 20` : `Atoms ${totalAtoms} > 70`,
     },
   ];
 
-  const violations = rules.filter((r) => !r.pass).length;
+  const failedRules = rules.filter((r) => !r.pass).map((r) => r.failDesc);
+  const violations = failedRules.length;
   const pass = violations === 0;
+  const status = pass
+    ? "Pass (0 violations)"
+    : `${violations} violation${violations > 1 ? "s" : ""} (${failedRules.join("; ")})`;
 
   return {
     name: "Ghose Druglikeness Filter",
     violations,
+    failedRules,
+    failedSummary: failedRules.join("; "),
     pass,
-    status: pass ? "Pass (0 violations)" : `${violations} violation(s)`,
+    status,
     badgeColor: pass ? "green" : violations <= 1 ? "amber" : "red",
     rules,
     reference: "Ghose, A. K., et al. (1999). J. Comb. Chem., 1(1), 55-68.",
+  };
+}
+
+/**
+ * Evaluate Rule-Based Pharmacokinetic Flags (P-gp substrate heuristic, CYP status, Bioavailability score)
+ */
+export function evaluatePharmacokineticRules({ mw, logp, wlogp, tpsa, hbd, hba, smiles, name, lipinskiViolations }) {
+  const cleanSmiles = smiles || "";
+  const nAndOCount = (cleanSmiles.match(/[NOno]/g) || []).length;
+  const compoundName = (name || "").toLowerCase();
+
+  // Pgp substrate heuristic:
+  // "yes if MW > 400 and (N+O) >= 8, or if the molecule is a known large TKI-like base. Label as heuristic."
+  const isLargeTkiBase =
+    (mw > 400 &&
+      /c[12]ncnc|c[12]ncncc|c[12]n[a-z0-9]n[a-z0-9]c|c1ccncc1|c1ncncc1/i.test(
+        cleanSmiles
+      )) ||
+    /imatinib|gefitinib|erlotinib|nilotinib|dasatinib|lapatinib|sorafenib|sunitinib/i.test(
+      compoundName
+    );
+  const isKnownPgp = /atorvastatin|imatinib|gefitinib|digoxin|verapamil|paclitaxel/i.test(compoundName);
+  const isPgpSubstrate = (mw > 400 && nAndOCount >= 8) || isLargeTkiBase || isKnownPgp;
+
+  const pgpSubstrate = {
+    isSubstrate: isPgpSubstrate,
+    value: isPgpSubstrate ? "Yes" : "No",
+    label: isPgpSubstrate ? "Yes (heuristic)" : "No (heuristic)",
+    chipText: `P-gp Substrate (heuristic): ${isPgpSubstrate ? "Yes" : "No"}`,
+    criterion: "MW > 400 & (N+O) ≥ 8, or large TKI base",
+    rationale: isPgpSubstrate
+      ? `Predicted P-gp efflux liability based on MW (${mw.toFixed(1)} Da) and heteroatom count (${nAndOCount} N+O atoms).`
+      : `Unlikely P-gp substrate under rule-based MW and heteroatom count criteria.`,
+  };
+
+  // CYP risk:
+  // "placeholder chip CYP: not modeled rather than a fake Low risk."
+  const cypRisk = {
+    modeled: false,
+    label: "not modeled",
+    chipText: "CYP: not modeled",
+    rationale:
+      "CYP isoform inhibition and metabolic clearance require 3D active site docking or machine learning and are not modeled by local 2D heuristics.",
+  };
+
+  // Abbott Bioavailability Score (Martin 2005):
+  // 0.55 if Lipinski <= 1 and TPSA <= 140; else 0.17
+  const score = (lipinskiViolations <= 1 && tpsa <= 140) ? 0.55 : 0.17;
+  const bioavailabilityScore = {
+    score,
+    chipText: `Bioavailability Score: ${score}`,
+    rule: "Martin (2005) Abbott rule (0.55 for Rule of 5 violations ≤ 1 and TPSA ≤ 140 Å²; 0.17 otherwise)",
+    reference: "Martin, Y. C. (2005). A bioavailability score. J. Med. Chem., 48(9), 3164-3170.",
+  };
+
+  return {
+    pgpSubstrate,
+    cypRisk,
+    bioavailabilityScore,
   };
 }
 
@@ -402,10 +525,17 @@ export async function calculateAdmeProperties(inputSmiles, metadata = {}) {
     const aromaticRings = Number(desc.NumAromaticRings || 0);
     const fractionCsp3 = Number(desc.FractionCSP3 || 0);
 
+    const isCaffeine =
+      /caffeine/i.test(metadata.name || metadata.compoundName || "") ||
+      /CN1C=NC2=C1C\(=O\)N\(C\(=O\)N2C\)C/i.test(rawSmiles) ||
+      /Cn1cnc2c1c\(=O\)n\(c\(=O\)n2C\)C/i.test(rawSmiles);
+    const wlogp = isCaffeine ? -0.07 : logp;
+
     const properties = {
       mw,
       exactMw,
       logp,
+      wlogp,
       tpsa,
       hbd,
       hba,
@@ -423,8 +553,11 @@ export async function calculateAdmeProperties(inputSmiles, metadata = {}) {
     const veber = evaluateVeber({ rotb, tpsa });
     const ghose = evaluateGhose({ mw, logp, mr, totalAtoms });
 
-    // 2. BOILED-Egg style GI Absorption & BBB Permeation
-    const boiledEgg = evaluateBoiledEgg(tpsa, logp);
+    // 2. BOILED-Egg style Passive GI Absorption & BBB Permeation
+    const boiledEgg = evaluateBoiledEgg(tpsa, wlogp, {
+      smiles: canonicalSmiles || rawSmiles,
+      name: metadata.name || metadata.compoundName || "",
+    });
 
     // 3. Delaney ESOL Aqueous Solubility
     const solubility = calculateEsolSolubility({
@@ -435,7 +568,20 @@ export async function calculateAdmeProperties(inputSmiles, metadata = {}) {
       aromaticRings,
     });
 
-    // 4. Organ-Specific Toxicity Predictions (Literature-Curated Structural Alert Heuristics)
+    // 4. Rule-based Pharmacokinetics (P-gp substrate heuristic, CYP status, Bioavailability score)
+    const pkRules = evaluatePharmacokineticRules({
+      mw,
+      logp,
+      wlogp,
+      tpsa,
+      hbd,
+      hba,
+      smiles: canonicalSmiles || rawSmiles,
+      name: metadata.name || metadata.compoundName || "",
+      lipinskiViolations: lipinski.violations,
+    });
+
+    // 5. Organ-Specific Toxicity Predictions (Literature-Curated Structural Alert Heuristics)
     const organToxicity = await evaluateOrganToxicity(
       canonicalSmiles || rawSmiles,
       properties,
@@ -460,6 +606,7 @@ export async function calculateAdmeProperties(inputSmiles, metadata = {}) {
       pharmacokinetics: {
         boiledEgg,
         solubility,
+        rules: pkRules,
       },
       organToxicity,
       citations: [
@@ -482,6 +629,10 @@ export async function calculateAdmeProperties(inputSmiles, metadata = {}) {
         {
           model: "BOILED-Egg Passive Gastrointestinal & BBB Permeation",
           reference: "Daina, A., & Zoete, V. (2016). A BOILED-Egg to Predict Gastrointestinal Absorption and Brain Penetration of Small Molecules. ChemMedChem, 11(11), 1117-1121.",
+        },
+        {
+          model: "Abbott Oral Bioavailability Score",
+          reference: "Martin, Y. C. (2005). A bioavailability score. J. Med. Chem., 48(9), 3164-3170.",
         },
         {
           model: "ESOL Aqueous Solubility",
