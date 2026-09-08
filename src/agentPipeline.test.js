@@ -1,4 +1,10 @@
-import { extractDiseaseQuery, runResearchAgent } from "./agentPipeline";
+import {
+  extractDiseaseQuery,
+  getDrugCountPhrase,
+  getGeneticAdjective,
+  getNoveltyAdjective,
+  runResearchAgent,
+} from "./agentPipeline";
 import * as openTargets from "./openTargets";
 import * as pdbSearch from "./pdbSearch";
 import * as repurposingScreen from "./repurposingScreen";
@@ -446,6 +452,137 @@ describe("agentPipeline", () => {
       expect(report.status).toBe("halted");
       expect(report.steps[3].status).toBe("dead_end");
       expect(report.haltReason).toContain("top score: 12/100");
+    });
+
+    test("halts with explicit message when Open Targets returns 0 associated targets", async () => {
+      jest.spyOn(openTargets, "searchDiseases").mockResolvedValue([
+        { id: "MONDO_0005546", name: "fibromyalgia" },
+      ]);
+      jest.spyOn(openTargets, "runTargetDiscovery").mockResolvedValue({
+        disease: { id: "MONDO_0005546", name: "fibromyalgia", associationCount: 0 },
+        novelty: [],
+        all: [],
+        totalAssociatedCount: 0,
+      });
+
+      const report = await runResearchAgent({
+        goal: "Find repurposing candidates for fibromyalgia",
+      });
+
+      expect(report.status).toBe("halted");
+      expect(report.steps[1].status).toBe("dead_end");
+      expect(report.steps[1].narration).toContain("Open Targets returned 0 associations for this disease. No primary target from OT.");
+      expect(report.haltReason).toContain("Open Targets returned 0 associations for this disease. No primary target from OT.");
+      expect(report.steps[2].status).toBe("pending");
+    });
+
+    test("Step 1 narration accurately reflects raw metrics and avoids false hype", async () => {
+      jest.spyOn(openTargets, "searchDiseases").mockResolvedValue([
+        { id: "MONDO_0005546", name: "fibromyalgia" },
+      ]);
+      // SLC6A4: Novelty 0.1/100, genetic 0%, 67 approved drugs
+      jest.spyOn(openTargets, "runTargetDiscovery").mockResolvedValue({
+        disease: { id: "MONDO_0005546", name: "fibromyalgia", associationCount: 1 },
+        novelty: [],
+        all: [
+          {
+            symbol: "SLC6A4",
+            name: "solute carrier family 6 member 4",
+            noveltyScore: 0.1,
+            geneticScore: 0,
+            somaticScore: 0,
+            drugCount: 67,
+            overallScore: 0.2,
+          },
+        ],
+        totalAssociatedCount: 1,
+      });
+
+      jest.spyOn(pdbSearch, "searchPdbTargets").mockResolvedValue({
+        results: [
+          {
+            id: "5I6X",
+            title: "Crystal structure of human serotonin transporter",
+            score: 92,
+            hasLigand: true,
+            ligand: { compId: "PAR", name: "Paroxetine", formulaWeight: 329.4 },
+            pocket: { available: true, residueCount: 45 },
+          },
+        ],
+      });
+
+      jest.spyOn(repurposingScreen, "screenApprovedLibrary").mockResolvedValue({
+        summary: "Screened approved drugs against 5I6X",
+        librarySize: 2983,
+        scoredCount: 2924,
+        recommended: { name: "Duloxetine", cid: "60835", score: 85 },
+        ranking: [{ name: "Duloxetine", cid: "60835", score: 85 }],
+      });
+
+      jest.spyOn(adversarialService, "fetchAdversarialCritique").mockResolvedValue({
+        case_against: {
+          overall_assessment: "Known liability assessment.",
+          concerns: [],
+        },
+      });
+
+      const report = await runResearchAgent({
+        goal: "Find repurposing candidates for fibromyalgia",
+      });
+
+      expect(report.steps[1].status).toBe("complete");
+      const narration = report.steps[1].narration;
+
+      // Must say "low" next to 0.1/100, NOT "high"
+      expect(narration).toContain("low Novelty Score of **0.1/100**");
+      expect(narration).not.toContain("high Novelty Score");
+
+      // Must say "weak / none" next to 0%, NOT "strong"
+      expect(narration).toContain("weak / none genetic disease association (**0%**)");
+      expect(narration).not.toContain("strong genetic disease association");
+
+      // Must say "already has 67 approved/pipeline drugs (not underexplored)", NOT "underexplored"
+      expect(narration).toContain("already has 67 approved/pipeline drugs (not underexplored)");
+      expect(narration).not.toContain("underexplored opportunity");
+
+      // Must be classified as established / already drugged, NOT novel
+      expect(narration).toContain("already drugged / backup for structures");
+      expect(narration).not.toContain("primary novel candidate");
+    });
+  });
+
+  describe("Adjective and phrase helper functions", () => {
+    test("getNoveltyAdjective maps numeric novelty correctly", () => {
+      expect(getNoveltyAdjective(85)).toBe("high");
+      expect(getNoveltyAdjective(50)).toBe("high");
+      expect(getNoveltyAdjective(49)).toBe("moderate");
+      expect(getNoveltyAdjective(20)).toBe("moderate");
+      expect(getNoveltyAdjective(19.9)).toBe("low");
+      expect(getNoveltyAdjective(0.1)).toBe("low");
+      expect(getNoveltyAdjective(0)).toBe("low");
+      expect(getNoveltyAdjective(null)).toBe("low");
+    });
+
+    test("getGeneticAdjective maps genetic association correctly", () => {
+      expect(getGeneticAdjective(0.9)).toBe("strong");
+      expect(getGeneticAdjective(0.4)).toBe("strong");
+      expect(getGeneticAdjective(0.39)).toBe("moderate");
+      expect(getGeneticAdjective(0.15)).toBe("moderate");
+      expect(getGeneticAdjective(0.14)).toBe("weak / none");
+      expect(getGeneticAdjective(0)).toBe("weak / none");
+      expect(getGeneticAdjective(null)).toBe("weak / none");
+      // Handle percentage scale 0-100 as well
+      expect(getGeneticAdjective(80)).toBe("strong");
+      expect(getGeneticAdjective(25)).toBe("moderate");
+      expect(getGeneticAdjective(5)).toBe("weak / none");
+    });
+
+    test("getDrugCountPhrase maps approved drug counts correctly", () => {
+      expect(getDrugCountPhrase(0)).toBe("no approved drugs (underexplored)");
+      expect(getDrugCountPhrase(1)).toBe("few drugs");
+      expect(getDrugCountPhrase(2)).toBe("few drugs");
+      expect(getDrugCountPhrase(3)).toBe("already has 3 approved/pipeline drugs (not underexplored)");
+      expect(getDrugCountPhrase(67)).toBe("already has 67 approved/pipeline drugs (not underexplored)");
     });
   });
 });

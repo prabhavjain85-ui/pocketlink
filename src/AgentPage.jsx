@@ -537,8 +537,12 @@ export default function AgentPage() {
                       <span className="summary-label">Primary Target</span>
                       <strong style={{ fontSize: 16 }}>{step1.data.primaryTarget.symbol}</strong>
                       <div className="score-title">{step1.data.primaryTarget.name}</div>
-                      <div style={{ marginTop: 6, fontSize: 12, color: "var(--text-dim)" }}>
-                        Novelty Score: <strong className="mono">{step1.data.primaryTarget.noveltyScore}/100</strong> · Approved Drugs: <strong className="mono">{step1.data.primaryTarget.drugCount ?? 0}</strong>
+                      <div style={{ marginTop: 6, fontSize: 12, color: "var(--text-dim)", display: "flex", flexWrap: "wrap", gap: "4px 8px" }}>
+                        <span>Novelty: <strong className="mono">{step1.data.primaryTarget.noveltyScore != null ? `${step1.data.primaryTarget.noveltyScore}/100` : "N/A"}</strong></span>
+                        <span>·</span>
+                        <span>Genetic: <strong className="mono">{step1.data.primaryTarget.geneticScore != null ? `${(step1.data.primaryTarget.geneticScore * 100).toFixed(0)}%` : "0%"}</strong></span>
+                        <span>·</span>
+                        <span>Approved Drugs: <strong className="mono">{step1.data.primaryTarget.drugCount ?? 0}</strong></span>
                       </div>
                     </div>
 
@@ -547,8 +551,12 @@ export default function AgentPage() {
                         <span className="summary-label">Contingency Backup Target</span>
                         <strong style={{ fontSize: 16 }}>{step1.data.backupTarget.symbol}</strong>
                         <div className="score-title">{step1.data.backupTarget.name}</div>
-                        <div style={{ marginTop: 6, fontSize: 12, color: "var(--text-dim)" }}>
-                          Novelty Score: <strong className="mono">{step1.data.backupTarget.noveltyScore}/100</strong> · Approved Drugs: <strong className="mono">{step1.data.backupTarget.drugCount ?? 0}</strong>
+                        <div style={{ marginTop: 6, fontSize: 12, color: "var(--text-dim)", display: "flex", flexWrap: "wrap", gap: "4px 8px" }}>
+                          <span>Novelty: <strong className="mono">{step1.data.backupTarget.noveltyScore != null ? `${step1.data.backupTarget.noveltyScore}/100` : "N/A"}</strong></span>
+                          <span>·</span>
+                          <span>Genetic: <strong className="mono">{step1.data.backupTarget.geneticScore != null ? `${(step1.data.backupTarget.geneticScore * 100).toFixed(0)}%` : "0%"}</strong></span>
+                          <span>·</span>
+                          <span>Approved Drugs: <strong className="mono">{step1.data.backupTarget.drugCount ?? 0}</strong></span>
                         </div>
                       </div>
                     )}

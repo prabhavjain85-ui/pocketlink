@@ -206,6 +206,51 @@ export function parseGoal(goal) {
 }
 
 /**
+ * Adjective mapping for target novelty score (0-100).
+ * - score >= 50 -> "high"
+ * - score 20-49 -> "moderate"
+ * - score < 20  -> "low"
+ */
+export function getNoveltyAdjective(score) {
+  if (score == null) return "low";
+  const n = Number(score);
+  if (!Number.isFinite(n) || n < 20) return "low";
+  if (n >= 50) return "high";
+  return "moderate";
+}
+
+/**
+ * Adjective mapping for target genetic disease association score (0-1 or percentage).
+ * - score >= 0.4 -> "strong"
+ * - score 0.15-0.39 -> "moderate"
+ * - else -> "weak / none"
+ */
+export function getGeneticAdjective(score) {
+  if (score == null) return "weak / none";
+  let g = Number(score);
+  if (!Number.isFinite(g)) return "weak / none";
+  if (g > 1) {
+    g = g / 100;
+  }
+  if (g >= 0.4) return "strong";
+  if (g >= 0.15) return "moderate";
+  return "weak / none";
+}
+
+/**
+ * Descriptive phrase for approved drug count.
+ * - drugCount === 0 -> "no approved drugs (underexplored)"
+ * - drugCount 1-2   -> "few drugs"
+ * - drugCount >= 3  -> "already has N approved/pipeline drugs (not underexplored)"
+ */
+export function getDrugCountPhrase(drugCount) {
+  const n = Math.max(0, Number(drugCount) || 0);
+  if (n === 0) return "no approved drugs (underexplored)";
+  if (n <= 2) return "few drugs";
+  return `already has ${n} approved/pipeline drugs (not underexplored)`;
+}
+
+/**
  * Extract a likely disease or condition query from a natural-language research goal.
  */
 export function extractDiseaseQuery(goal) {
@@ -388,9 +433,14 @@ export async function runResearchAgent({
 
     const noveltyTargets = discoveryResult?.novelty || [];
     const allTargets = discoveryResult?.all || [];
+    const totalAssociatedCount =
+      discoveryResult?.disease?.associationCount ??
+      discoveryResult?.totalAssociatedCount ??
+      discoveryResult?.fetchedCount ??
+      (noveltyTargets.length || allTargets.length);
 
-    if (!noveltyTargets.length && !allTargets.length) {
-      const haltMsg = `Open Targets returned 0 associated targets for ${pickedDisease.name} (${pickedDisease.id}). Target discovery yielded no evidence-backed proteins for this indication.`;
+    if (totalAssociatedCount === 0 || (!noveltyTargets.length && !allTargets.length)) {
+      const haltMsg = `Open Targets returned 0 associations for this disease. No primary target from OT. Target discovery for "${pickedDisease.name}" (${pickedDisease.id}) yielded no evidence-backed proteins for this indication.`;
       notify(1, {
         status: "dead_end",
         narration: haltMsg,
@@ -402,22 +452,50 @@ export async function runResearchAgent({
       return report;
     }
 
-    // Identify candidate targets:
-    // Target candidate sorting for repurposing:
-    // 1. Prefer wellEstablished / high overall Open Targets score with drugCount >= 1 (ABL1, EGFR, CFTR, BRAF, …).
-    // 2. Do not pick novelty[0] (RUNX1, DICER1, SETBP1) as the structure/repurposing target
-    //    unless no established target has a usable PDB.
+    // Helper to evaluate real genetic or somatic evidence for THIS disease
+    const getGeneticScore = (t) => Number(t?.geneticScore ?? t?.datatypeScores?.genetic_association) || 0;
+    const getSomaticScore = (t) => Number(t?.somaticScore ?? t?.datatypeScores?.somatic_mutation) || 0;
+    const hasRealEvidence = (t) => {
+      const g = getGeneticScore(t);
+      const s = getSomaticScore(t);
+      if (g >= 0.15 || s >= 0.15) return true;
+      if (Number(t?.overallScore) >= 0.4 && t?.geneticScore !== 0 && t?.somaticScore !== 0) return true;
+      return false;
+    };
 
+    // Candidate target pool construction:
+    // 1. Prefer targets with real genetic/somatic evidence for THIS disease.
+    // 2. Among evidence-backed targets, prioritize established targets (drugCount >= 1) with known druggable pockets.
+    // 3. Fall back to novelty targets (drugCount == 0) and other general associations.
     const candidatePool = [];
     const seenSymbols = new Set();
 
-    // Priority 1: Established targets with drugCount >= 1, sorted by overallScore descending
-    const establishedList = [
+    // Priority 1: Evidence-backed targets
+    const evidenceTargets = (allTargets || []).filter(hasRealEvidence);
+    const establishedWithEvidence = [
+      ...(discoveryResult?.established || []).filter(hasRealEvidence),
+      ...evidenceTargets.filter((t) => (t.drugCount ?? 0) >= 1),
+    ].sort((a, b) => (b.overallScore ?? 0) - (a.overallScore ?? 0));
+
+    const novelWithEvidence = (noveltyTargets || [])
+      .filter(hasRealEvidence)
+      .sort((a, b) => (b.noveltyScore ?? 0) - (a.noveltyScore ?? 0));
+
+    for (const t of [...establishedWithEvidence, ...novelWithEvidence, ...evidenceTargets]) {
+      const sym = t?.symbol?.toUpperCase();
+      if (sym && !seenSymbols.has(sym)) {
+        seenSymbols.add(sym);
+        candidatePool.push({ ...t, isEstablishedCandidate: (t.drugCount ?? 0) >= 1 });
+      }
+    }
+
+    // Priority 2: Established targets with drugCount >= 1 without strong genetic evidence
+    const otherEstablished = [
       ...(discoveryResult?.established || []),
       ...(allTargets || []).filter((t) => (t.drugCount ?? 0) >= 1),
-    ];
-    establishedList.sort((a, b) => (b.overallScore ?? 0) - (a.overallScore ?? 0));
-    for (const t of establishedList) {
+    ].sort((a, b) => (b.overallScore ?? 0) - (a.overallScore ?? 0));
+
+    for (const t of otherEstablished) {
       const sym = t?.symbol?.toUpperCase();
       if (sym && !seenSymbols.has(sym)) {
         seenSymbols.add(sym);
@@ -425,12 +503,12 @@ export async function runResearchAgent({
       }
     }
 
-    // Priority 2: Fallback candidates from allTargets / noveltyTargets (e.g. drugCount == 0 or novel targets)
+    // Priority 3: Fallback candidates from noveltyTargets / allTargets
     for (const t of [...(noveltyTargets || []), ...(allTargets || [])]) {
       const sym = t?.symbol?.toUpperCase();
       if (sym && !seenSymbols.has(sym)) {
         seenSymbols.add(sym);
-        candidatePool.push({ ...t, isEstablishedCandidate: false });
+        candidatePool.push({ ...t, isEstablishedCandidate: (t.drugCount ?? 0) >= 1 });
       }
     }
 
@@ -446,21 +524,44 @@ export async function runResearchAgent({
     let primaryTarget = candidatePool[0] || noveltyTargets[0] || allTargets[0];
     let backupTarget = candidatePool.find((t) => t.symbol !== primaryTarget.symbol) || null;
 
-    // Compose Step 1 Narration grounded in real evidence
-    const primaryNovelty = primaryTarget.noveltyScore != null ? `${primaryTarget.noveltyScore}/100` : "N/A";
-    const primaryGenetic = primaryTarget.geneticScore != null ? (primaryTarget.geneticScore * 100).toFixed(0) : "N/A";
+    // Compose Step 1 Narration grounded strictly in numbers (never say "high" for 0.1, "strong" for 0%, or "underexplored" for 67 drugs)
+    const primaryNoveltyVal = primaryTarget.noveltyScore;
+    const primaryNovelty = primaryNoveltyVal != null ? `${primaryNoveltyVal}/100` : "N/A";
+    const primaryGeneticVal = primaryTarget.geneticScore;
+    const primaryGenetic = primaryGeneticVal != null ? `${(primaryGeneticVal * 100).toFixed(0)}%` : "0%";
     const primaryDrugs = primaryTarget.drugCount ?? 0;
 
-    let step1Narration = `I queried Open Targets for "${pickedDisease.name}" (${pickedDisease.id}) and evaluated ${discoveryResult.totalAssociatedCount || noveltyTargets.length} associated targets. `;
+    const noveltyAdj = getNoveltyAdjective(primaryNoveltyVal);
+    const geneticAdj = getGeneticAdjective(primaryGeneticVal);
+    const drugPhrase = getDrugCountPhrase(primaryDrugs);
+    const isHighDrug = primaryDrugs >= 3;
+    const targetRoleLabel = isHighDrug
+      ? "already drugged / backup for structures"
+      : primaryDrugs === 0
+      ? "primary novel candidate"
+      : "primary candidate";
+
+    let step1Narration = `I queried Open Targets for "${pickedDisease.name}" (${pickedDisease.id}) and evaluated ${totalAssociatedCount} associated targets. `;
     if (parsed.targetGene && primaryTarget.symbol?.toUpperCase() === parsed.targetGene) {
-      step1Narration += `Based on your request, I focused on **${primaryTarget.symbol}** (*${primaryTarget.name || primaryTarget.symbol}*): it has a genetic disease association of **${primaryGenetic}%**, and currently has **${primaryDrugs} approved drugs**.`;
+      step1Narration += `Based on your request, I focused on **${primaryTarget.symbol}** (*${primaryTarget.name || primaryTarget.symbol}*): it exhibits a ${noveltyAdj} Novelty Score of **${primaryNovelty}**, ${geneticAdj} genetic disease association (**${primaryGenetic}**), and ${drugPhrase}.`;
+    } else if (isHighDrug) {
+      step1Narration += `I selected **${primaryTarget.symbol}** (*${primaryTarget.name || primaryTarget.symbol}*) as an established target (${targetRoleLabel}): it exhibits a ${noveltyAdj} Novelty Score of **${primaryNovelty}**, ${geneticAdj} genetic disease association (**${primaryGenetic}**), and ${drugPhrase}.`;
     } else {
-      step1Narration += `I selected **${primaryTarget.symbol}** (*${primaryTarget.name || primaryTarget.symbol}*) as the primary candidate: it exhibits a high Novelty Score of **${primaryNovelty}**, strong genetic disease association (**${primaryGenetic}%**), and currently has **${primaryDrugs} approved drugs**, representing an underexplored opportunity with robust causal biological evidence.`;
+      step1Narration += `I selected **${primaryTarget.symbol}** (*${primaryTarget.name || primaryTarget.symbol}*) as the ${targetRoleLabel}: it exhibits a ${noveltyAdj} Novelty Score of **${primaryNovelty}**, ${geneticAdj} genetic disease association (**${primaryGenetic}**), and ${drugPhrase}, representing an opportunity with ${geneticAdj} causal biological evidence.`;
     }
 
     if (backupTarget) {
-      const backupNovelty = backupTarget.noveltyScore != null ? `${backupTarget.noveltyScore}/100` : "N/A";
-      step1Narration += ` As a contingency for structural evaluation, I designated **${backupTarget.symbol}** (Novelty: **${backupNovelty}**, ${backupTarget.drugCount ?? 0} approved drugs) as the 2nd-ranked backup target.`;
+      const backupNoveltyVal = backupTarget.noveltyScore;
+      const backupNovelty = backupNoveltyVal != null ? `${backupNoveltyVal}/100` : "N/A";
+      const backupNoveltyAdj = getNoveltyAdjective(backupNoveltyVal);
+      const backupGeneticVal = backupTarget.geneticScore;
+      const backupGenetic = backupGeneticVal != null ? `${(backupGeneticVal * 100).toFixed(0)}%` : "0%";
+      const backupGeneticAdj = getGeneticAdjective(backupGeneticVal);
+      const backupDrugs = backupTarget.drugCount ?? 0;
+      const backupDrugPhrase = getDrugCountPhrase(backupDrugs);
+      const backupRole = backupDrugs >= 3 ? "already drugged / backup for structures" : "contingency backup target";
+
+      step1Narration += ` As a contingency for structural evaluation, I designated **${backupTarget.symbol}** (${backupRole}: Novelty **${backupNovelty}** [${backupNoveltyAdj}], genetic association **${backupGenetic}** [${backupGeneticAdj}], ${backupDrugPhrase}) as the 2nd-ranked backup target.`;
     }
 
     notify(1, {
@@ -470,8 +571,8 @@ export async function runResearchAgent({
         disease: pickedDisease,
         primaryTarget,
         backupTarget,
-        noveltyTargets: noveltyTargets.slice(0, 10),
-        allTargetsCount: discoveryResult.totalAssociatedCount || allTargets.length,
+        noveltyTargets: (noveltyTargets.length ? noveltyTargets : allTargets).slice(0, 10),
+        allTargetsCount: totalAssociatedCount,
       },
     });
 
@@ -828,8 +929,10 @@ export async function runResearchAgent({
       targetSymbol: activeTarget.symbol,
       targetName: activeTarget.name || activeTarget.symbol,
       targetOneLineWhy: pivoted
-        ? `Pivoted from ${primaryTarget.symbol} (lacked pocket); ${activeTarget.symbol} has validated structure & ${(activeTarget.geneticScore != null ? (activeTarget.geneticScore * 100).toFixed(0) : "N/A")}% genetic disease association`
-        : `Top genetic disease association (${(activeTarget.geneticScore != null ? (activeTarget.geneticScore * 100).toFixed(0) : "N/A")}%) with ${activeTarget.drugCount ?? 0} approved drugs`,
+        ? `Pivoted from ${primaryTarget.symbol} (lacked pocket); ${activeTarget.symbol} has validated structure & ${(activeTarget.geneticScore != null ? (activeTarget.geneticScore * 100).toFixed(0) : "0")}% genetic disease association (${getGeneticAdjective(activeTarget.geneticScore)})`
+        : (activeTarget.drugCount ?? 0) >= 3
+        ? `Established target (already drugged / backup for structures): ${(activeTarget.geneticScore != null ? (activeTarget.geneticScore * 100).toFixed(0) : "0")}% genetic disease association (${getGeneticAdjective(activeTarget.geneticScore)}), ${activeTarget.drugCount ?? 0} approved drugs`
+        : `${getGeneticAdjective(activeTarget.geneticScore)} genetic disease association (${(activeTarget.geneticScore != null ? (activeTarget.geneticScore * 100).toFixed(0) : "0")}%) with ${getDrugCountPhrase(activeTarget.drugCount)}`,
       pivotedFrom: pivoted ? primaryTarget.symbol : null,
       pdbId: selectedStructure.id,
       pdbResolution: resolutionText,
