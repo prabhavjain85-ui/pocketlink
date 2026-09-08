@@ -889,4 +889,6 @@ module.exports = {
   resolveTargetRule,
   matchesCoCrystalLigand,
   rankRepurposing,
+  KINASE_INHIBITOR_RE,
+  GPCR_LIGAND_RE,
 };

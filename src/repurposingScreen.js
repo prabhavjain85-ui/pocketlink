@@ -2,8 +2,16 @@ import { rankCandidatesBatch, scoreLibraryLocal } from "./aiCandidateRanking";
 import { drugToCandidate, loadApprovedDrugs } from "./approvedDrugs";
 import { checkPainsFast } from "./painsCheck";
 import { getCachedScore, pdbIdOf, rememberScores } from "./rankingCache";
-import { rankingCacheKey, targetDisplayName, summarizeTargetData } from "./targetContext";
-import { drugLikenessChecks, scoringCapabilities } from "./scoreCandidates";
+import { rankingCacheKey, targetDisplayName, summarizeTargetData, buildTargetContext } from "./targetContext";
+import {
+  drugLikenessChecks,
+  scoringCapabilities,
+  resolveTargetRule,
+  rankCandidatesLocal,
+  targetFamily,
+  KINASE_INHIBITOR_RE,
+  GPCR_LIGAND_RE,
+} from "./scoreCandidates";
 
 export const AI_BATCH_SIZE = 25;
 export const AI_SHORTLIST_SIZE = 200;
@@ -343,6 +351,109 @@ export function prequalifyCandidatesForAi(keptDrugs, protein, { maxAiCandidates 
 }
 
 /**
+ * Build a shortlist of approved drugs for the 4-step Autonomous Research Agent:
+ * - Canonical on-target drugs for the resolved gene and target rule
+ * - Same-family drugs (to allow adversarial and on-target vs same-family reasoning)
+ * - Co-crystallized ligand matching drug if present
+ * - Diverse sample of approved small molecules
+ */
+export function buildAgentShortlist(allDrugs, proteinContext, activeTarget) {
+  const fullContext = buildTargetContext(proteinContext) || proteinContext;
+  const targetGene = String(
+    activeTarget?.symbol || proteinContext?.gene || proteinContext?.symbol || ""
+  ).trim().toUpperCase();
+  const rule = resolveTargetRule(fullContext);
+  const shortlistMap = new Map();
+
+  const addDrug = (drug) => {
+    if (!drug || !drug.cid) return;
+    const key = String(drug.cid);
+    if (!shortlistMap.has(key)) {
+      shortlistMap.set(key, drug);
+    }
+  };
+
+  // 1. Target rule canonical on-target drugs (e.g. imatinib for ABL, gefitinib for EGFR, etc.)
+  if (rule?.onTargetDrugs) {
+    for (const name of rule.onTargetDrugs) {
+      const d = allDrugs.find((drug) => String(drug.name || "").toLowerCase() === name.toLowerCase());
+      if (d) addDrug(d);
+    }
+  }
+  if (rule?.onTargetRe) {
+    for (const drug of allDrugs) {
+      if (rule.onTargetRe.test(drug.name)) addDrug(drug);
+    }
+  }
+
+  // 2. Co-crystal ligand match
+  const ligandName = String(
+    proteinContext?.ligand?.name || fullContext?.ligand?.name || ""
+  ).trim().toLowerCase();
+  if (ligandName) {
+    for (const drug of allDrugs) {
+      if (String(drug.name || "").toLowerCase() === ligandName) addDrug(drug);
+    }
+  }
+
+  // 3. Drugs mentioning target gene in name, indication, or mechanism
+  if (targetGene && targetGene.length >= 3) {
+    const geneRe = new RegExp(`\\b${targetGene}\\b`, "i");
+    for (const drug of allDrugs) {
+      if (
+        geneRe.test(drug.name) ||
+        geneRe.test(drug.indication || "") ||
+        geneRe.test(drug.class || "")
+      ) {
+        addDrug(drug);
+      }
+    }
+  }
+
+  // 4. Same-family drugs for the resolved gene/family
+  if (rule?.demotedRe) {
+    for (const drug of allDrugs) {
+      if (rule.demotedRe.test(drug.name)) addDrug(drug);
+    }
+  }
+
+  const family = fullContext.family || targetFamily(fullContext);
+  if (family === "kinase") {
+    let count = 0;
+    for (const drug of allDrugs) {
+      if (KINASE_INHIBITOR_RE.test(drug.name) || String(drug.class || "").toLowerCase().includes("kinase")) {
+        addDrug(drug);
+        count++;
+        if (count >= 15) break;
+      }
+    }
+  } else if (family === "gpcr") {
+    let count = 0;
+    for (const drug of allDrugs) {
+      if (GPCR_LIGAND_RE.test(drug.name) || String(drug.class || "").toLowerCase().includes("receptor")) {
+        addDrug(drug);
+        count++;
+        if (count >= 15) break;
+      }
+    }
+  }
+
+  // 5. Capped approved-library sample of diverse small molecules (up to ~50 total)
+  let sampleCount = 0;
+  for (const drug of allDrugs) {
+    if (shortlistMap.size >= 50) break;
+    const mw = Number(drug.mw || drug.MolecularWeight || 0);
+    if (mw > 150 && mw < 550 && !shortlistMap.has(String(drug.cid))) {
+      addDrug(drug);
+      sampleCount++;
+      if (sampleCount >= 25) break;
+    }
+  }
+
+  return Array.from(shortlistMap.values());
+}
+
+/**
  * Screen a PDB target against the bundled approved-drug library.
  * Scales effortlessly to 2,900+ compounds via:
  * 1. Aggressive deterministic pre-filtering (Lipinski Ro5, PAINS, pocket geometry)
@@ -352,7 +463,14 @@ export function prequalifyCandidatesForAi(keptDrugs, protein, { maxAiCandidates 
  */
 export async function screenApprovedLibrary(
   protein,
-  { onProgress, force = false, maxAiCandidates = AI_SHORTLIST_SIZE } = {}
+  {
+    onProgress,
+    force = false,
+    maxAiCandidates = AI_SHORTLIST_SIZE,
+    shortlistOnly = false,
+    activeTarget = null,
+    signal = null,
+  } = {}
 ) {
   const drugs = loadApprovedDrugs();
   const pdb = pdbIdOf(protein);
@@ -372,6 +490,67 @@ export async function screenApprovedLibrary(
     );
     err.code = "INSUFFICIENT_STRUCTURE";
     throw err;
+  }
+
+  // 4-step Agent fast-path: score targeted shortlist using heuristic-v2 with full protein context
+  if (shortlistOnly) {
+    if (signal?.aborted) {
+      const err = new Error("Agent run was cancelled by user.");
+      err.name = "AbortError";
+      throw err;
+    }
+
+    if (typeof onProgress === "function") {
+      onProgress({
+        percent: 25,
+        message: `Assembling targeted approved-drug shortlist for ${targetName}...`,
+      });
+    }
+
+    const fullContext = buildTargetContext(protein) || protein;
+    const shortlist = buildAgentShortlist(drugs, protein, activeTarget);
+
+    if (typeof onProgress === "function") {
+      onProgress({
+        percent: 60,
+        message: `Scoring ${shortlist.length} candidate drugs against ${targetName} using heuristic-v2...`,
+      });
+    }
+
+    if (signal?.aborted) {
+      const err = new Error("Agent run was cancelled by user.");
+      err.name = "AbortError";
+      throw err;
+    }
+
+    const candidates = shortlist.map((d) => drugToCandidate(d));
+    const scoredResult = rankCandidatesLocal(candidates, fullContext, {
+      maxCandidates: candidates.length,
+      minCandidates: 1,
+    });
+
+    const rankedRows = scoredResult.ranking || [];
+
+    if (typeof onProgress === "function") {
+      onProgress({
+        percent: 100,
+        message: `Ranked ${rankedRows.length} candidates for ${targetName}.`,
+      });
+    }
+
+    return {
+      target: { name: fullContext.name, pdb_id: fullContext.pdb_id },
+      summary: `Screened canonical on-target, same-family, and approved sample shortlist (${rankedRows.length} compounds) against ${fullContext.name} (${fullContext.pdb_id}) using heuristic-v2`,
+      librarySize: drugs.length,
+      scoredCount: rankedRows.length,
+      shortlistSize: rankedRows.length,
+      recommended: rankedRows[0] || null,
+      ranking: rankedRows,
+      top5: rankedRows.slice(0, 5),
+      source: "heuristic-v2",
+      limitations: scoredResult.limitations || [],
+      selectedStructure: protein,
+    };
   }
 
   const report = (partial) => {

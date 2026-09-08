@@ -62,7 +62,7 @@ export function getCachedAdversarialCritique(candidate, target) {
   return null;
 }
 
-export async function fetchAdversarialCritique(candidate, target) {
+export async function fetchAdversarialCritique(candidate, target, { signal } = {}) {
   if (!candidate) throw new Error("A candidate compound is required.");
   const key = buildCacheKey(candidate, target);
 
@@ -106,6 +106,7 @@ export async function fetchAdversarialCritique(candidate, target) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
+    signal,
   });
 
   if (!res.ok) {

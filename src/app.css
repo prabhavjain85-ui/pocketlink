@@ -3557,6 +3557,20 @@ textarea.field-input {
   align-items: stretch;
 }
 
+@media (max-width: 640px) {
+  .agent-input-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .agent-btn-submit,
+  .agent-btn-cancel {
+    width: 100% !important;
+    height: 44px !important;
+    justify-content: center !important;
+    padding: 10px 16px !important;
+  }
+}
+
 .agent-input {
   flex: 1;
   font-size: 15px;
@@ -3567,11 +3581,20 @@ textarea.field-input {
   color: var(--text);
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  min-height: 44px;
+  box-sizing: border-box;
 }
 
 .agent-input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+.agent-input-helper {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: -8px;
+  margin-bottom: 4px;
 }
 
 .agent-btn-submit {
@@ -3583,20 +3606,35 @@ textarea.field-input {
   font-weight: 600;
   font-size: 14px;
   padding: 0 24px;
-  border: none;
+  height: 44px;
+  min-height: 44px;
+  border: 1px solid var(--primary);
   border-radius: var(--radius);
   cursor: pointer;
-  transition: background 0.15s ease;
+  box-shadow: 0 1px 2px rgba(15, 118, 110, 0.18);
+  transition: all 0.15s ease;
   white-space: nowrap;
 }
 
 .agent-btn-submit:hover:not(:disabled) {
   background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  box-shadow: 0 3px 6px rgba(15, 118, 110, 0.25);
+  transform: translateY(-1px);
+}
+
+.agent-btn-submit:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .agent-btn-submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  background: #E2E8F0 !important;
+  color: #94A3B8 !important;
+  border-color: #CBD5E1 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+  opacity: 0.85;
 }
 
 .agent-btn-cancel {
@@ -3608,10 +3646,13 @@ textarea.field-input {
   border: 1px solid var(--red-border);
   font-weight: 600;
   font-size: 13.5px;
-  padding: 0 16px;
+  padding: 0 18px;
+  height: 44px;
+  min-height: 44px;
   border-radius: var(--radius);
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .agent-btn-cancel:hover {
@@ -3642,13 +3683,42 @@ textarea.field-input {
   color: var(--text-dim);
   cursor: pointer;
   transition: all 0.15s ease;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
+  text-align: left;
+  line-height: 1.35;
 }
 
 .agent-example-chip:hover {
   background: var(--primary-light);
   border-color: var(--primary-border);
   color: var(--primary);
+}
+
+.agent-restored-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f0fdfa;
+  border: 1px solid var(--primary-border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.agent-resolved-indicator {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  margin-top: -4px;
+  margin-bottom: 4px;
 }
 
 /* Progress Tracker */
@@ -4072,6 +4142,161 @@ textarea.field-input {
   border-top: 1px solid var(--border);
   gap: 16px;
   flex-wrap: wrap;
+}
+
+/* Two-column Adversarial Critique Layout */
+.adversarial-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+@media (max-width: 768px) {
+  .adversarial-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.adversarial-col {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.adversarial-col.case-for {
+  border-top: 3px solid var(--primary);
+  background: #fcfdfd;
+}
+
+.adversarial-col.case-against {
+  border-top: 3px solid #d97706;
+  background: #fffdfa;
+}
+
+.adversarial-col-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.adversarial-col-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.adversarial-point-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.adversarial-point-item {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  padding-left: 16px;
+  position: relative;
+}
+
+.adversarial-point-item::before {
+  content: "•";
+  position: absolute;
+  left: 4px;
+  top: 0;
+  font-weight: bold;
+}
+
+.adversarial-col.case-for .adversarial-point-item::before {
+  color: var(--primary);
+}
+
+.adversarial-col.case-against .adversarial-point-item::before {
+  color: #d97706;
+}
+
+.adversarial-point-item strong {
+  color: var(--text);
+}
+
+/* Final Summary Card Strip (Requirement 8) */
+.agent-summary-strip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.agent-summary-strip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.agent-summary-strip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.agent-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.agent-summary-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.agent-summary-val {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.agent-summary-critique {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+
+.agent-summary-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-light);
 }
 
 

@@ -22,13 +22,51 @@ import { screenApprovedLibrary } from "./repurposingScreen";
 import { scoringCapabilities } from "./scoreCandidates";
 
 /**
- * Extract a likely disease or condition query from a natural-language research goal.
- * Handles patterns like "Find repurposing candidates for pancreatic cancer",
- * "Identify novel targets for glioblastoma", "Screen drugs for colorectal cancer".
+ * Known short clinical and disease aliases mapped to canonical Open Targets search terms.
  */
-export function extractDiseaseQuery(goal) {
-  if (!goal || typeof goal !== "string") return "";
-  let text = goal.trim();
+export const DISEASE_ALIASES = {
+  ad: "Alzheimer disease",
+  pd: "Parkinson disease",
+  t2d: "type 2 diabetes mellitus",
+  t2dm: "type 2 diabetes mellitus",
+  cml: "chronic myeloid leukemia",
+  aml: "acute myeloid leukemia",
+  cll: "chronic lymphocytic leukemia",
+  all: "acute lymphoblastic leukemia",
+  gbm: "glioblastoma",
+  crc: "colorectal cancer",
+  pdac: "pancreatic ductal adenocarcinoma",
+  nsclc: "non-small cell lung carcinoma",
+  sclc: "small cell lung carcinoma",
+  als: "amyotrophic lateral sclerosis",
+  ra: "rheumatoid arthritis",
+  ibd: "inflammatory bowel disease",
+  ms: "multiple sclerosis",
+};
+
+/**
+ * Extract disease name and optional target gene symbol from a user research goal.
+ */
+export function parseGoal(goal) {
+  if (!goal || typeof goal !== "string") {
+    return { diseaseQuery: "", targetGene: null, rawGoal: "" };
+  }
+  const rawGoal = goal.trim();
+  let text = rawGoal;
+
+  // Extract optional target gene if mentioned (e.g. "EGFR inhibitors for lung cancer", "KRAS in CRC")
+  let targetGene = null;
+  const geneMatch = text.match(
+    /\b([A-Z][A-Z0-9]{1,7})\b\s*(?:inhibitors?|antagonists?|blockers?|ligands?|targets?|binders?|directed)?\s+(?:for|in|against)\s+/i
+  );
+  if (
+    geneMatch &&
+    !["FIND", "RUN", "SCREEN", "LOOK", "BEST", "DRUG", "DRUGS", "NOVEL", "NEW", "THE"].includes(
+      geneMatch[1].toUpperCase()
+    )
+  ) {
+    targetGene = geneMatch[1].toUpperCase();
+  }
 
   // Strip leading action verb and object clause before preposition
   text = text.replace(
@@ -36,15 +74,40 @@ export function extractDiseaseQuery(goal) {
     ""
   );
 
-  // If starts with "repurposing ... for" or "pipeline for"
-  text = text.replace(/^(?:repurpos\w+|pipeline)\s+.*?\b(?:for|against|in|targeting)\s+/i, "");
+  // If starts with "repurposing ... for" or "pipeline for" or "drugs targeting ... for"
+  text = text.replace(/^(?:repurpos\w+|pipeline|drugs?\s+targeting)\s+.*?\b(?:for|against|in|targeting)\s+/i, "");
 
   // Strip trailing boilerplate phrases
   text = text
     .replace(/\s*(?:using\s+pocketlink|with\s+(?:the\s+)?agent|please|\.)+$/i, "")
     .trim();
 
-  return text || goal.trim();
+  // Alias lookup
+  const lowerText = text.toLowerCase();
+  if (DISEASE_ALIASES[lowerText]) {
+    text = DISEASE_ALIASES[lowerText];
+  } else {
+    for (const [alias, full] of Object.entries(DISEASE_ALIASES)) {
+      const aliasRe = new RegExp(`\\b${alias}\\b`, "i");
+      if (aliasRe.test(text)) {
+        text = text.replace(aliasRe, full);
+        break;
+      }
+    }
+  }
+
+  return {
+    diseaseQuery: text || rawGoal,
+    targetGene,
+    rawGoal,
+  };
+}
+
+/**
+ * Extract a likely disease or condition query from a natural-language research goal.
+ */
+export function extractDiseaseQuery(goal) {
+  return parseGoal(goal).diseaseQuery;
 }
 
 /**
@@ -181,15 +244,18 @@ export async function runResearchAgent({
       onProgress({ step: 1, message: "Extracting disease query and querying Open Targets..." });
     }
 
-    const diseaseQuery = extractDiseaseQuery(goal);
+    const parsed = parseGoal(goal);
+    const diseaseQuery = parsed.diseaseQuery;
     report.diseaseQuery = diseaseQuery;
+    report.targetGeneRequested = parsed.targetGene;
+    report.userTyped = goal.trim();
 
     checkAborted();
 
     // Search Open Targets disease index
     const diseaseHits = await searchDiseases(diseaseQuery);
     if (!diseaseHits || !diseaseHits.length) {
-      const haltMsg = `No clinical disease entity matching "${diseaseQuery}" was resolved in Open Targets. The agent cannot infer targets without a recognized disease ontology node.`;
+      const haltMsg = `No clinical disease entity matching "${diseaseQuery}" was resolved in Open Targets. Name a disease or a well-known alias (e.g. pancreatic cancer, CML, Alzheimer).`;
       notify(1, {
         status: "dead_end",
         narration: haltMsg,
@@ -235,9 +301,18 @@ export async function runResearchAgent({
     }
 
     // Identify candidate targets:
-    // Primary Target is top novelty score target
-    // Backup Target is 2nd novelty score target (or top established target if distinct)
-    const primaryTarget = noveltyTargets[0] || allTargets[0];
+    // If user specified targetGene (e.g. "EGFR inhibitors for lung cancer"), prioritize that target
+    let primaryTarget = null;
+    if (parsed.targetGene) {
+      primaryTarget =
+        noveltyTargets.find((t) => t.symbol?.toUpperCase() === parsed.targetGene) ||
+        allTargets.find((t) => t.symbol?.toUpperCase() === parsed.targetGene) ||
+        null;
+    }
+    if (!primaryTarget) {
+      primaryTarget = noveltyTargets[0] || allTargets[0];
+    }
+
     let backupTarget = noveltyTargets.length > 1 ? noveltyTargets[1] : null;
     if (!backupTarget || backupTarget.symbol === primaryTarget.symbol) {
       backupTarget = allTargets.find((t) => t.symbol !== primaryTarget.symbol) || null;
@@ -249,7 +324,11 @@ export async function runResearchAgent({
     const primaryDrugs = primaryTarget.drugCount ?? 0;
 
     let step1Narration = `I queried Open Targets for "${pickedDisease.name}" (${pickedDisease.id}) and evaluated ${discoveryResult.totalAssociatedCount || noveltyTargets.length} associated targets. `;
-    step1Narration += `I selected **${primaryTarget.symbol}** (*${primaryTarget.name || primaryTarget.symbol}*) as the primary candidate: it exhibits a high Novelty Score of **${primaryNovelty}**, strong genetic disease association (**${primaryGenetic}%**), and currently has **${primaryDrugs} approved drugs**, representing an underexplored opportunity with robust causal biological evidence.`;
+    if (parsed.targetGene && primaryTarget.symbol?.toUpperCase() === parsed.targetGene) {
+      step1Narration += `Based on your request, I focused on **${primaryTarget.symbol}** (*${primaryTarget.name || primaryTarget.symbol}*): it has a genetic disease association of **${primaryGenetic}%**, and currently has **${primaryDrugs} approved drugs**.`;
+    } else {
+      step1Narration += `I selected **${primaryTarget.symbol}** (*${primaryTarget.name || primaryTarget.symbol}*) as the primary candidate: it exhibits a high Novelty Score of **${primaryNovelty}**, strong genetic disease association (**${primaryGenetic}%**), and currently has **${primaryDrugs} approved drugs**, representing an underexplored opportunity with robust causal biological evidence.`;
+    }
 
     if (backupTarget) {
       const backupNovelty = backupTarget.noveltyScore != null ? `${backupTarget.noveltyScore}/100` : "N/A";
@@ -428,8 +507,25 @@ export async function runResearchAgent({
 
     checkAborted();
 
-    const screenResult = await screenApprovedLibrary(selectedStructure, {
+    const proteinContext = {
+      ...selectedStructure,
+      id: selectedStructure.id,
+      pdb_id: selectedStructure.id,
+      gene: activeTarget.symbol || selectedStructure.gene || "",
+      symbol: activeTarget.symbol || selectedStructure.symbol || "",
+      name: activeTarget.name || selectedStructure.name || activeTarget.symbol,
+      title: selectedStructure.title || "",
+      queryName: activeTarget.symbol || selectedStructure.queryName || "",
+      ligand: selectedStructure.ligand || null,
+      pocket: selectedStructure.pocket || null,
+      family: selectedStructure.family || null,
+    };
+
+    const screenResult = await screenApprovedLibrary(proteinContext, {
       force: forceScreen,
+      shortlistOnly: true,
+      activeTarget,
+      signal,
       onProgress: ({ percent, message }) => {
         if (typeof onProgress === "function") {
           onProgress({ step: 3, message: message || `Screening approved drugs... ${percent}%` });
@@ -479,12 +575,14 @@ export async function runResearchAgent({
       data: {
         recommended: recommendedCandidate,
         ranking: ranking.slice(0, 25),
+        top5: ranking.slice(0, 5),
         totalScreened: scoredCount,
         librarySize: libraryCount,
         excludedCount,
-        source: screenResult?.source,
+        source: screenResult?.source || "heuristic-v2",
         summary: screenResult.summary,
         selectedStructure,
+        activeTarget,
       },
     });
 
@@ -503,8 +601,9 @@ export async function runResearchAgent({
 
     let critique = null;
     try {
-      critique = await fetchAdversarialCritique(recommendedCandidate, selectedStructure);
+      critique = await fetchAdversarialCritique(recommendedCandidate, selectedStructure, { signal });
     } catch (err) {
+      if (err.name === "AbortError") throw err;
       console.warn("[agentPipeline] Adversarial critique call failed, using fallback:", err);
       // Construct fallback critique if server or network failed
       critique = {
@@ -564,21 +663,29 @@ export async function runResearchAgent({
 
     report.executiveSummary = {
       disease: report.diseaseResolved?.name || diseaseQuery,
+      diseaseId: report.diseaseResolved?.id || "",
+      diseaseQuery,
+      userTyped: goal.trim(),
       targetSymbol: activeTarget.symbol,
       targetName: activeTarget.name || activeTarget.symbol,
+      targetOneLineWhy: pivoted
+        ? `Pivoted from ${primaryTarget.symbol} (lacked pocket); ${activeTarget.symbol} has validated structure & ${(activeTarget.geneticScore != null ? (activeTarget.geneticScore * 100).toFixed(0) : "N/A")}% genetic disease association`
+        : `Top genetic disease association (${(activeTarget.geneticScore != null ? (activeTarget.geneticScore * 100).toFixed(0) : "N/A")}%) with ${activeTarget.drugCount ?? 0} approved drugs`,
       pivotedFrom: pivoted ? primaryTarget.symbol : null,
       pdbId: selectedStructure.id,
       pdbResolution: resolutionText,
       targetSelectionScore: selectedStructure.score,
       leadDrugName: topDrugName,
       leadDrugCid: recommendedCandidate.cid,
+      leadDrugSmiles: recommendedCandidate.smiles || recommendedCandidate.SMILES || recommendedCandidate.CanonicalSMILES || "",
       repurposingScore: recommendedCandidate.score,
       primaryIndication: topIndication,
       keyConcern: topConcerns[0]?.issue || "Selectivity across homologous pockets",
       keyConcernDetail: topConcerns[0]?.detail || "Requires orthogonal biochemical confirmation.",
+      critiqueSummary: caseAgainst.overall_assessment || (topConcerns[0] ? `${topConcerns[0].issue}: ${topConcerns[0].detail}` : "Computational scores capture shape and lipophilicity; validation requires orthogonal assays."),
       verdict: pivoted
-        ? `Contingency pipeline completed: ${primaryTarget.symbol} was the top genetic candidate, but lacked an experimental pocket. The agent successfully pivoted to ${activeTarget.symbol} (PDB ${selectedStructure.id}), screened the full ${libraryCount.toLocaleString()}-drug library, and identified ${topDrugName} as an approved candidate with an itemized adversarial risk assessment.`
-        : `Autonomous pipeline completed: Screened ${activeTarget.symbol} (PDB ${selectedStructure.id}) against the full ${libraryCount.toLocaleString()}-drug library and identified ${topDrugName} as an approved candidate with an itemized adversarial risk assessment.`,
+        ? `Contingency pipeline completed: ${primaryTarget.symbol} was the top genetic candidate, but lacked an experimental pocket. The agent successfully pivoted to ${activeTarget.symbol} (PDB ${selectedStructure.id}), screened the approved-drug shortlist, and identified ${topDrugName} as an approved candidate with an itemized adversarial risk assessment.`
+        : `Autonomous pipeline completed: Screened ${activeTarget.symbol} (PDB ${selectedStructure.id}) against approved drugs and identified ${topDrugName} as an approved candidate with an itemized adversarial risk assessment.`,
     };
 
     // Cache active run for persistence
