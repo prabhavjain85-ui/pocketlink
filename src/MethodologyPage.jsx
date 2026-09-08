@@ -12,6 +12,8 @@ export default function MethodologyPage() {
         "target-discovery",
         "repurposing-screen",
         "validation-benchmark",
+        "adme-profiling",
+        "research-agent",
         "clinical-disclaimer",
       ];
 
@@ -47,9 +49,9 @@ export default function MethodologyPage() {
         <div className="methodology-meta-tag">Scientific Methodology &amp; Validation Transparency</div>
         <h1 className="methodology-title">Evaluation Criteria, Computational Heuristics &amp; Operational Boundaries</h1>
         <p className="methodology-lead">
-          PocketLink is an early-stage computational workbench designed to accelerate hit triage and hypothesis generation.
-          This document details our scoring criteria, cheminformatics rules, algorithmic design choices, and honest
-          methodological limitations.
+          PocketLink is an early-stage computational workbench designed to accelerate hit triage, structural evaluation,
+          and hypothesis generation. This document details our scoring criteria, cheminformatics rules, algorithmic design
+          choices, and honest methodological boundaries.
         </p>
       </div>
 
@@ -81,7 +83,7 @@ export default function MethodologyPage() {
                 className={`sidebar-link ${activeSection === "target-aware-scoring" ? "active" : ""}`}
                 onClick={() => scrollToSection("target-aware-scoring")}
               >
-                <span className="sidebar-num">03</span> Target-Aware AI Scoring
+                <span className="sidebar-num">03</span> Target-Aware Ranking
               </button>
               <button
                 type="button"
@@ -109,18 +111,35 @@ export default function MethodologyPage() {
               </button>
               <button
                 type="button"
+                id="toc-link-adme"
+                className={`sidebar-link ${activeSection === "adme-profiling" ? "active" : ""}`}
+                onClick={() => scrollToSection("adme-profiling")}
+              >
+                <span className="sidebar-num">08</span> ADME &amp; PK Profiling
+              </button>
+              <button
+                type="button"
+                id="toc-link-agent"
+                className={`sidebar-link ${activeSection === "research-agent" ? "active" : ""}`}
+                onClick={() => scrollToSection("research-agent")}
+              >
+                <span className="sidebar-num">09</span> Research Agent
+              </button>
+              <button
+                type="button"
                 id="toc-link-disclaimer"
                 className={`sidebar-link ${activeSection === "clinical-disclaimer" ? "active" : ""}`}
                 onClick={() => scrollToSection("clinical-disclaimer")}
               >
-                <span className="sidebar-num">07</span> Clinical Disclaimer
+                <span className="sidebar-num">10</span> Clinical Disclaimer
               </button>
             </nav>
 
             <div className="sidebar-badge-card" id="sidebar-meta-card">
               <div className="sidebar-badge-title">Transparent Science</div>
               <p className="sidebar-badge-text">
-                Every calculation is reproducible and traceable to published public databases (RCSB PDB, Open Targets, PubChem).
+                Every calculation is reproducible and traceable to published public databases (RCSB PDB, Open Targets, PubChem)
+                or native in-browser RDKit WebAssembly cheminformatics routines.
               </p>
             </div>
           </div>
@@ -266,38 +285,64 @@ export default function MethodologyPage() {
             </div>
           </section>
 
-          {/* Section 3: Target-Aware AI Compound Scoring */}
+          {/* Section 3: Target-Aware Compound Ranking (heuristic-v2) */}
           <section className="methodology-section" id="target-aware-scoring">
             <div className="section-eyebrow">Criterion 03</div>
-            <h2 className="section-title">Target-Aware AI Compound Scoring</h2>
+            <h2 className="section-title">Target-Aware Compound Ranking (heuristic-v2)</h2>
             <p className="section-text">
-              Conventional virtual screening tools often evaluate compounds solely through generic drug-likeness rules (such as
-              Lipinski's Rule of Five). However, a molecule can be exceptionally "drug-like" in the abstract while having zero
-              pharmacological relevance to the specific target pocket.
-            </p>
-            <p className="section-text">
-              PocketLink's scoring engine combines two distinct tiers of analysis:
+              Conventional virtual screening tools often evaluate compounds solely through generic drug-likeness rules (such as Lipinski&apos;s
+              Rule of Five). However, a molecule can be exceptionally &quot;drug-like&quot; in the abstract while having zero pharmacological
+              relevance to the specific target pocket. PocketLink&apos;s scoring engine (identified programmatically by <code>source: &quot;heuristic-v2&quot;</code>)
+              combines two distinct components:
             </p>
 
             <div className="scoring-tiers-grid">
               <div className="scoring-tier-box" id="tier-physicochemical">
-                <div className="scoring-tier-num">Tier A</div>
-                <h3 className="scoring-tier-title">Physicochemical Drug-Likeness</h3>
+                <div className="scoring-tier-num">Part 1</div>
+                <h3 className="scoring-tier-title">Lipinski &amp; Veber Drug-Likeness</h3>
                 <p className="scoring-tier-desc">
-                  Compliance with Lipinski’s Rule of Five (MW ≤ 500, LogP ≤ 5, HBD ≤ 5, HBA ≤ 10) and Veber’s oral bioavailability
-                  rules (rotatable bonds ≤ 10, TPSA ≤ 140 Å²). This establishes baseline oral bioavailability feasibility.
+                  Evaluates 6 oral bioavailability parameters using trapezoidal scoring functions (up to ~24 points): Molecular Weight (≤ 500 Da),
+                  calculated LogP (≤ 5.0), Hydrogen Bond Donors (≤ 5), Hydrogen Bond Acceptors (≤ 10), Rotatable Bonds (≤ 10), and Topological
+                  Polar Surface Area (TPSA ≤ 140 Å²). This establishes baseline oral bioavailability feasibility.
                 </p>
               </div>
 
               <div className="scoring-tier-box" id="tier-pharmacological">
-                <div className="scoring-tier-num">Tier B</div>
-                <h3 className="scoring-tier-title">Target-Family Pharmacological Relevance</h3>
+                <div className="scoring-tier-num">Part 2</div>
+                <h3 className="scoring-tier-title">Gene / PDB Target Rule Table</h3>
                 <p className="scoring-tier-desc">
-                  Contextualizes the chemical scaffold against the recognized target class (e.g., kinase, GPCR, nuclear receptor,
-                  protease). Compounds displaying recognized pharmacophores and spatial features characteristic of proven inhibitor
-                  classes for that specific target receive significant priority.
+                  Maps the resolved target gene and PDB structure against curated pharmacological rules spanning major therapeutic classes:
+                  EGFR, ABL1, BRAF, HER2, β2-AR (ADRB2), COX-1/2, HMGCR, DPP-4, HIV-1 Protease, SARS-CoV-2 Mpro, PDE5, HDAC, and Nuclear
+                  Receptors (ER/ESR1). Differentiates on-target actives, same-family off-target analogs, and unrelated chemistries.
                 </p>
               </div>
+            </div>
+
+            <div style={{ marginTop: "20px", marginBottom: "16px" }}>
+              <h4 style={{ fontSize: "14.5px", fontWeight: 600, color: "var(--text)", marginBottom: "8px" }}>
+                Score Bands &amp; Score Composition
+              </h4>
+              <p className="section-text">
+                Candidate molecules are stratified into distinct score bands reflecting specific pharmacological evidence:
+              </p>
+              <ul className="methodology-bullet-list">
+                <li>
+                  <strong>On-Target (~67 points):</strong> Awarded when a compound has proven, established on-target clinical pharmacology
+                  matching the resolved gene or PDB rule (+55 on-target bonus + ~12–18 drug-likeness points).
+                </li>
+                <li>
+                  <strong>Same-Family (~24 points):</strong> Awarded when a compound shares the broad target class but is demoted due to
+                  primary target divergence (+12 family bonus + ~12–16 drug-likeness points), such as testing an EGFR kinase inhibitor against ABL1.
+                </li>
+                <li>
+                  <strong>Generic Drug-Like (~12 points):</strong> Assigned to drug-like small molecules with zero established target or class
+                  relevance (+0 target bonus + ~12–18 drug-likeness points).
+                </li>
+                <li>
+                  <strong>Optional Co-Crystal Name Bonus (+20 points):</strong> Awarded when a candidate directly matches the co-crystallized
+                  reference ligand in the experimental PDB complex (e.g., STI-571 / Imatinib in PDB 2HYY), bringing the score to ~87.
+                </li>
+              </ul>
             </div>
 
             {/* Limitation Callout */}
@@ -309,10 +354,9 @@ export default function MethodologyPage() {
                 <span className="limitation-badge">Methodology Note &amp; Limitations</span>
               </div>
               <p className="limitation-body">
-                This system is a <strong>computational triage heuristic</strong> designed to filter and rank candidates before
-                computationally expensive physical calculations. It is <strong>not a substitute</strong> for rigorous molecular
-                docking simulations (such as AutoDock Vina or SwissDock), free-energy perturbation (FEP), or empirical in vitro
-                binding assays (SPR, ITC, IC50 measurements).
+                The <code>heuristic-v2</code> scoring engine is a <strong>rule-based prioritization heuristic</strong>, not molecular docking,
+                not a trained machine learning model, and not measured binding affinity. It does not predict free energy of binding (ΔG),
+                equilibrium dissociation constants (Kd), or experimental IC50 values. Its output field is explicitly tagged as <code>source: &quot;heuristic-v2&quot;</code>.
               </p>
             </div>
           </section>
@@ -322,45 +366,58 @@ export default function MethodologyPage() {
             <div className="section-eyebrow">Criterion 04</div>
             <h2 className="section-title">Target Discovery &amp; Novelty Scoring</h2>
             <p className="section-text">
-              The Target Discovery engine identifies under-explored therapeutic opportunities by cross-referencing genetic and
-              biological evidence with clinical landscape saturation:
+              The Target Discovery engine queries the Open Targets Platform to identify therapeutic targets, balancing causal genetic
+              association against clinical landscape saturation:
             </p>
 
             <div className="discovery-columns">
-              <div className="discovery-col" id="col-genetic-evidence">
-                <h4 className="col-heading">Disease-Target Biological Rationale</h4>
+              <div className="discovery-col" id="col-established-targets">
+                <h4 className="col-heading">Established Targets (Pipeline Benchmarks)</h4>
                 <p className="col-text">
-                  Grounded in disease-target association data from the Open Targets Platform. Incorporates genome-wide association
-                  studies (GWAS), somatic and germline variant evidence, functional animal models, and curated scientific literature.
+                  Defined by <strong>drugCount ≥ 3</strong> and Open Targets association <strong>overallScore ≥ 0.4</strong>. These represent
+                  clinically validated targets already addressed by approved therapies or late-stage trials, making them reliable structural
+                  benchmarks with rich crystallographic models.
                 </p>
               </div>
               <div className="discovery-col" id="col-novelty-metric">
-                <h4 className="col-heading">Target Novelty &amp; Tractability</h4>
+                <h4 className="col-heading">Novelty Targets (First-in-Class Potential)</h4>
                 <p className="col-text">
-                  Surfaces targets where biological validation is strong but existing drug coverage is low. Targets with zero or few
-                  approved drugs are highlighted as potential first-in-class discovery avenues.
+                  Targets with robust genetic or somatic evidence but little or no existing drug coverage (<strong>drugCount = 0</strong> or
+                  few pipeline drugs). Highlighted as underexplored opportunities for first-in-class therapeutic development.
                 </p>
+              </div>
+            </div>
+
+            {/* Zero Associations & Anti-Hype Clarification */}
+            <div style={{ marginTop: 24, marginBottom: 20 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginBottom: 8 }}>
+                Data Source Transparency &amp; Zero-Association Policy
+              </h3>
+              <p className="section-text">
+                The sole data source for disease-target associations is the Open Targets Platform. A query returning <strong>0 associations</strong> means
+                there is <strong>no Open Targets hit</strong> for that indication in public ontologies. It does <em>not</em> indicate a hidden or
+                secret novel target.
+              </p>
+              <div style={{ background: "var(--surface-muted)", borderLeft: "3px solid var(--primary)", padding: "10px 14px", borderRadius: "0 6px 6px 0", fontSize: "13px", color: "var(--text)", marginBottom: 12 }}>
+                <strong style={{ color: "var(--primary)", display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
+                  Anti-Hype Reporting Policy
+                </strong>
+                PocketLink strictly forbids synthetic promotional language. Targets with low novelty scores (e.g. 0.1/100) are explicitly labeled
+                as low novelty, never &quot;high&quot;. Targets with multiple approved drugs are accurately identified as clinically saturated,
+                never &quot;underexplored&quot;.
               </div>
             </div>
 
             {/* Gene Expression Specificity Subsection */}
             <div style={{ marginTop: 24, marginBottom: 20 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginBottom: 8 }}>
                 Gene Expression Context &amp; Physiological Selectivity
               </h3>
               <p className="section-text">
-                Where a target is active inside the human body is just as critical as its role in disease biology. A target
-                expressed narrowly in affected or diseased tissue offers a favorable selectivity profile, allowing therapeutic
-                intervention with minimal disruption to healthy physiology. Conversely, targets expressed ubiquitously across
-                vital organs (such as the heart, liver, or central nervous system) carry an elevated risk of mechanism-based,
-                on-target systemic toxicity.
+                Where a target is expressed in the human body directly influences therapeutic index. Narrow baseline tissue expression (GTEx v8)
+                suggests favorable selectivity with lower risk of systemic on-target side effects, whereas ubiquitous expression across vital
+                organs (heart, liver, CNS) signals mechanism-based toxicity risk.
               </p>
-              <div style={{ background: '#f8fafc', borderLeft: '3px solid #0f766e', padding: '10px 14px', borderRadius: '0 6px 6px 0', fontSize: '13px', color: '#0f172a', marginBottom: 12 }}>
-                <strong style={{ color: '#0f766e', display: 'block', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>
-                  Result Interpretation Template
-                </strong>
-                <em>"This target is expressed primarily in [tissue], with minimal expression elsewhere — suggesting a favorable selectivity profile with lower risk of systemic on-target side effects."</em>
-              </div>
             </div>
 
             {/* Limitation Callout */}
@@ -372,10 +429,9 @@ export default function MethodologyPage() {
                 <span className="limitation-badge">Methodology Note &amp; Limitations</span>
               </div>
               <p className="limitation-body">
-                Novelty scoring reflects what is currently indexed in public scientific databases (Open Targets, ChEMBL). It does not
-                account for confidential, unreleased biopharma development pipelines or newly published discoveries not yet integrated
-                into ontology indexes. Furthermore, tissue baseline RNA expression (GTEx / Human Protein Atlas) reflects healthy adult
-                organs; diseased or inflamed tissue environments may exhibit altered transcription or alternative splicing.
+                Open Targets associations synthesize public genetic studies and literature text-mining. They do not capture confidential, unreleased
+                biopharmaceutical pipelines. Furthermore, GTEx RNA expression data reflects healthy adult donors; diseased, inflamed, or
+                malignant microenvironments frequently exhibit altered transcriptional levels or aberrant isoform expression.
               </p>
             </div>
           </section>
@@ -385,34 +441,37 @@ export default function MethodologyPage() {
             <div className="section-eyebrow">Criterion 05</div>
             <h2 className="section-title">Systematic Repurposing Screen</h2>
             <p className="section-text">
-              Drug repurposing (repositioning) identifies new indications for existing approved compounds. Because these molecules
-              already possess established human safety profiles, metabolic clearance pathways, and scalable chemical manufacturing,
-              successful repurposing can bypass years of preclinical safety validation.
+              Drug repurposing explores new indications for already approved pharmaceutical agents with established human pharmacokinetic profiles,
+              clinical safety records, and existing chemical manufacturing.
             </p>
             <p className="section-text">
-              In PocketLink, a curated library of approved pharmaceutical small molecules is systematically evaluated against the
-              chosen target pocket using our target-aware scoring heuristics. The system screens dozens of candidate molecules
-              in parallel, prioritizing those whose steric shape, functional group distribution, and pharmacophore features align
-              with the target cavity.
+              PocketLink evaluates approved small molecules against a selected PDB structure. Reliable scoring requires comprehensive
+              protein context: <strong>target gene symbol</strong>, <strong>protein name</strong>, <strong>PDB ID</strong>, and <strong>co-crystallized ligand name</strong>.
+              Evaluating compounds within a broad, generic &quot;kinase&quot; or &quot;GPCR&quot; family context collapses distinct targets together
+              and destroys target selectivity. The <code>heuristic-v2</code> engine uses granular gene-level rules to prevent this collapse.
             </p>
+
+            <div style={{ marginTop: "16px", marginBottom: "16px" }}>
+              <h4 style={{ fontSize: "14.5px", fontWeight: 600, color: "var(--text)", marginBottom: "6px" }}>
+                Screening Library Scope vs. Autonomous Agent Shortlist
+              </h4>
+              <p className="section-text">
+                The dedicated Repurposing bench systematically evaluates an exhaustive library of over 2,900 approved small molecules.
+                By contrast, the Autonomous Research Agent uses a curated shortlist (~25 prioritized compounds) during automated multi-step
+                discovery runs to satisfy real-time latency and triaging constraints.
+              </p>
+            </div>
 
             {/* Clinical Safety Cross-Reference Subsection */}
             <div style={{ marginTop: 24, marginBottom: 20 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginBottom: 8 }}>
                 Clinical Safety &amp; Post-Market Surveillance Cross-Reference (FAERS)
               </h3>
               <p className="section-text">
-                Approved therapeutics come with years of documented human clinical experience, tolerability profiles, and real-world
-                safety surveillance. Cross-referencing adverse event records from the FDA Adverse Event Reporting System (FAERS)
-                and regulatory black-box contraindications provides immediate real-world context on patient tolerability before
-                advancing a repurposing lead into biological testing.
+                Approved therapeutics come with documented human tolerability and safety surveillance. Cross-referencing adverse event records
+                from the FDA Adverse Event Reporting System (FAERS) and boxed warnings provides real-world clinical tolerability context before
+                advancing a candidate into secondary screening.
               </p>
-              <div style={{ background: '#f8fafc', borderLeft: '3px solid #0f766e', padding: '10px 14px', borderRadius: '0 6px 6px 0', fontSize: '13px', color: '#0f172a', marginBottom: 12 }}>
-                <strong style={{ color: '#0f766e', display: 'block', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>
-                  Result Interpretation Template
-                </strong>
-                <em>"This drug has an established safety profile from its approved use for [Indication], with [common/rare] reported adverse events including [examples]."</em>
-              </div>
             </div>
 
             {/* Limitation Callout */}
@@ -424,9 +483,9 @@ export default function MethodologyPage() {
                 <span className="limitation-badge">Methodology Note &amp; Limitations</span>
               </div>
               <p className="limitation-body">
-                Adverse event reports from public safety registries (including FDA FAERS) are voluntary, spontaneous, and <strong>do not prove causation</strong>.
-                Reporting frequency is heavily influenced by commercial prescription volume, indication severity, and multi-drug polypharmacy regimens.
-                This cross-reference provides real-world tolerability context, not a definitive clinical safety verdict.
+                Adverse event reports from public registries (FDA FAERS) are voluntary, spontaneous, and <strong>do not establish clinical causation</strong>.
+                Reporting frequency correlates with commercial prescription volume and underlying disease severity. Furthermore, agent shortlist
+                screens do not substitute for comprehensive chemical library screens.
               </p>
             </div>
           </section>
@@ -434,69 +493,267 @@ export default function MethodologyPage() {
           {/* Section 6: Validation Benchmark */}
           <section className="methodology-section" id="validation-benchmark">
             <div className="section-eyebrow">Criterion 06</div>
-            <h2 className="section-title">Validation Benchmark: Kinase Target Specificity</h2>
+            <h2 className="section-title">Validation Benchmark: Target-Specific Rule Discrimination</h2>
             <p className="section-text">
-              To verify that the target-aware scoring engine distinguishes true pharmacological relevance rather than rewarding
-              generic molecular beauty, we tested candidate sets against a benchmark tyrosine kinase structure (<strong>ABL1</strong>,
-              PDB: <code>2HYY</code>).
+              To verify that the target-aware scoring engine distinguishes true pharmacological relevance rather than rewarding generic molecular
+              beauty, candidate sets were evaluated against human Tyrosine-protein kinase <strong>ABL1</strong> (PDB: <code>2HYY</code>).
             </p>
 
             <div className="benchmark-card" id="card-benchmark-result">
               <div className="benchmark-card-header">
                 <div>
-                  <h3 className="benchmark-card-title">Empirical Scoring Discrimination on ABL1 Kinase Domain</h3>
-                  <div className="benchmark-card-sub">Comparative test on identical candidate batches</div>
+                  <h3 className="benchmark-card-title">Scoring Discrimination on ABL1 Kinase Domain (PDB 2HYY)</h3>
+                  <div className="benchmark-card-sub">Comparative test across on-target, same-family, and generic drug-like compounds</div>
                 </div>
-                <span className="benchmark-status-badge">Target Discrimination Verified</span>
+                <span className="benchmark-status-badge">Rule Separation Verified</span>
               </div>
 
               <div className="benchmark-grid">
                 <div className="benchmark-group good" id="group-known-inhibitors">
-                  <div className="benchmark-group-title">Known Kinase Inhibitors</div>
+                  <div className="benchmark-group-title">Known On-Target ABL TKIs</div>
                   <div className="benchmark-group-items">
                     <div className="benchmark-item">
-                      <span className="benchmark-name">Imatinib (Gleevec)</span>
-                      <span className="benchmark-score high">Score 88 / 100</span>
+                      <span className="benchmark-name">Imatinib (ABL1 targeted)</span>
+                      <span className="benchmark-score high">Score ~67 / 100</span>
                     </div>
                     <div className="benchmark-item">
-                      <span className="benchmark-name">Dasatinib (Sprycel)</span>
-                      <span className="benchmark-score high">Score 84 / 100</span>
+                      <span className="benchmark-name">Dasatinib (ABL1 targeted)</span>
+                      <span className="benchmark-score high">Score ~67 / 100</span>
                     </div>
                   </div>
                   <div className="benchmark-group-note">
-                    Scored high due to ATP-binding hinge region complementary hydrogen bonding and appropriate hydrophobic pharmacophore.
+                    Receives the on-target rule bonus (+55) + baseline oral drug-likeness (+12–18). Correctly prioritizes established BCR-ABL pharmacology.
                   </div>
                 </div>
 
-                <div className="benchmark-group neutral" id="group-unrelated-drugs">
-                  <div className="benchmark-group-title">Unrelated Oral Drugs (Generic Drug-Like)</div>
+                <div className="benchmark-group neutral" id="group-same-family">
+                  <div className="benchmark-group-title">Same-Family Kinase Inhibitors (Off-Target)</div>
                   <div className="benchmark-group-items">
                     <div className="benchmark-item">
-                      <span className="benchmark-name">Alprazolam (Xanax)</span>
-                      <span className="benchmark-score low">Score 32 / 100</span>
+                      <span className="benchmark-name">Gefitinib (EGFR TKI on ABL)</span>
+                      <span className="benchmark-score low">Score ~24 / 100</span>
                     </div>
                     <div className="benchmark-item">
-                      <span className="benchmark-name">Atorvastatin (Lipitor)</span>
-                      <span className="benchmark-score low">Score 38 / 100</span>
+                      <span className="benchmark-name">Erlotinib (EGFR TKI on ABL)</span>
+                      <span className="benchmark-score low">Score ~24 / 100</span>
                     </div>
                   </div>
                   <div className="benchmark-group-note">
-                    Scored low despite excellent general drug-likeness, correctly penalized for lack of kinase pharmacophore relevance.
+                    Receives same-family kinase bonus (+12) + drug-likeness (+12), appropriately demoted due to primary target divergence (EGFR vs. ABL1).
                   </div>
                 </div>
               </div>
 
+              <div className="benchmark-group neutral" id="group-unrelated-drugs" style={{ marginTop: "14px" }}>
+                <div className="benchmark-group-title">Unrelated Oral Drugs (Generic Drug-Like)</div>
+                <div className="benchmark-group-items">
+                  <div className="benchmark-item">
+                    <span className="benchmark-name">Alprazolam (GABA-A PAM)</span>
+                    <span className="benchmark-score low">Score ~12 / 100</span>
+                  </div>
+                  <div className="benchmark-item">
+                    <span className="benchmark-name">Atorvastatin (HMGCR inhibitor)</span>
+                    <span className="benchmark-score low">Score ~12 / 100</span>
+                  </div>
+                </div>
+                <div className="benchmark-group-note">
+                  Penalized with zero target bonus (+0). Reflects only generic oral physicochemical descriptors with no kinase pharmacophore relevance.
+                </div>
+              </div>
+
               <p className="benchmark-conclusion">
-                When tested against ABL1, known tyrosine kinase inhibitors scored meaningfully higher than pharmacologically
-                unrelated drugs with comparable or superior molecular weights and LogP values. This demonstrates that PocketLink's
-                scoring reflects target-specific pharmacological relevance rather than superficial property heuristics.
+                <strong>Methodological Note:</strong> These are rule scores, not experimental IC50. They reflect rule-table pharmacophore
+                matching and empirical triage thresholds, not physical equilibrium dissociation constants (Kd) or measured binding affinities.
               </p>
             </div>
           </section>
 
-          {/* Section 7: General Disclaimer */}
+          {/* Section 8: ADME & Pharmacokinetic Profiling */}
+          <section className="methodology-section" id="adme-profiling">
+            <div className="section-eyebrow">Criterion 08</div>
+            <h2 className="section-title">ADME &amp; Pharmacokinetic Profiling</h2>
+            <p className="section-text">
+              Early attrition in drug discovery is predominantly driven by poor absorption, distribution, metabolism, and safety liabilities.
+              PocketLink includes an in-browser ADME engine powered by native <strong>RDKit WebAssembly</strong>, allowing researchers to evaluate
+              physicochemical properties and predictive pharmacokinetic filters directly on client hardware with zero server data transmission.
+            </p>
+
+            <div className="methodology-criteria-grid">
+              <div className="criteria-card" id="criteria-druglikeness">
+                <div className="criteria-header">
+                  <span className="criteria-tag">Oral Filters</span>
+                  <h3 className="criteria-title">Druglikeness Assessment</h3>
+                </div>
+                <p className="criteria-desc">
+                  Evaluates <strong>Lipinski Rule of 5</strong> (MW ≤ 500, cLogP ≤ 5, HBD ≤ 5, HBA ≤ 10), <strong>Veber rules</strong> (RotB ≤ 10,
+                  TPSA ≤ 140 Å²), and the <strong>Ghose filter</strong> (MW 160–480, cLogP -0.4–5.6, MR 40–130, atoms 20–70).
+                </p>
+              </div>
+
+              <div className="criteria-card" id="criteria-solubility">
+                <div className="criteria-header">
+                  <span className="criteria-tag">Delaney ESOL</span>
+                  <h3 className="criteria-title">Aqueous Solubility Estimate</h3>
+                </div>
+                <p className="criteria-desc">
+                  Computes estimated aqueous solubility (LogS, mol/L) via the Delaney (2004) equation based on molecular weight, rotatable bonds,
+                  aromatic proportion, and Crippen lipophilicity. Classifies candidates from highly soluble to insoluble.
+                </p>
+              </div>
+
+              <div className="criteria-card" id="criteria-boiled-egg">
+                <div className="criteria-header">
+                  <span className="criteria-tag">Passive Transport</span>
+                  <h3 className="criteria-title">BOILED-Egg Permeation Model</h3>
+                </div>
+                <p className="criteria-desc">
+                  Evaluates topological polar surface area (TPSA) versus lipophilicity (using Crippen atomic cLogP approximations labeled approximate)
+                  to compute <strong>Passive HIA</strong> (Human Intestinal Absorption - the White) and <strong>Passive BBB</strong> (Blood-Brain
+                  Barrier permeation - the Yolk).
+                </p>
+              </div>
+
+              <div className="criteria-card" id="criteria-structural-alerts">
+                <div className="criteria-header">
+                  <span className="criteria-tag">SMARTS Alerts</span>
+                  <h3 className="criteria-title">Structural Liabilities &amp; Organ Alerts</h3>
+                </div>
+                <p className="criteria-desc">
+                  Identifies toxicophoric substructures using SMARTS pattern matching (e.g., reactive warheads, quinone-methides, troglitazone-like
+                  thiazolidinediones, hERG pharmacophores, and DILI structural alerts).
+                </p>
+              </div>
+            </div>
+
+            <div style={{ marginTop: "20px", marginBottom: "16px" }}>
+              <h4 style={{ fontSize: "14.5px", fontWeight: 600, color: "var(--text)", marginBottom: "6px" }}>
+                Pharmacokinetic Scope &amp; Modeling Boundaries
+              </h4>
+              <ul className="methodology-bullet-list">
+                <li>
+                  <strong>Labels Must Say &quot;Passive&quot; and &quot;Estimate&quot;:</strong> All BOILED-Egg and solubility readouts represent
+                  passive physicochemical estimates, not active transporter-mediated clearance.
+                </li>
+                <li>
+                  <strong>P-glycoprotein (P-gp):</strong> Evaluated through a rule-based physicochemical heuristic (based on MW &gt; 400 and
+                  N+O counts ≥ 8 or large TKI chemotypes), explicitly labeled as a heuristic estimate.
+                </li>
+                <li>
+                  <strong>Cytochrome P450 (CYP):</strong> CYP isoform inhibition (CYP1A2, 2C9, 2C19, 2D6, 3A4) and metabolic stability are
+                  <strong> not modeled</strong>. PocketLink reports <em>&quot;CYP: not modeled&quot;</em> rather than producing unverified guesses.
+                </li>
+                <li>
+                  <strong>Structural Alerts vs. Clinical Tox:</strong> SMARTS structural alert matches are heuristic flags pointing to potential
+                  mechanistic concerns; they do <strong>not</strong> represent clinical toxicity or in vivo animal toxicology findings.
+                </li>
+              </ul>
+            </div>
+
+            {/* Limitation Callout */}
+            <div className="limitation-callout" id="limitation-adme">
+              <div className="limitation-header">
+                <svg className="limitation-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <span className="limitation-badge">Methodology Note &amp; Limitations</span>
+              </div>
+              <p className="limitation-body">
+                In-browser ADME descriptors are calculated directly from 2D molecular graphs. They do not simulate active influx/efflux transporters,
+                phase I/II hepatic clearance, plasma protein binding, or clinical pharmacokinetics. All computed values are intended strictly for
+                preliminary compound triage.
+              </p>
+            </div>
+          </section>
+
+          {/* Section 9: Autonomous Research Agent */}
+          <section className="methodology-section" id="research-agent">
+            <div className="section-eyebrow">Criterion 09</div>
+            <h2 className="section-title">Autonomous Research Agent</h2>
+            <p className="section-text">
+              The Autonomous Research Agent executes an end-to-end computational investigation for a given disease indication by orchestrating
+              four discrete, reproducible stages:
+            </p>
+
+            <div className="scoring-tiers-grid">
+              <div className="scoring-tier-box" id="agent-stage-1">
+                <div className="scoring-tier-num">Stage 1</div>
+                <h3 className="scoring-tier-title">Disease Resolution &amp; Target Identification</h3>
+                <p className="scoring-tier-desc">
+                  Sanitizes input disease terms, maps them to the Open Targets ontology, queries causal genetic and clinical evidence, and
+                  scores novelty and tractability across associated targets.
+                </p>
+              </div>
+
+              <div className="scoring-tier-box" id="agent-stage-2">
+                <div className="scoring-tier-num">Stage 2</div>
+                <h3 className="scoring-tier-title">Target &amp; PDB Structure Selection</h3>
+                <p className="scoring-tier-desc">
+                  Searches RCSB PDB for high-resolution crystallographic coordinates. Prioritizes established/drugged targets with verified
+                  hetero small-molecule co-crystal ligands and pocket geometry. The novelty list is not automatically chosen as the docking target.
+                </p>
+              </div>
+
+              <div className="scoring-tier-box" id="agent-stage-3">
+                <div className="scoring-tier-num">Stage 3</div>
+                <h3 className="scoring-tier-title">Target-Aware Repurposing Screen</h3>
+                <p className="scoring-tier-desc">
+                  Screens candidate molecules against the resolved PDB and target rules using <code>heuristic-v2</code>. Ranks candidates
+                  based on target-specific pharmacophores and oral drug-likeness.
+                </p>
+              </div>
+
+              <div className="scoring-tier-box" id="agent-stage-4">
+                <div className="scoring-tier-num">Stage 4</div>
+                <h3 className="scoring-tier-title">Adversarial Scientific Critique</h3>
+                <p className="scoring-tier-desc">
+                  Subjects prioritized leads to rigorous counter-argumentation: safety liabilities, target expression specificity, potential
+                  off-target liabilities, and structural limitations.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ marginTop: "20px", marginBottom: "16px" }}>
+              <h4 style={{ fontSize: "14.5px", fontWeight: 600, color: "var(--text)", marginBottom: "6px" }}>
+                Target Selection Strategy, Honest Halts &amp; Narration Adjectives
+              </h4>
+              <ul className="methodology-bullet-list">
+                <li>
+                  <strong>Target Selection Priority:</strong> The agent intentionally prefers well-established targets (high Open Targets score,
+                  drugCount ≥ 1) with high-quality ligand-bound PDB structures for repurposing screens. Novel targets lacking experimental
+                  structures or druggable pockets are documented in the novelty portfolio rather than forced into docking.
+                </li>
+                <li>
+                  <strong>Explicit Fail-Safe Halts:</strong> The agent is not an ungrounded literature summarizer. It immediately halts if the
+                  disease cannot be resolved, if Open Targets returns 0 associations, if no ligand-bound PDB structure with a detectable binding
+                  pocket exists, or if top repurposing scores fail to meet minimum discrimination thresholds (&lt; 15/100).
+                </li>
+                <li>
+                  <strong>Numeric Adjective Consistency:</strong> Agent narration adjectives strictly reflect calculated metrics:
+                  novelty is &quot;high&quot; (≥ 50), &quot;moderate&quot; (20–49), or &quot;low&quot; (&lt; 20); genetic association is &quot;strong&quot;
+                  (≥ 40%), &quot;moderate&quot; (15–39%), or &quot;weak / none&quot; (&lt; 15%); drug coverage is &quot;no approved drugs (underexplored)&quot;
+                  (0), &quot;few drugs&quot; (1–2), or &quot;already has N approved/pipeline drugs (not underexplored)&quot; (≥ 3).
+                </li>
+              </ul>
+            </div>
+
+            {/* Limitation Callout */}
+            <div className="limitation-callout" id="limitation-agent">
+              <div className="limitation-header">
+                <svg className="limitation-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <span className="limitation-badge">Methodology Note &amp; Limitations</span>
+              </div>
+              <p className="limitation-body">
+                The Autonomous Research Agent generates structured computational hypotheses grounded in public databases. It does not perform
+                wet-lab validation, synthetic accessibility synthesis planning, or customized multi-target pharmacokinetic optimization.
+              </p>
+            </div>
+          </section>
+
+          {/* Section 10: General Disclaimer */}
           <section className="methodology-section" id="clinical-disclaimer">
-            <div className="section-eyebrow">Criterion 07</div>
+            <div className="section-eyebrow">Regulatory Notice &amp; Disclaimer</div>
             <h2 className="section-title">Scientific &amp; Clinical Research Disclaimer</h2>
             <div className="disclaimer-panel" id="disclaimer-box">
               <div className="disclaimer-header">
@@ -507,17 +764,22 @@ export default function MethodologyPage() {
               </div>
               <div className="disclaimer-content">
                 <p>
-                  PocketLink is strictly an early-stage computational hypothesis generator and triage research tool developed for
-                  educational, exploratory, and pre-screening workflows.
+                  <strong>Hypothesis Generator Only:</strong> PocketLink is strictly an early-stage computational hypothesis generator and hit
+                  triage research tool developed for exploratory, academic, and pre-screening workflows.
                 </p>
                 <p>
-                  The scores, alerts, rankings, and structural assessments generated by this software do not constitute medical,
-                  pharmacological, or regulatory advice. PocketLink should not be used to guide patient clinical care, diagnose
-                  illnesses, or inform self-treatment or prescribing decisions.
+                  <strong>No Prescribing or Medical Advice:</strong> The scores, alerts, rankings, and structural assessments generated by this
+                  platform do not constitute medical, pharmacological, or clinical advice. PocketLink must not be used to prescribe treatments,
+                  guide clinical patient care, diagnose medical conditions, or inform off-label drug administration.
                 </p>
                 <p>
-                  All candidates prioritized by PocketLink require formal experimental verification, including in vitro enzymatic assays,
-                  cell-based target engagement, and rigorous ADMET evaluation conducted by qualified scientific professionals.
+                  <strong>No Binding-Energy Claim:</strong> Heuristic ranking scores and rule points do not represent thermodynamic free energy
+                  of binding (ΔG), equilibrium dissociation constants (Kd), or experimental inhibition potency (IC50).
+                </p>
+                <p>
+                  All computational hypotheses prioritized by PocketLink require formal experimental confirmation, including biophysical binding assays
+                  (SPR, ITC), in vitro enzymatic inhibition, cellular target engagement, and rigorous GLP ADMET evaluation conducted by qualified
+                  scientific professionals.
                 </p>
               </div>
             </div>
