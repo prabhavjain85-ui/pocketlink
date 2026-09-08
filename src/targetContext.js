@@ -168,6 +168,7 @@ function buildTargetContext(protein) {
     hasLigand: Boolean(ligand.present),
     ligand,
     pocket,
+    family: protein.family || null,
     dataGaps: dataGapsFor(protein, ligand, pocket),
   };
 }

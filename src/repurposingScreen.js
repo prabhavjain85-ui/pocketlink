@@ -350,9 +350,49 @@ export function prequalifyCandidatesForAi(keptDrugs, protein, { maxAiCandidates 
   };
 }
 
+export const KNOWN_GENE_DRUGS = {
+  ABL1: ["imatinib", "dasatinib", "nilotinib", "bosutinib", "ponatinib", "asciminib"],
+  ABL: ["imatinib", "dasatinib", "nilotinib", "bosutinib", "ponatinib", "asciminib"],
+  EGFR: ["gefitinib", "erlotinib", "afatinib", "osimertinib", "dacomitinib", "neratinib", "lapatinib"],
+  ERBB2: ["lapatinib", "neratinib", "tucatinib", "afatinib"],
+  HER2: ["lapatinib", "neratinib", "tucatinib", "afatinib"],
+  BRAF: ["vemurafenib", "dabrafenib", "encorafenib"],
+  KRAS: ["sotorasib", "adagrasib"],
+  ALK: ["crizotinib", "alectinib", "ceritinib", "brigatinib", "lorlatinib"],
+  BTK: ["ibrutinib", "acalabrutinib", "zanubrutinib"],
+  JAK1: ["ruxolitinib", "tofacitinib", "baricitinib", "upadacitinib"],
+  JAK2: ["ruxolitinib", "fedratinib", "pacritinib"],
+  JAK3: ["tofacitinib"],
+  CFTR: ["ivacaftor", "lumacaftor", "tezacaftor", "elexacaftor"],
+  PARP1: ["olaparib", "rucaparib", "niraparib", "talazoparib"],
+  CDK4: ["palbociclib", "ribociclib", "abemaciclib"],
+  CDK6: ["palbociclib", "ribociclib", "abemaciclib"],
+  KDR: ["sunitinib", "sorafenib", "pazopanib", "axitinib", "cabozantinib", "lenvatinib"],
+  VEGFR2: ["sunitinib", "sorafenib", "pazopanib", "axitinib", "cabozantinib", "lenvatinib"],
+  ACHE: ["donepezil", "rivastigmine", "galantamine"],
+  ESR1: ["tamoxifen", "fulvestrant", "raloxifene", "toremifene"],
+  AR: ["enzalutamide", "bicalutamide", "apalutamide", "darolutamide"],
+  HMGCR: ["atorvastatin", "simvastatin", "rosuvastatin", "pravastatin", "fluvastatin", "lovastatin"],
+  PTGS1: ["aspirin", "ibuprofen", "naproxen", "indomethacin"],
+  PTGS2: ["celecoxib", "etodolac", "meloxicam", "diclofenac"],
+  COX2: ["celecoxib", "etodolac", "meloxicam", "diclofenac"],
+  ADRB2: ["salbutamol", "albuterol", "salmeterol", "formoterol", "propranolol", "atenolol", "metoprolol", "carvedilol"],
+  DPP4: ["sitagliptin", "saxagliptin", "linagliptin", "alogliptin"],
+  MET: ["crizotinib", "capmatinib", "tepotinib", "cabozantinib"],
+  RET: ["selpercatinib", "pralsetinib", "cabozantinib"],
+  FLT3: ["midostaurin", "gilteritinib", "sorafenib"],
+  KIT: ["imatinib", "sunitinib", "regorafenib", "ripretinib"],
+  FGFR1: ["erdafitinib", "pemigatinib"],
+  FGFR2: ["pemigatinib", "futibatinib"],
+  FGFR3: ["erdafitinib"],
+  PIK3CA: ["alpelisib"],
+  HDAC1: ["vorinostat", "panobinostat", "belinostat", "romidepsin"],
+  PDE5A: ["sildenafil", "tadalafil", "vardenafil", "avanafil"],
+};
+
 /**
  * Build a shortlist of approved drugs for the 4-step Autonomous Research Agent:
- * - Canonical on-target drugs for the resolved gene and target rule
+ * - Canonical on-target drugs for the resolved gene and target rule (e.g. ABL1 -> imatinib, EGFR -> gefitinib)
  * - Same-family drugs (to allow adversarial and on-target vs same-family reasoning)
  * - Co-crystallized ligand matching drug if present
  * - Diverse sample of approved small molecules
@@ -373,7 +413,14 @@ export function buildAgentShortlist(allDrugs, proteinContext, activeTarget) {
     }
   };
 
-  // 1. Target rule canonical on-target drugs (e.g. imatinib for ABL, gefitinib for EGFR, etc.)
+  // 1. Curated on-target approved drugs for the target gene
+  const knownDrugs = KNOWN_GENE_DRUGS[targetGene] || [];
+  for (const name of knownDrugs) {
+    const d = allDrugs.find((drug) => String(drug.name || "").toLowerCase() === name.toLowerCase());
+    if (d) addDrug(d);
+  }
+
+  // 2. Target rule canonical on-target drugs (e.g. imatinib for ABL, gefitinib for EGFR, etc.)
   if (rule?.onTargetDrugs) {
     for (const name of rule.onTargetDrugs) {
       const d = allDrugs.find((drug) => String(drug.name || "").toLowerCase() === name.toLowerCase());
@@ -386,7 +433,7 @@ export function buildAgentShortlist(allDrugs, proteinContext, activeTarget) {
     }
   }
 
-  // 2. Co-crystal ligand match
+  // 3. Co-crystal ligand match
   const ligandName = String(
     proteinContext?.ligand?.name || fullContext?.ligand?.name || ""
   ).trim().toLowerCase();
@@ -396,7 +443,7 @@ export function buildAgentShortlist(allDrugs, proteinContext, activeTarget) {
     }
   }
 
-  // 3. Drugs mentioning target gene in name, indication, or mechanism
+  // 4. Drugs mentioning target gene in name, indication, or mechanism
   if (targetGene && targetGene.length >= 3) {
     const geneRe = new RegExp(`\\b${targetGene}\\b`, "i");
     for (const drug of allDrugs) {
@@ -410,7 +457,7 @@ export function buildAgentShortlist(allDrugs, proteinContext, activeTarget) {
     }
   }
 
-  // 4. Same-family drugs for the resolved gene/family
+  // 5. Same-family drugs for the resolved gene/family
   if (rule?.demotedRe) {
     for (const drug of allDrugs) {
       if (rule.demotedRe.test(drug.name)) addDrug(drug);
@@ -438,15 +485,15 @@ export function buildAgentShortlist(allDrugs, proteinContext, activeTarget) {
     }
   }
 
-  // 5. Capped approved-library sample of diverse small molecules (up to ~50 total)
+  // 6. Supplement with qualified drug-likeness approved compounds (up to ~50 total)
   let sampleCount = 0;
   for (const drug of allDrugs) {
     if (shortlistMap.size >= 50) break;
     const mw = Number(drug.mw || drug.MolecularWeight || 0);
-    if (mw > 150 && mw < 550 && !shortlistMap.has(String(drug.cid))) {
+    if (mw > 180 && mw < 550 && !shortlistMap.has(String(drug.cid))) {
       addDrug(drug);
       sampleCount++;
-      if (sampleCount >= 25) break;
+      if (sampleCount >= 30) break;
     }
   }
 

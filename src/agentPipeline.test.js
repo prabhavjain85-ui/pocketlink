@@ -239,5 +239,214 @@ describe("agentPipeline", () => {
       expect(report.steps[2].narration).toContain("Pipeline halted");
       expect(report.steps[3].status).toBe("pending");
     });
+
+    test("prefers established target with drugCount >= 1 over novelty targets like RUNX1", async () => {
+      jest.spyOn(openTargets, "searchDiseases").mockResolvedValue([
+        { id: "MONDO_0005072", name: "chronic myeloid leukemia" },
+      ]);
+      jest.spyOn(openTargets, "runTargetDiscovery").mockResolvedValue({
+        disease: { id: "MONDO_0005072", name: "chronic myeloid leukemia" },
+        novelty: [
+          { symbol: "RUNX1", name: "runt related transcription factor 1", noveltyScore: 88, drugCount: 0, overallScore: 0.4 },
+        ],
+        all: [
+          { symbol: "ABL1", name: "ABL proto-oncogene 1", drugCount: 5, overallScore: 0.92 },
+          { symbol: "RUNX1", name: "runt related transcription factor 1", noveltyScore: 88, drugCount: 0, overallScore: 0.4 },
+        ],
+      });
+
+      jest.spyOn(pdbSearch, "searchPdbTargets").mockImplementation(async (query) => {
+        if (query === "ABL1" || query === "2HYY") {
+          return {
+            results: [
+              {
+                id: "2HYY",
+                title: "Crystal structure of ABL kinase in complex with Imatinib",
+                score: 95,
+                resolution: "1.90 Å",
+                method: "X-ray",
+                hasLigand: true,
+                ligand: { present: true, name: "Imatinib", compId: "STI", formulaWeight: 493.6 },
+                pocket: { available: true, residueCount: 90, sizeLabel: "standard", hydrophobicityLabel: "mixed" },
+              },
+            ],
+          };
+        }
+        return { results: [] };
+      });
+
+      jest.spyOn(repurposingScreen, "screenApprovedLibrary").mockResolvedValue({
+        summary: "Screened against 2HYY",
+        librarySize: 2983,
+        scoredCount: 2924,
+        recommended: {
+          name: "Imatinib",
+          cid: "5291",
+          score: 92,
+          indication: "CML",
+          reasoning: ["On-target inhibitor"],
+        },
+        ranking: [{ name: "Imatinib", cid: "5291", score: 92 }],
+      });
+
+      jest.spyOn(adversarialService, "fetchAdversarialCritique").mockResolvedValue({
+        case_against: { overall_assessment: "Resistance can occur through T315I mutation.", concerns: [] },
+      });
+
+      const report = await runResearchAgent({
+        goal: "Screen repurposing candidates for CML",
+      });
+
+      expect(report.status).toBe("completed");
+      expect(report.steps[1].data.primaryTarget.symbol).toBe("ABL1");
+      expect(report.steps[2].data.selectedStructure.id).toBe("2HYY");
+    });
+
+    test("rejects 1EAO and DNA complexes and picks a structure with authentic hetero ligand", async () => {
+      jest.spyOn(openTargets, "searchDiseases").mockResolvedValue([
+        { id: "MONDO_0005072", name: "chronic myeloid leukemia" },
+      ]);
+      jest.spyOn(openTargets, "runTargetDiscovery").mockResolvedValue({
+        disease: { id: "MONDO_0005072", name: "chronic myeloid leukemia" },
+        novelty: [{ symbol: "RUNX1", noveltyScore: 90, drugCount: 0 }],
+        all: [{ symbol: "RUNX1", noveltyScore: 90, drugCount: 0 }],
+      });
+
+      // 1EAO is returned first, followed by a valid co-crystal structure 5XYZ
+      jest.spyOn(pdbSearch, "searchPdbTargets").mockResolvedValue({
+        results: [
+          {
+            id: "1EAO",
+            title: "Crystal structure of Runt domain bound to DNA",
+            score: 70,
+            hasLigand: true,
+            ligand: { compId: "MG", name: "MAGNESIUM ION" },
+            pocket: "unclear",
+          },
+          {
+            id: "5XYZ",
+            title: "RUNX1 allosteric inhibitor complex",
+            score: 85,
+            resolution: "2.1 Å",
+            hasLigand: true,
+            ligand: { compId: "INH", name: "Inhibitor AI-10-47", formulaWeight: 380.4 },
+            pocket: { available: true, residueCount: 45 },
+          },
+        ],
+      });
+
+      jest.spyOn(repurposingScreen, "screenApprovedLibrary").mockResolvedValue({
+        summary: "Screened against 5XYZ",
+        librarySize: 2983,
+        scoredCount: 2924,
+        recommended: { name: "DrugX", cid: "111", score: 68 },
+        ranking: [{ name: "DrugX", cid: "111", score: 68 }],
+      });
+
+      jest.spyOn(adversarialService, "fetchAdversarialCritique").mockResolvedValue({
+        case_against: { overall_assessment: "Assessment", concerns: [] },
+      });
+
+      const report = await runResearchAgent({
+        goal: "RUNX1 inhibitors for leukemia",
+      });
+
+      expect(report.status).toBe("completed");
+      expect(report.steps[2].data.selectedStructure.id).toBe("5XYZ");
+      expect(report.steps[2].data.selectedStructure.id).not.toBe("1EAO");
+    });
+
+    test("does not halt on score 24-66, narrates same-family score, and continues to critique", async () => {
+      jest.spyOn(openTargets, "searchDiseases").mockResolvedValue([
+        { id: "MONDO_0001", name: "Test Disease" },
+      ]);
+      jest.spyOn(openTargets, "runTargetDiscovery").mockResolvedValue({
+        disease: { id: "MONDO_0001", name: "Test Disease" },
+        novelty: [{ symbol: "GENE1", drugCount: 1 }],
+        all: [{ symbol: "GENE1", drugCount: 1 }],
+      });
+
+      jest.spyOn(pdbSearch, "searchPdbTargets").mockResolvedValue({
+        results: [
+          {
+            id: "4ABC",
+            title: "Structure of GENE1 with ligand",
+            score: 80,
+            resolution: "2.0 Å",
+            hasLigand: true,
+            ligand: { compId: "LIG", name: "Ligand", formulaWeight: 300 },
+            pocket: { available: true, residueCount: 50 },
+          },
+        ],
+      });
+
+      // Top candidate score is 24 (same-family / no direct rule match)
+      jest.spyOn(repurposingScreen, "screenApprovedLibrary").mockResolvedValue({
+        summary: "Screened against 4ABC",
+        librarySize: 2983,
+        scoredCount: 2924,
+        recommended: { name: "CandidateA", cid: "999", score: 24, reasoning: ["same-family"] },
+        ranking: [
+          { name: "CandidateA", cid: "999", score: 24 },
+          { name: "CandidateB", cid: "888", score: 22 },
+        ],
+      });
+
+      jest.spyOn(adversarialService, "fetchAdversarialCritique").mockResolvedValue({
+        case_against: { overall_assessment: "Weak affinity liability.", concerns: [] },
+      });
+
+      const report = await runResearchAgent({
+        goal: "Test Disease research",
+      });
+
+      expect(report.status).toBe("completed");
+      expect(report.steps[3].status).toBe("complete");
+      expect(report.steps[3].narration).toContain("No on-target approved drug in this shortlist; best same-family score is 24");
+      expect(report.steps[4].status).toBe("complete");
+    });
+
+    test("halts when ranking is empty or top score < 15", async () => {
+      jest.spyOn(openTargets, "searchDiseases").mockResolvedValue([
+        { id: "MONDO_0001", name: "Test Disease" },
+      ]);
+      jest.spyOn(openTargets, "runTargetDiscovery").mockResolvedValue({
+        disease: { id: "MONDO_0001", name: "Test Disease" },
+        novelty: [{ symbol: "GENE1", drugCount: 1 }],
+        all: [{ symbol: "GENE1", drugCount: 1 }],
+      });
+
+      jest.spyOn(pdbSearch, "searchPdbTargets").mockResolvedValue({
+        results: [
+          {
+            id: "4ABC",
+            title: "Structure of GENE1 with ligand",
+            score: 80,
+            resolution: "2.0 Å",
+            hasLigand: true,
+            ligand: { compId: "LIG", name: "Ligand", formulaWeight: 300 },
+            pocket: { available: true, residueCount: 50 },
+          },
+        ],
+      });
+
+      // Top candidate score is 12 (< 15)
+      jest.spyOn(repurposingScreen, "screenApprovedLibrary").mockResolvedValue({
+        summary: "Screened against 4ABC",
+        librarySize: 2983,
+        scoredCount: 2924,
+        recommended: { name: "CandidateLow", cid: "999", score: 12 },
+        ranking: [{ name: "CandidateLow", cid: "999", score: 12 }],
+      });
+
+      const report = await runResearchAgent({
+        goal: "Test Disease research",
+      });
+
+      expect(report.status).toBe("halted");
+      expect(report.steps[3].status).toBe("dead_end");
+      expect(report.haltReason).toContain("top score: 12/100");
+    });
   });
 });
+
