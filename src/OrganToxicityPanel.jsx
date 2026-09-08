@@ -11,7 +11,6 @@ export default function OrganToxicityPanel({ organToxicity, onSelectPreset }) {
 
   const {
     methodInfo,
-    overallRisk,
     overallBadgeColor,
     totalAlerts,
     totalHighAlerts,
