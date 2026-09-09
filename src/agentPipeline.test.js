@@ -412,7 +412,7 @@ describe("agentPipeline", () => {
       expect(report.steps[4].status).toBe("complete");
     });
 
-    test("halts when unmodeled target yields only insufficient-rule filler rankings", async () => {
+    test("completes step 3 with named exploratory shortlist when target is unmodeled", async () => {
       jest.spyOn(openTargets, "searchDiseases").mockResolvedValue([
         { id: "MONDO_0001", name: "Test Disease" },
       ]);
@@ -437,24 +437,59 @@ describe("agentPipeline", () => {
       });
 
       jest.spyOn(repurposingScreen, "screenApprovedLibrary").mockResolvedValue({
-        summary: "No on-target approved drugs in shortlist",
+        summary: "Exploratory drug-likeness shortlist for NOVELGENE",
         librarySize: 2983,
-        scoredCount: 0,
+        scoredCount: 12,
         unmodeledFiller: true,
-        recommended: null,
-        ranking: [],
-        top5: [],
+        recommended: {
+          name: "Paracetamol",
+          cid: "1983",
+          score: 24,
+          indication: "analgesic",
+          reasoning: ["Insufficient target rule: target is unmodeled or structure has no recognized pharmacology rule"],
+        },
+        ranking: [
+          {
+            name: "Paracetamol",
+            cid: "1983",
+            score: 24,
+            indication: "analgesic",
+            reasoning: ["Insufficient target rule: target is unmodeled or structure has no recognized pharmacology rule"],
+          },
+          {
+            name: "Ibuprofen",
+            cid: "3672",
+            score: 24,
+            indication: "NSAID",
+            reasoning: ["Insufficient target rule: target is unmodeled or structure has no recognized pharmacology rule"],
+          },
+        ],
+        top5: [
+          {
+            name: "Paracetamol",
+            cid: "1983",
+            score: 24,
+            indication: "analgesic",
+            reasoning: ["Insufficient target rule: target is unmodeled or structure has no recognized pharmacology rule"],
+          },
+        ],
+      });
+
+      jest.spyOn(adversarialService, "fetchAdversarialCritique").mockResolvedValue({
+        case_against: { overall_assessment: "Exploratory only.", concerns: [] },
       });
 
       const report = await runResearchAgent({
         goal: "Test Disease research",
       });
 
-      expect(report.status).toBe("halted");
-      expect(report.steps[3].status).toBe("dead_end");
-      expect(report.steps[3].narration).toMatch(/no curated pharmacology rule/i);
-      expect(report.steps[3].data.ranking).toEqual([]);
-      expect(report.steps[4].status).toBe("pending");
+      expect(report.status).toBe("completed");
+      expect(report.steps[3].status).toBe("complete");
+      expect(report.steps[3].narration).toMatch(/exploratory drug-likeness shortlist/i);
+      expect(report.steps[3].narration).toMatch(/Paracetamol/i);
+      expect(report.steps[3].data.unmodeledTarget).toBe(true);
+      expect(report.steps[3].data.ranking[0].name).toBe("Paracetamol");
+      expect(report.steps[4].status).toBe("complete");
     });
 
     test("halts when ranking is empty or top score < 15", async () => {

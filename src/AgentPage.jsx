@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { runResearchAgent } from "./agentPipeline";
+import { formatReasoningForDisplay, runResearchAgent } from "./agentPipeline";
 import {
   ACTIVE_STATE_KEYS,
   clearActiveState,
@@ -830,11 +830,31 @@ export default function AgentPage() {
                 </div>
               )}
 
+              {step3?.data?.unmodeledTarget && (
+                <div
+                  className="agent-narration-box"
+                  style={{
+                    marginTop: step3?.narration ? 10 : 0,
+                    borderColor: "var(--amber, #d97706)",
+                    background: "rgba(217, 119, 6, 0.08)",
+                  }}
+                  role="note"
+                >
+                  <div className="agent-narration-header" style={{ color: "var(--amber, #d97706)" }}>
+                    Exploratory drug-likeness only — not on-target repurposing
+                  </div>
+                  <p className="agent-narration-text" style={{ margin: 0 }}>
+                    PocketLink has no curated pharmacology rule for this target. The table below ranks approved drugs by
+                    Lipinski/Veber physicochemical triage only — not target-specific binding or repurposing potential.
+                  </p>
+                </div>
+              )}
+
               {/* Recommended Lead Candidate Spotlight */}
               {step3?.data?.recommended && (
                 <div className="agent-result-spotlight">
                   <div className="agent-spotlight-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
-                    <span>Lead Repurposing Candidate (#1 Recommendation)</span>
+                    <span>{step3.data.unmodeledTarget ? "Top Drug-Likeness Candidate (exploratory)" : "Lead Repurposing Candidate (#1 Recommendation)"}</span>
                     {step3.data.totalScreened && (
                       <span className="mono" style={{ fontSize: 11, fontWeight: 500, color: "var(--text-dim)" }}>
                         Target-aware screen: {step3.data.totalScreened} prioritized approved small molecules
@@ -850,17 +870,17 @@ export default function AgentPage() {
                       </div>
                     </div>
                     <div>
-                      <span className="summary-label">Repurposing Score</span>
+                      <span className="summary-label">{step3.data.unmodeledTarget ? "Drug-Likeness Score" : "Repurposing Score"}</span>
                       <strong className="mono" style={{ fontSize: 16, color: "var(--primary)" }}>
                         {step3.data.recommended.score}/100
                       </strong>
                       <div className="score-title">Indication: {step3.data.recommended.indication || "N/A"}</div>
                     </div>
                     <div>
-                      <span className="summary-label">On-Target vs Same-Family Rationale</span>
+                      <span className="summary-label">{step3.data.unmodeledTarget ? "Scoring Rationale" : "On-Target vs Same-Family Rationale"}</span>
                       <ul style={{ margin: "4px 0 0", paddingLeft: 16, fontSize: 12, color: "var(--text-dim)" }}>
                         {(step3.data.recommended.reasoning || []).slice(0, 2).map((r, i) => (
-                          <li key={i}>{r}</li>
+                          <li key={i}>{formatReasoningForDisplay([r]) || r}</li>
                         ))}
                       </ul>
                     </div>
@@ -872,7 +892,9 @@ export default function AgentPage() {
               {top5Candidates.length > 0 && (
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", marginBottom: 8 }}>
-                    Top 5 Evaluated Approved Candidates (heuristic-v2)
+                    {step3.data.unmodeledTarget
+                      ? "Top 5 Exploratory Drug-Likeness Candidates (no target rule)"
+                      : "Top 5 Evaluated Approved Candidates (heuristic-v2)"}
                   </div>
                   <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
                     <table className="table" style={{ fontSize: 12, margin: 0 }}>
@@ -901,7 +923,9 @@ export default function AgentPage() {
                             <td>{c.indication || "—"}</td>
                             <td>
                               <span style={{ color: "var(--text-dim)" }}>
-                                {(c.reasoning || []).slice(0, 2).join("; ") || "Pocket shape and lipophilicity complementarity"}
+                                {formatReasoningForDisplay(c.reasoning) ||
+                                  (c.reasoning || []).slice(0, 2).join("; ") ||
+                                  "Pocket shape and lipophilicity complementarity"}
                               </span>
                             </td>
                           </tr>
