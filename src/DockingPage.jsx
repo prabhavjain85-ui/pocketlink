@@ -7,6 +7,8 @@ import {
 } from "./dockingEngine";
 import DockingViewer from "./DockingViewer";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
+import ReportExportButtons from "./ReportExportButtons";
+import { buildDockingReportMarkdown, defaultReportFilename } from "./reportExport";
 
 export default function DockingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -730,7 +732,7 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
                 </p>
               </div>
 
-              <div style={{ display: "flex", gap: "8px" }}>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
                 <button
                   type="button"
                   className="btn btn-secondary"
@@ -739,6 +741,22 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
                 >
                   {copiedReport ? "Report Copied ✓" : "Copy Docking Report"}
                 </button>
+                <ReportExportButtons
+                  compact
+                  label="Export report"
+                  filename={defaultReportFilename("docking-report", `${pdbIdInput}-${compoundNameInput}`)}
+                  getMarkdown={() =>
+                    buildDockingReportMarkdown({
+                      targetTitle,
+                      pdbId: pdbIdInput,
+                      compoundName: compoundNameInput,
+                      smiles: smilesInput,
+                      cid: cidInput,
+                      dockingResults,
+                      activePose,
+                    })
+                  }
+                />
                 <Link
                   to={`/adme?smiles=${encodeURIComponent(smilesInput)}&name=${encodeURIComponent(compoundNameInput)}&cid=${cidInput}`}
                   className="btn btn-secondary"

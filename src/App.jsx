@@ -21,6 +21,8 @@ import { checkPainsBatch } from "./painsCheck";
 import { MAX_CANDIDATES, drugLikenessChecks } from "./scoreCandidates";
 import { targetDisplayName } from "./targetContext";
 import AdversarialCritique from "./AdversarialCritique";
+import ReportExportButtons from "./ReportExportButtons";
+import { buildBenchReportMarkdown, defaultReportFilename } from "./reportExport";
 
 function compareCandidateField(a, b, key) {
   if (key === "compound") {
@@ -596,6 +598,20 @@ export default function App() {
                     ? "Reused cached scores for this (compound, PDB) pair"
                     : "Ranked with PocketLink's target-aware model"}
               </div>
+              <ReportExportButtons
+                label="Export report"
+                filename={defaultReportFilename(
+                  "staging-bench-report",
+                  protein?.id || protein?.pdb_id || fitPdbId
+                )}
+                getMarkdown={() =>
+                  buildBenchReportMarkdown({
+                    protein,
+                    candidates,
+                    aiResult,
+                  })
+                }
+              />
             </div>
           )}
         </Panel>

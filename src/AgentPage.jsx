@@ -7,6 +7,8 @@ import {
   getActiveState,
   setActiveState,
 } from "./historyService";
+import ReportExportButtons from "./ReportExportButtons";
+import { buildAgentReportMarkdown, defaultReportFilename } from "./reportExport";
 
 const EXAMPLE_GOALS = [
   "Find repurposing candidates for pancreatic cancer",
@@ -474,6 +476,15 @@ export default function AgentPage() {
             >
               {copiedReport ? "✓ Copied to Clipboard" : "Copy Report (Plain Text)"}
             </button>
+            <ReportExportButtons
+              compact
+              label="Export report"
+              filename={defaultReportFilename(
+                "agent-report",
+                exec?.targetSymbol || report?.diseaseResolved?.name
+              )}
+              getMarkdown={() => buildAgentReportMarkdown(report)}
+            />
           </div>
         </section>
       )}
@@ -1079,6 +1090,15 @@ export default function AgentPage() {
               </svg>
               {copiedReport ? "✓ Copied Report" : "Copy Report"}
             </button>
+            <ReportExportButtons
+              compact
+              label="Export report"
+              filename={defaultReportFilename(
+                "agent-report",
+                exec?.targetSymbol || report?.diseaseResolved?.name
+              )}
+              getMarkdown={() => buildAgentReportMarkdown(report)}
+            />
             <button
               type="button"
               className="btn btn-ghost-sm"

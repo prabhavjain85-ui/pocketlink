@@ -16,7 +16,7 @@ PocketLink is structured across nine dedicated routes:
 | `/adme` | **In-Browser ADME Profiling** | Calculate physicochemical descriptors, BOILED-Egg gastrointestinal and BBB permeation, ESOL aqueous solubility, Lipinski/Veber/Ghose rules, and organ toxicity alerts using client-side RDKit WASM. |
 | `/docking` | **Molecular Docking Simulation** | Run native grid-based empirical binding affinity predictions ($\Delta G_{\text{bind}}$, estimated $K_i$), 3D Monte Carlo pose optimization, and contact analysis in an interactive 3D viewer. |
 | `/agent` | **Autonomous Research Agent** | Orchestrate an automated 4-step pipeline: Target Discovery $\rightarrow$ PDB Selection $\rightarrow$ Repurposing Screen $\rightarrow$ Adversarial Critique ("The Case Against"). |
-| `/history` | **Session History** | Track and review past staging sessions, target discoveries, screening runs, agent investigations, and docking logs saved in persistent browser storage. |
+| `/history` | **Session History** | Track and review past staging sessions, target discoveries, screening runs, agent investigations, and docking logs saved in persistent browser storage. Export saved sessions as Markdown or PDF. |
 | `/methodology` | **Scientific Methodology** | Detailed documentation of scoring equations, rule tables, heuristic bands, algorithmic thresholds, and literature citations. |
 | `/contact` | **Contact & Inquiries** | Support and feedback form with multi-tier resilient delivery (Resend, Formspree, FormSubmit, and dry-run mode). |
 
@@ -169,6 +169,23 @@ PocketLink operates out-of-the-box with local deterministic models. Advanced AI 
 - **RDKit WebAssembly:** Client-side chemical informatics, descriptor generation, and substructure matching.
 - **Approved Drug Pharmacopeia:** Bundled library of 2,983 approved therapeutics (`src/data/approvedDrugs.json`).
 - **3Dmol.js:** WebGL-accelerated interactive 3D protein-ligand structural visualization.
+
+---
+
+## Research Report Export
+
+PocketLink can download shareable research summaries from result views and saved session history. Exports are generated entirely in the browser from the same session data shown in the UI — nothing is fabricated beyond what the run produced.
+
+| Location | Formats | Contents |
+| --- | --- | --- |
+| **Staging Bench** (`/`) | Markdown (`.md`), PDF | Target/PDB context, candidate ranking table, winner rationale, limitations |
+| **Target Discovery** (`/target-discovery`) | Markdown, PDF | Disease resolution, novelty/established target tables, methodology notes |
+| **Repurposing Screen** (`/repurposing`) | Markdown, PDF | Target/PDB, top library hits, lead candidate, scoring source |
+| **Molecular Docking** (`/docking`) | Markdown, PDF | ΔG/Ki, pose clusters, residue contacts, energy decomposition |
+| **Autonomous Agent** (`/agent`) | Markdown, PDF | Full 4-step pipeline, executive summary, adversarial critique |
+| **Session History** (`/history`) | Markdown, PDF | Re-exports any saved session snapshot (bench, discovery, repurposing, agent) |
+
+Each report includes timestamps and computational disclaimers consistent with PocketLink's honest-limitations tone. PDF generation uses the lightweight client-side `jspdf` library (no paid API).
 
 ---
 
