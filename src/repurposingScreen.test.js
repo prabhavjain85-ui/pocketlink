@@ -339,3 +339,50 @@ test("rememberDailyScreen round-trips a compact ranking", () => {
   expect(hit.ranking[0].cid).toBe("5291");
   expect(getDailyScreen("3SN6")).toBeNull();
 });
+
+const unmodeledTarget = {
+  id: "6XYZ",
+  queryName: "NOVELGENE",
+  gene: "NOVELGENE",
+  symbol: "NOVELGENE",
+  title: "Crystal structure of novel protein with small-molecule inhibitor",
+  method: "X-RAY DIFFRACTION",
+  resolution: "2.0 Å",
+  score: 82,
+  hasLigand: true,
+  pocket: "detected",
+  pocketStats: {
+    status: "detected",
+    available: true,
+    residueCount: 42,
+    hydrophobicity: 0.52,
+    sizeLabel: "medium",
+    hydrophobicityLabel: "mixed",
+  },
+  ligands: [{ compId: "LIG", name: "UnknownInhibitor", formulaWeight: 360 }],
+};
+
+test("shortlistOnly returns named ranking rows for modeled kinase targets", async () => {
+  const result = await screenApprovedLibrary(kinase, { shortlistOnly: true });
+  expect(result.ranking.length).toBeGreaterThan(0);
+  expect(result.recommended?.name).toBeTruthy();
+  expect(result.recommended?.indication).toBeTruthy();
+  for (const row of result.top5) {
+    expect(row.name).toBeTruthy();
+    expect(row.name).not.toMatch(/^CHEMBL/i);
+    expect(row.indication).toBeTruthy();
+  }
+  expect(result.unmodeledFiller).toBeFalsy();
+});
+
+test("shortlistOnly does not present alphabetical CHEMBL filler for unmodeled targets", async () => {
+  const result = await screenApprovedLibrary(unmodeledTarget, {
+    shortlistOnly: true,
+    activeTarget: { symbol: "NOVELGENE", name: "Novel Gene" },
+  });
+  expect(result.unmodeledFiller).toBe(true);
+  expect(result.ranking).toEqual([]);
+  expect(result.top5).toEqual([]);
+  expect(result.recommended).toBeNull();
+  expect(result.summary).toMatch(/unmodeled/i);
+});

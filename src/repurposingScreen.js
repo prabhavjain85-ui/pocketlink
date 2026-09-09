@@ -8,6 +8,7 @@ import {
   scoringCapabilities,
   resolveTargetRule,
   rankCandidatesLocal,
+  isUnmodeledFillerRanking,
   targetFamily,
   KINASE_INHIBITOR_RE,
   GPCR_LIGAND_RE,
@@ -579,25 +580,37 @@ export async function screenApprovedLibrary(
     });
 
     const rankedRows = scoredResult.ranking || [];
+    const recommendedRow = rankedRows[0]
+      ? {
+          ...rankedRows[0],
+          reason: scoredResult.recommended?.reason || "",
+        }
+      : null;
+    const unmodeledFiller = isUnmodeledFillerRanking(rankedRows, fullContext);
 
     if (typeof onProgress === "function") {
       onProgress({
         percent: 100,
-        message: `Ranked ${rankedRows.length} candidates for ${targetName}.`,
+        message: unmodeledFiller
+          ? `No target-specific approved-drug hits for ${targetName}.`
+          : `Ranked ${rankedRows.length} candidates for ${targetName}.`,
       });
     }
 
     return {
       target: { name: fullContext.name, pdb_id: fullContext.pdb_id },
-      summary: `Screened canonical on-target, same-family, and approved sample shortlist (${rankedRows.length} compounds) against ${fullContext.name} (${fullContext.pdb_id}) using heuristic-v2`,
+      summary: unmodeledFiller
+        ? `No on-target approved drugs in shortlist for ${fullContext.name} (${fullContext.pdb_id}): target is unmodeled in PocketLink's curated pharmacology rules. Candidates were not ranked as repurposing leads.`
+        : `Screened canonical on-target, same-family, and approved sample shortlist (${rankedRows.length} compounds) against ${fullContext.name} (${fullContext.pdb_id}) using heuristic-v2`,
       librarySize: drugs.length,
       scoredCount: rankedRows.length,
       shortlistSize: rankedRows.length,
-      recommended: rankedRows[0] || null,
-      ranking: rankedRows,
-      top5: rankedRows.slice(0, 5),
+      recommended: unmodeledFiller ? null : recommendedRow,
+      ranking: unmodeledFiller ? [] : rankedRows,
+      top5: unmodeledFiller ? [] : rankedRows.slice(0, 5),
       source: "heuristic-v2",
       limitations: scoredResult.limitations || [],
+      unmodeledFiller,
       selectedStructure: protein,
     };
   }

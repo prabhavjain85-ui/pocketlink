@@ -788,17 +788,32 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
     return String(a.cid).localeCompare(String(b.cid));
   });
 
-  const ranking = scored.map((item, index) => ({
-    cid: item.cid,
-    rank: index + 1,
-    score: item.score,
-    reasoning: (item.reasoning || []).slice(0, 6),
-    strengths: item.strengths.slice(0, 3),
-    concerns: item.concerns.slice(0, 3),
-  }));
+  const ranking = scored.map((item, index) => {
+    const original = list.find((c) => cidOf(c) === item.cid) || list[index];
+    const props = propsOf(original);
+    return {
+      cid: item.cid,
+      rank: index + 1,
+      name: nameOf(original),
+      score: item.score,
+      reasoning: (item.reasoning || []).slice(0, 6),
+      strengths: item.strengths.slice(0, 3),
+      concerns: item.concerns.slice(0, 3),
+      indication: original?.indication || "",
+      class: classOf(original),
+      smiles:
+        original?.CanonicalSMILES ||
+        original?.SMILES ||
+        original?.IsomericSMILES ||
+        "",
+      molecularWeight: props.mw,
+      xlogp: props.xlogp,
+    };
+  });
 
   const top = scored[0];
   const originalTop = list.find((c) => cidOf(c) === top.cid) || list[0];
+  const topProps = propsOf(originalTop);
   const target = ctx
     ? { name: ctx.name, pdb_id: ctx.pdb_id }
     : { name: "", pdb_id: null };
@@ -812,8 +827,19 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
     })),
     recommended: {
       cid: top.cid,
+      name: nameOf(originalTop),
       score: top.score,
       reason: reasonFor(originalTop, top, protein),
+      indication: originalTop?.indication || "",
+      class: classOf(originalTop),
+      smiles:
+        originalTop?.CanonicalSMILES ||
+        originalTop?.SMILES ||
+        originalTop?.IsomericSMILES ||
+        "",
+      molecularWeight: topProps.mw,
+      xlogp: topProps.xlogp,
+      reasoning: (top.reasoning || []).slice(0, 6),
     },
     ranking,
     summary: summaryFor(scored, protein),
@@ -899,6 +925,38 @@ function rankRepurposing(candidates, protein = null) {
   return { ...result, top5 };
 }
 
+const INSUFFICIENT_TARGET_RULE_RE = /insufficient target rule/i;
+
+function hasInsufficientTargetRuleReasoning(row) {
+  const reasoning = Array.isArray(row?.reasoning) ? row.reasoning : [];
+  return reasoning.some((entry) => INSUFFICIENT_TARGET_RULE_RE.test(String(entry)));
+}
+
+/**
+ * True when ranking rows are alphabetical drug-likeness filler with no target rule
+ * (typical ~24/100 tied scores and identical insufficient-target-rule reasoning).
+ */
+function isUnmodeledFillerRanking(ranking, protein = null) {
+  if (!Array.isArray(ranking) || !ranking.length) return false;
+
+  const ctx = protein ? buildTargetContext(protein) : null;
+  if (resolveTargetRule(ctx || protein)) return false;
+
+  const top = ranking[0];
+  if (!hasInsufficientTargetRuleReasoning(top)) return false;
+
+  const topScore = Number(top?.score) || 0;
+  // Scores above ~35 usually include family chemotype bonus, not pure filler.
+  if (topScore > 35) return false;
+
+  const topSlice = ranking.slice(0, Math.min(5, ranking.length));
+  const fillerRows = topSlice.filter(
+    (row) =>
+      hasInsufficientTargetRuleReasoning(row) && (Number(row?.score) || 0) <= 35
+  );
+  return fillerRows.length >= Math.min(3, topSlice.length);
+}
+
 module.exports = {
   MAX_CANDIDATES,
   drugLikenessChecks,
@@ -913,6 +971,8 @@ module.exports = {
   resolveTargetRule,
   matchesCoCrystalLigand,
   rankRepurposing,
+  isUnmodeledFillerRanking,
+  hasInsufficientTargetRuleReasoning,
   KINASE_INHIBITOR_RE,
   GPCR_LIGAND_RE,
 };

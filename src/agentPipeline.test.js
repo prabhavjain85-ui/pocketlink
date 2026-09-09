@@ -412,6 +412,51 @@ describe("agentPipeline", () => {
       expect(report.steps[4].status).toBe("complete");
     });
 
+    test("halts when unmodeled target yields only insufficient-rule filler rankings", async () => {
+      jest.spyOn(openTargets, "searchDiseases").mockResolvedValue([
+        { id: "MONDO_0001", name: "Test Disease" },
+      ]);
+      jest.spyOn(openTargets, "runTargetDiscovery").mockResolvedValue({
+        disease: { id: "MONDO_0001", name: "Test Disease" },
+        novelty: [{ symbol: "NOVELGENE", drugCount: 0 }],
+        all: [{ symbol: "NOVELGENE", drugCount: 0 }],
+      });
+
+      jest.spyOn(pdbSearch, "searchPdbTargets").mockResolvedValue({
+        results: [
+          {
+            id: "6XYZ",
+            title: "Structure of NOVELGENE with ligand",
+            score: 80,
+            resolution: "2.0 Å",
+            hasLigand: true,
+            ligand: { compId: "LIG", name: "Ligand", formulaWeight: 300 },
+            pocket: { available: true, residueCount: 50 },
+          },
+        ],
+      });
+
+      jest.spyOn(repurposingScreen, "screenApprovedLibrary").mockResolvedValue({
+        summary: "No on-target approved drugs in shortlist",
+        librarySize: 2983,
+        scoredCount: 0,
+        unmodeledFiller: true,
+        recommended: null,
+        ranking: [],
+        top5: [],
+      });
+
+      const report = await runResearchAgent({
+        goal: "Test Disease research",
+      });
+
+      expect(report.status).toBe("halted");
+      expect(report.steps[3].status).toBe("dead_end");
+      expect(report.steps[3].narration).toMatch(/no curated pharmacology rule/i);
+      expect(report.steps[3].data.ranking).toEqual([]);
+      expect(report.steps[4].status).toBe("pending");
+    });
+
     test("halts when ranking is empty or top score < 15", async () => {
       jest.spyOn(openTargets, "searchDiseases").mockResolvedValue([
         { id: "MONDO_0001", name: "Test Disease" },
