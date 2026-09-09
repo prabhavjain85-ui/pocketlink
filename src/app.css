@@ -3283,6 +3283,9 @@ textarea.field-input {
   margin-top: 14px;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 /* ==========================================================================
@@ -4297,6 +4300,27 @@ textarea.field-input {
   flex-wrap: wrap;
   padding-top: 14px;
   border-top: 1px solid var(--border-light);
+}
+
+.report-export-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.report-export-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.report-export-hint {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 
