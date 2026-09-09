@@ -22,7 +22,7 @@ const GPCR_CLASS_RE =
   /\b(beta-blocker|beta-2 agonist|antihistamine|opioid|antipsychotic|\barb\b|alpha-1|alpha-2 agonist|5-ht3|h2 antagonist|antimuscarinic|triptan|dopamine agonist|nachr)\b/i;
 
 /**
- * 12 Curated Target Rules with specific on-target drugs, demotions,
+ * 13 Curated Target Rules with specific on-target drugs, demotions,
  * co-crystal ligands, and PDB IDs.
  */
 const TARGET_RULES = [
@@ -147,8 +147,25 @@ const TARGET_RULES = [
     ],
     onTargetRe: /\b(sitagliptin|saxagliptin|linagliptin|alogliptin|vildagliptin)\b/i,
     onTargetClassRe: /\bdpp-?4 inhibitor\b/i,
-    demotedRe: /\b(metformin|glipizide|glyburide|glimepiride|pioglitazone|rosiglitazone)\b/i,
+    demotedRe: /\b(metformin|glipizide|glyburide|glimepiride|pioglitazone|rosiglitazone|empagliflozin|dapagliflozin|canagliflozin|ertugliflozin|sotagliflozin)\b/i,
     demotedConcern: "No DPP-4 inhibitor activity (metformin is an antidiabetic biguanide, not a DPP-4 inhibitor).",
+  },
+  {
+    id: "sglt2",
+    name: "Sodium-Glucose Cotransporter 2 (SGLT2 / SLC5A2)",
+    family: "sglt2",
+    pdbs: ["7VSI", "8HEZ", "8HDH", "8HG7"],
+    targetRe: /\b(sglt-?2|slc5a2|sodium[- ]glucose cotransporter ?2)\b/i,
+    geneRe: /\b(slc5a2|sglt2)\b/i,
+    ligandRe: /\b(empagliflozin|dapagliflozin|canagliflozin|ertugliflozin|sotagliflozin|7r3|le6|l3r)\b/i,
+    onTargetDrugs: [
+      "empagliflozin", "dapagliflozin", "canagliflozin", "ertugliflozin", "sotagliflozin",
+      "bexagliflozin", "ipragliflozin", "tofogliflozin",
+    ],
+    onTargetRe: /\b(empagliflozin|dapagliflozin|canagliflozin|ertugliflozin|sotagliflozin|bexagliflozin|ipragliflozin|tofogliflozin|\w*gliflozin)\b/i,
+    onTargetClassRe: /\bsglt-?2 inhibitor\b/i,
+    demotedRe: /\b(sitagliptin|saxagliptin|linagliptin|alogliptin|vildagliptin|metformin|glipizide|glyburide|glimepiride|pioglitazone|rosiglitazone)\b/i,
+    demotedConcern: "No SGLT2 inhibitor activity (different antidiabetic mechanism — DPP-4 inhibitor, biguanide, sulfonylurea, or TZD).",
   },
   {
     id: "hiv_protease",
@@ -248,6 +265,9 @@ const LIGAND_SYNONYMS = {
   OHT: ["tamoxifen", "4-hydroxytamoxifen", "nolvadex"],
   "4-OHT": ["tamoxifen", "4-hydroxytamoxifen", "nolvadex"],
   N3: ["nirmatrelvir", "paxlovid"],
+  "7R3": ["empagliflozin", "jardiance"],
+  LE6: ["dapagliflozin", "farxiga", "forxiga"],
+  L3R: ["canagliflozin", "invokana"],
 };
 
 function num(value) {
@@ -428,6 +448,7 @@ function targetFamily(protein) {
   if (/\b(cyclooxygenase|cox-?2|cox-?1)\b/i.test(text)) return "cox";
   if (/\b(hmg-?coa|hmgcr)\b/i.test(text)) return "hmg";
   if (/\b(dpp-?4|dpp4)\b/i.test(text)) return "dpp4";
+  if (/\b(sglt-?2|slc5a2|sodium[- ]glucose cotransporter ?2)\b/i.test(text)) return "sglt2";
   if (/\b(pde-?5|phosphodiesterase)\b/i.test(text)) return "pde5";
   if (/\b(hdac|histone deacetylase)\b/i.test(text)) return "hdac";
   if (/\b(estrogen|nuclear receptor)\b/i.test(text)) return "nuclear";
@@ -544,6 +565,9 @@ function evaluateCandidateForTargetRule(candidate, rule, protein) {
       isSameFamily = /\bstatin\b/i.test(cClass);
     } else if (rule.family === "dpp4") {
       isSameFamily = /\bdpp-?4 inhibitor\b/i.test(cClass);
+    } else if (rule.family === "sglt2") {
+      isSameFamily =
+        /\bsglt-?2 inhibitor\b/i.test(cClass) || /\b\w*gliflozin\b/i.test(cName);
     } else if (rule.family === "pde5") {
       isSameFamily = /\bpde5 inhibitor\b/i.test(cClass);
     } else if (rule.family === "hdac") {

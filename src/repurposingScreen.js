@@ -378,6 +378,8 @@ export const KNOWN_GENE_DRUGS = {
   COX2: ["celecoxib", "etodolac", "meloxicam", "diclofenac"],
   ADRB2: ["salbutamol", "albuterol", "salmeterol", "formoterol", "propranolol", "atenolol", "metoprolol", "carvedilol"],
   DPP4: ["sitagliptin", "saxagliptin", "linagliptin", "alogliptin"],
+  SLC5A2: ["empagliflozin", "dapagliflozin", "canagliflozin", "ertugliflozin", "sotagliflozin"],
+  SGLT2: ["empagliflozin", "dapagliflozin", "canagliflozin", "ertugliflozin", "sotagliflozin"],
   MET: ["crizotinib", "capmatinib", "tepotinib", "cabozantinib"],
   RET: ["selpercatinib", "pralsetinib", "cabozantinib"],
   FLT3: ["midostaurin", "gilteritinib", "sorafenib"],

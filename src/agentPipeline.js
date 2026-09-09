@@ -53,6 +53,8 @@ export const CURATED_GENE_PDBS = {
   COX2: ["4COX", "1CX2"],
   ADRB2: ["3SN6"],
   DPP4: ["1X70", "2P8S"],
+  SLC5A2: ["7VSI", "8HEZ", "8HDH"],
+  SGLT2: ["7VSI", "8HEZ", "8HDH"],
   ALK: ["2XP2", "4MKC"],
   BTK: ["3K54", "5P9J"],
   JAK1: ["6BBU"],
