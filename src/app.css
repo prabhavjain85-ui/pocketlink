@@ -439,6 +439,10 @@ body {
   min-width: 0;
 }
 
+.search-autocomplete input {
+  width: 100%;
+}
+
 .suggest-list {
   position: absolute;
   z-index: 20;
