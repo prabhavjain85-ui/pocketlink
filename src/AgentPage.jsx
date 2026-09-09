@@ -25,6 +25,17 @@ const STEPS_CONFIG = [
   { id: 4, name: "Adversarial critique", sub: "Case for vs case against" },
 ];
 
+function formatCompoundIdLabel(cid) {
+  const id = String(cid || "");
+  if (/^CHEMBL/i.test(id)) return "ChEMBL ID";
+  return "PubChem CID";
+}
+
+function displayDrugName(candidate) {
+  if (!candidate) return "Unknown drug";
+  return candidate.name || candidate.displayName || `Compound ${candidate.cid || "?"}`;
+}
+
 export default function AgentPage() {
   const navigate = useNavigate();
 
@@ -179,7 +190,7 @@ export default function AgentPage() {
       `Disease: ${exec.disease} (${exec.diseaseId || report?.diseaseResolved?.id || "N/A"})`,
       `Target: ${exec.targetSymbol} — ${exec.targetOneLineWhy || "Validated disease association"}`,
       `PDB Structure: ${exec.pdbId} (${exec.pdbResolution || "Experimental"})`,
-      `Lead Approved Drug: ${exec.leadDrugName} (CID: ${exec.leadDrugCid || "N/A"}, Score: ${exec.repurposingScore}/100)`,
+      `Lead Approved Drug: ${exec.leadDrugName} (${formatCompoundIdLabel(exec.leadDrugCid)}: ${exec.leadDrugCid || "N/A"}, Score: ${exec.repurposingScore}/100)`,
       `Primary Indication: ${exec.primaryIndication || "N/A"}`,
       `Adversarial Critique Summary: ${exec.critiqueSummary || exec.keyConcern || "Computational assessment complete."}`,
       "Status: Computational assessment only. Experimental validation required.",
@@ -833,8 +844,10 @@ export default function AgentPage() {
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
                     <div>
                       <span className="summary-label">Approved Drug</span>
-                      <strong style={{ fontSize: 16 }}>{step3.data.recommended.name}</strong>
-                      <div className="score-title mono">PubChem CID: {step3.data.recommended.cid}</div>
+                      <strong style={{ fontSize: 16 }}>{displayDrugName(step3.data.recommended)}</strong>
+                      <div className="score-title mono">
+                        {formatCompoundIdLabel(step3.data.recommended.cid)}: {step3.data.recommended.cid}
+                      </div>
                     </div>
                     <div>
                       <span className="summary-label">Repurposing Score</span>
@@ -877,8 +890,10 @@ export default function AgentPage() {
                           <tr key={idx} className={idx === 0 ? "table-active" : ""}>
                             <td className="mono">#{idx + 1}</td>
                             <td>
-                              <strong>{c.name}</strong>
-                              <div className="score-title mono" style={{ fontSize: 11 }}>CID {c.cid}</div>
+                              <strong>{displayDrugName(c)}</strong>
+                              <div className="score-title mono" style={{ fontSize: 11 }}>
+                                {formatCompoundIdLabel(c.cid)}: {c.cid}
+                              </div>
                             </td>
                             <td className="mono">
                               <strong style={{ color: "var(--primary)" }}>{c.score}/100</strong>
@@ -934,8 +949,10 @@ export default function AgentPage() {
                             <tr key={idx}>
                               <td className="mono">#{idx + 6}</td>
                               <td>
-                                <strong>{c.name}</strong>
-                                <div className="score-title mono">CID {c.cid}</div>
+                                <strong>{displayDrugName(c)}</strong>
+                                <div className="score-title mono">
+                                  {formatCompoundIdLabel(c.cid)}: {c.cid}
+                                </div>
                               </td>
                               <td className="mono"><strong>{c.score}/100</strong></td>
                               <td>{c.indication || "—"}</td>

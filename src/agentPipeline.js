@@ -19,7 +19,23 @@ import { ACTIVE_STATE_KEYS, saveHistoryEntry, setActiveState } from "./historySe
 import { pickDiseaseHit, runTargetDiscovery, searchDiseases } from "./openTargets";
 import { searchPdbTargets } from "./pdbSearch";
 import { screenApprovedLibrary } from "./repurposingScreen";
-import { scoringCapabilities } from "./scoreCandidates";
+import { isUnmodeledFillerRanking, scoringCapabilities } from "./scoreCandidates";
+
+export function formatCompoundIdLabel(cid) {
+  const id = String(cid || "");
+  if (/^CHEMBL/i.test(id)) return "ChEMBL ID";
+  return "PubChem CID";
+}
+
+export function formatCompoundIdRef(candidate) {
+  if (!candidate?.cid) return "unknown compound ID";
+  return `${formatCompoundIdLabel(candidate.cid)}: ${candidate.cid}`;
+}
+
+export function displayDrugName(candidate) {
+  if (!candidate) return "Unknown drug";
+  return candidate.name || candidate.displayName || `Compound ${candidate.cid || "?"}`;
+}
 
 export const ION_COMP_IDS = new Set([
   "ZN", "MG", "CA", "FE", "MN", "CU", "NI", "CO", "NA", "K", "CL", "BR", "IOD", "CD", "HG", "PB",
@@ -788,16 +804,31 @@ export async function runResearchAgent({
 
     const ranking = screenResult?.ranking || [];
     const recommendedCandidate = screenResult?.recommended || ranking[0] || null;
+    const unmodeledFiller =
+      Boolean(screenResult?.unmodeledFiller) ||
+      isUnmodeledFillerRanking(ranking, proteinContext);
 
-    // Halt rule: only halt if ranking is empty OR top score < 15.
-    // If top is 24-66, do not halt. Narrate same-family score and continue to critique.
-    if (!recommendedCandidate || !ranking.length || (recommendedCandidate.score != null && recommendedCandidate.score < 15)) {
+    // Halt when ranking is empty, top score is below drug-likeness floor, or only unmodeled filler.
+    if (
+      unmodeledFiller ||
+      !recommendedCandidate ||
+      !ranking.length ||
+      (recommendedCandidate.score != null && recommendedCandidate.score < 15)
+    ) {
       const topScore = recommendedCandidate?.score ?? 0;
-      const haltMsg = `The repurposing screen evaluated ${ranking.length} approved drugs against PDB ${selectedStructure.id}, but no candidate met the minimum computational binding and pharmacophore compatibility threshold (top score: ${topScore}/100). The agent cannot recommend an approved drug for this pocket with confidence.`;
+      const haltMsg = unmodeledFiller
+        ? `No on-target approved drugs were identified for ${activeTarget.symbol} in this shortlist. PocketLink has no curated pharmacology rule for this target, so any ranked compounds would reflect basic drug-likeness only — not target-specific repurposing potential. Use the full Repurposing screen after rule curation, or choose a modeled target (e.g. EGFR, ABL1, SGLT2).`
+        : `The repurposing screen evaluated ${ranking.length} approved drugs against PDB ${selectedStructure.id}, but no candidate met the minimum computational binding and pharmacophore compatibility threshold (top score: ${topScore}/100). The agent cannot recommend an approved drug for this pocket with confidence.`;
       notify(3, {
         status: "dead_end",
         narration: haltMsg,
-        data: { ranking: ranking.slice(0, 5), selectedStructure },
+        data: {
+          ranking: [],
+          top5: [],
+          selectedStructure,
+          unmodeledTarget: unmodeledFiller,
+          librarySize: screenResult?.librarySize,
+        },
       });
       report.status = "halted";
       report.haltReason = haltMsg;
@@ -806,7 +837,8 @@ export async function runResearchAgent({
     }
 
     // Compose Step 3 Narration
-    const topDrugName = recommendedCandidate.name || `CID ${recommendedCandidate.cid}`;
+    const topDrugName = displayDrugName(recommendedCandidate);
+    const topIdRef = formatCompoundIdRef(recommendedCandidate);
     const topScore = recommendedCandidate.score != null ? `${recommendedCandidate.score}/100` : "N/A";
     const topScoreNum = Number(recommendedCandidate.score) || 0;
     const topIndication = recommendedCandidate.indication || "clinical therapeutic";
@@ -824,10 +856,10 @@ export async function runResearchAgent({
 
     let step3Narration = "";
     if (topScoreNum < 67) {
-      step3Narration = `No on-target approved drug in this shortlist; best same-family score is ${topScoreNum}. Showing top 5. Evaluated ${libraryCount.toLocaleString()} clinically approved drugs (shortlist of ${ranking.length} compounds) against **PDB ${selectedStructure.id}** (${activeTarget.symbol}). **${topDrugName}** (CID: ${recommendedCandidate.cid}) led the screen with a score of **${topScore}** for **${topIndication}** (${topReasoning || "same-family pharmacophore overlap"}). Proceeding to adversarial critique for potential liabilities.`;
+      step3Narration = `No on-target approved drug in this shortlist; best same-family score is ${topScoreNum}. Showing top 5. Evaluated ${libraryCount.toLocaleString()} clinically approved drugs (shortlist of ${ranking.length} compounds) against **PDB ${selectedStructure.id}** (${activeTarget.symbol}). **${topDrugName}** (${topIdRef}) led the screen with a score of **${topScore}** for **${topIndication}** (${topReasoning || "same-family pharmacophore overlap"}). Proceeding to adversarial critique for potential liabilities.`;
     } else {
       step3Narration = `I evaluated the full library of ${libraryCount.toLocaleString()} clinically approved drugs (screening ${scoredCount.toLocaleString()} Lipinski/Veber-compliant small molecules) against the target-specific pocket geometry and pharmacophore constraints of **PDB ${selectedStructure.id}** (${activeTarget.symbol}). `;
-      step3Narration += `**${topDrugName}** (CID: ${recommendedCandidate.cid}) emerged as the lead repurposing candidate with a top score of **${topScore}**. `;
+      step3Narration += `**${topDrugName}** (${topIdRef}) emerged as the lead repurposing candidate with a top score of **${topScore}**. `;
       step3Narration += `Currently approved for **${topIndication}**, it demonstrates favorable molecular alignment${topMw ? ` (MW ${topMw}, XLogP ${topXlogp})` : ""}. Key computational rationale: ${topReasoning || "Excellent shape and electrostatic complementarity to the catalytic binding site with full Lipinski drug-likeness compliance."}.`;
     }
 

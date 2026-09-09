@@ -4,6 +4,7 @@ import {
   scoreLibraryLocal,
   rankRepurposing,
   resolveTargetRule,
+  isUnmodeledFillerRanking,
 } from "./scoreCandidates";
 
 const caffeine = {
@@ -273,12 +274,60 @@ test("ranks a clearly non-drug-like molecule last", () => {
 test("returns a complete ranking schema with heuristic-v2", () => {
   const result = rankCandidatesLocal([caffeine, imatinib]);
   expect(result.recommended.cid).toBeTruthy();
+  expect(result.recommended.name).toMatch(/caffeine|imatinib/i);
+  expect(result.recommended.indication).toBeDefined();
   expect(result.recommended.score).toBeGreaterThanOrEqual(0);
   expect(result.recommended.score).toBeLessThanOrEqual(100);
   expect(result.recommended.reason).toMatch(/caffeine|imatinib/i);
   expect(result.ranking.map((r) => r.cid).sort()).toEqual(["2519", "5291"]);
+  for (const row of result.ranking) {
+    expect(row.name).toBeTruthy();
+    expect(row).toHaveProperty("indication");
+  }
   expect(result.limitations.length).toBeGreaterThan(0);
   expect(result.source).toBe("heuristic-v2");
+});
+
+test("isUnmodeledFillerRanking detects tied insufficient-target-rule filler rows", () => {
+  const fillerReasoning = [
+    "Insufficient target rule: target is unmodeled or structure has no recognized pharmacology rule",
+  ];
+  const ranking = [
+    { cid: "CHEMBL1085", score: 24, reasoning: fillerReasoning },
+    { cid: "CHEMBL1184", score: 24, reasoning: fillerReasoning },
+    { cid: "CHEMBL1380", score: 24, reasoning: fillerReasoning },
+  ];
+  const unmodeledProtein = {
+    id: "6XYZ",
+    queryName: "NOVELGENE",
+    gene: "NOVELGENE",
+    title: "Novel protein inhibitor complex",
+    ligand: { present: true, name: "Inhibitor", compId: "LIG" },
+    pocket: { available: true },
+  };
+  expect(isUnmodeledFillerRanking(ranking, unmodeledProtein)).toBe(true);
+  expect(
+    isUnmodeledFillerRanking(ranking, {
+      id: "2HYY",
+      queryName: "ABL1",
+      title: "c-Abl kinase with imatinib",
+      ligands: [{ compId: "STI", name: "IMATINIB" }],
+    })
+  ).toBe(false);
+});
+
+test("isUnmodeledFillerRanking ignores same-family scores without insufficient-rule reasoning", () => {
+  const ranking = [
+    { cid: "999", score: 24, reasoning: ["Same family (kinase), but different primary target"] },
+  ];
+  const unmodeledProtein = {
+    id: "6XYZ",
+    queryName: "NOVELGENE",
+    gene: "NOVELGENE",
+    ligand: { present: true, name: "Inhibitor" },
+    pocket: { available: true },
+  };
+  expect(isUnmodeledFillerRanking(ranking, unmodeledProtein)).toBe(false);
 });
 
 test("scoreLibraryLocal ranks more than five compounds without the shortlist cap", () => {
