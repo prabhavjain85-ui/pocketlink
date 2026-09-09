@@ -375,14 +375,20 @@ test("shortlistOnly returns named ranking rows for modeled kinase targets", asyn
   expect(result.unmodeledFiller).toBeFalsy();
 });
 
-test("shortlistOnly does not present alphabetical CHEMBL filler for unmodeled targets", async () => {
+test("shortlistOnly returns named exploratory ranking for unmodeled targets with caveat flag", async () => {
   const result = await screenApprovedLibrary(unmodeledTarget, {
     shortlistOnly: true,
     activeTarget: { symbol: "NOVELGENE", name: "Novel Gene" },
   });
   expect(result.unmodeledFiller).toBe(true);
-  expect(result.ranking).toEqual([]);
-  expect(result.top5).toEqual([]);
-  expect(result.recommended).toBeNull();
-  expect(result.summary).toMatch(/unmodeled/i);
+  expect(result.ranking.length).toBeGreaterThan(0);
+  expect(result.top5.length).toBeGreaterThan(0);
+  expect(result.recommended?.name).toBeTruthy();
+  expect(result.summary).toMatch(/exploratory drug-likeness/i);
+  expect(result.summary).toMatch(/no curated pharmacology rule/i);
+  for (const row of result.top5) {
+    expect(row.name).toBeTruthy();
+    expect(row.name).not.toMatch(/^CHEMBL/i);
+    expect(row.indication).toBeTruthy();
+  }
 });

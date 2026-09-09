@@ -592,7 +592,7 @@ export async function screenApprovedLibrary(
       onProgress({
         percent: 100,
         message: unmodeledFiller
-          ? `No target-specific approved-drug hits for ${targetName}.`
+          ? `Ranked ${rankedRows.length} exploratory drug-likeness candidates for ${targetName} (no curated target rule).`
           : `Ranked ${rankedRows.length} candidates for ${targetName}.`,
       });
     }
@@ -600,14 +600,14 @@ export async function screenApprovedLibrary(
     return {
       target: { name: fullContext.name, pdb_id: fullContext.pdb_id },
       summary: unmodeledFiller
-        ? `No on-target approved drugs in shortlist for ${fullContext.name} (${fullContext.pdb_id}): target is unmodeled in PocketLink's curated pharmacology rules. Candidates were not ranked as repurposing leads.`
+        ? `Exploratory drug-likeness shortlist for ${fullContext.name} (${fullContext.pdb_id}): PocketLink has no curated pharmacology rule for this target, so scores reflect Lipinski/Veber triage only — not on-target repurposing potential.`
         : `Screened canonical on-target, same-family, and approved sample shortlist (${rankedRows.length} compounds) against ${fullContext.name} (${fullContext.pdb_id}) using heuristic-v2`,
       librarySize: drugs.length,
       scoredCount: rankedRows.length,
       shortlistSize: rankedRows.length,
-      recommended: unmodeledFiller ? null : recommendedRow,
-      ranking: unmodeledFiller ? [] : rankedRows,
-      top5: unmodeledFiller ? [] : rankedRows.slice(0, 5),
+      recommended: recommendedRow,
+      ranking: rankedRows,
+      top5: rankedRows.slice(0, 5),
       source: "heuristic-v2",
       limitations: scoredResult.limitations || [],
       unmodeledFiller,

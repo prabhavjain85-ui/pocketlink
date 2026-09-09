@@ -37,6 +37,22 @@ export function displayDrugName(candidate) {
   return candidate.name || candidate.displayName || `Compound ${candidate.cid || "?"}`;
 }
 
+const INSUFFICIENT_TARGET_RULE_DISPLAY =
+  "No curated target rule — drug-likeness / physicochemical triage only";
+
+export function formatReasoningForDisplay(reasoning) {
+  if (!Array.isArray(reasoning) || !reasoning.length) return "";
+  return reasoning
+    .map((entry) =>
+      String(entry).replace(
+        /Insufficient target rule: target is unmodeled or structure has no recognized pharmacology rule/i,
+        INSUFFICIENT_TARGET_RULE_DISPLAY
+      )
+    )
+    .slice(0, 3)
+    .join("; ");
+}
+
 export const ION_COMP_IDS = new Set([
   "ZN", "MG", "CA", "FE", "MN", "CU", "NI", "CO", "NA", "K", "CL", "BR", "IOD", "CD", "HG", "PB",
   "SO4", "PO4", "EDO", "DMS", "ACT", "GOL", "ACY", "PEG", "PGE", "1PE", "2PE", "SUL"
@@ -808,17 +824,15 @@ export async function runResearchAgent({
       Boolean(screenResult?.unmodeledFiller) ||
       isUnmodeledFillerRanking(ranking, proteinContext);
 
-    // Halt when ranking is empty, top score is below drug-likeness floor, or only unmodeled filler.
+    // Halt when ranking is empty or top score is below drug-likeness floor.
+    // Unmodeled targets still show an exploratory drug-likeness shortlist with an honest caveat.
     if (
-      unmodeledFiller ||
       !recommendedCandidate ||
       !ranking.length ||
       (recommendedCandidate.score != null && recommendedCandidate.score < 15)
     ) {
       const topScore = recommendedCandidate?.score ?? 0;
-      const haltMsg = unmodeledFiller
-        ? `No on-target approved drugs were identified for ${activeTarget.symbol} in this shortlist. PocketLink has no curated pharmacology rule for this target, so any ranked compounds would reflect basic drug-likeness only — not target-specific repurposing potential. Use the full Repurposing screen after rule curation, or choose a modeled target (e.g. EGFR, ABL1, SGLT2).`
-        : `The repurposing screen evaluated ${ranking.length} approved drugs against PDB ${selectedStructure.id}, but no candidate met the minimum computational binding and pharmacophore compatibility threshold (top score: ${topScore}/100). The agent cannot recommend an approved drug for this pocket with confidence.`;
+      const haltMsg = `The repurposing screen evaluated ${ranking.length} approved drugs against PDB ${selectedStructure.id}, but no candidate met the minimum computational binding and pharmacophore compatibility threshold (top score: ${topScore}/100). The agent cannot recommend an approved drug for this pocket with confidence.`;
       notify(3, {
         status: "dead_end",
         narration: haltMsg,
@@ -846,16 +860,23 @@ export async function runResearchAgent({
       ? Number(recommendedCandidate.molecularWeight).toFixed(1)
       : null;
     const topXlogp = recommendedCandidate.xlogp != null ? Number(recommendedCandidate.xlogp).toFixed(1) : null;
-    const topReasoning = Array.isArray(recommendedCandidate.reasoning)
-      ? recommendedCandidate.reasoning.slice(0, 3).join("; ")
-      : "";
+    const topReasoning = formatReasoningForDisplay(recommendedCandidate.reasoning);
 
     const libraryCount = screenResult?.librarySize || approvedDrugCount();
     const scoredCount = screenResult?.scoredCount || ranking.length;
     const excludedCount = screenResult?.excluded?.length || Math.max(0, libraryCount - scoredCount);
+    const top5Summary = ranking
+      .slice(0, 5)
+      .map(
+        (row) =>
+          `**${displayDrugName(row)}** (${formatCompoundIdRef(row)}, ${row.score != null ? `${row.score}/100` : "N/A"})`
+      )
+      .join("; ");
 
     let step3Narration = "";
-    if (topScoreNum < 67) {
+    if (unmodeledFiller) {
+      step3Narration = `PocketLink has no curated pharmacology rule for **${activeTarget.symbol}**, so this is an **exploratory drug-likeness shortlist only** — scores reflect Lipinski/Veber physicochemical triage, not on-target repurposing hits. Top 5 by drug-likeness: ${top5Summary}. **${topDrugName}** (${topIdRef}) leads with **${topScore}** for **${topIndication}** (${topReasoning || INSUFFICIENT_TARGET_RULE_DISPLAY}). Use the full Repurposing screen after rule curation, or choose a modeled target (e.g. EGFR, ABL1, SGLT2) for target-specific ranking. Proceeding to adversarial critique with this caveat.`;
+    } else if (topScoreNum < 67) {
       step3Narration = `No on-target approved drug in this shortlist; best same-family score is ${topScoreNum}. Showing top 5. Evaluated ${libraryCount.toLocaleString()} clinically approved drugs (shortlist of ${ranking.length} compounds) against **PDB ${selectedStructure.id}** (${activeTarget.symbol}). **${topDrugName}** (${topIdRef}) led the screen with a score of **${topScore}** for **${topIndication}** (${topReasoning || "same-family pharmacophore overlap"}). Proceeding to adversarial critique for potential liabilities.`;
     } else {
       step3Narration = `I evaluated the full library of ${libraryCount.toLocaleString()} clinically approved drugs (screening ${scoredCount.toLocaleString()} Lipinski/Veber-compliant small molecules) against the target-specific pocket geometry and pharmacophore constraints of **PDB ${selectedStructure.id}** (${activeTarget.symbol}). `;
@@ -877,6 +898,7 @@ export async function runResearchAgent({
         summary: screenResult.summary,
         selectedStructure,
         activeTarget,
+        unmodeledTarget: unmodeledFiller,
       },
     });
 
@@ -979,7 +1001,9 @@ export async function runResearchAgent({
       keyConcern: topConcerns[0]?.issue || "Selectivity across homologous pockets",
       keyConcernDetail: topConcerns[0]?.detail || "Requires orthogonal biochemical confirmation.",
       critiqueSummary: caseAgainst.overall_assessment || (topConcerns[0] ? `${topConcerns[0].issue}: ${topConcerns[0].detail}` : "Computational scores capture shape and lipophilicity; validation requires orthogonal assays."),
-      verdict: pivoted
+      verdict: unmodeledFiller
+        ? `Pipeline completed with caveat: ${activeTarget.symbol} has no curated PocketLink pharmacology rule. Step 3 shows an exploratory drug-likeness shortlist (top: ${topDrugName}, ${topScore}) — not on-target repurposing hits. Adversarial critique follows for transparency.`
+        : pivoted
         ? `Contingency pipeline completed: ${primaryTarget.symbol} was the top genetic candidate, but lacked an experimental pocket. The agent successfully pivoted to ${activeTarget.symbol} (PDB ${selectedStructure.id}), screened the approved-drug shortlist, and identified ${topDrugName} as an approved candidate with an itemized adversarial risk assessment.`
         : `Autonomous pipeline completed: Screened ${activeTarget.symbol} (PDB ${selectedStructure.id}) against approved drugs and identified ${topDrugName} as an approved candidate with an itemized adversarial risk assessment.`,
     };
