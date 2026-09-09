@@ -40,7 +40,7 @@ Screens chemical structures against recognized pan-assay interference and reacti
 ### Station 3: Target-Aware Candidate Ranking (`heuristic-v2`)
 Scores 2–5 staged molecules specifically against the selected PDB target:
 - **Target-Aware Engine (`heuristic-v2`):** Rather than evaluating drug-likeness in isolation, PocketLink evaluates target context (protein name, gene symbol, family classification, co-crystal ligand functional groups, and binding pocket size/hydrophobicity).
-- **Pharmacological Rule Table:** Specific rules match recognized target genes and families (e.g., EGFR, ABL1, BRAF, HER2, $\beta_2$-AR, COX-1/2, HMGCR, DPP4, HIV Protease, SARS-CoV-2 Mpro, PDE5, HDACs) into calibrated score bands:
+- **Pharmacological Rule Table:** Specific rules match recognized target genes and families (e.g., EGFR, ABL1, BRAF, HER2, $\beta_2$-AR, COX-1/2, HMGCR, DPP4, SGLT2 / SLC5A2, HIV Protease, SARS-CoV-2 Mpro, PDE5, HDACs) into calibrated score bands:
   - **On-target canonical chemotypes:** $\sim 67$ base points
   - **Same-family chemotypes:** $\sim 24$ base points
   - **Generic / off-target drug-like molecules:** $\sim 12$ base points
