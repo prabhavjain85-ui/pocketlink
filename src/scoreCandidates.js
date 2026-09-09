@@ -801,7 +801,7 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
       "PAINS and toxicophore matches are warnings, not automatic exclusions — some flagged chemotypes become real drugs.",
       ctx?.dataGaps?.length
         ? "Target-fit assessment is limited without pocket/ligand data — geometric fit was not treated as a confident judgment."
-        : "Use SwissDock and SwissADME next, then experimental assays, before treating any molecule as a real lead.",
+        : "Use PocketLink's native docking and ADME tools next, then experimental assays, before treating any molecule as a real lead.",
     ].filter((item, index, arr) => arr.indexOf(item) === index),
     source: "heuristic-v2",
   };
