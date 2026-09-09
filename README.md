@@ -185,7 +185,7 @@ PocketLink can download shareable research summaries from result views and saved
 | **Autonomous Agent** (`/agent`) | Markdown, PDF | Full 4-step pipeline, executive summary, adversarial critique |
 | **Session History** (`/history`) | Markdown, PDF | Re-exports any saved session snapshot (bench, discovery, repurposing, agent) |
 
-Each report includes timestamps and computational disclaimers consistent with PocketLink's honest-limitations tone. PDF generation uses the lightweight client-side `jspdf` library (no paid API).
+Each report includes timestamps and computational disclaimers consistent with PocketLink's honest-limitations tone. PDF exports use a branded client-side template (`jspdf` + `jspdf-autotable`): structured sections, metric cards, styled tables, ASCII-safe scientific symbols (e.g. ΔG → dG), and page headers/footers — not a raw markdown dump.
 
 ---
 
