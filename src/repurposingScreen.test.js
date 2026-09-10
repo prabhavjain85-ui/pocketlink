@@ -4,6 +4,7 @@ import { clearRankingCache } from "./rankingCache";
 import {
   AI_BATCH_SIZE,
   EXTREME_MW_CUTOFF,
+  buildAgentShortlist,
   clearDailyScreens,
   getDailyScreen,
   prefilterApprovedDrug,
@@ -379,6 +380,7 @@ test("shortlistOnly returns named exploratory ranking for unmodeled targets with
   const result = await screenApprovedLibrary(unmodeledTarget, {
     shortlistOnly: true,
     activeTarget: { symbol: "NOVELGENE", name: "Novel Gene" },
+    diseaseContext: { name: "rare undifferentiated sarcoma", query: "rare undifferentiated sarcoma" },
   });
   expect(result.unmodeledFiller).toBe(true);
   expect(result.ranking.length).toBeGreaterThan(0);
@@ -391,4 +393,112 @@ test("shortlistOnly returns named exploratory ranking for unmodeled targets with
     expect(row.name).not.toMatch(/^CHEMBL/i);
     expect(row.indication).toBeTruthy();
   }
+});
+
+test("buildAgentShortlist uses different exploratory fillers for different unmodeled genes", () => {
+  const drugs = loadApprovedDrugs();
+  const tp53 = {
+    id: "1TSR",
+    pdb_id: "1TSR",
+    gene: "TP53",
+    symbol: "TP53",
+    title: "Crystal structure of p53 tumor suppressor DNA-binding domain",
+    family: "other",
+    ligand: { present: false },
+  };
+  const palb2 = {
+    id: "5KCI",
+    pdb_id: "5KCI",
+    gene: "PALB2",
+    symbol: "PALB2",
+    title: "Crystal structure of PALB2 tumor suppressor fragment",
+    family: "other",
+    ligand: { present: false },
+  };
+
+  const tp53Shortlist = buildAgentShortlist(drugs, tp53, { symbol: "TP53" });
+  const palb2Shortlist = buildAgentShortlist(drugs, palb2, { symbol: "PALB2" });
+
+  const tp53Names = tp53Shortlist.map((d) => d.name).join(",");
+  const palb2Names = palb2Shortlist.map((d) => d.name).join(",");
+  expect(tp53Names).not.toBe(palb2Names);
+});
+
+test("shortlistOnly rankings differ between modeled ABL1 and EGFR targets", async () => {
+  const egfr = {
+    id: "1M17",
+    queryName: "EGFR",
+    gene: "EGFR",
+    symbol: "EGFR",
+    title: "Structure of the EGFR kinase domain in complex with erlotinib",
+    method: "X-RAY DIFFRACTION",
+    resolution: "2.6 Å",
+    score: 88,
+    hasLigand: true,
+    pocket: "detected",
+    pocketStats: {
+      status: "detected",
+      available: true,
+      residueCount: 20,
+      hydrophobicity: 0.58,
+      sizeLabel: "medium",
+      hydrophobicityLabel: "mixed",
+    },
+    ligands: [{ compId: "AQ4", name: "ERLOTINIB", formulaWeight: 393.4 }],
+  };
+
+  const ablResult = await screenApprovedLibrary(kinase, {
+    shortlistOnly: true,
+    activeTarget: { symbol: "ABL1", name: "ABL proto-oncogene 1" },
+    diseaseContext: { name: "chronic myeloid leukemia", query: "CML" },
+  });
+  const egfrResult = await screenApprovedLibrary(egfr, {
+    shortlistOnly: true,
+    activeTarget: { symbol: "EGFR", name: "epidermal growth factor receptor" },
+    diseaseContext: { name: "non-small cell lung cancer", query: "NSCLC" },
+  });
+
+  const ablTop = ablResult.top5.map((r) => r.name).join(",");
+  const egfrTop = egfrResult.top5.map((r) => r.name).join(",");
+  expect(ablTop).not.toBe(egfrTop);
+  expect(ablResult.top5[0].name.toLowerCase()).toMatch(/imatinib|dasatinib|nilotinib|bosutinib|ponatinib/);
+  expect(egfrResult.top5[0].name.toLowerCase()).toMatch(/erlotinib|gefitinib|afatinib|osimertinib|lapatinib/);
+  expect(ablResult.unmodeledFiller).toBeFalsy();
+  expect(egfrResult.unmodeledFiller).toBeFalsy();
+});
+
+test("shortlistOnly rankings differ between two unmodeled genes", async () => {
+  const tp53Target = {
+    ...unmodeledTarget,
+    id: "1TSR",
+    gene: "TP53",
+    symbol: "TP53",
+    queryName: "TP53",
+    title: "Crystal structure of p53 tumor suppressor DNA-binding domain",
+  };
+  const palb2Target = {
+    ...unmodeledTarget,
+    id: "5KCI",
+    gene: "PALB2",
+    symbol: "PALB2",
+    queryName: "PALB2",
+    title: "Crystal structure of PALB2 tumor suppressor fragment",
+  };
+
+  const tp53Result = await screenApprovedLibrary(tp53Target, {
+    shortlistOnly: true,
+    activeTarget: { symbol: "TP53", name: "tumor protein p53" },
+    diseaseContext: { name: "Li-Fraumeni syndrome", query: "Li-Fraumeni syndrome" },
+  });
+  const palb2Result = await screenApprovedLibrary(palb2Target, {
+    shortlistOnly: true,
+    activeTarget: { symbol: "PALB2", name: "partner and localizer of BRCA2" },
+    diseaseContext: { name: "hereditary breast cancer", query: "hereditary breast cancer" },
+  });
+
+  const tp53Top = tp53Result.top5.map((r) => r.name).join(",");
+  const palb2Top = palb2Result.top5.map((r) => r.name).join(",");
+  expect(tp53Top).not.toBe(palb2Top);
+  expect(tp53Result.unmodeledFiller).toBe(true);
+  expect(palb2Result.unmodeledFiller).toBe(true);
 });
