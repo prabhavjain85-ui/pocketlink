@@ -1,4 +1,9 @@
-const { buildTargetContext, targetDisplayName } = require("./targetContext");
+const {
+  buildTargetContext,
+  targetDisplayName,
+  stableHashString,
+  drugMatchesDiseaseKeywords,
+} = require("./targetContext");
 
 const MAX_CANDIDATES = 5;
 
@@ -654,6 +659,16 @@ function scoreOne(candidate, protein = null) {
       reasoning.push(`Insufficient target rule: target is unmodeled or structure has no recognized pharmacology rule`);
       concerns.push(`Insufficient target rule: no recognized target rule matched for this structure.`);
     }
+
+    const diseaseKeywords = protein?.diseaseKeywords;
+    if (Array.isArray(diseaseKeywords) && diseaseKeywords.length) {
+      if (drugMatchesDiseaseKeywords(candidate, diseaseKeywords)) {
+        const diseaseLabel = protein?.diseaseName || "the query disease";
+        targetBonus += 12;
+        reasoning.push(`Indication overlap with ${diseaseLabel} (approved use text matches disease keywords)`);
+        strengths.push(`Approved indication may be relevant to ${diseaseLabel}.`);
+      }
+    }
   } else {
     // No target staged
     targetBonus = 0;
@@ -782,9 +797,15 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
     };
   });
 
+  const tieBreakSeed = options.tieBreakSeed;
   scored.sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;
     if (b.passCount !== a.passCount) return b.passCount - a.passCount;
+    if (tieBreakSeed != null) {
+      const ha = stableHashString(`${tieBreakSeed}:${a.cid}`);
+      const hb = stableHashString(`${tieBreakSeed}:${b.cid}`);
+      return ha - hb;
+    }
     return String(a.cid).localeCompare(String(b.cid));
   });
 

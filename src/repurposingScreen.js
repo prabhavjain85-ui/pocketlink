@@ -2,7 +2,15 @@ import { rankCandidatesBatch, scoreLibraryLocal } from "./aiCandidateRanking";
 import { drugToCandidate, loadApprovedDrugs } from "./approvedDrugs";
 import { checkPainsFast } from "./painsCheck";
 import { getCachedScore, pdbIdOf, rememberScores } from "./rankingCache";
-import { rankingCacheKey, targetDisplayName, summarizeTargetData, buildTargetContext } from "./targetContext";
+import {
+  rankingCacheKey,
+  targetDisplayName,
+  summarizeTargetData,
+  buildTargetContext,
+  stableHashString,
+  extractDiseaseKeywords,
+  drugMatchesDiseaseKeywords,
+} from "./targetContext";
 import {
   drugLikenessChecks,
   scoringCapabilities,
@@ -393,20 +401,43 @@ export const KNOWN_GENE_DRUGS = {
   PDE5A: ["sildenafil", "tadalafil", "vardenafil", "avanafil"],
 };
 
+function shortlistSeedKey(proteinContext, activeTarget, diseaseContext) {
+  const targetGene = String(
+    activeTarget?.symbol || proteinContext?.gene || proteinContext?.symbol || ""
+  )
+    .trim()
+    .toUpperCase();
+  const pdbId = String(proteinContext?.pdb_id || proteinContext?.id || "").toUpperCase();
+  const diseaseLabel = String(diseaseContext?.name || diseaseContext?.query || "").trim();
+  return `${targetGene}|${pdbId}|${diseaseLabel}`;
+}
+
+function sortDrugsBySeed(drugs, seed) {
+  return [...drugs].sort((a, b) => {
+    const ha = stableHashString(`${seed}:${a.cid}`);
+    const hb = stableHashString(`${seed}:${b.cid}`);
+    return ha - hb;
+  });
+}
+
 /**
  * Build a shortlist of approved drugs for the 4-step Autonomous Research Agent:
  * - Canonical on-target drugs for the resolved gene and target rule (e.g. ABL1 -> imatinib, EGFR -> gefitinib)
  * - Same-family drugs (to allow adversarial and on-target vs same-family reasoning)
  * - Co-crystallized ligand matching drug if present
- * - Diverse sample of approved small molecules
+ * - Disease/indication keyword matches from the active research goal
+ * - Target-specific exploratory filler (seeded by gene + PDB + disease — never fixed JSON order)
  */
-export function buildAgentShortlist(allDrugs, proteinContext, activeTarget) {
+export function buildAgentShortlist(allDrugs, proteinContext, activeTarget, options = {}) {
+  const diseaseContext = options.diseaseContext || null;
+  const diseaseKeywords = extractDiseaseKeywords(diseaseContext);
   const fullContext = buildTargetContext(proteinContext) || proteinContext;
   const targetGene = String(
     activeTarget?.symbol || proteinContext?.gene || proteinContext?.symbol || ""
   ).trim().toUpperCase();
   const rule = resolveTargetRule(fullContext);
   const shortlistMap = new Map();
+  const seed = stableHashString(shortlistSeedKey(proteinContext, activeTarget, diseaseContext));
 
   const addDrug = (drug) => {
     if (!drug || !drug.cid) return;
@@ -460,6 +491,13 @@ export function buildAgentShortlist(allDrugs, proteinContext, activeTarget) {
     }
   }
 
+  // 4b. Drugs whose indication/class text matches the active disease keywords
+  if (diseaseKeywords.length) {
+    for (const drug of allDrugs) {
+      if (drugMatchesDiseaseKeywords(drug, diseaseKeywords)) addDrug(drug);
+    }
+  }
+
   // 5. Same-family drugs for the resolved gene/family
   if (rule?.demotedRe) {
     for (const drug of allDrugs) {
@@ -469,35 +507,37 @@ export function buildAgentShortlist(allDrugs, proteinContext, activeTarget) {
 
   const family = fullContext.family || targetFamily(fullContext);
   if (family === "kinase") {
-    let count = 0;
-    for (const drug of allDrugs) {
-      if (KINASE_INHIBITOR_RE.test(drug.name) || String(drug.class || "").toLowerCase().includes("kinase")) {
-        addDrug(drug);
-        count++;
-        if (count >= 15) break;
-      }
+    const kinasePool = allDrugs.filter(
+      (drug) =>
+        KINASE_INHIBITOR_RE.test(drug.name) ||
+        String(drug.class || "").toLowerCase().includes("kinase")
+    );
+    for (const drug of sortDrugsBySeed(kinasePool, seed).slice(0, 15)) {
+      addDrug(drug);
     }
   } else if (family === "gpcr") {
-    let count = 0;
-    for (const drug of allDrugs) {
-      if (GPCR_LIGAND_RE.test(drug.name) || String(drug.class || "").toLowerCase().includes("receptor")) {
-        addDrug(drug);
-        count++;
-        if (count >= 15) break;
-      }
+    const gpcrPool = allDrugs.filter(
+      (drug) =>
+        GPCR_LIGAND_RE.test(drug.name) ||
+        String(drug.class || "").toLowerCase().includes("receptor")
+    );
+    for (const drug of sortDrugsBySeed(gpcrPool, seed).slice(0, 15)) {
+      addDrug(drug);
     }
   }
 
-  // 6. Supplement with qualified drug-likeness approved compounds (up to ~50 total)
-  let sampleCount = 0;
-  for (const drug of allDrugs) {
-    if (shortlistMap.size >= 50) break;
+  // 6. Supplement with qualified drug-likeness approved compounds (up to ~50 total).
+  // Use a stable gene/PDB/disease seed so unmodeled targets never share the same JSON-order head.
+  const fillerPool = allDrugs.filter((drug) => {
     const mw = Number(drug.mw || drug.MolecularWeight || 0);
-    if (mw > 180 && mw < 550 && !shortlistMap.has(String(drug.cid))) {
-      addDrug(drug);
-      sampleCount++;
-      if (sampleCount >= 30) break;
-    }
+    return mw > 180 && mw < 550 && !shortlistMap.has(String(drug.cid));
+  });
+  let sampleCount = 0;
+  for (const drug of sortDrugsBySeed(fillerPool, seed)) {
+    if (shortlistMap.size >= 50) break;
+    addDrug(drug);
+    sampleCount++;
+    if (sampleCount >= 30) break;
   }
 
   return Array.from(shortlistMap.values());
@@ -519,6 +559,7 @@ export async function screenApprovedLibrary(
     maxAiCandidates = AI_SHORTLIST_SIZE,
     shortlistOnly = false,
     activeTarget = null,
+    diseaseContext = null,
     signal = null,
   } = {}
 ) {
@@ -557,13 +598,21 @@ export async function screenApprovedLibrary(
       });
     }
 
-    const fullContext = buildTargetContext(protein) || protein;
-    const shortlist = buildAgentShortlist(drugs, protein, activeTarget);
+    const diseaseKeywords = extractDiseaseKeywords(diseaseContext);
+    const fullContext = {
+      ...(buildTargetContext(protein) || protein),
+      diseaseKeywords,
+      diseaseName: diseaseContext?.name || diseaseContext?.query || "",
+    };
+    const shortlist = buildAgentShortlist(drugs, protein, activeTarget, { diseaseContext });
+    const tieBreakSeed = stableHashString(
+      shortlistSeedKey(protein, activeTarget, diseaseContext)
+    );
 
     if (typeof onProgress === "function") {
       onProgress({
         percent: 60,
-        message: `Scoring ${shortlist.length} candidate drugs against ${targetName} using heuristic-v2...`,
+        message: `Scoring ${shortlist.length} candidate drugs against ${targetName} (${fullContext.gene || activeTarget?.symbol || "target"}${diseaseContext?.name ? `; disease: ${diseaseContext.name}` : ""}) using heuristic-v2...`,
       });
     }
 
@@ -577,6 +626,7 @@ export async function screenApprovedLibrary(
     const scoredResult = rankCandidatesLocal(candidates, fullContext, {
       maxCandidates: candidates.length,
       minCandidates: 1,
+      tieBreakSeed,
     });
 
     const rankedRows = scoredResult.ranking || [];
@@ -600,8 +650,8 @@ export async function screenApprovedLibrary(
     return {
       target: { name: fullContext.name, pdb_id: fullContext.pdb_id },
       summary: unmodeledFiller
-        ? `Exploratory drug-likeness shortlist for ${fullContext.name} (${fullContext.pdb_id}): PocketLink has no curated pharmacology rule for this target, so scores reflect Lipinski/Veber triage only — not on-target repurposing potential.`
-        : `Screened canonical on-target, same-family, and approved sample shortlist (${rankedRows.length} compounds) against ${fullContext.name} (${fullContext.pdb_id}) using heuristic-v2`,
+        ? `Exploratory drug-likeness shortlist for ${fullContext.gene || fullContext.name} (${fullContext.pdb_id})${diseaseContext?.name ? ` in ${diseaseContext.name}` : ""}: PocketLink has no curated pharmacology rule for this target, so scores reflect Lipinski/Veber triage and any disease-indication overlap — not on-target repurposing potential.`
+        : `Screened canonical on-target, same-family, and approved sample shortlist (${rankedRows.length} compounds) against ${fullContext.gene || fullContext.name} (${fullContext.pdb_id})${diseaseContext?.name ? ` for ${diseaseContext.name}` : ""} using heuristic-v2`,
       librarySize: drugs.length,
       scoredCount: rankedRows.length,
       shortlistSize: rankedRows.length,

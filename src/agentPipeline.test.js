@@ -408,7 +408,10 @@ describe("agentPipeline", () => {
 
       expect(report.status).toBe("completed");
       expect(report.steps[3].status).toBe("complete");
-      expect(report.steps[3].narration).toContain("No on-target approved drug in this shortlist; best same-family score is 24");
+      expect(report.steps[3].narration).toMatch(/no on-target approved drug in this shortlist/i);
+      expect(report.steps[3].narration).toContain("best same-family score is 24");
+      expect(report.steps[3].narration).toContain("Test Disease");
+      expect(report.steps[3].narration).toContain("GENE1");
       expect(report.steps[4].status).toBe("complete");
     });
 

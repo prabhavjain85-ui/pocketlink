@@ -806,10 +806,17 @@ export async function runResearchAgent({
       family: targetFam,
     };
 
+    const diseaseContext = {
+      name: report.diseaseResolved?.name || diseaseQuery,
+      query: diseaseQuery,
+      id: report.diseaseResolved?.id || "",
+    };
+
     const screenResult = await screenApprovedLibrary(proteinContext, {
       force: forceScreen,
       shortlistOnly: true,
       activeTarget,
+      diseaseContext,
       signal,
       onProgress: ({ percent, message }) => {
         if (typeof onProgress === "function") {
@@ -874,12 +881,13 @@ export async function runResearchAgent({
       .join("; ");
 
     let step3Narration = "";
+    const diseaseLabel = report.diseaseResolved?.name || diseaseQuery;
     if (unmodeledFiller) {
-      step3Narration = `PocketLink has no curated pharmacology rule for **${activeTarget.symbol}**, so this is an **exploratory drug-likeness shortlist only** — scores reflect Lipinski/Veber physicochemical triage, not on-target repurposing hits. Top 5 by drug-likeness: ${top5Summary}. **${topDrugName}** (${topIdRef}) leads with **${topScore}** for **${topIndication}** (${topReasoning || INSUFFICIENT_TARGET_RULE_DISPLAY}). Use the full Repurposing screen after rule curation, or choose a modeled target (e.g. EGFR, ABL1, SGLT2) for target-specific ranking. Proceeding to adversarial critique with this caveat.`;
+      step3Narration = `For **${diseaseLabel}**, PocketLink has no curated pharmacology rule for **${activeTarget.symbol}** (PDB **${selectedStructure.id}**), so this is an **exploratory drug-likeness shortlist only** — scores reflect Lipinski/Veber physicochemical triage plus any disease-indication keyword overlap, not on-target repurposing hits. Top 5 for this target/disease context: ${top5Summary}. **${topDrugName}** (${topIdRef}) leads with **${topScore}** for **${topIndication}** (${topReasoning || INSUFFICIENT_TARGET_RULE_DISPLAY}). Use the full Repurposing screen after rule curation, or choose a modeled target (e.g. EGFR, ABL1, SGLT2) for target-specific ranking. Proceeding to adversarial critique with this caveat.`;
     } else if (topScoreNum < 67) {
-      step3Narration = `No on-target approved drug in this shortlist; best same-family score is ${topScoreNum}. Showing top 5. Evaluated ${libraryCount.toLocaleString()} clinically approved drugs (shortlist of ${ranking.length} compounds) against **PDB ${selectedStructure.id}** (${activeTarget.symbol}). **${topDrugName}** (${topIdRef}) led the screen with a score of **${topScore}** for **${topIndication}** (${topReasoning || "same-family pharmacophore overlap"}). Proceeding to adversarial critique for potential liabilities.`;
+      step3Narration = `For **${diseaseLabel}**, no on-target approved drug in this shortlist for **${activeTarget.symbol}** (PDB **${selectedStructure.id}**); best same-family score is ${topScoreNum}. Showing top 5. Evaluated ${libraryCount.toLocaleString()} clinically approved drugs (shortlist of ${ranking.length} compounds). **${topDrugName}** (${topIdRef}) led the screen with a score of **${topScore}** for **${topIndication}** (${topReasoning || "same-family pharmacophore overlap"}). Proceeding to adversarial critique for potential liabilities.`;
     } else {
-      step3Narration = `I evaluated the full library of ${libraryCount.toLocaleString()} clinically approved drugs (screening ${scoredCount.toLocaleString()} Lipinski/Veber-compliant small molecules) against the target-specific pocket geometry and pharmacophore constraints of **PDB ${selectedStructure.id}** (${activeTarget.symbol}). `;
+      step3Narration = `For **${diseaseLabel}**, I evaluated the full library of ${libraryCount.toLocaleString()} clinically approved drugs (screening ${scoredCount.toLocaleString()} Lipinski/Veber-compliant small molecules) against the target-specific pocket geometry and pharmacophore constraints of **PDB ${selectedStructure.id}** (**${activeTarget.symbol}**). `;
       step3Narration += `**${topDrugName}** (${topIdRef}) emerged as the lead repurposing candidate with a top score of **${topScore}**. `;
       step3Narration += `Currently approved for **${topIndication}**, it demonstrates favorable molecular alignment${topMw ? ` (MW ${topMw}, XLogP ${topXlogp})` : ""}. Key computational rationale: ${topReasoning || "Excellent shape and electrostatic complementarity to the catalytic binding site with full Lipinski drug-likeness compliance."}.`;
     }
