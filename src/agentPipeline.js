@@ -37,6 +37,73 @@ export function displayDrugName(candidate) {
   return candidate.name || candidate.displayName || `Compound ${candidate.cid || "?"}`;
 }
 
+export function shouldPersistAgentRun(report) {
+  if (!report?.diseaseResolved) return false;
+  if (report.status === "aborted" || report.status === "running") return false;
+  return report.status === "completed" || report.status === "halted";
+}
+
+export function buildAgentHistoryMeta(report) {
+  if (!report) return null;
+
+  const disease = report.diseaseResolved?.name || report.diseaseQuery || "Unknown disease";
+  const step1 = report.steps?.[1];
+  const step2 = report.steps?.[2];
+  const step3 = report.steps?.[3];
+
+  const primaryTarget = step1?.data?.primaryTarget;
+  const activeTarget = step2?.data?.target || primaryTarget;
+  const selectedStructure = step2?.data?.selectedStructure || step3?.data?.selectedStructure;
+  const recommended = step3?.data?.recommended;
+  const topDrug = recommended ? displayDrugName(recommended) : null;
+  const topScore = recommended?.score;
+
+  let title;
+  let summary;
+
+  if (report.status === "completed") {
+    title = `Agent: ${disease} → ${activeTarget?.symbol || "?"} (${topDrug || "—"})`;
+    summary = `${activeTarget?.symbol || "?"} (${selectedStructure?.id || "—"}) screened with ${topDrug || "—"} (Score: ${topScore ?? "n/a"}). Adversarial stress-test complete.`;
+  } else if (report.status === "halted") {
+    if (step3?.status === "dead_end") {
+      title = `Agent: ${disease} → ${activeTarget?.symbol || "?"} (${selectedStructure?.id || "—"}) — halted (no candidates)`;
+      summary = `Structure ${selectedStructure?.id || "—"} selected but repurposing screen found no candidates above threshold (top score: ${topScore ?? 0}/100).`;
+    } else if (step2?.status === "dead_end") {
+      title = `Agent: ${disease} → ${primaryTarget?.symbol || "?"} — halted (no pocket)`;
+      summary = `Targets identified (${primaryTarget?.symbol || "?"}) but no viable PDB structure for repurposing screen.`;
+    } else if (step1?.status === "dead_end") {
+      title = `Agent: ${disease} — halted (no targets)`;
+      summary = report.haltReason || "Disease resolved but target discovery yielded no associations.";
+    } else {
+      title = `Agent: ${disease} — halted`;
+      summary = report.haltReason || "Agent run halted before completion.";
+    }
+  } else {
+    return null;
+  }
+
+  return {
+    type: "agent-run",
+    title,
+    summary,
+    inputs: {
+      goal: report.goal,
+      disease,
+      target: activeTarget?.symbol || primaryTarget?.symbol || "",
+      status: report.status,
+    },
+    snapshot: { report },
+  };
+}
+
+function persistAgentRunHistory(report) {
+  if (!shouldPersistAgentRun(report)) return null;
+  const meta = buildAgentHistoryMeta(report);
+  if (!meta) return null;
+  setActiveState(ACTIVE_STATE_KEYS.AGENT, report);
+  return saveHistoryEntry(meta);
+}
+
 const INSUFFICIENT_TARGET_RULE_DISPLAY =
   "No curated target rule — drug-likeness / physicochemical triage only";
 
@@ -483,6 +550,7 @@ export async function runResearchAgent({
       report.status = "halted";
       report.haltReason = haltMsg;
       report.totalDurationMs = Date.now() - startTime;
+      persistAgentRunHistory(report);
       return report;
     }
 
@@ -712,6 +780,7 @@ export async function runResearchAgent({
       report.status = "halted";
       report.haltReason = haltMsg;
       report.totalDurationMs = Date.now() - startTime;
+      persistAgentRunHistory(report);
       return report;
     }
 
@@ -844,9 +913,11 @@ export async function runResearchAgent({
         status: "dead_end",
         narration: haltMsg,
         data: {
-          ranking: [],
-          top5: [],
+          ranking: ranking.slice(0, 5),
+          top5: ranking.slice(0, 5),
+          recommended: recommendedCandidate,
           selectedStructure,
+          target: activeTarget,
           unmodeledTarget: unmodeledFiller,
           librarySize: screenResult?.librarySize,
         },
@@ -854,6 +925,7 @@ export async function runResearchAgent({
       report.status = "halted";
       report.haltReason = haltMsg;
       report.totalDurationMs = Date.now() - startTime;
+      persistAgentRunHistory(report);
       return report;
     }
 
@@ -1016,23 +1088,7 @@ export async function runResearchAgent({
         : `Autonomous pipeline completed: Screened ${activeTarget.symbol} (PDB ${selectedStructure.id}) against approved drugs and identified ${topDrugName} as an approved candidate with an itemized adversarial risk assessment.`,
     };
 
-    // Cache active run for persistence
-    setActiveState(ACTIVE_STATE_KEYS.AGENT, report);
-
-    // Save to permanent search history
-    saveHistoryEntry({
-      type: "agent-run",
-      title: `Agent: ${report.diseaseResolved?.name || diseaseQuery} → ${activeTarget.symbol} (${topDrugName})`,
-      summary: `${activeTarget.symbol} (${selectedStructure.id}) screened with ${topDrugName} (Score: ${topScore}). Adversarial stress-test complete.`,
-      inputs: {
-        goal: report.goal,
-        disease: report.diseaseResolved?.name || diseaseQuery,
-        target: activeTarget.symbol,
-      },
-      snapshot: {
-        report,
-      },
-    });
+    persistAgentRunHistory(report);
 
     return report;
   } catch (err) {
@@ -1045,6 +1101,7 @@ export async function runResearchAgent({
       report.haltReason = err.message || "An unexpected error occurred during agent orchestration.";
     }
     report.totalDurationMs = Date.now() - startTime;
+    persistAgentRunHistory(report);
     return report;
   }
 }
