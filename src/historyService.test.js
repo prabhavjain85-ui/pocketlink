@@ -1,5 +1,8 @@
 import {
   MAX_HISTORY_ENTRIES,
+  SNAPSHOT_RANKING_LIMIT,
+  compactAgentReport,
+  compactSnapshot,
   saveHistoryEntry,
   getHistory,
   deleteHistoryEntry,
@@ -7,6 +10,7 @@ import {
   setActiveState,
   getActiveState,
   clearActiveState,
+  HISTORY_STORAGE_KEY,
 } from "./historyService";
 
 describe("historyService", () => {
@@ -89,5 +93,74 @@ describe("historyService", () => {
 
     clearActiveState(key);
     expect(getActiveState(key)).toBeNull();
+  });
+
+  test("compactAgentReport truncates large rankings and step payloads", () => {
+    const ranking = Array.from({ length: 50 }, (_, i) => ({
+      name: `Drug${i}`,
+      cid: String(i),
+      score: 90 - i,
+      reasoning: [`reason-${i}`, `extra-${i}`],
+    }));
+
+    const compacted = compactAgentReport({
+      goal: "Test goal",
+      status: "completed",
+      steps: {
+        3: {
+          id: 3,
+          status: "complete",
+          narration: "x".repeat(5000),
+          data: { ranking, recommended: ranking[0] },
+        },
+      },
+      executiveSummary: { verdict: "Done" },
+    });
+
+    expect(compacted.steps[3].data.ranking.length).toBeLessThanOrEqual(SNAPSHOT_RANKING_LIMIT);
+    expect(compacted.steps[3].narration.length).toBeLessThan(5000);
+    expect(compacted.steps[3].data.ranking[0].name).toBe("Drug0");
+  });
+
+  test("compactSnapshot compacts repurposing and staging-bench snapshots", () => {
+    const ranking = Array.from({ length: 30 }, (_, i) => ({ name: `Drug${i}`, cid: i, score: i }));
+    const compacted = compactSnapshot("repurposing-run", {
+      target: { id: "2HYY", title: "ABL", score: 95, extra: "drop-me" },
+      topCandidates: ranking,
+      highlightCount: 3,
+    });
+
+    expect(compacted.topCandidates.length).toBeLessThanOrEqual(SNAPSHOT_RANKING_LIMIT);
+    expect(compacted.target.id).toBe("2HYY");
+    expect(compacted.target.extra).toBeUndefined();
+  });
+
+  test("retries history write by dropping oldest entries when quota is exceeded", () => {
+    const originalSetItem = Storage.prototype.setItem;
+    let failNextHistoryWrite = true;
+
+    Storage.prototype.setItem = function patchedSetItem(key, value) {
+      if (key === HISTORY_STORAGE_KEY && failNextHistoryWrite) {
+        failNextHistoryWrite = false;
+        const err = new Error("Quota exceeded");
+        err.name = "QuotaExceededError";
+        throw err;
+      }
+      return originalSetItem.call(window.localStorage, key, value);
+    };
+
+    try {
+      const entry = saveHistoryEntry({
+        type: "pdb-search",
+        title: "Search 0",
+        summary: "Result 0",
+        inputs: { index: 0 },
+      });
+
+      expect(entry).toBeTruthy();
+      expect(getHistory().length).toBe(1);
+    } finally {
+      Storage.prototype.setItem = originalSetItem;
+    }
   });
 });
