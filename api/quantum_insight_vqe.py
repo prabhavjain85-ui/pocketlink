@@ -11,7 +11,7 @@ def build_problem(geometry, basis=DEFAULT_BASIS, charge=0, spin=0):
 
     driver = PySCFDriver(atom=geometry, basis=basis, charge=charge, spin=spin)
     problem = driver.run()
-    mapper = ParityMapper()
+    mapper = ParityMapper(num_particles=problem.num_particles)
     qubit_op = mapper.map(problem.hamiltonian.second_q_op())
     return problem, mapper, qubit_op
 

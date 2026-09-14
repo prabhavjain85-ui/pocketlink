@@ -110,7 +110,7 @@ class TestH2VqeGolden(unittest.TestCase):
         result = run_vqe(H2_CANONICAL_GEOMETRY)
         energy = result["total_energy_hartree"]
         self.assertAlmostEqual(energy, -1.13730604, places=2)
-        self.assertEqual(result["n_qubits"], 4)
+        self.assertEqual(result["n_qubits"], 2)
         self.assertEqual(result["basis"], "sto-3g")
 
 
