@@ -11,6 +11,7 @@ import TargetDiscoveryPage from "./TargetDiscoveryPage";
 import AgentPage from "./AgentPage";
 import AdmePage from "./AdmePage";
 import DockingPage from "./DockingPage";
+import HypothesisPage from "./HypothesisPage";
 import "./app.css";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
@@ -20,6 +21,7 @@ root.render(
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<App />} />
+          <Route path="/hypothesis" element={<HypothesisPage />} />
           <Route path="/target-discovery" element={<TargetDiscoveryPage />} />
           <Route path="/repurposing" element={<RepurposingPage />} />
           <Route path="/adme" element={<AdmePage />} />

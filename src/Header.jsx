@@ -37,6 +37,9 @@ export default function Header() {
         <NavLink to="/" end className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
           Staging Bench
         </NavLink>
+        <NavLink to="/hypothesis" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
+          Hypothesis Testing
+        </NavLink>
         <NavLink to="/target-discovery" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
           Target Discovery
         </NavLink>

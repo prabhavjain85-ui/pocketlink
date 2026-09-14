@@ -39,4 +39,7 @@ module.exports = function setupProxy(app) {
 
   const adversarialHandler = require("../api/adversarial-critique");
   app.use("/api/adversarial-critique", vercelOnExpress(adversarialHandler));
+
+  const hypothesisHandler = require("../api/hypothesis-eval");
+  app.use("/api/hypothesis-eval", vercelOnExpress(hypothesisHandler));
 };

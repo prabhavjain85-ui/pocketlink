@@ -1,6 +1,6 @@
 {
   "name": "PocketLink",
-  "description": "Drug Discovery Staging Bench — Search PDB targets, shortlist PubChem compounds, orchestrate autonomous multi-step research agent pipelines, run approved drug repurposing, compute native ADME prediction, and simulate native receptor-ligand molecular docking.",
+  "description": "Drug Discovery Staging Bench — Search PDB targets, test scientific hypotheses with multi-evidence validation, orchestrate autonomous research pipelines, run approved drug repurposing, compute native ADME prediction, and simulate molecular docking.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
