@@ -91,9 +91,9 @@ export function prettyName(result, query) {
   return result?.CID ? `CID ${result.CID}` : "Unknown compound";
 }
 
-export function Panel({ title, eyebrow, kind, children }) {
+export function Panel({ title, eyebrow, kind, children, className, style, id }) {
   return (
-    <div className="panel">
+    <div className={"panel" + (className ? " " + className : "")} style={style} id={id}>
       <div className="panel-head">
         <span className={"station-icon icon-" + kind}>
           <StationIcon kind={kind} />

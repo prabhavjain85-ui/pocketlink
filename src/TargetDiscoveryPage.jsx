@@ -220,6 +220,15 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
   );
 }
 
+const SAMPLE_DISEASES = [
+  "Pancreatic cancer",
+  "Ulcerative colitis",
+  "Chronic myeloid leukemia",
+  "Glioblastoma",
+  "Alzheimer disease",
+  "Rheumatoid arthritis",
+];
+
 export default function TargetDiscoveryPage() {
   const navigate = useNavigate();
 
@@ -360,7 +369,7 @@ export default function TargetDiscoveryPage() {
   const diseaseName = result?.disease?.name || "";
 
   return (
-    <>
+    <div className="target-discovery-page" id="target-discovery-page">
       <div className="hero">
         <div className="hero-eyebrow">PocketLink · target discovery</div>
         <h1>Target Discovery</h1>
@@ -371,8 +380,8 @@ export default function TargetDiscoveryPage() {
         </p>
       </div>
 
-      <div className="grid with-scores">
-        <Panel eyebrow="Open Targets Platform" title="Search a disease" kind="target">
+      <div className="target-discovery-station target-discovery-search-panel">
+        <Panel eyebrow="Station 1 — Open Targets Platform" title="Search a disease" kind="target">
           <div className="search-row">
             <div className="search-autocomplete" role="combobox" aria-expanded={suggestOpen} aria-controls="disease-suggest" aria-haspopup="listbox">
               <input
@@ -415,33 +424,40 @@ export default function TargetDiscoveryPage() {
             Autocomplete and associations come from the Open Targets Platform GraphQL API. Results are cached by
             disease ID for 24 hours.
           </div>
-          {error && <div className="error-msg">{error}</div>}
-          {loading && (
-            <div className="repurpose-progress" role="status" aria-live="polite">
-              <div className="repurpose-progress-label">Querying Open Targets for associated targets…</div>
-            </div>
-          )}
-          {!loading && !result && !error && (
-            <div className="empty-state">
-              Search a disease to surface protein targets with strong genetic or biological evidence and little
-              existing drug coverage.
-            </div>
-          )}
+
+          <div className="target-discovery-chips-row">
+            <span className="target-discovery-chips-label">Popular queries:</span>
+            {SAMPLE_DISEASES.map((d) => (
+              <button
+                key={d}
+                type="button"
+                className="target-discovery-chip-btn"
+                onClick={() => {
+                  setQuery(d);
+                  runSearch(d);
+                }}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+
+          {error && <div className="error-msg" style={{ marginTop: 12 }}>{error}</div>}
         </Panel>
       </div>
 
-      {result && (
-        <div className="handoff-panel">
-          <Panel
-            eyebrow="Novelty-ranked opportunities"
-            title={`Targets for ${diseaseName}`}
-            kind="candidate"
-          >
-            {result.fromCache && (
-              <div className="source-pill">
-                Reused today's Open Targets results for {result.disease.id} — cache-first, no new API call
-              </div>
-            )}
+      <div className="target-discovery-station target-discovery-results-panel">
+        <Panel
+          eyebrow="Station 2 — Novelty-ranked opportunities"
+          title={result ? `Targets for ${diseaseName}` : "Target opportunities & genetic validation"}
+          kind="candidate"
+        >
+          {result?.fromCache && (
+            <div className="source-pill">
+              Reused today's Open Targets results for {result.disease.id} — cache-first, no new API call
+            </div>
+          )}
+          {result && (
             <div className="hint" style={{ marginTop: result.fromCache ? 10 : 0 }}>
               Resolved to <span className="mono">{result.disease.id}</span>
               {result.disease.associationCount
@@ -450,24 +466,74 @@ export default function TargetDiscoveryPage() {
               . Known-drug counts use <span className="mono">target.drugAndClinicalCandidates.count</span> (the
               current schema; the older <span className="mono">knownDrugs</span> field is gone).
             </div>
+          )}
 
-            {headline.length > 0 && view === "novelty" && (
-              <div className="recommend compact">
-                <div className="recommend-label">Undrugged, genetically supported leads</div>
-                <div className="winner">🆕 High-novelty targets for {diseaseName}</div>
-                <div className="winner-score">
-                  {headline.length} gene{headline.length === 1 ? "" : "s"} with strong evidence and 0 existing drugs
-                </div>
-                <ul className="rank-bullets">
-                  {headline.map((row) => (
-                    <li key={row.ensemblId}>
-                      <b>{row.symbol}</b> (novelty {row.noveltyScore.toFixed(1)}) — {row.explanation}
-                    </li>
-                  ))}
-                </ul>
+          {loading && (
+            <div className="repurpose-progress" role="status" aria-live="polite" style={{ margin: "24px 0" }}>
+              <div className="repurpose-progress-label">
+                Querying Open Targets for associated targets & computing novelty scores…
               </div>
-            )}
+              <div className="progress-bar-track" style={{ height: "6px", background: "var(--border)", borderRadius: "4px", overflow: "hidden", marginTop: "10px" }}>
+                <div
+                  className="progress-bar-fill"
+                  style={{
+                    height: "100%",
+                    background: "var(--primary)",
+                    borderRadius: "4px",
+                    width: "100%",
+                    animation: "pulse 1.5s infinite",
+                  }}
+                />
+              </div>
+            </div>
+          )}
 
+          {!result && !loading && !error && (
+            <div className="empty-state" style={{ padding: "36px 20px", textAlign: "center" }}>
+              <div style={{ fontSize: "28px", marginBottom: "10px" }}>🎯</div>
+              <div style={{ fontWeight: 600, fontSize: "15px", marginBottom: "6px", color: "var(--text)" }}>
+                Ready to screen disease-associated targets
+              </div>
+              <div style={{ maxWidth: "580px", margin: "0 auto 16px", color: "var(--text-muted)", fontSize: "13px", lineHeight: 1.6 }}>
+                Enter a disease above or pick a sample disease to surface protein targets with strong genetic and biological
+                validation that remain underexplored by marketed drugs.
+              </div>
+              <div className="target-discovery-chips-row" style={{ justifyContent: "center" }}>
+                {SAMPLE_DISEASES.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    className="target-discovery-chip-btn"
+                    onClick={() => {
+                      setQuery(d);
+                      runSearch(d);
+                    }}
+                  >
+                    🔍 {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {result && headline.length > 0 && view === "novelty" && (
+            <div className="recommend compact">
+              <div className="recommend-label">Undrugged, genetically supported leads</div>
+              <div className="winner">🆕 High-novelty targets for {diseaseName}</div>
+              <div className="winner-score">
+                {headline.length} gene{headline.length === 1 ? "" : "s"} with strong evidence and 0 existing drugs
+              </div>
+              <ul className="rank-bullets">
+                {headline.map((row) => (
+                  <li key={row.ensemblId}>
+                    <b>{row.symbol}</b> (novelty {row.noveltyScore.toFixed(1)}) — {row.explanation}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {result && (
             <div className="discovery-toolbar">
               <div className="view-toggle" role="tablist" aria-label="Result view">
                 <button
@@ -505,41 +571,43 @@ export default function TargetDiscoveryPage() {
                 }
               />
             </div>
+          )}
 
-            {view === "established" && (
-              <div className="hint">
-                High overall association and three or more existing approved or investigational drugs. These are
-                the already-explored end of the same Open Targets result — useful context, not the discovery default.
-              </div>
-            )}
-
-            {rows.length === 0 ? (
-              <div className="empty-state">
-                {view === "established"
-                  ? "No well-established (high association, many existing drugs) targets in this result set."
-                  : "No targets passed the evidence threshold for this disease. Novelty is not the same as a random gene list."}
-              </div>
-            ) : (
-              <DiscoveryTable
-                rows={rows}
-                sortKey={sort.key}
-                sortDir={sort.dir}
-                onSort={onSort}
-                onFindStructures={onFindStructures}
-              />
-            )}
-
-            <div className="lipinski-note">
-              Association and drug counts are from the{" "}
-              <a href="https://platform.opentargets.org" target="_blank" rel="noreferrer">
-                Open Targets Platform
-              </a>
-              . Novelty is a PocketLink ranking, not Open Targets' own recency-based <span className="mono">novelty</span>{" "}
-              field. A high novelty score is a hypothesis to follow up — not proof that a target is druggable.
+          {result && view === "established" && (
+            <div className="hint">
+              High overall association and three or more existing approved or investigational drugs. These are
+              the already-explored end of the same Open Targets result — useful context, not the discovery default.
             </div>
-          </Panel>
-        </div>
-      )}
-    </>
+          )}
+
+          {result && rows.length === 0 && (
+            <div className="empty-state">
+              {view === "established"
+                ? "No well-established (high association, many existing drugs) targets in this result set."
+                : "No targets passed the evidence threshold for this disease. Novelty is not the same as a random gene list."}
+            </div>
+          )}
+
+          {result && rows.length > 0 && (
+            <DiscoveryTable
+              rows={rows}
+              sortKey={sort.key}
+              sortDir={sort.dir}
+              onSort={onSort}
+              onFindStructures={onFindStructures}
+            />
+          )}
+
+          <div className="lipinski-note">
+            Association and drug counts are from the{" "}
+            <a href="https://platform.opentargets.org" target="_blank" rel="noreferrer">
+              Open Targets Platform
+            </a>
+            . Novelty is a PocketLink ranking, not Open Targets' own recency-based <span className="mono">novelty</span>{" "}
+            field. A high novelty score is a hypothesis to follow up — not proof that a target is druggable.
+          </div>
+        </Panel>
+      </div>
+    </div>
   );
 }
