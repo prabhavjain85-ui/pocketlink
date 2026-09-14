@@ -13,6 +13,7 @@ import AdmePage from "./AdmePage";
 import DockingPage from "./DockingPage";
 import HypothesisPage from "./HypothesisPage";
 import "./app.css";
+import "./discoverySearch.css";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -35,4 +36,3 @@ root.render(
     </BrowserRouter>
   </React.StrictMode>
 );
-
