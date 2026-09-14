@@ -97,7 +97,7 @@ export default function QuantumInsight({ compound, smiles, protein = null }) {
     return () => {
       cancelled = true;
     };
-  }, [smiles, cid, protein?.id]);
+  }, [smiles, cid, protein]);
 
   const runAnalysis = async () => {
     if (!smiles) {
