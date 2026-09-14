@@ -47,7 +47,7 @@ describe("QuantumInsight", () => {
       experimental: true,
       refused: false,
       total_energy_hartree: -1.137306,
-      n_qubits: 4,
+      n_qubits: 2,
       basis: "sto-3g",
       mapper: "ParityMapper",
       ansatz: "UCCSD/HartreeFock",

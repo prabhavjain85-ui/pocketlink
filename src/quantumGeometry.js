@@ -1,8 +1,10 @@
 /**
  * Build 3D atom coordinates for Quantum Insight API payloads.
- * Reuses RDKit molblock parsing (same approach as dockingEngine).
+ * Uses RDKit WASM add_hs + CoordGen 2D layout, then the same planar-to-3D
+ * lift used by docking (liftPlanarAtomsTo3D) when true 3D embed is unavailable.
  */
 
+import { liftPlanarAtomsTo3D } from "./dockingEngine";
 import { getRDKit } from "./rdkitLoader";
 
 const H2_SMILES = new Set(["[H][H]", "HH", "[HH]", "[H]H", "H[H]"]);
@@ -11,7 +13,7 @@ export function isH2Smiles(smiles) {
   return H2_SMILES.has(String(smiles || "").trim());
 }
 
-function parseAtomsFromMolblock(molblock) {
+export function parseAtomsFromMolblock(molblock) {
   const atoms = [];
   const lines = String(molblock || "").split("\n");
   for (let i = 0; i < lines.length; i++) {
@@ -36,6 +38,10 @@ function parseAtomsFromMolblock(molblock) {
   return atoms;
 }
 
+function hasNonPlanarCoordinates(atoms) {
+  return atoms.some((a) => Math.abs(a.z) >= 1e-4);
+}
+
 /**
  * Return atom list for quantum API, or null for canonical H2 (backend supplies geometry).
  */
@@ -54,22 +60,51 @@ export async function buildQuantumAtoms(smiles, rdkitInstance = null) {
   }
 
   const mol = rdkit.get_mol(clean);
-  if (!mol) {
+  if (!mol || !mol.is_valid()) {
     throw new Error(`Could not parse SMILES: ${clean}`);
   }
 
-  let molblock = "";
+  let hsBlock = "";
   try {
-    molblock = mol.get_molblock();
+    hsBlock = mol.add_hs();
   } catch {
-    molblock = "";
+    hsBlock = "";
+  }
+  mol.delete();
+
+  if (!hsBlock || !String(hsBlock).includes("V2000")) {
+    throw new Error(
+      "RDKit could not add explicit hydrogens. Quantum Insight requires a hydrogen-complete 3D geometry."
+    );
   }
 
-  const atoms = parseAtomsFromMolblock(molblock);
-  if (!atoms.length) {
-    throw new Error("Could not extract 3D coordinates from RDKit molblock.");
+  const molH = rdkit.get_mol(hsBlock);
+  if (!molH || !molH.is_valid()) {
+    throw new Error("Invalid molecule after adding explicit hydrogens.");
   }
-  return atoms;
+
+  try {
+    // CoordGen 2D layout (RDKit WASM has no ETKDG/MMFF 3D embed API).
+    molH.get_new_coords(true);
+  } catch {
+    // Fall back to existing coordinates in the molblock.
+  }
+
+  const atoms = parseAtomsFromMolblock(molH.get_molblock());
+  molH.delete();
+
+  if (!atoms.length) {
+    throw new Error("Could not extract atomic coordinates from RDKit molblock.");
+  }
+
+  const embedded = liftPlanarAtomsTo3D(atoms);
+  if (!hasNonPlanarCoordinates(embedded)) {
+    throw new Error(
+      "3D coordinate embedding failed: the molecule is still planar. Quantum Insight cannot use a flat 2D depiction."
+    );
+  }
+
+  return embedded.map(({ symbol, x, y, z }) => ({ symbol, x, y, z }));
 }
 
 export function atomsToGeometryString(atoms) {

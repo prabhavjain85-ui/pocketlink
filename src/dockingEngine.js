@@ -269,6 +269,23 @@ export function extractPocketAtoms(proteinAtoms, center, radius = 10.0) {
 }
 
 /**
+ * Lift a planar (z ≈ 0) depiction to a crude 3D conformation.
+ * Shared by docking and Quantum Insight when RDKit WASM only provides 2D coords.
+ */
+export function liftPlanarAtomsTo3D(atoms) {
+  if (!atoms.length) return atoms;
+  const is2D = atoms.every((a) => Math.abs(a.z) < 1e-4);
+  if (!is2D) return atoms;
+  return atoms.map((a, i) => {
+    const angle = (i / atoms.length) * Math.PI * 2;
+    return {
+      ...a,
+      z: Math.sin(angle * 2) * (a.symbol === "C" ? 0.75 : 0.45),
+    };
+  });
+}
+
+/**
  * Prepare a ligand from SMILES: parse with RDKit, compute 3D template coordinates,
  * and extract atomic descriptors for docking.
  */
@@ -355,16 +372,9 @@ export async function prepareLigand3D(smiles, rdkitInstance = null) {
 
   mol.delete();
 
-  // If coordinates are purely planar (z === 0), generate 3D spatial conformation
-  // via realistic bond geometry & sp3 puckering
-  const is2D = atoms.every((a) => Math.abs(a.z) < 1e-4);
-  if (is2D && atoms.length > 0) {
-    for (let i = 0; i < atoms.length; i++) {
-      const a = atoms[i];
-      // Add realistic 3D out-of-plane dihedral pertubation for flexible chains
-      const angle = (i / atoms.length) * Math.PI * 2;
-      a.z = Math.sin(angle * 2) * (a.symbol === "C" ? 0.75 : 0.45);
-    }
+  const lifted = liftPlanarAtomsTo3D(atoms);
+  for (let i = 0; i < atoms.length; i++) {
+    atoms[i].z = lifted[i].z;
   }
 
   // Center ligand coordinates at origin (0, 0, 0)
