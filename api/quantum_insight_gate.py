@@ -94,11 +94,23 @@ def size_gate_reasons(atom_count, non_h_count, n_qubits=None):
     return reasons
 
 
-def refusal_payload(reasons, atom_count=None, non_h_count=None, n_qubits=None):
+def refusal_payload(
+    reasons,
+    atom_count=None,
+    non_h_count=None,
+    n_qubits=None,
+    fragment=False,
+):
+    error = (
+        "Pocket-contact fragment is still too large for experimental quantum simulation."
+        if fragment
+        else "Molecule too large for experimental quantum simulation."
+    )
     return {
         "experimental": True,
         "refused": True,
-        "error": "Molecule too large for experimental quantum simulation.",
+        "fragment": bool(fragment),
+        "error": error,
         "reasons": reasons,
         "limits": {
             "max_atoms": MAX_ATOMS,
@@ -108,4 +120,17 @@ def refusal_payload(reasons, atom_count=None, non_h_count=None, n_qubits=None):
         "atom_count": atom_count,
         "non_hydrogen_atom_count": non_h_count,
         "n_qubits": n_qubits,
+    }
+
+
+def fragment_metadata(payload):
+    if not payload.get("fragment"):
+        return {}
+    return {
+        "fragment": True,
+        "parent_smiles": normalize_smiles(payload.get("parent_smiles")),
+        "fragment_atoms": payload.get("fragment_atoms") or [],
+        "fragment_formula": str(payload.get("fragment_formula") or "").strip(),
+        "contact_residue": payload.get("contact_residue"),
+        "selection_source": str(payload.get("selection_source") or "").strip(),
     }

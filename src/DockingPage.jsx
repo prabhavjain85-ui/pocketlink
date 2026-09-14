@@ -5,6 +5,7 @@ import {
   fetchPdbFromRcsb,
   runMolecularDocking,
 } from "./dockingEngine";
+import { writeDockingSnapshot } from "./quantumFragmentSelector";
 import DockingViewer from "./DockingViewer";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
 import ReportExportButtons from "./ReportExportButtons";
@@ -90,6 +91,7 @@ export default function DockingPage() {
 
       setDockingResults(res);
       setActivePose(res.bestPose);
+      writeDockingSnapshot(targetPdb, ligandSmiles, res, res.bestPose);
       setTargetTitle(res.target.title || targetTitle);
     } catch (err) {
       setError(err?.message || "An unexpected error occurred during molecular docking.");

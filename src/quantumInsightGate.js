@@ -99,7 +99,7 @@ export function sizeGateReasons(atomCount, nonHCount, nQubits = null) {
   return reasons;
 }
 
-export function buildRefusalPreview(atomCount, nonHCount, nQubits = null) {
+export function buildRefusalPreview(atomCount, nonHCount, nQubits = null, { fragment = false } = {}) {
   const reasons = sizeGateReasons(atomCount, nonHCount, nQubits);
   if (!reasons.length) {
     return null;
@@ -108,7 +108,10 @@ export function buildRefusalPreview(atomCount, nonHCount, nQubits = null) {
     experimental: true,
     refused: true,
     overLimit: true,
-    error: "Molecule too large for experimental quantum simulation.",
+    fragment: Boolean(fragment),
+    error: fragment
+      ? "Pocket-contact fragment is still too large for experimental quantum simulation."
+      : "Molecule too large for experimental quantum simulation.",
     reasons,
     limits: {
       max_atoms: MAX_ATOMS,

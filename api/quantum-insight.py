@@ -11,6 +11,7 @@ sys.path.insert(0, __file__.rsplit("/", 1)[0])
 from quantum_insight_gate import (  # noqa: E402
     DEFAULT_BASIS,
     count_atoms_in_geometry,
+    fragment_metadata,
     refusal_payload,
     resolve_geometry,
     size_gate_reasons,
@@ -32,30 +33,52 @@ def json_response(handler, status, body):
 
 def handle_quantum_request(payload):
     """Core POST logic (testable without HTTP handler wiring)."""
+    is_fragment = bool(payload.get("fragment"))
+    fragment_meta = fragment_metadata(payload)
     geometry, geometry_source = resolve_geometry(payload)
     atom_count, non_h_count = count_atoms_in_geometry(geometry)
 
     pre_qubit_reasons = size_gate_reasons(atom_count, non_h_count)
     if pre_qubit_reasons:
-        return 422, refusal_payload(pre_qubit_reasons, atom_count, non_h_count)
+        return 422, refusal_payload(
+            pre_qubit_reasons, atom_count, non_h_count, fragment=is_fragment
+        )
 
     basis = str(payload.get("basis") or DEFAULT_BASIS).strip().lower() or DEFAULT_BASIS
     charge = int(payload.get("charge") or 0)
     spin = int(payload.get("spin") or 0)
 
-    from quantum_insight_vqe import build_problem
+    from quantum_insight_vqe import build_problem_for_request
 
-    _, _, qubit_op = build_problem(geometry, basis=basis, charge=charge, spin=spin)
+    problem, mapper, qubit_op, vqe_meta = build_problem_for_request(
+        geometry,
+        basis=basis,
+        charge=charge,
+        spin=spin,
+        allow_active_space=is_fragment,
+    )
     n_qubits = qubit_op.num_qubits
 
     post_qubit_reasons = size_gate_reasons(atom_count, non_h_count, n_qubits)
     if post_qubit_reasons:
-        return 422, refusal_payload(post_qubit_reasons, atom_count, non_h_count, n_qubits)
+        return 422, refusal_payload(
+            post_qubit_reasons, atom_count, non_h_count, n_qubits, fragment=is_fragment
+        )
 
-    vqe_result = run_vqe(geometry, basis=basis, charge=charge, spin=spin)
-    explanation = explain_result(geometry_source, vqe_result)
+    vqe_result = run_vqe(
+        geometry,
+        basis=basis,
+        charge=vqe_meta.get("charge", charge),
+        spin=vqe_meta.get("spin", spin),
+        allow_active_space=is_fragment,
+        problem=problem,
+        mapper=mapper,
+        qubit_op=qubit_op,
+        vqe_meta=vqe_meta,
+    )
+    explanation = explain_result(geometry_source, vqe_result, fragment_meta or None)
 
-    return 200, {
+    response = {
         "experimental": True,
         "refused": False,
         **vqe_result,
@@ -64,6 +87,9 @@ def handle_quantum_request(payload):
         "non_hydrogen_atom_count": non_h_count,
         "explanation": explanation,
     }
+    if fragment_meta:
+        response.update(fragment_meta)
+    return 200, response
 
 
 class handler(BaseHTTPRequestHandler):
