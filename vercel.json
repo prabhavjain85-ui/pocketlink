@@ -9,6 +9,10 @@
     },
     "api/contact.js": {
       "maxDuration": 10
+    },
+    "api/quantum-insight.py": {
+      "maxDuration": 120,
+      "excludeFiles": "{src/**,public/**,dist/**,scripts/**,node_modules/**,**/*.test.js,**/*.test.jsx,**/*.test.py}"
     }
   },
   "rewrites": [

@@ -3524,6 +3524,197 @@ textarea.field-input {
 }
 
 /* ==========================================================================
+   Quantum Insight (experimental VQE panel)
+   ========================================================================== */
+
+.quantum-insight-container {
+  margin-top: 4px;
+}
+
+.quantum-insight-trigger-row {
+  display: flex;
+  align-items: center;
+}
+
+.btn-quantum-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #c4b5fd;
+  border-radius: var(--radius-lg, 10px);
+  background: linear-gradient(180deg, #faf5ff 0%, #f5f3ff 100%);
+  color: #5b21b6;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.btn-quantum-toggle:hover {
+  border-color: #a78bfa;
+  background: #f5f3ff;
+}
+
+.btn-quantum-toggle.expanded {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.quantum-experimental-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #6d28d9;
+  border: 1px solid #c4b5fd;
+}
+
+.quantum-insight-panel {
+  border: 1px solid #c4b5fd;
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg, 10px) var(--radius-lg, 10px);
+  background: #faf5ff;
+  padding: 14px 16px;
+}
+
+.quantum-insight-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.quantum-eyebrow {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #7c3aed;
+  margin-bottom: 4px;
+}
+
+.quantum-title {
+  margin: 0;
+  font-size: 15px;
+  color: #4c1d95;
+}
+
+.quantum-experimental-pill {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.quantum-limitations {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #5b21b6;
+}
+
+.quantum-actions {
+  margin-bottom: 10px;
+}
+
+.quantum-loading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  color: #6d28d9;
+  padding: 10px 0;
+}
+
+.quantum-error {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 12px;
+}
+
+.quantum-refusal {
+  padding: 12px;
+  border-radius: 8px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 12px;
+}
+
+.quantum-refusal-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.quantum-refusal ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.quantum-result {
+  padding: 12px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #ddd6fe;
+}
+
+.quantum-energy-block {
+  margin-bottom: 8px;
+}
+
+.quantum-energy-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6d28d9;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.quantum-energy-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #4c1d95;
+}
+
+.quantum-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.quantum-meta span {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f3f4f6;
+}
+
+.quantum-explanation {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+/* ==========================================================================
    Autonomous Research Agent Styles
    ========================================================================== */
 
