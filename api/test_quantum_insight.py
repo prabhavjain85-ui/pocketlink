@@ -98,6 +98,62 @@ class TestQuantumInsightHandler(unittest.TestCase):
         self.assertEqual(status, 422)
         self.assertTrue(body["refused"])
 
+    def test_post_fragment_h2_geometry_allowed(self):
+        handler_mod = _load_handler_module()
+        geometry = "H 0 0 0; H 0 0 0.735"
+        status, body = handler_mod.handle_quantum_request(
+            {
+                "fragment": True,
+                "geometry": geometry,
+                "parent_smiles": "CC(=O)Oc1ccccc1C(=O)O",
+                "fragment_atoms": ["H", "H"],
+                "fragment_formula": "H–H",
+                "selection_source": "ligand_polar_pair_no_pocket",
+            }
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(body["fragment"])
+        self.assertEqual(body["fragment_formula"], "H–H")
+        self.assertIn("fragment ground-state energy", body["explanation"].lower())
+        self.assertIn("not binding affinity", body["explanation"].lower())
+
+    def test_post_fragment_co_refused_for_qubit_cap(self):
+        handler_mod = _load_handler_module()
+        geometry = "C 0 0 0; O 0 0 1.23"
+        status, body = handler_mod.handle_quantum_request(
+            {
+                "fragment": True,
+                "geometry": geometry,
+                "parent_smiles": "CC(=O)Oc1ccccc1C(=O)O",
+                "fragment_atoms": ["C", "O"],
+                "fragment_formula": "C–O",
+                "selection_source": "ligand_polar_pair_no_pocket",
+            }
+        )
+        self.assertEqual(status, 422)
+        self.assertTrue(body["refused"])
+        self.assertTrue(body["fragment"])
+        self.assertIn("fragment", body["error"].lower())
+        self.assertTrue(any("qubit" in r.lower() for r in body["reasons"]))
+
+    def test_post_oversized_fragment_refused_with_fragment_message(self):
+        handler_mod = _load_handler_module()
+        geometry = "; ".join([f"C {i} 0 0" for i in range(6)])
+        status, body = handler_mod.handle_quantum_request(
+            {
+                "fragment": True,
+                "geometry": geometry,
+                "parent_smiles": "CCO",
+                "fragment_atoms": ["C"] * 6,
+                "fragment_formula": "too-big",
+                "selection_source": "test",
+            }
+        )
+        self.assertEqual(status, 422)
+        self.assertTrue(body["refused"])
+        self.assertTrue(body["fragment"])
+        self.assertIn("fragment", body["error"].lower())
+
 
 @unittest.skipUnless(
     os.environ.get("RUN_QUANTUM_VQE_TESTS") == "1",

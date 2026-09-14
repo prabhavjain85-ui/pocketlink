@@ -72,11 +72,22 @@ def run_vqe(geometry, basis=DEFAULT_BASIS, charge=0, spin=0, maxiter=100):
     }
 
 
-def explain_result(geometry_source, vqe_result):
+def explain_result(geometry_source, vqe_result, fragment_meta=None):
     energy = vqe_result["total_energy_hartree"]
     n_qubits = vqe_result["n_qubits"]
     basis = vqe_result["basis"]
     runtime = vqe_result["runtime_seconds"]
+    if fragment_meta:
+        formula = fragment_meta.get("fragment_formula") or "contact fragment"
+        residue = fragment_meta.get("contact_residue")
+        residue_note = f" near pocket residue {residue}" if residue else ""
+        return (
+            f"Experimental VQE on a pocket-contact fragment ({formula}){residue_note} estimated a "
+            f"fragment ground-state energy of {energy:.6f} Hartree using {basis} and {n_qubits} "
+            f"mapped qubits in {runtime:.2f}s. This is the tiny substructure's quantum energy only — "
+            "not the full drug, not binding affinity, not ΔG, and not a docking score. "
+            "Research-stage estimate only; not part of PocketLink scoring."
+        )
     return (
         f"Experimental VQE simulation (Qiskit Nature + Aer, no hardware) estimated a "
         f"ground-state energy of {energy:.6f} Hartree using {basis} and {n_qubits} mapped qubits "

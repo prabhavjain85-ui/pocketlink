@@ -619,7 +619,7 @@ export default function App() {
               {compound && <CopyField label={`${compound.displayName} — SMILES`} value={smiles} />}
               {compound && smiles && (
                 <div style={{ marginTop: 14 }}>
-                  <QuantumInsight compound={compound} smiles={smiles} />
+                  <QuantumInsight compound={compound} smiles={smiles} protein={protein} />
                 </div>
               )}
               <div className="handoff-actions">
