@@ -8,8 +8,6 @@ import {
   setActiveState,
   subscribeToHistory,
 } from "./historyService";
-import ReportExportButtons from "./ReportExportButtons";
-import { buildHistoryEntryReportMarkdown, defaultReportFilename } from "./reportExport";
 
 function formatTime(timestamp) {
   if (!timestamp) return "";
@@ -226,7 +224,7 @@ export default function HistoryPage() {
           <h3>No search history found</h3>
           <p>
             {filterType === "all"
-              ? "When you search PDB targets, evaluate candidate compounds on the Staging Bench, run Target Discovery, perform Repurposing screens, or run the Autonomous Research Agent, your sessions will be automatically preserved here."
+              ? "When you search PDB targets, evaluate candidate compounds on the Staging Bench, run Target Discovery, or perform Repurposing screens, your sessions will be automatically preserved here."
               : `No saved entries under "${TYPE_CONFIG[filterType]?.label || filterType}".`}
           </p>
           <div className="history-empty-cta">
@@ -472,13 +470,11 @@ export default function HistoryPage() {
                           <span className="snapshot-label">Research Goal:</span>
                           <span className="snapshot-val">"{item.inputs?.goal}"</span>
                         </div>
-                        {(item.snapshot.report.executiveSummary?.verdict || item.snapshot.report.haltReason) && (
+                        {item.snapshot.report.executiveSummary && (
                           <div className="snapshot-section">
-                            <span className="snapshot-label">
-                              {item.snapshot.report.status === "halted" ? "Halt Reason:" : "Agent Findings:"}
-                            </span>
+                            <span className="snapshot-label">Agent Findings:</span>
                             <span className="snapshot-val">
-                              {item.snapshot.report.executiveSummary?.verdict || item.snapshot.report.haltReason}
+                              {item.snapshot.report.executiveSummary.verdict}
                             </span>
                           </div>
                         )}
@@ -504,12 +500,6 @@ export default function HistoryPage() {
                     )}
 
                     <div className="snapshot-drawer-actions">
-                      <ReportExportButtons
-                        compact
-                        label="Export report"
-                        filename={defaultReportFilename(item.type, item.title)}
-                        getMarkdown={() => buildHistoryEntryReportMarkdown(item)}
-                      />
                       <button
                         type="button"
                         className="btn btn-primary-sm"

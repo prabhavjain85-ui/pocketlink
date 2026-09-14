@@ -1,14 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { formatReasoningForDisplay, runResearchAgent } from "./agentPipeline";
+import { runResearchAgent } from "./agentPipeline";
 import {
   ACTIVE_STATE_KEYS,
   clearActiveState,
   getActiveState,
   setActiveState,
 } from "./historyService";
-import ReportExportButtons from "./ReportExportButtons";
-import { buildAgentReportMarkdown, defaultReportFilename } from "./reportExport";
 
 const EXAMPLE_GOALS = [
   "Find repurposing candidates for pancreatic cancer",
@@ -24,17 +22,6 @@ const STEPS_CONFIG = [
   { id: 3, name: "Rank approved drugs", sub: "heuristic-v2 shortlist" },
   { id: 4, name: "Adversarial critique", sub: "Case for vs case against" },
 ];
-
-function formatCompoundIdLabel(cid) {
-  const id = String(cid || "");
-  if (/^CHEMBL/i.test(id)) return "ChEMBL ID";
-  return "PubChem CID";
-}
-
-function displayDrugName(candidate) {
-  if (!candidate) return "Unknown drug";
-  return candidate.name || candidate.displayName || `Compound ${candidate.cid || "?"}`;
-}
 
 export default function AgentPage() {
   const navigate = useNavigate();
@@ -190,7 +177,7 @@ export default function AgentPage() {
       `Disease: ${exec.disease} (${exec.diseaseId || report?.diseaseResolved?.id || "N/A"})`,
       `Target: ${exec.targetSymbol} — ${exec.targetOneLineWhy || "Validated disease association"}`,
       `PDB Structure: ${exec.pdbId} (${exec.pdbResolution || "Experimental"})`,
-      `Lead Approved Drug: ${exec.leadDrugName} (${formatCompoundIdLabel(exec.leadDrugCid)}: ${exec.leadDrugCid || "N/A"}, Score: ${exec.repurposingScore}/100)`,
+      `Lead Approved Drug: ${exec.leadDrugName} (CID: ${exec.leadDrugCid || "N/A"}, Score: ${exec.repurposingScore}/100)`,
       `Primary Indication: ${exec.primaryIndication || "N/A"}`,
       `Adversarial Critique Summary: ${exec.critiqueSummary || exec.keyConcern || "Computational assessment complete."}`,
       "Status: Computational assessment only. Experimental validation required.",
@@ -487,15 +474,6 @@ export default function AgentPage() {
             >
               {copiedReport ? "✓ Copied to Clipboard" : "Copy Report (Plain Text)"}
             </button>
-            <ReportExportButtons
-              compact
-              label="Export report"
-              filename={defaultReportFilename(
-                "agent-report",
-                exec?.targetSymbol || report?.diseaseResolved?.name
-              )}
-              getMarkdown={() => buildAgentReportMarkdown(report)}
-            />
           </div>
         </section>
       )}
@@ -830,31 +808,11 @@ export default function AgentPage() {
                 </div>
               )}
 
-              {step3?.data?.unmodeledTarget && (
-                <div
-                  className="agent-narration-box"
-                  style={{
-                    marginTop: step3?.narration ? 10 : 0,
-                    borderColor: "var(--amber, #d97706)",
-                    background: "rgba(217, 119, 6, 0.08)",
-                  }}
-                  role="note"
-                >
-                  <div className="agent-narration-header" style={{ color: "var(--amber, #d97706)" }}>
-                    Exploratory drug-likeness only — not on-target repurposing
-                  </div>
-                  <p className="agent-narration-text" style={{ margin: 0 }}>
-                    PocketLink has no curated pharmacology rule for this target. The table below ranks approved drugs by
-                    Lipinski/Veber physicochemical triage only — not target-specific binding or repurposing potential.
-                  </p>
-                </div>
-              )}
-
               {/* Recommended Lead Candidate Spotlight */}
               {step3?.data?.recommended && (
                 <div className="agent-result-spotlight">
                   <div className="agent-spotlight-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
-                    <span>{step3.data.unmodeledTarget ? "Top Drug-Likeness Candidate (exploratory)" : "Lead Repurposing Candidate (#1 Recommendation)"}</span>
+                    <span>Lead Repurposing Candidate (#1 Recommendation)</span>
                     {step3.data.totalScreened && (
                       <span className="mono" style={{ fontSize: 11, fontWeight: 500, color: "var(--text-dim)" }}>
                         Target-aware screen: {step3.data.totalScreened} prioritized approved small molecules
@@ -864,23 +822,21 @@ export default function AgentPage() {
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
                     <div>
                       <span className="summary-label">Approved Drug</span>
-                      <strong style={{ fontSize: 16 }}>{displayDrugName(step3.data.recommended)}</strong>
-                      <div className="score-title mono">
-                        {formatCompoundIdLabel(step3.data.recommended.cid)}: {step3.data.recommended.cid}
-                      </div>
+                      <strong style={{ fontSize: 16 }}>{step3.data.recommended.name}</strong>
+                      <div className="score-title mono">PubChem CID: {step3.data.recommended.cid}</div>
                     </div>
                     <div>
-                      <span className="summary-label">{step3.data.unmodeledTarget ? "Drug-Likeness Score" : "Repurposing Score"}</span>
+                      <span className="summary-label">Repurposing Score</span>
                       <strong className="mono" style={{ fontSize: 16, color: "var(--primary)" }}>
                         {step3.data.recommended.score}/100
                       </strong>
                       <div className="score-title">Indication: {step3.data.recommended.indication || "N/A"}</div>
                     </div>
                     <div>
-                      <span className="summary-label">{step3.data.unmodeledTarget ? "Scoring Rationale" : "On-Target vs Same-Family Rationale"}</span>
+                      <span className="summary-label">On-Target vs Same-Family Rationale</span>
                       <ul style={{ margin: "4px 0 0", paddingLeft: 16, fontSize: 12, color: "var(--text-dim)" }}>
                         {(step3.data.recommended.reasoning || []).slice(0, 2).map((r, i) => (
-                          <li key={i}>{formatReasoningForDisplay([r]) || r}</li>
+                          <li key={i}>{r}</li>
                         ))}
                       </ul>
                     </div>
@@ -892,9 +848,7 @@ export default function AgentPage() {
               {top5Candidates.length > 0 && (
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", marginBottom: 8 }}>
-                    {step3.data.unmodeledTarget
-                      ? "Top 5 Exploratory Drug-Likeness Candidates (no target rule)"
-                      : "Top 5 Evaluated Approved Candidates (heuristic-v2)"}
+                    Top 5 Evaluated Approved Candidates (heuristic-v2)
                   </div>
                   <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
                     <table className="table" style={{ fontSize: 12, margin: 0 }}>
@@ -912,10 +866,8 @@ export default function AgentPage() {
                           <tr key={idx} className={idx === 0 ? "table-active" : ""}>
                             <td className="mono">#{idx + 1}</td>
                             <td>
-                              <strong>{displayDrugName(c)}</strong>
-                              <div className="score-title mono" style={{ fontSize: 11 }}>
-                                {formatCompoundIdLabel(c.cid)}: {c.cid}
-                              </div>
+                              <strong>{c.name}</strong>
+                              <div className="score-title mono" style={{ fontSize: 11 }}>CID {c.cid}</div>
                             </td>
                             <td className="mono">
                               <strong style={{ color: "var(--primary)" }}>{c.score}/100</strong>
@@ -923,9 +875,7 @@ export default function AgentPage() {
                             <td>{c.indication || "—"}</td>
                             <td>
                               <span style={{ color: "var(--text-dim)" }}>
-                                {formatReasoningForDisplay(c.reasoning) ||
-                                  (c.reasoning || []).slice(0, 2).join("; ") ||
-                                  "Pocket shape and lipophilicity complementarity"}
+                                {(c.reasoning || []).slice(0, 2).join("; ") || "Pocket shape and lipophilicity complementarity"}
                               </span>
                             </td>
                           </tr>
@@ -973,10 +923,8 @@ export default function AgentPage() {
                             <tr key={idx}>
                               <td className="mono">#{idx + 6}</td>
                               <td>
-                                <strong>{displayDrugName(c)}</strong>
-                                <div className="score-title mono">
-                                  {formatCompoundIdLabel(c.cid)}: {c.cid}
-                                </div>
+                                <strong>{c.name}</strong>
+                                <div className="score-title mono">CID {c.cid}</div>
                               </td>
                               <td className="mono"><strong>{c.score}/100</strong></td>
                               <td>{c.indication || "—"}</td>
@@ -1131,15 +1079,6 @@ export default function AgentPage() {
               </svg>
               {copiedReport ? "✓ Copied Report" : "Copy Report"}
             </button>
-            <ReportExportButtons
-              compact
-              label="Export report"
-              filename={defaultReportFilename(
-                "agent-report",
-                exec?.targetSymbol || report?.diseaseResolved?.name
-              )}
-              getMarkdown={() => buildAgentReportMarkdown(report)}
-            />
             <button
               type="button"
               className="btn btn-ghost-sm"

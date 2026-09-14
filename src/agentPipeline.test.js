@@ -1,95 +1,16 @@
 import {
-  buildAgentHistoryMeta,
   extractDiseaseQuery,
   getDrugCountPhrase,
   getGeneticAdjective,
   getNoveltyAdjective,
   runResearchAgent,
-  shouldPersistAgentRun,
 } from "./agentPipeline";
-import { getHistory } from "./historyService";
 import * as openTargets from "./openTargets";
 import * as pdbSearch from "./pdbSearch";
 import * as repurposingScreen from "./repurposingScreen";
 import * as adversarialService from "./adversarialService";
 
 describe("agentPipeline", () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  describe("agent history persistence helpers", () => {
-    test("shouldPersistAgentRun requires a resolved disease and terminal status", () => {
-      expect(
-        shouldPersistAgentRun({
-          diseaseResolved: { name: "CML" },
-          status: "completed",
-        })
-      ).toBe(true);
-
-      expect(
-        shouldPersistAgentRun({
-          diseaseResolved: { name: "CML" },
-          status: "halted",
-        })
-      ).toBe(true);
-
-      expect(
-        shouldPersistAgentRun({
-          diseaseResolved: null,
-          status: "halted",
-        })
-      ).toBe(false);
-
-      expect(
-        shouldPersistAgentRun({
-          diseaseResolved: { name: "CML" },
-          status: "aborted",
-        })
-      ).toBe(false);
-    });
-
-    test("buildAgentHistoryMeta formats halted and completed titles", () => {
-      const halted = buildAgentHistoryMeta({
-        goal: "Find drugs for fibromyalgia",
-        diseaseResolved: { name: "fibromyalgia", id: "MONDO_1" },
-        status: "halted",
-        haltReason: "No targets found",
-        steps: {
-          1: { status: "dead_end", data: { primaryTarget: { symbol: "SLC6A4" } } },
-        },
-      });
-
-      expect(halted.title).toContain("fibromyalgia");
-      expect(halted.title).toContain("halted (no targets)");
-      expect(halted.summary).toContain("No targets found");
-
-      const completed = buildAgentHistoryMeta({
-        goal: "CML research",
-        diseaseResolved: { name: "chronic myeloid leukemia" },
-        status: "completed",
-        steps: {
-          1: { status: "complete", data: { primaryTarget: { symbol: "ABL1" } } },
-          2: {
-            status: "complete",
-            data: {
-              target: { symbol: "ABL1" },
-              selectedStructure: { id: "2HYY" },
-            },
-          },
-          3: {
-            status: "complete",
-            data: { recommended: { name: "Imatinib", score: 92 } },
-          },
-        },
-      });
-
-      expect(completed.title).toContain("ABL1");
-      expect(completed.title).toContain("Imatinib");
-      expect(completed.summary).toContain("Adversarial stress-test complete");
-    });
-  });
-
   describe("extractDiseaseQuery", () => {
     test("cleans natural language prompts into disease queries", () => {
       expect(
@@ -282,12 +203,6 @@ describe("agentPipeline", () => {
       expect(report.executiveSummary.targetSymbol).toBe("STK11");
       expect(report.executiveSummary.pivotedFrom).toBe("PALB2");
       expect(report.executiveSummary.leadDrugName).toBe("Imatinib");
-
-      const history = getHistory();
-      expect(history.length).toBe(1);
-      expect(history[0].type).toBe("agent-run");
-      expect(history[0].title).toContain("pancreatic");
-      expect(history[0].snapshot?.report?.status).toBe("completed");
     });
 
     test("honestly halts at Step 1 when disease query cannot be resolved in Open Targets", async () => {
@@ -301,7 +216,6 @@ describe("agentPipeline", () => {
       expect(report.steps[1].status).toBe("dead_end");
       expect(report.haltReason).toContain("No clinical disease entity matching");
       expect(report.steps[2].status).toBe("pending");
-      expect(getHistory().length).toBe(0);
     });
 
     test("honestly halts at Step 2 when both primary and backup targets lack viable PDB structures", async () => {
@@ -330,12 +244,6 @@ describe("agentPipeline", () => {
       expect(report.steps[2].status).toBe("dead_end");
       expect(report.steps[2].narration).toContain("Pipeline halted");
       expect(report.steps[3].status).toBe("pending");
-
-      const history = getHistory();
-      expect(history.length).toBe(1);
-      expect(history[0].type).toBe("agent-run");
-      expect(history[0].title).toContain("halted (no pocket)");
-      expect(history[0].snapshot?.report?.diseaseResolved?.name).toBe("Rare disorder");
     });
 
     test("prefers established target with drugCount >= 1 over novelty targets like RUNX1", async () => {
@@ -500,90 +408,7 @@ describe("agentPipeline", () => {
 
       expect(report.status).toBe("completed");
       expect(report.steps[3].status).toBe("complete");
-      expect(report.steps[3].narration).toMatch(/no on-target approved drug in this shortlist/i);
-      expect(report.steps[3].narration).toContain("best same-family score is 24");
-      expect(report.steps[3].narration).toContain("Test Disease");
-      expect(report.steps[3].narration).toContain("GENE1");
-      expect(report.steps[4].status).toBe("complete");
-    });
-
-    test("completes step 3 with named exploratory shortlist when target is unmodeled", async () => {
-      jest.spyOn(openTargets, "searchDiseases").mockResolvedValue([
-        { id: "MONDO_0001", name: "Test Disease" },
-      ]);
-      jest.spyOn(openTargets, "runTargetDiscovery").mockResolvedValue({
-        disease: { id: "MONDO_0001", name: "Test Disease" },
-        novelty: [{ symbol: "NOVELGENE", drugCount: 0 }],
-        all: [{ symbol: "NOVELGENE", drugCount: 0 }],
-      });
-
-      jest.spyOn(pdbSearch, "searchPdbTargets").mockResolvedValue({
-        results: [
-          {
-            id: "6XYZ",
-            title: "Structure of NOVELGENE with ligand",
-            score: 80,
-            resolution: "2.0 Å",
-            hasLigand: true,
-            ligand: { compId: "LIG", name: "Ligand", formulaWeight: 300 },
-            pocket: { available: true, residueCount: 50 },
-          },
-        ],
-      });
-
-      jest.spyOn(repurposingScreen, "screenApprovedLibrary").mockResolvedValue({
-        summary: "Exploratory drug-likeness shortlist for NOVELGENE",
-        librarySize: 2983,
-        scoredCount: 12,
-        unmodeledFiller: true,
-        recommended: {
-          name: "Paracetamol",
-          cid: "1983",
-          score: 24,
-          indication: "analgesic",
-          reasoning: ["Insufficient target rule: target is unmodeled or structure has no recognized pharmacology rule"],
-        },
-        ranking: [
-          {
-            name: "Paracetamol",
-            cid: "1983",
-            score: 24,
-            indication: "analgesic",
-            reasoning: ["Insufficient target rule: target is unmodeled or structure has no recognized pharmacology rule"],
-          },
-          {
-            name: "Ibuprofen",
-            cid: "3672",
-            score: 24,
-            indication: "NSAID",
-            reasoning: ["Insufficient target rule: target is unmodeled or structure has no recognized pharmacology rule"],
-          },
-        ],
-        top5: [
-          {
-            name: "Paracetamol",
-            cid: "1983",
-            score: 24,
-            indication: "analgesic",
-            reasoning: ["Insufficient target rule: target is unmodeled or structure has no recognized pharmacology rule"],
-          },
-        ],
-      });
-
-      jest.spyOn(adversarialService, "fetchAdversarialCritique").mockResolvedValue({
-        case_against: { overall_assessment: "Exploratory only.", concerns: [] },
-      });
-
-      const report = await runResearchAgent({
-        goal: "Test Disease research",
-      });
-
-      expect(report.status).toBe("completed");
-      expect(report.steps[3].status).toBe("complete");
-      expect(report.steps[3].narration).toMatch(/exploratory drug-likeness shortlist/i);
-      expect(report.steps[3].narration).toMatch(/Paracetamol/i);
-      expect(report.steps[3].data.unmodeledTarget).toBe(true);
-      expect(report.steps[3].data.ranking[0].name).toBe("Paracetamol");
+      expect(report.steps[3].narration).toContain("No on-target approved drug in this shortlist; best same-family score is 24");
       expect(report.steps[4].status).toBe("complete");
     });
 
@@ -627,11 +452,6 @@ describe("agentPipeline", () => {
       expect(report.status).toBe("halted");
       expect(report.steps[3].status).toBe("dead_end");
       expect(report.haltReason).toContain("top score: 12/100");
-
-      const history = getHistory();
-      expect(history.length).toBe(1);
-      expect(history[0].title).toContain("halted (no candidates)");
-      expect(history[0].snapshot?.report?.steps?.[3]?.data?.recommended?.score).toBe(12);
     });
 
     test("halts with explicit message when Open Targets returns 0 associated targets", async () => {
@@ -654,11 +474,6 @@ describe("agentPipeline", () => {
       expect(report.steps[1].narration).toContain("Open Targets returned 0 associations for this disease. No primary target from OT.");
       expect(report.haltReason).toContain("Open Targets returned 0 associations for this disease. No primary target from OT.");
       expect(report.steps[2].status).toBe("pending");
-
-      const history = getHistory();
-      expect(history.length).toBe(1);
-      expect(history[0].title).toContain("fibromyalgia");
-      expect(history[0].title).toContain("halted (no targets)");
     });
 
     test("Step 1 narration accurately reflects raw metrics and avoids false hype", async () => {

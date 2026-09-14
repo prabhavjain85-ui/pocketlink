@@ -16,7 +16,7 @@ PocketLink is structured across nine dedicated routes:
 | `/adme` | **In-Browser ADME Profiling** | Calculate physicochemical descriptors, BOILED-Egg gastrointestinal and BBB permeation, ESOL aqueous solubility, Lipinski/Veber/Ghose rules, and organ toxicity alerts using client-side RDKit WASM. |
 | `/docking` | **Molecular Docking Simulation** | Run native grid-based empirical binding affinity predictions ($\Delta G_{\text{bind}}$, estimated $K_i$), 3D Monte Carlo pose optimization, and contact analysis in an interactive 3D viewer. |
 | `/agent` | **Autonomous Research Agent** | Orchestrate an automated 4-step pipeline: Target Discovery $\rightarrow$ PDB Selection $\rightarrow$ Repurposing Screen $\rightarrow$ Adversarial Critique ("The Case Against"). |
-| `/history` | **Session History** | Track and review past staging sessions, target discoveries, screening runs, agent investigations, and docking logs saved in persistent browser storage. Export saved sessions as Markdown or PDF. |
+| `/history` | **Session History** | Track and review past staging sessions, target discoveries, screening runs, agent investigations, and docking logs saved in persistent browser storage. |
 | `/methodology` | **Scientific Methodology** | Detailed documentation of scoring equations, rule tables, heuristic bands, algorithmic thresholds, and literature citations. |
 | `/contact` | **Contact & Inquiries** | Support and feedback form with multi-tier resilient delivery (Resend, Formspree, FormSubmit, and dry-run mode). |
 
@@ -40,7 +40,7 @@ Screens chemical structures against recognized pan-assay interference and reacti
 ### Station 3: Target-Aware Candidate Ranking (`heuristic-v2`)
 Scores 2–5 staged molecules specifically against the selected PDB target:
 - **Target-Aware Engine (`heuristic-v2`):** Rather than evaluating drug-likeness in isolation, PocketLink evaluates target context (protein name, gene symbol, family classification, co-crystal ligand functional groups, and binding pocket size/hydrophobicity).
-- **Pharmacological Rule Table:** Specific rules match recognized target genes and families (e.g., EGFR, ABL1, BRAF, HER2, $\beta_2$-AR, COX-1/2, HMGCR, DPP4, SGLT2 / SLC5A2, HIV Protease, SARS-CoV-2 Mpro, PDE5, HDACs) into calibrated score bands:
+- **Pharmacological Rule Table:** Specific rules match recognized target genes and families (e.g., EGFR, ABL1, BRAF, HER2, $\beta_2$-AR, COX-1/2, HMGCR, DPP4, HIV Protease, SARS-CoV-2 Mpro, PDE5, HDACs) into calibrated score bands:
   - **On-target canonical chemotypes:** $\sim 67$ base points
   - **Same-family chemotypes:** $\sim 24$ base points
   - **Generic / off-target drug-like molecules:** $\sim 12$ base points
@@ -49,7 +49,7 @@ Scores 2–5 staged molecules specifically against the selected PDB target:
 - **Deterministic Calibration:** Numeric scores are governed by the local deterministic engine to ensure reproducibility across batches.
 - **Optional LLM Reasoning:** When `OPENAI_API_KEY` is provided, `/api/rank-candidates` invokes OpenAI (`gpt-4o-mini` by default) to generate qualitative clinical reasoning, strengths, and concerns without overriding the baseline calibrated score scale. If the LLM is absent or encounters an error, the system seamlessly uses local rule-based reasoning.
 - **Isolation:** Scores are cached by `(PDB_ID, CID)`. A score computed against one target is never reused for another.
-- **Native Handoff:** Station 4 links to in-browser docking and ADME prediction with the staged target and selected compound.
+- **External Handoff:** Convenience buttons allow copying identifiers and opening external tools (SwissDock, SwissADME) if external validation is desired.
 
 ---
 
@@ -169,23 +169,6 @@ PocketLink operates out-of-the-box with local deterministic models. Advanced AI 
 - **RDKit WebAssembly:** Client-side chemical informatics, descriptor generation, and substructure matching.
 - **Approved Drug Pharmacopeia:** Bundled library of 2,983 approved therapeutics (`src/data/approvedDrugs.json`).
 - **3Dmol.js:** WebGL-accelerated interactive 3D protein-ligand structural visualization.
-
----
-
-## Research Report Export
-
-PocketLink can download shareable research summaries from result views and saved session history. Exports are generated entirely in the browser from the same session data shown in the UI — nothing is fabricated beyond what the run produced.
-
-| Location | Formats | Contents |
-| --- | --- | --- |
-| **Staging Bench** (`/`) | Markdown (`.md`), PDF | Target/PDB context, candidate ranking table, winner rationale, limitations |
-| **Target Discovery** (`/target-discovery`) | Markdown, PDF | Disease resolution, novelty/established target tables, methodology notes |
-| **Repurposing Screen** (`/repurposing`) | Markdown, PDF | Target/PDB, top library hits, lead candidate, scoring source |
-| **Molecular Docking** (`/docking`) | Markdown, PDF | ΔG/Ki, pose clusters, residue contacts, energy decomposition |
-| **Autonomous Agent** (`/agent`) | Markdown, PDF | Full 4-step pipeline, executive summary, adversarial critique |
-| **Session History** (`/history`) | Markdown, PDF | Re-exports any saved session snapshot (bench, discovery, repurposing, agent) |
-
-Each report includes timestamps and computational disclaimers consistent with PocketLink's honest-limitations tone. PDF exports use a branded client-side template (`jspdf` + `jspdf-autotable`): structured sections, metric cards, styled tables, ASCII-safe scientific symbols (e.g. ΔG → dG), and page headers/footers — not a raw markdown dump.
 
 ---
 

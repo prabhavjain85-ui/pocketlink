@@ -19,106 +19,7 @@ import { ACTIVE_STATE_KEYS, saveHistoryEntry, setActiveState } from "./historySe
 import { pickDiseaseHit, runTargetDiscovery, searchDiseases } from "./openTargets";
 import { searchPdbTargets } from "./pdbSearch";
 import { screenApprovedLibrary } from "./repurposingScreen";
-import { isUnmodeledFillerRanking, scoringCapabilities } from "./scoreCandidates";
-
-export function formatCompoundIdLabel(cid) {
-  const id = String(cid || "");
-  if (/^CHEMBL/i.test(id)) return "ChEMBL ID";
-  return "PubChem CID";
-}
-
-export function formatCompoundIdRef(candidate) {
-  if (!candidate?.cid) return "unknown compound ID";
-  return `${formatCompoundIdLabel(candidate.cid)}: ${candidate.cid}`;
-}
-
-export function displayDrugName(candidate) {
-  if (!candidate) return "Unknown drug";
-  return candidate.name || candidate.displayName || `Compound ${candidate.cid || "?"}`;
-}
-
-export function shouldPersistAgentRun(report) {
-  if (!report?.diseaseResolved) return false;
-  if (report.status === "aborted" || report.status === "running") return false;
-  return report.status === "completed" || report.status === "halted";
-}
-
-export function buildAgentHistoryMeta(report) {
-  if (!report) return null;
-
-  const disease = report.diseaseResolved?.name || report.diseaseQuery || "Unknown disease";
-  const step1 = report.steps?.[1];
-  const step2 = report.steps?.[2];
-  const step3 = report.steps?.[3];
-
-  const primaryTarget = step1?.data?.primaryTarget;
-  const activeTarget = step2?.data?.target || primaryTarget;
-  const selectedStructure = step2?.data?.selectedStructure || step3?.data?.selectedStructure;
-  const recommended = step3?.data?.recommended;
-  const topDrug = recommended ? displayDrugName(recommended) : null;
-  const topScore = recommended?.score;
-
-  let title;
-  let summary;
-
-  if (report.status === "completed") {
-    title = `Agent: ${disease} → ${activeTarget?.symbol || "?"} (${topDrug || "—"})`;
-    summary = `${activeTarget?.symbol || "?"} (${selectedStructure?.id || "—"}) screened with ${topDrug || "—"} (Score: ${topScore ?? "n/a"}). Adversarial stress-test complete.`;
-  } else if (report.status === "halted") {
-    if (step3?.status === "dead_end") {
-      title = `Agent: ${disease} → ${activeTarget?.symbol || "?"} (${selectedStructure?.id || "—"}) — halted (no candidates)`;
-      summary = `Structure ${selectedStructure?.id || "—"} selected but repurposing screen found no candidates above threshold (top score: ${topScore ?? 0}/100).`;
-    } else if (step2?.status === "dead_end") {
-      title = `Agent: ${disease} → ${primaryTarget?.symbol || "?"} — halted (no pocket)`;
-      summary = `Targets identified (${primaryTarget?.symbol || "?"}) but no viable PDB structure for repurposing screen.`;
-    } else if (step1?.status === "dead_end") {
-      title = `Agent: ${disease} — halted (no targets)`;
-      summary = report.haltReason || "Disease resolved but target discovery yielded no associations.";
-    } else {
-      title = `Agent: ${disease} — halted`;
-      summary = report.haltReason || "Agent run halted before completion.";
-    }
-  } else {
-    return null;
-  }
-
-  return {
-    type: "agent-run",
-    title,
-    summary,
-    inputs: {
-      goal: report.goal,
-      disease,
-      target: activeTarget?.symbol || primaryTarget?.symbol || "",
-      status: report.status,
-    },
-    snapshot: { report },
-  };
-}
-
-function persistAgentRunHistory(report) {
-  if (!shouldPersistAgentRun(report)) return null;
-  const meta = buildAgentHistoryMeta(report);
-  if (!meta) return null;
-  setActiveState(ACTIVE_STATE_KEYS.AGENT, report);
-  return saveHistoryEntry(meta);
-}
-
-const INSUFFICIENT_TARGET_RULE_DISPLAY =
-  "No curated target rule — drug-likeness / physicochemical triage only";
-
-export function formatReasoningForDisplay(reasoning) {
-  if (!Array.isArray(reasoning) || !reasoning.length) return "";
-  return reasoning
-    .map((entry) =>
-      String(entry).replace(
-        /Insufficient target rule: target is unmodeled or structure has no recognized pharmacology rule/i,
-        INSUFFICIENT_TARGET_RULE_DISPLAY
-      )
-    )
-    .slice(0, 3)
-    .join("; ");
-}
+import { scoringCapabilities } from "./scoreCandidates";
 
 export const ION_COMP_IDS = new Set([
   "ZN", "MG", "CA", "FE", "MN", "CU", "NI", "CO", "NA", "K", "CL", "BR", "IOD", "CD", "HG", "PB",
@@ -152,8 +53,6 @@ export const CURATED_GENE_PDBS = {
   COX2: ["4COX", "1CX2"],
   ADRB2: ["3SN6"],
   DPP4: ["1X70", "2P8S"],
-  SLC5A2: ["7VSI", "8HEZ", "8HDH"],
-  SGLT2: ["7VSI", "8HEZ", "8HDH"],
   ALK: ["2XP2", "4MKC"],
   BTK: ["3K54", "5P9J"],
   JAK1: ["6BBU"],
@@ -550,7 +449,6 @@ export async function runResearchAgent({
       report.status = "halted";
       report.haltReason = haltMsg;
       report.totalDurationMs = Date.now() - startTime;
-      persistAgentRunHistory(report);
       return report;
     }
 
@@ -780,7 +678,6 @@ export async function runResearchAgent({
       report.status = "halted";
       report.haltReason = haltMsg;
       report.totalDurationMs = Date.now() - startTime;
-      persistAgentRunHistory(report);
       return report;
     }
 
@@ -875,17 +772,10 @@ export async function runResearchAgent({
       family: targetFam,
     };
 
-    const diseaseContext = {
-      name: report.diseaseResolved?.name || diseaseQuery,
-      query: diseaseQuery,
-      id: report.diseaseResolved?.id || "",
-    };
-
     const screenResult = await screenApprovedLibrary(proteinContext, {
       force: forceScreen,
       shortlistOnly: true,
       activeTarget,
-      diseaseContext,
       signal,
       onProgress: ({ percent, message }) => {
         if (typeof onProgress === "function") {
@@ -896,42 +786,25 @@ export async function runResearchAgent({
 
     const ranking = screenResult?.ranking || [];
     const recommendedCandidate = screenResult?.recommended || ranking[0] || null;
-    const unmodeledFiller =
-      Boolean(screenResult?.unmodeledFiller) ||
-      isUnmodeledFillerRanking(ranking, proteinContext);
 
-    // Halt when ranking is empty or top score is below drug-likeness floor.
-    // Unmodeled targets still show an exploratory drug-likeness shortlist with an honest caveat.
-    if (
-      !recommendedCandidate ||
-      !ranking.length ||
-      (recommendedCandidate.score != null && recommendedCandidate.score < 15)
-    ) {
+    // Halt rule: only halt if ranking is empty OR top score < 15.
+    // If top is 24-66, do not halt. Narrate same-family score and continue to critique.
+    if (!recommendedCandidate || !ranking.length || (recommendedCandidate.score != null && recommendedCandidate.score < 15)) {
       const topScore = recommendedCandidate?.score ?? 0;
       const haltMsg = `The repurposing screen evaluated ${ranking.length} approved drugs against PDB ${selectedStructure.id}, but no candidate met the minimum computational binding and pharmacophore compatibility threshold (top score: ${topScore}/100). The agent cannot recommend an approved drug for this pocket with confidence.`;
       notify(3, {
         status: "dead_end",
         narration: haltMsg,
-        data: {
-          ranking: ranking.slice(0, 5),
-          top5: ranking.slice(0, 5),
-          recommended: recommendedCandidate,
-          selectedStructure,
-          target: activeTarget,
-          unmodeledTarget: unmodeledFiller,
-          librarySize: screenResult?.librarySize,
-        },
+        data: { ranking: ranking.slice(0, 5), selectedStructure },
       });
       report.status = "halted";
       report.haltReason = haltMsg;
       report.totalDurationMs = Date.now() - startTime;
-      persistAgentRunHistory(report);
       return report;
     }
 
     // Compose Step 3 Narration
-    const topDrugName = displayDrugName(recommendedCandidate);
-    const topIdRef = formatCompoundIdRef(recommendedCandidate);
+    const topDrugName = recommendedCandidate.name || `CID ${recommendedCandidate.cid}`;
     const topScore = recommendedCandidate.score != null ? `${recommendedCandidate.score}/100` : "N/A";
     const topScoreNum = Number(recommendedCandidate.score) || 0;
     const topIndication = recommendedCandidate.indication || "clinical therapeutic";
@@ -939,28 +812,20 @@ export async function runResearchAgent({
       ? Number(recommendedCandidate.molecularWeight).toFixed(1)
       : null;
     const topXlogp = recommendedCandidate.xlogp != null ? Number(recommendedCandidate.xlogp).toFixed(1) : null;
-    const topReasoning = formatReasoningForDisplay(recommendedCandidate.reasoning);
+    const topReasoning = Array.isArray(recommendedCandidate.reasoning)
+      ? recommendedCandidate.reasoning.slice(0, 3).join("; ")
+      : "";
 
     const libraryCount = screenResult?.librarySize || approvedDrugCount();
     const scoredCount = screenResult?.scoredCount || ranking.length;
     const excludedCount = screenResult?.excluded?.length || Math.max(0, libraryCount - scoredCount);
-    const top5Summary = ranking
-      .slice(0, 5)
-      .map(
-        (row) =>
-          `**${displayDrugName(row)}** (${formatCompoundIdRef(row)}, ${row.score != null ? `${row.score}/100` : "N/A"})`
-      )
-      .join("; ");
 
     let step3Narration = "";
-    const diseaseLabel = report.diseaseResolved?.name || diseaseQuery;
-    if (unmodeledFiller) {
-      step3Narration = `For **${diseaseLabel}**, PocketLink has no curated pharmacology rule for **${activeTarget.symbol}** (PDB **${selectedStructure.id}**), so this is an **exploratory drug-likeness shortlist only** — scores reflect Lipinski/Veber physicochemical triage plus any disease-indication keyword overlap, not on-target repurposing hits. Top 5 for this target/disease context: ${top5Summary}. **${topDrugName}** (${topIdRef}) leads with **${topScore}** for **${topIndication}** (${topReasoning || INSUFFICIENT_TARGET_RULE_DISPLAY}). Use the full Repurposing screen after rule curation, or choose a modeled target (e.g. EGFR, ABL1, SGLT2) for target-specific ranking. Proceeding to adversarial critique with this caveat.`;
-    } else if (topScoreNum < 67) {
-      step3Narration = `For **${diseaseLabel}**, no on-target approved drug in this shortlist for **${activeTarget.symbol}** (PDB **${selectedStructure.id}**); best same-family score is ${topScoreNum}. Showing top 5. Evaluated ${libraryCount.toLocaleString()} clinically approved drugs (shortlist of ${ranking.length} compounds). **${topDrugName}** (${topIdRef}) led the screen with a score of **${topScore}** for **${topIndication}** (${topReasoning || "same-family pharmacophore overlap"}). Proceeding to adversarial critique for potential liabilities.`;
+    if (topScoreNum < 67) {
+      step3Narration = `No on-target approved drug in this shortlist; best same-family score is ${topScoreNum}. Showing top 5. Evaluated ${libraryCount.toLocaleString()} clinically approved drugs (shortlist of ${ranking.length} compounds) against **PDB ${selectedStructure.id}** (${activeTarget.symbol}). **${topDrugName}** (CID: ${recommendedCandidate.cid}) led the screen with a score of **${topScore}** for **${topIndication}** (${topReasoning || "same-family pharmacophore overlap"}). Proceeding to adversarial critique for potential liabilities.`;
     } else {
-      step3Narration = `For **${diseaseLabel}**, I evaluated the full library of ${libraryCount.toLocaleString()} clinically approved drugs (screening ${scoredCount.toLocaleString()} Lipinski/Veber-compliant small molecules) against the target-specific pocket geometry and pharmacophore constraints of **PDB ${selectedStructure.id}** (**${activeTarget.symbol}**). `;
-      step3Narration += `**${topDrugName}** (${topIdRef}) emerged as the lead repurposing candidate with a top score of **${topScore}**. `;
+      step3Narration = `I evaluated the full library of ${libraryCount.toLocaleString()} clinically approved drugs (screening ${scoredCount.toLocaleString()} Lipinski/Veber-compliant small molecules) against the target-specific pocket geometry and pharmacophore constraints of **PDB ${selectedStructure.id}** (${activeTarget.symbol}). `;
+      step3Narration += `**${topDrugName}** (CID: ${recommendedCandidate.cid}) emerged as the lead repurposing candidate with a top score of **${topScore}**. `;
       step3Narration += `Currently approved for **${topIndication}**, it demonstrates favorable molecular alignment${topMw ? ` (MW ${topMw}, XLogP ${topXlogp})` : ""}. Key computational rationale: ${topReasoning || "Excellent shape and electrostatic complementarity to the catalytic binding site with full Lipinski drug-likeness compliance."}.`;
     }
 
@@ -978,7 +843,6 @@ export async function runResearchAgent({
         summary: screenResult.summary,
         selectedStructure,
         activeTarget,
-        unmodeledTarget: unmodeledFiller,
       },
     });
 
@@ -1081,14 +945,28 @@ export async function runResearchAgent({
       keyConcern: topConcerns[0]?.issue || "Selectivity across homologous pockets",
       keyConcernDetail: topConcerns[0]?.detail || "Requires orthogonal biochemical confirmation.",
       critiqueSummary: caseAgainst.overall_assessment || (topConcerns[0] ? `${topConcerns[0].issue}: ${topConcerns[0].detail}` : "Computational scores capture shape and lipophilicity; validation requires orthogonal assays."),
-      verdict: unmodeledFiller
-        ? `Pipeline completed with caveat: ${activeTarget.symbol} has no curated PocketLink pharmacology rule. Step 3 shows an exploratory drug-likeness shortlist (top: ${topDrugName}, ${topScore}) — not on-target repurposing hits. Adversarial critique follows for transparency.`
-        : pivoted
+      verdict: pivoted
         ? `Contingency pipeline completed: ${primaryTarget.symbol} was the top genetic candidate, but lacked an experimental pocket. The agent successfully pivoted to ${activeTarget.symbol} (PDB ${selectedStructure.id}), screened the approved-drug shortlist, and identified ${topDrugName} as an approved candidate with an itemized adversarial risk assessment.`
         : `Autonomous pipeline completed: Screened ${activeTarget.symbol} (PDB ${selectedStructure.id}) against approved drugs and identified ${topDrugName} as an approved candidate with an itemized adversarial risk assessment.`,
     };
 
-    persistAgentRunHistory(report);
+    // Cache active run for persistence
+    setActiveState(ACTIVE_STATE_KEYS.AGENT, report);
+
+    // Save to permanent search history
+    saveHistoryEntry({
+      type: "agent-run",
+      title: `Agent: ${report.diseaseResolved?.name || diseaseQuery} → ${activeTarget.symbol} (${topDrugName})`,
+      summary: `${activeTarget.symbol} (${selectedStructure.id}) screened with ${topDrugName} (Score: ${topScore}). Adversarial stress-test complete.`,
+      inputs: {
+        goal: report.goal,
+        disease: report.diseaseResolved?.name || diseaseQuery,
+        target: activeTarget.symbol,
+      },
+      snapshot: {
+        report,
+      },
+    });
 
     return report;
   } catch (err) {
@@ -1101,7 +979,6 @@ export async function runResearchAgent({
       report.haltReason = err.message || "An unexpected error occurred during agent orchestration.";
     }
     report.totalDurationMs = Date.now() - startTime;
-    persistAgentRunHistory(report);
     return report;
   }
 }

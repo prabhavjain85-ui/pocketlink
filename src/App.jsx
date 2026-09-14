@@ -21,9 +21,6 @@ import { checkPainsBatch } from "./painsCheck";
 import { MAX_CANDIDATES, drugLikenessChecks } from "./scoreCandidates";
 import { targetDisplayName } from "./targetContext";
 import AdversarialCritique from "./AdversarialCritique";
-import QuantumInsight from "./QuantumInsight";
-import ReportExportButtons from "./ReportExportButtons";
-import { buildBenchReportMarkdown, defaultReportFilename } from "./reportExport";
 
 function compareCandidateField(a, b, key) {
   if (key === "compound") {
@@ -178,6 +175,8 @@ export default function App() {
   const [aiResult, setAiResult] = useState(() => savedActive?.aiResult || null);
   const [handoffCid, setHandoffCid] = useState(() => savedActive?.handoffCid || null);
 
+  const [dockCopied, setDockCopied] = useState(false);
+  const [admeCopied, setAdmeCopied] = useState(false);
   const [aiSort, setAiSort] = useState({ key: "score", dir: "desc" });
   const [painsByCid, setPainsByCid] = useState({});
 
@@ -359,6 +358,34 @@ export default function App() {
     (aiResult ? 0.25 : 0) +
     (protein && compound ? 0.25 : 0);
 
+  const copyToClipboard = async (value) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const openSwissDock = () => {
+    window.open("https://www.swissdock.ch/", "_blank", "noopener,noreferrer");
+    if (protein) {
+      copyToClipboard(protein.id).then((ok) => {
+        setDockCopied(ok);
+        if (ok) setTimeout(() => setDockCopied(false), 4000);
+      });
+    }
+  };
+  const openSwissADME = () => {
+    window.open("https://www.swissadme.ch/", "_blank", "noopener,noreferrer");
+    if (smiles) {
+      copyToClipboard(smiles).then((ok) => {
+        setAdmeCopied(ok);
+        if (ok) setTimeout(() => setAdmeCopied(false), 4000);
+      });
+    }
+  };
+
   const winner = recommendedCid
     ? candidates.find((c) => String(c.CID) === String(recommendedCid))
     : null;
@@ -374,7 +401,7 @@ export default function App() {
         <h1>Stage a target, shortlist up to five molecules,<br />then let AI pick the strongest follow-up.</h1>
         <p>
           Search live PDB structures and PubChem compounds, compare up to five candidates on drug-likeness,
-          and generate a transparent recommendation before native docking and ADME follow-up.
+          and generate a transparent recommendation before handing the winner to SwissDock and SwissADME.
         </p>
       </div>
 
@@ -464,7 +491,7 @@ export default function App() {
                 ))}
                 <div className="lipinski-note">
                   Lipinski Rule-of-Five + Veber criteria, computed from PubChem's own properties — a fast pre-screen,
-                  not a substitute for full pharmacokinetic modeling.
+                  not a substitute for SwissADME's full pharmacokinetic model.
                 </div>
                 {painsByCid[String(cResult.CID)] && (
                   <div className="pains-preview">
@@ -569,20 +596,6 @@ export default function App() {
                     ? "Reused cached scores for this (compound, PDB) pair"
                     : "Ranked with PocketLink's target-aware model"}
               </div>
-              <ReportExportButtons
-                label="Export report"
-                filename={defaultReportFilename(
-                  "staging-bench-report",
-                  protein?.id || protein?.pdb_id || fitPdbId
-                )}
-                getMarkdown={() =>
-                  buildBenchReportMarkdown({
-                    protein,
-                    candidates,
-                    aiResult,
-                  })
-                }
-              />
             </div>
           )}
         </Panel>
@@ -617,11 +630,6 @@ export default function App() {
               )}
               {protein && <CopyField label="Target — PDB ID" value={protein.id} />}
               {compound && <CopyField label={`${compound.displayName} — SMILES`} value={smiles} />}
-              {compound && smiles && (
-                <div style={{ marginTop: 14 }}>
-                  <QuantumInsight compound={compound} smiles={smiles} protein={protein} />
-                </div>
-              )}
               <div className="handoff-actions">
                 <Link
                   to={`/docking?pdb=${encodeURIComponent(protein?.id || "")}&smiles=${encodeURIComponent(smiles || "")}&name=${encodeURIComponent(compound?.displayName || "")}&cid=${compound?.CID || ""}`}
@@ -637,6 +645,12 @@ export default function App() {
                 >
                   Predict Native ADME →
                 </Link>
+                <button className="btn btn-handoff" onClick={openSwissDock} disabled={!protein} type="button">
+                  {dockCopied ? "PDB ID copied ✓" : "Open SwissDock →"}
+                </button>
+                <button className="btn btn-handoff" onClick={openSwissADME} disabled={!compound} type="button">
+                  {admeCopied ? "SMILES copied ✓" : "Open SwissADME →"}
+                </button>
               </div>
               <div className="lipinski-note" style={{ marginTop: 14 }}>
                 PocketLink computes native molecular docking and ADME predictions locally in-browser using empirical force fields and RDKit WebAssembly without external server dependencies.

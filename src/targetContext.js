@@ -26,100 +26,6 @@ function rankingCacheKey(pdbId, cid) {
   return `${pdb}_${compound}`;
 }
 
-/** Deterministic string hash for stable per-target shuffles and tie-breaks. */
-function stableHashString(str) {
-  let hash = 0;
-  const s = String(str || "");
-  for (let i = 0; i < s.length; i++) {
-    hash = (hash << 5) - hash + s.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
-const DISEASE_STOP_WORDS = new Set([
-  "disease",
-  "disorder",
-  "syndrome",
-  "cancer",
-  "carcinoma",
-  "tumor",
-  "tumour",
-  "neoplasm",
-  "malignant",
-  "primary",
-  "secondary",
-  "acute",
-  "chronic",
-  "type",
-  "stage",
-  "cell",
-  "cells",
-]);
-
-/**
- * Extract searchable disease/indication keywords from agent disease context.
- */
-function extractDiseaseKeywords(diseaseContext) {
-  const parts = [diseaseContext?.name, diseaseContext?.query].filter(Boolean);
-  const keywords = new Set();
-  const fullText = parts.join(" ").toLowerCase();
-
-  for (const part of parts) {
-    const tokens = String(part)
-      .toLowerCase()
-      .split(/[^a-z0-9]+/)
-      .filter((t) => t.length >= 4 && !DISEASE_STOP_WORDS.has(t));
-    tokens.forEach((t) => keywords.add(t));
-  }
-
-  // Preserve clinically meaningful short tokens when present in the query.
-  const shortHints = [
-    "cml",
-    "aml",
-    "cll",
-    "hiv",
-    "hbv",
-    "hcv",
-    "copd",
-    "adhd",
-    "als",
-    "ms",
-    "ra",
-    "ibd",
-    "ckd",
-    "t1d",
-    "t2d",
-  ];
-  for (const hint of shortHints) {
-    if (fullText.includes(hint)) keywords.add(hint);
-  }
-  if (fullText.includes("diabet")) keywords.add("diabet");
-  if (fullText.includes("alzheimer")) keywords.add("alzheimer");
-  if (fullText.includes("parkinson")) keywords.add("parkinson");
-  if (fullText.includes("pancreat")) keywords.add("pancreat");
-  if (fullText.includes("breast")) keywords.add("breast");
-  if (fullText.includes("prostat")) keywords.add("prostat");
-  if (fullText.includes("melanoma")) keywords.add("melanoma");
-  if (fullText.includes("leukemia") || fullText.includes("leukaemia")) keywords.add("leukemia");
-  if (fullText.includes("lymphoma")) keywords.add("lymphoma");
-
-  return [...keywords];
-}
-
-function drugTextBlob(drug) {
-  return [drug?.name, drug?.indication, drug?.class, drug?.mechanism]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-}
-
-function drugMatchesDiseaseKeywords(drug, keywords) {
-  if (!Array.isArray(keywords) || !keywords.length || !drug) return false;
-  const hay = drugTextBlob(drug);
-  return keywords.some((kw) => kw.length >= 3 && hay.includes(kw));
-}
-
 const SKIP_REFERENCE_IDS = new Set([
   "NAG",
   "NDG",
@@ -300,9 +206,6 @@ module.exports = {
   TARGET_SPECIFIC_INSTRUCTION,
   targetDisplayName,
   rankingCacheKey,
-  stableHashString,
-  extractDiseaseKeywords,
-  drugMatchesDiseaseKeywords,
   buildTargetContext,
   summarizeTargetData,
 };

@@ -3,8 +3,6 @@ import {
   rankCandidatesLocal,
   scoreLibraryLocal,
   rankRepurposing,
-  resolveTargetRule,
-  isUnmodeledFillerRanking,
 } from "./scoreCandidates";
 
 const caffeine = {
@@ -148,43 +146,6 @@ const sitagliptin = {
   hba: 6,
   rotatableBonds: 6,
   tpsa: 77,
-  drugClass: "DPP-4 inhibitor",
-};
-
-const empagliflozin = {
-  cid: "11949646",
-  displayName: "empagliflozin",
-  molecularWeight: 450.9,
-  xlogp: 2.3,
-  hbd: 4,
-  hba: 6,
-  rotatableBonds: 5,
-  tpsa: 110,
-  drugClass: "antidiabetic",
-};
-
-const dapagliflozin = {
-  cid: "9887712",
-  displayName: "dapagliflozin",
-  molecularWeight: 408.9,
-  xlogp: 2.2,
-  hbd: 4,
-  hba: 6,
-  rotatableBonds: 6,
-  tpsa: 110,
-  drugClass: "antidiabetic",
-};
-
-const canagliflozin = {
-  cid: "24812758",
-  displayName: "canagliflozin",
-  molecularWeight: 444.5,
-  xlogp: 3.4,
-  hbd: 4,
-  hba: 6,
-  rotatableBonds: 5,
-  tpsa: 99.4,
-  drugClass: "SGLT2 inhibitor",
 };
 
 const ritonavir = {
@@ -274,60 +235,12 @@ test("ranks a clearly non-drug-like molecule last", () => {
 test("returns a complete ranking schema with heuristic-v2", () => {
   const result = rankCandidatesLocal([caffeine, imatinib]);
   expect(result.recommended.cid).toBeTruthy();
-  expect(result.recommended.name).toMatch(/caffeine|imatinib/i);
-  expect(result.recommended.indication).toBeDefined();
   expect(result.recommended.score).toBeGreaterThanOrEqual(0);
   expect(result.recommended.score).toBeLessThanOrEqual(100);
   expect(result.recommended.reason).toMatch(/caffeine|imatinib/i);
   expect(result.ranking.map((r) => r.cid).sort()).toEqual(["2519", "5291"]);
-  for (const row of result.ranking) {
-    expect(row.name).toBeTruthy();
-    expect(row).toHaveProperty("indication");
-  }
   expect(result.limitations.length).toBeGreaterThan(0);
   expect(result.source).toBe("heuristic-v2");
-});
-
-test("isUnmodeledFillerRanking detects tied insufficient-target-rule filler rows", () => {
-  const fillerReasoning = [
-    "Insufficient target rule: target is unmodeled or structure has no recognized pharmacology rule",
-  ];
-  const ranking = [
-    { cid: "CHEMBL1085", score: 24, reasoning: fillerReasoning },
-    { cid: "CHEMBL1184", score: 24, reasoning: fillerReasoning },
-    { cid: "CHEMBL1380", score: 24, reasoning: fillerReasoning },
-  ];
-  const unmodeledProtein = {
-    id: "6XYZ",
-    queryName: "NOVELGENE",
-    gene: "NOVELGENE",
-    title: "Novel protein inhibitor complex",
-    ligand: { present: true, name: "Inhibitor", compId: "LIG" },
-    pocket: { available: true },
-  };
-  expect(isUnmodeledFillerRanking(ranking, unmodeledProtein)).toBe(true);
-  expect(
-    isUnmodeledFillerRanking(ranking, {
-      id: "2HYY",
-      queryName: "ABL1",
-      title: "c-Abl kinase with imatinib",
-      ligands: [{ compId: "STI", name: "IMATINIB" }],
-    })
-  ).toBe(false);
-});
-
-test("isUnmodeledFillerRanking ignores same-family scores without insufficient-rule reasoning", () => {
-  const ranking = [
-    { cid: "999", score: 24, reasoning: ["Same family (kinase), but different primary target"] },
-  ];
-  const unmodeledProtein = {
-    id: "6XYZ",
-    queryName: "NOVELGENE",
-    gene: "NOVELGENE",
-    ligand: { present: true, name: "Inhibitor" },
-    pocket: { available: true },
-  };
-  expect(isUnmodeledFillerRanking(ranking, unmodeledProtein)).toBe(false);
 });
 
 test("scoreLibraryLocal ranks more than five compounds without the shortlist cap", () => {
@@ -506,35 +419,6 @@ test("DPP4 (1X70) prioritizes sitagliptin, metformin does not win", () => {
   expect(result.ranking.find((r) => r.cid === "4091").score).toBeLessThan(35);
 });
 
-test("resolveTargetRule matches SGLT-2 query and SLC5A2 gene", () => {
-  expect(resolveTargetRule({ queryName: "SGLT-2" })?.id).toBe("sglt2");
-  expect(resolveTargetRule({ gene: "SLC5A2" })?.id).toBe("sglt2");
-  expect(resolveTargetRule({ id: "7VSI", queryName: "SGLT2" })?.id).toBe("sglt2");
-  expect(resolveTargetRule({ title: "human sodium-glucose cotransporter 2" })?.id).toBe("sglt2");
-});
-
-test("SGLT2 (7VSI) prioritizes gliflozins over sitagliptin and metformin", () => {
-  const sglt2 = {
-    id: "7VSI",
-    queryName: "SGLT-2",
-    gene: "SLC5A2",
-    title: "Structure of human SGLT2-MAP17 complex bound with empagliflozin",
-    ligands: [{ compId: "7R3", name: "EMPAGLIFLOZIN" }],
-  };
-  const result = rankCandidatesLocal(
-    [empagliflozin, dapagliflozin, canagliflozin, sitagliptin, metformin, caffeine],
-    sglt2
-  );
-  expect(["11949646", "9887712", "24812758"]).toContain(result.recommended.cid);
-  const empRow = result.ranking.find((r) => r.cid === "11949646");
-  const sitaRow = result.ranking.find((r) => r.cid === "4369359");
-  const metRow = result.ranking.find((r) => r.cid === "4091");
-  expect(empRow.score).toBeGreaterThanOrEqual(67);
-  expect(empRow.score).toBeGreaterThan(sitaRow.score);
-  expect(empRow.score).toBeGreaterThan(metRow.score);
-  expect(sitaRow.concerns.join(" ")).toMatch(/SGLT2|antidiabetic/i);
-});
-
 test("HIV-1 protease (1HVR) vs SARS-CoV-2 Mpro (7BQY) differentiate inhibitors", () => {
   const hiv = { id: "1HVR", queryName: "HIV-1 PR", title: "HIV-1 protease with ritonavir" };
   const mpro = { id: "7BQY", queryName: "Mpro", title: "SARS-CoV-2 main protease with nirmatrelvir" };
@@ -559,12 +443,11 @@ test("HDAC (4LXZ) prioritizes vorinostat", () => {
   expect(result.recommended.cid).toBe("5311");
 });
 
-test("rankRepurposing unit test verifies top 5 on all 13 targets", () => {
+test("rankRepurposing unit test verifies top 5 on all 12 targets", () => {
   const candidatePool = [
     imatinib, gefitinib, erlotinib, lapatinib, dabrafenib,
     salbutamol, morphine, losartan, celecoxib, atorvastatin,
-    metformin, sitagliptin, empagliflozin, dapagliflozin, canagliflozin,
-    ritonavir, nirmatrelvir, sildenafil,
+    metformin, sitagliptin, ritonavir, nirmatrelvir, sildenafil,
     vorinostat, caffeine, ibuprofen,
   ];
 
@@ -577,7 +460,6 @@ test("rankRepurposing unit test verifies top 5 on all 13 targets", () => {
     { id: "4COX", expectedTop: ["2662"] }, // COX
     { id: "1HWK", expectedTop: ["60823"] }, // HMGCR
     { id: "1X70", expectedTop: ["4369359"] }, // DPP4
-    { id: "7VSI", expectedTop: ["11949646", "9887712", "24812758"] }, // SGLT2
     { id: "1HVR", expectedTop: ["392622"] }, // HIV PR
     { id: "7BQY", expectedTop: ["155903259"] }, // SARS Mpro
     { id: "1UDT", expectedTop: ["135398744"] }, // PDE5

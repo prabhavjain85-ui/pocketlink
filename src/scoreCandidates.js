@@ -1,9 +1,4 @@
-const {
-  buildTargetContext,
-  targetDisplayName,
-  stableHashString,
-  drugMatchesDiseaseKeywords,
-} = require("./targetContext");
+const { buildTargetContext, targetDisplayName } = require("./targetContext");
 
 const MAX_CANDIDATES = 5;
 
@@ -27,7 +22,7 @@ const GPCR_CLASS_RE =
   /\b(beta-blocker|beta-2 agonist|antihistamine|opioid|antipsychotic|\barb\b|alpha-1|alpha-2 agonist|5-ht3|h2 antagonist|antimuscarinic|triptan|dopamine agonist|nachr)\b/i;
 
 /**
- * 13 Curated Target Rules with specific on-target drugs, demotions,
+ * 12 Curated Target Rules with specific on-target drugs, demotions,
  * co-crystal ligands, and PDB IDs.
  */
 const TARGET_RULES = [
@@ -152,25 +147,8 @@ const TARGET_RULES = [
     ],
     onTargetRe: /\b(sitagliptin|saxagliptin|linagliptin|alogliptin|vildagliptin)\b/i,
     onTargetClassRe: /\bdpp-?4 inhibitor\b/i,
-    demotedRe: /\b(metformin|glipizide|glyburide|glimepiride|pioglitazone|rosiglitazone|empagliflozin|dapagliflozin|canagliflozin|ertugliflozin|sotagliflozin)\b/i,
+    demotedRe: /\b(metformin|glipizide|glyburide|glimepiride|pioglitazone|rosiglitazone)\b/i,
     demotedConcern: "No DPP-4 inhibitor activity (metformin is an antidiabetic biguanide, not a DPP-4 inhibitor).",
-  },
-  {
-    id: "sglt2",
-    name: "Sodium-Glucose Cotransporter 2 (SGLT2 / SLC5A2)",
-    family: "sglt2",
-    pdbs: ["7VSI", "8HEZ", "8HDH", "8HG7"],
-    targetRe: /\b(sglt-?2|slc5a2|sodium[- ]glucose cotransporter ?2)\b/i,
-    geneRe: /\b(slc5a2|sglt2)\b/i,
-    ligandRe: /\b(empagliflozin|dapagliflozin|canagliflozin|ertugliflozin|sotagliflozin|7r3|le6|l3r)\b/i,
-    onTargetDrugs: [
-      "empagliflozin", "dapagliflozin", "canagliflozin", "ertugliflozin", "sotagliflozin",
-      "bexagliflozin", "ipragliflozin", "tofogliflozin",
-    ],
-    onTargetRe: /\b(empagliflozin|dapagliflozin|canagliflozin|ertugliflozin|sotagliflozin|bexagliflozin|ipragliflozin|tofogliflozin|\w*gliflozin)\b/i,
-    onTargetClassRe: /\bsglt-?2 inhibitor\b/i,
-    demotedRe: /\b(sitagliptin|saxagliptin|linagliptin|alogliptin|vildagliptin|metformin|glipizide|glyburide|glimepiride|pioglitazone|rosiglitazone)\b/i,
-    demotedConcern: "No SGLT2 inhibitor activity (different antidiabetic mechanism — DPP-4 inhibitor, biguanide, sulfonylurea, or TZD).",
   },
   {
     id: "hiv_protease",
@@ -270,9 +248,6 @@ const LIGAND_SYNONYMS = {
   OHT: ["tamoxifen", "4-hydroxytamoxifen", "nolvadex"],
   "4-OHT": ["tamoxifen", "4-hydroxytamoxifen", "nolvadex"],
   N3: ["nirmatrelvir", "paxlovid"],
-  "7R3": ["empagliflozin", "jardiance"],
-  LE6: ["dapagliflozin", "farxiga", "forxiga"],
-  L3R: ["canagliflozin", "invokana"],
 };
 
 function num(value) {
@@ -453,7 +428,6 @@ function targetFamily(protein) {
   if (/\b(cyclooxygenase|cox-?2|cox-?1)\b/i.test(text)) return "cox";
   if (/\b(hmg-?coa|hmgcr)\b/i.test(text)) return "hmg";
   if (/\b(dpp-?4|dpp4)\b/i.test(text)) return "dpp4";
-  if (/\b(sglt-?2|slc5a2|sodium[- ]glucose cotransporter ?2)\b/i.test(text)) return "sglt2";
   if (/\b(pde-?5|phosphodiesterase)\b/i.test(text)) return "pde5";
   if (/\b(hdac|histone deacetylase)\b/i.test(text)) return "hdac";
   if (/\b(estrogen|nuclear receptor)\b/i.test(text)) return "nuclear";
@@ -570,9 +544,6 @@ function evaluateCandidateForTargetRule(candidate, rule, protein) {
       isSameFamily = /\bstatin\b/i.test(cClass);
     } else if (rule.family === "dpp4") {
       isSameFamily = /\bdpp-?4 inhibitor\b/i.test(cClass);
-    } else if (rule.family === "sglt2") {
-      isSameFamily =
-        /\bsglt-?2 inhibitor\b/i.test(cClass) || /\b\w*gliflozin\b/i.test(cName);
     } else if (rule.family === "pde5") {
       isSameFamily = /\bpde5 inhibitor\b/i.test(cClass);
     } else if (rule.family === "hdac") {
@@ -658,16 +629,6 @@ function scoreOne(candidate, protein = null) {
       targetBonus = 0;
       reasoning.push(`Insufficient target rule: target is unmodeled or structure has no recognized pharmacology rule`);
       concerns.push(`Insufficient target rule: no recognized target rule matched for this structure.`);
-    }
-
-    const diseaseKeywords = protein?.diseaseKeywords;
-    if (Array.isArray(diseaseKeywords) && diseaseKeywords.length) {
-      if (drugMatchesDiseaseKeywords(candidate, diseaseKeywords)) {
-        const diseaseLabel = protein?.diseaseName || "the query disease";
-        targetBonus += 12;
-        reasoning.push(`Indication overlap with ${diseaseLabel} (approved use text matches disease keywords)`);
-        strengths.push(`Approved indication may be relevant to ${diseaseLabel}.`);
-      }
     }
   } else {
     // No target staged
@@ -797,44 +758,23 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
     };
   });
 
-  const tieBreakSeed = options.tieBreakSeed;
   scored.sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;
     if (b.passCount !== a.passCount) return b.passCount - a.passCount;
-    if (tieBreakSeed != null) {
-      const ha = stableHashString(`${tieBreakSeed}:${a.cid}`);
-      const hb = stableHashString(`${tieBreakSeed}:${b.cid}`);
-      return ha - hb;
-    }
     return String(a.cid).localeCompare(String(b.cid));
   });
 
-  const ranking = scored.map((item, index) => {
-    const original = list.find((c) => cidOf(c) === item.cid) || list[index];
-    const props = propsOf(original);
-    return {
-      cid: item.cid,
-      rank: index + 1,
-      name: nameOf(original),
-      score: item.score,
-      reasoning: (item.reasoning || []).slice(0, 6),
-      strengths: item.strengths.slice(0, 3),
-      concerns: item.concerns.slice(0, 3),
-      indication: original?.indication || "",
-      class: classOf(original),
-      smiles:
-        original?.CanonicalSMILES ||
-        original?.SMILES ||
-        original?.IsomericSMILES ||
-        "",
-      molecularWeight: props.mw,
-      xlogp: props.xlogp,
-    };
-  });
+  const ranking = scored.map((item, index) => ({
+    cid: item.cid,
+    rank: index + 1,
+    score: item.score,
+    reasoning: (item.reasoning || []).slice(0, 6),
+    strengths: item.strengths.slice(0, 3),
+    concerns: item.concerns.slice(0, 3),
+  }));
 
   const top = scored[0];
   const originalTop = list.find((c) => cidOf(c) === top.cid) || list[0];
-  const topProps = propsOf(originalTop);
   const target = ctx
     ? { name: ctx.name, pdb_id: ctx.pdb_id }
     : { name: "", pdb_id: null };
@@ -848,19 +788,8 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
     })),
     recommended: {
       cid: top.cid,
-      name: nameOf(originalTop),
       score: top.score,
       reason: reasonFor(originalTop, top, protein),
-      indication: originalTop?.indication || "",
-      class: classOf(originalTop),
-      smiles:
-        originalTop?.CanonicalSMILES ||
-        originalTop?.SMILES ||
-        originalTop?.IsomericSMILES ||
-        "",
-      molecularWeight: topProps.mw,
-      xlogp: topProps.xlogp,
-      reasoning: (top.reasoning || []).slice(0, 6),
     },
     ranking,
     summary: summaryFor(scored, protein),
@@ -872,7 +801,7 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
       "PAINS and toxicophore matches are warnings, not automatic exclusions — some flagged chemotypes become real drugs.",
       ctx?.dataGaps?.length
         ? "Target-fit assessment is limited without pocket/ligand data — geometric fit was not treated as a confident judgment."
-        : "Use PocketLink's native docking and ADME tools next, then experimental assays, before treating any molecule as a real lead.",
+        : "Use SwissDock and SwissADME next, then experimental assays, before treating any molecule as a real lead.",
     ].filter((item, index, arr) => arr.indexOf(item) === index),
     source: "heuristic-v2",
   };
@@ -946,38 +875,6 @@ function rankRepurposing(candidates, protein = null) {
   return { ...result, top5 };
 }
 
-const INSUFFICIENT_TARGET_RULE_RE = /insufficient target rule/i;
-
-function hasInsufficientTargetRuleReasoning(row) {
-  const reasoning = Array.isArray(row?.reasoning) ? row.reasoning : [];
-  return reasoning.some((entry) => INSUFFICIENT_TARGET_RULE_RE.test(String(entry)));
-}
-
-/**
- * True when ranking rows are alphabetical drug-likeness filler with no target rule
- * (typical ~24/100 tied scores and identical insufficient-target-rule reasoning).
- */
-function isUnmodeledFillerRanking(ranking, protein = null) {
-  if (!Array.isArray(ranking) || !ranking.length) return false;
-
-  const ctx = protein ? buildTargetContext(protein) : null;
-  if (resolveTargetRule(ctx || protein)) return false;
-
-  const top = ranking[0];
-  if (!hasInsufficientTargetRuleReasoning(top)) return false;
-
-  const topScore = Number(top?.score) || 0;
-  // Scores above ~35 usually include family chemotype bonus, not pure filler.
-  if (topScore > 35) return false;
-
-  const topSlice = ranking.slice(0, Math.min(5, ranking.length));
-  const fillerRows = topSlice.filter(
-    (row) =>
-      hasInsufficientTargetRuleReasoning(row) && (Number(row?.score) || 0) <= 35
-  );
-  return fillerRows.length >= Math.min(3, topSlice.length);
-}
-
 module.exports = {
   MAX_CANDIDATES,
   drugLikenessChecks,
@@ -992,8 +889,6 @@ module.exports = {
   resolveTargetRule,
   matchesCoCrystalLigand,
   rankRepurposing,
-  isUnmodeledFillerRanking,
-  hasInsufficientTargetRuleReasoning,
   KINASE_INHIBITOR_RE,
   GPCR_LIGAND_RE,
 };
