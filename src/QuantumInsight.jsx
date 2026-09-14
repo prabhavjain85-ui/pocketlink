@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { fetchQuantumInsight } from "./quantumInsightService";
+import { buildRefusalPreview, previewQuantumGateFromSmiles } from "./quantumInsightGate";
+import { countQuantumAtomsFromSmiles } from "./quantumGeometry";
 
 /**
  * Experimental, user-triggered quantum-chemistry VQE panel.
@@ -11,9 +13,18 @@ export default function QuantumInsight({ compound, smiles }) {
   const [error, setError] = useState("");
   const [refusal, setRefusal] = useState(null);
   const [result, setResult] = useState(null);
+  const [sizePreview, setSizePreview] = useState(() => previewQuantumGateFromSmiles(smiles));
 
   const cid = compound?.cid || compound?.CID || compound?.compound_id || "unknown";
   const displayName = compound?.displayName || compound?.name || `CID ${cid}`;
+
+  const clientRefusal = useMemo(() => {
+    if (refusal) return refusal;
+    if (sizePreview?.overLimit && sizePreview.refusal) return sizePreview.refusal;
+    return null;
+  }, [refusal, sizePreview]);
+
+  const overLimit = Boolean(clientRefusal);
 
   useEffect(() => {
     setExpanded(false);
@@ -21,11 +32,44 @@ export default function QuantumInsight({ compound, smiles }) {
     setError("");
     setRefusal(null);
     setResult(null);
+
+    const syncPreview = previewQuantumGateFromSmiles(smiles);
+    setSizePreview(syncPreview);
+
+    if (!smiles || syncPreview.overLimit) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const counts = await countQuantumAtomsFromSmiles(smiles);
+        if (cancelled) return;
+        const refusalPreview = buildRefusalPreview(counts.atomCount, counts.nonHCount);
+        setSizePreview({
+          overLimit: Boolean(refusalPreview),
+          atomCount: counts.atomCount,
+          nonHCount: counts.nonHCount,
+          refusal: refusalPreview,
+        });
+      } catch {
+        // Keep sync preview (fail open except H₂, which sync already handles).
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [smiles, cid]);
 
   const runAnalysis = async () => {
     if (!smiles) {
       setError("Select a compound with a valid SMILES string first.");
+      return;
+    }
+
+    if (overLimit) {
+      setRefusal(clientRefusal);
       return;
     }
 
@@ -38,6 +82,7 @@ export default function QuantumInsight({ compound, smiles }) {
       const data = await fetchQuantumInsight({
         smiles,
         name: displayName,
+        sizePreview,
       });
       if (data.refused) {
         setRefusal(data);
@@ -57,19 +102,27 @@ export default function QuantumInsight({ compound, smiles }) {
 
   const toggleExpanded = () => setExpanded((v) => !v);
 
+  const collapsedLabel = overLimit
+    ? "Quantum Insight (Experimental) — too large for this molecule"
+    : "Run Quantum Chemistry Analysis (Experimental)";
+
+  const expandedToggleLabel = overLimit
+    ? "Hide Quantum Insight"
+    : "Hide Quantum Chemistry Analysis";
+
   return (
     <div className="quantum-insight-container" id={`quantum-insight-${cid}`}>
       <div className="quantum-insight-trigger-row">
         <button
           type="button"
-          className={`btn-quantum-toggle ${expanded ? "expanded" : ""}`}
+          className={`btn-quantum-toggle ${expanded ? "expanded" : ""} ${overLimit ? "over-limit" : ""}`}
           onClick={toggleExpanded}
           aria-expanded={expanded}
           aria-controls={`quantum-insight-panel-${cid}`}
         >
           <span className="quantum-icon" aria-hidden="true">{expanded ? "▾" : "▸"}</span>
           <span className="quantum-label-text">
-            {expanded ? "Hide Quantum Chemistry Analysis" : "Run Quantum Chemistry Analysis (Experimental)"}
+            {expanded ? expandedToggleLabel : collapsedLabel}
           </span>
           <span className="quantum-experimental-badge">Experimental</span>
         </button>
@@ -90,6 +143,7 @@ export default function QuantumInsight({ compound, smiles }) {
             decisions, and is <strong>not</strong> part of PocketLink scoring, ranking, or repurposing.
             Results come from a classical simulator (Qiskit Aer) — no IBM Quantum hardware.
             Tiny molecules only (≤4 atoms, ≤2 heavy atoms, ≤8 mapped qubits).
+            This demo only runs on tiny fragments (H₂, LiH-class); typical drugs will always be refused.
           </p>
 
           <div className="quantum-actions">
@@ -97,7 +151,7 @@ export default function QuantumInsight({ compound, smiles }) {
               type="button"
               className="btn btn-secondary"
               onClick={runAnalysis}
-              disabled={loading || !smiles}
+              disabled={loading || !smiles || overLimit}
             >
               {loading ? "Running VQE simulation…" : "Run VQE ground-state estimate"}
             </button>
@@ -119,13 +173,22 @@ export default function QuantumInsight({ compound, smiles }) {
             </div>
           )}
 
-          {refusal && (
+          {clientRefusal && (
             <div className="quantum-refusal">
               <div className="quantum-refusal-title">Molecule outside experimental limits</div>
-              <p>{refusal.error}</p>
-              {Array.isArray(refusal.reasons) && refusal.reasons.length > 0 && (
+              <p>{clientRefusal.error}</p>
+              {typeof clientRefusal.atom_count === "number" &&
+                typeof clientRefusal.non_hydrogen_atom_count === "number" && (
+                  <p className="quantum-refusal-counts">
+                    This compound: {clientRefusal.atom_count} atoms,{" "}
+                    {clientRefusal.non_hydrogen_atom_count} non-hydrogen atoms. Limits:{" "}
+                    {clientRefusal.limits?.max_atoms ?? 4} atoms,{" "}
+                    {clientRefusal.limits?.max_non_hydrogen_atoms ?? 2} non-hydrogen atoms.
+                  </p>
+                )}
+              {Array.isArray(clientRefusal.reasons) && clientRefusal.reasons.length > 0 && (
                 <ul>
-                  {refusal.reasons.map((reason, idx) => (
+                  {clientRefusal.reasons.map((reason, idx) => (
                     <li key={idx}>{reason}</li>
                   ))}
                 </ul>
