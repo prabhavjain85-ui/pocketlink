@@ -3558,6 +3558,15 @@ textarea.field-input {
   background: #f5f3ff;
 }
 
+.btn-quantum-toggle.over-limit {
+  border-color: var(--amber-border);
+  background: var(--amber-bg);
+}
+
+.btn-quantum-toggle.over-limit .quantum-label-text {
+  color: var(--amber);
+}
+
 .btn-quantum-toggle.expanded {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
@@ -3655,6 +3664,12 @@ textarea.field-input {
   border: 1px solid #fed7aa;
   color: #9a3412;
   font-size: 12px;
+}
+
+.quantum-refusal-counts {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: var(--text-dim);
 }
 
 .quantum-refusal-title {

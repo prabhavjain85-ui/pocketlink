@@ -112,3 +112,46 @@ export function atomsToGeometryString(atoms) {
     .map((a) => `${a.symbol} ${a.x} ${a.y} ${a.z}`)
     .join("; ");
 }
+
+/**
+ * Count hydrogen-complete atoms for size-gate preview (no 3D embed).
+ */
+export async function countQuantumAtomsFromSmiles(smiles, rdkitInstance = null) {
+  const clean = String(smiles || "").trim();
+  if (!clean) {
+    throw new Error("SMILES is required to count atoms.");
+  }
+  if (isH2Smiles(clean)) {
+    return { atomCount: 2, nonHCount: 0 };
+  }
+
+  const rdkit = rdkitInstance || (await getRDKit());
+  if (!rdkit) {
+    throw new Error("RDKit is required to count atoms for this molecule.");
+  }
+
+  const mol = rdkit.get_mol(clean);
+  if (!mol || !mol.is_valid()) {
+    throw new Error(`Could not parse SMILES: ${clean}`);
+  }
+
+  let hsBlock = "";
+  try {
+    hsBlock = mol.add_hs();
+  } catch {
+    hsBlock = "";
+  }
+  mol.delete();
+
+  if (!hsBlock || !String(hsBlock).includes("V2000")) {
+    throw new Error("RDKit could not add explicit hydrogens for atom counting.");
+  }
+
+  const atoms = parseAtomsFromMolblock(hsBlock);
+  if (!atoms.length) {
+    throw new Error("Could not extract atoms from RDKit molblock.");
+  }
+
+  const nonHCount = atoms.filter((a) => String(a.symbol).toUpperCase() !== "H").length;
+  return { atomCount: atoms.length, nonHCount };
+}

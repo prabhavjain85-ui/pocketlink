@@ -1,11 +1,19 @@
 import { buildQuantumAtoms } from "./quantumGeometry";
+import { buildRefusalPreview } from "./quantumInsightGate";
 
 const QUANTUM_ENDPOINT = "/api/quantum-insight";
 
-export async function fetchQuantumInsight({ smiles, name, signal } = {}) {
+export async function fetchQuantumInsight({ smiles, name, signal, sizePreview } = {}) {
   const cleanSmiles = String(smiles || "").trim();
   if (!cleanSmiles) {
     throw new Error("SMILES is required to run Quantum Insight.");
+  }
+
+  if (sizePreview?.overLimit && sizePreview.refusal) {
+    const err = new Error(sizePreview.refusal.error);
+    err.status = 422;
+    err.payload = sizePreview.refusal;
+    throw err;
   }
 
   const payload = { smiles: cleanSmiles };
@@ -13,6 +21,13 @@ export async function fetchQuantumInsight({ smiles, name, signal } = {}) {
 
   const atoms = await buildQuantumAtoms(cleanSmiles);
   if (atoms) {
+    const clientRefusal = buildRefusalPreview(atoms.length, atoms.filter((a) => a.symbol.toUpperCase() !== "H").length);
+    if (clientRefusal) {
+      const err = new Error(clientRefusal.error);
+      err.status = 422;
+      err.payload = clientRefusal;
+      throw err;
+    }
     payload.atoms = atoms;
   }
 
