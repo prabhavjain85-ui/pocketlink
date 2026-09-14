@@ -48,9 +48,15 @@ def handle_quantum_request(payload):
     charge = int(payload.get("charge") or 0)
     spin = int(payload.get("spin") or 0)
 
-    from quantum_insight_vqe import build_problem
+    from quantum_insight_vqe import build_problem_for_request
 
-    _, _, qubit_op = build_problem(geometry, basis=basis, charge=charge, spin=spin)
+    problem, mapper, qubit_op, vqe_meta = build_problem_for_request(
+        geometry,
+        basis=basis,
+        charge=charge,
+        spin=spin,
+        allow_active_space=is_fragment,
+    )
     n_qubits = qubit_op.num_qubits
 
     post_qubit_reasons = size_gate_reasons(atom_count, non_h_count, n_qubits)
@@ -59,7 +65,17 @@ def handle_quantum_request(payload):
             post_qubit_reasons, atom_count, non_h_count, n_qubits, fragment=is_fragment
         )
 
-    vqe_result = run_vqe(geometry, basis=basis, charge=charge, spin=spin)
+    vqe_result = run_vqe(
+        geometry,
+        basis=basis,
+        charge=vqe_meta.get("charge", charge),
+        spin=vqe_meta.get("spin", spin),
+        allow_active_space=is_fragment,
+        problem=problem,
+        mapper=mapper,
+        qubit_op=qubit_op,
+        vqe_meta=vqe_meta,
+    )
     explanation = explain_result(geometry_source, vqe_result, fragment_meta or None)
 
     response = {

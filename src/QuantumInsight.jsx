@@ -299,9 +299,11 @@ export default function QuantumInsight({ compound, smiles, protein = null }) {
               )}
               <div className="quantum-energy-block">
                 <div className="quantum-energy-label">
-                  {result.fragment
-                    ? "Fragment ground-state energy (Hartree)"
-                    : "Ground-state energy (Hartree)"}
+                  {result.fragment && result.active_space
+                    ? "Active-space fragment ground-state energy (Hartree)"
+                    : result.fragment
+                      ? "Fragment ground-state energy (Hartree)"
+                      : "Ground-state energy (Hartree)"}
                 </div>
                 <div className="quantum-energy-value mono">
                   {typeof result.total_energy_hartree === "number"
@@ -311,6 +313,11 @@ export default function QuantumInsight({ compound, smiles, protein = null }) {
               </div>
               <div className="quantum-meta">
                 <span>{result.n_qubits} mapped qubits</span>
+                {result.active_space && (
+                  <span>
+                    active space {result.active_space_electrons}e/{result.active_space_orbitals}o
+                  </span>
+                )}
                 <span>{result.basis} basis</span>
                 <span>{result.mapper}</span>
                 <span>{result.ansatz}</span>

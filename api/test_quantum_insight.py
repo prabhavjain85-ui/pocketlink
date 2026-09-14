@@ -117,7 +117,7 @@ class TestQuantumInsightHandler(unittest.TestCase):
         self.assertIn("fragment ground-state energy", body["explanation"].lower())
         self.assertIn("not binding affinity", body["explanation"].lower())
 
-    def test_post_fragment_co_refused_for_qubit_cap(self):
+    def test_post_fragment_co_uses_active_space_when_full_space_exceeds_qubit_cap(self):
         handler_mod = _load_handler_module()
         geometry = "C 0 0 0; O 0 0 1.23"
         status, body = handler_mod.handle_quantum_request(
@@ -130,11 +130,29 @@ class TestQuantumInsightHandler(unittest.TestCase):
                 "selection_source": "ligand_polar_pair_no_pocket",
             }
         )
-        self.assertEqual(status, 422)
-        self.assertTrue(body["refused"])
+        self.assertEqual(status, 200)
         self.assertTrue(body["fragment"])
-        self.assertIn("fragment", body["error"].lower())
-        self.assertTrue(any("qubit" in r.lower() for r in body["reasons"]))
+        self.assertTrue(body["active_space"])
+        self.assertLessEqual(body["n_qubits"], MAX_QUBITS)
+        self.assertIn("active-space fragment ground-state energy", body["explanation"].lower())
+
+    def test_post_fragment_oh_uses_active_space(self):
+        handler_mod = _load_handler_module()
+        geometry = "O 0 0 0; H 0 0 0.96"
+        status, body = handler_mod.handle_quantum_request(
+            {
+                "fragment": True,
+                "geometry": geometry,
+                "parent_smiles": "CCO",
+                "fragment_atoms": ["O", "H"],
+                "fragment_formula": "O–H",
+                "selection_source": "ligand_polar_pair_no_pocket",
+            }
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(body["fragment"])
+        self.assertTrue(body["active_space"])
+        self.assertLessEqual(body["n_qubits"], MAX_QUBITS)
 
     def test_post_oversized_fragment_refused_with_fragment_message(self):
         handler_mod = _load_handler_module()
