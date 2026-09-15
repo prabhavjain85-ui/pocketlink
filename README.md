@@ -49,7 +49,7 @@ Scores 2–5 staged molecules specifically against the selected PDB target:
 - **Deterministic Calibration:** Numeric scores are governed by the local deterministic engine to ensure reproducibility across batches.
 - **Optional LLM Reasoning:** When `OPENAI_API_KEY` is provided, `/api/rank-candidates` invokes OpenAI (`gpt-4o-mini` by default) to generate qualitative clinical reasoning, strengths, and concerns without overriding the baseline calibrated score scale. If the LLM is absent or encounters an error, the system seamlessly uses local rule-based reasoning.
 - **Isolation:** Scores are cached by `(PDB_ID, CID)`. A score computed against one target is never reused for another.
-- **External Handoff:** Convenience buttons allow copying identifiers and opening external tools (SwissDock, SwissADME) if external validation is desired.
+- **Native Workflow Handoff:** Integrated navigation directly passes staged target and molecule structures into TargetForge's native molecular docking (`/docking`) and ADME profiling (`/adme`) modules.
 
 ---
 

@@ -175,8 +175,6 @@ export default function App() {
   const [aiResult, setAiResult] = useState(() => savedActive?.aiResult || null);
   const [handoffCid, setHandoffCid] = useState(() => savedActive?.handoffCid || null);
 
-  const [dockCopied, setDockCopied] = useState(false);
-  const [admeCopied, setAdmeCopied] = useState(false);
   const [aiSort, setAiSort] = useState({ key: "score", dir: "desc" });
   const [painsByCid, setPainsByCid] = useState({});
 
@@ -358,34 +356,6 @@ export default function App() {
     (aiResult ? 0.25 : 0) +
     (protein && compound ? 0.25 : 0);
 
-  const copyToClipboard = async (value) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  };
-
-  const openSwissDock = () => {
-    window.open("https://www.swissdock.ch/", "_blank", "noopener,noreferrer");
-    if (protein) {
-      copyToClipboard(protein.id).then((ok) => {
-        setDockCopied(ok);
-        if (ok) setTimeout(() => setDockCopied(false), 4000);
-      });
-    }
-  };
-  const openSwissADME = () => {
-    window.open("https://www.swissadme.ch/", "_blank", "noopener,noreferrer");
-    if (smiles) {
-      copyToClipboard(smiles).then((ok) => {
-        setAdmeCopied(ok);
-        if (ok) setTimeout(() => setAdmeCopied(false), 4000);
-      });
-    }
-  };
-
   const winner = recommendedCid
     ? candidates.find((c) => String(c.CID) === String(recommendedCid))
     : null;
@@ -401,7 +371,7 @@ export default function App() {
         <h1>Stage a target, shortlist up to five molecules,<br />then let AI pick the strongest follow-up.</h1>
         <p>
           Search live PDB structures and PubChem compounds, compare up to five candidates on drug-likeness,
-          and generate a transparent recommendation before handing the winner to SwissDock and SwissADME.
+          and generate a transparent recommendation before running native molecular docking and ADME prediction.
         </p>
       </div>
 
@@ -491,7 +461,7 @@ export default function App() {
                 ))}
                 <div className="lipinski-note">
                   Lipinski Rule-of-Five + Veber criteria, computed from PubChem's own properties — a fast pre-screen,
-                  not a substitute for SwissADME's full pharmacokinetic model.
+                  not a substitute for TargetForge's full native ADME profiling engine.
                 </div>
                 {painsByCid[String(cResult.CID)] && (
                   <div className="pains-preview">
@@ -645,12 +615,6 @@ export default function App() {
                 >
                   Predict Native ADME →
                 </Link>
-                <button className="btn btn-handoff" onClick={openSwissDock} disabled={!protein} type="button">
-                  {dockCopied ? "PDB ID copied ✓" : "Open SwissDock →"}
-                </button>
-                <button className="btn btn-handoff" onClick={openSwissADME} disabled={!compound} type="button">
-                  {admeCopied ? "SMILES copied ✓" : "Open SwissADME →"}
-                </button>
               </div>
               <div className="lipinski-note" style={{ marginTop: 14 }}>
                 TargetForge computes native molecular docking and ADME predictions locally in-browser using empirical force fields and RDKit WebAssembly without external server dependencies.

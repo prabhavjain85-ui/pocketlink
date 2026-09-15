@@ -1053,7 +1053,7 @@ export default function AgentPage() {
 
                       {/* Ranker limitation warnings */}
                       <li className="adversarial-point-item" style={{ fontSize: 11.5, color: "var(--text-muted)", borderTop: "1px dashed #fde68a", paddingTop: 8 }}>
-                        <strong>Next Steps &amp; Precautions:</strong> Flagged structural alerts are warnings, not definitive exclusions. Use SwissDock and SwissADME, followed by orthogonal biochemical binding assays, before treating this candidate as a confirmed lead.
+                        <strong>Next Steps &amp; Precautions:</strong> Flagged structural alerts are warnings, not definitive exclusions. Use TargetForge Native Docking and ADME Profiling, followed by orthogonal biochemical binding assays, before treating this candidate as a confirmed lead.
                       </li>
                     </ul>
                   </div>
