@@ -293,7 +293,7 @@ export default function App() {
       const data = await rankCandidates(candidates, protein, latestPains);
       setAiResult(data);
       if (data?.aiError) {
-        setAiError(`Unable to score against this target with the language model (${data.aiError}). PocketLink used its target-aware model instead.`);
+        setAiError(`Unable to score against this target with the language model (${data.aiError}). TargetForge used its target-aware model instead.`);
       }
       if (data?.recommended?.cid) setHandoffCid(data.recommended.cid);
 
@@ -397,7 +397,7 @@ export default function App() {
   return (
     <>
       <div className="hero">
-        <div className="hero-eyebrow">PocketLink · discovery staging bench</div>
+        <div className="hero-eyebrow">TargetForge · discovery staging bench</div>
         <h1>Stage a target, shortlist up to five molecules,<br />then let AI pick the strongest follow-up.</h1>
         <p>
           Search live PDB structures and PubChem compounds, compare up to five candidates on drug-likeness,
@@ -539,7 +539,7 @@ export default function App() {
             <div>
               <div className="ai-kicker">Score the shortlist for this target</div>
               <div className="hint" style={{ margin: "6px 0 0" }}>
-                Scores 2–5 molecules for the selected PDB structure using pocket/ligand context, known pharmacology, Lipinski/Veber drug-likeness, and PAINS flags. The same compound is scored differently against different targets. If an OpenAI key is configured, a language model writes the comparison; otherwise PocketLink uses its built-in target-aware model.
+                Scores 2–5 molecules for the selected PDB structure using pocket/ligand context, known pharmacology, Lipinski/Veber drug-likeness, and PAINS flags. The same compound is scored differently against different targets. If an OpenAI key is configured, a language model writes the comparison; otherwise TargetForge uses its built-in target-aware model.
               </div>
             </div>
             <button className="btn btn-handoff" onClick={analyze} disabled={candidates.length < 2 || aiLoading} type="button">
@@ -550,7 +550,7 @@ export default function App() {
           {aiError && <div className="error-msg">{aiError}</div>}
           {!aiResult && !aiLoading && (
             <div className="empty-state">
-              Select 2–5 molecules in Station 2, then run analysis. PocketLink will score each compound for the staged target — not as a universal drug-likeness rank.
+              Select 2–5 molecules in Station 2, then run analysis. TargetForge will score each compound for the staged target — not as a universal drug-likeness rank.
             </div>
           )}
           {aiResult && (
@@ -594,7 +594,7 @@ export default function App() {
                   ? "Ranked with OpenAI for this specific target"
                   : aiResult.source === "cache"
                     ? "Reused cached scores for this (compound, PDB) pair"
-                    : "Ranked with PocketLink's target-aware model"}
+                    : "Ranked with TargetForge's target-aware model"}
               </div>
             </div>
           )}
@@ -605,7 +605,7 @@ export default function App() {
         <Panel eyebrow="Station 4 — handoff" title="Follow-up: Native Docking & ADME Prediction" kind="handoff">
           {!protein && !candidates.length && (
             <div className="empty-state">
-              Stage a target and a shortlist above — PocketLink will prepare the exact inputs for native
+              Stage a target and a shortlist above — TargetForge will prepare the exact inputs for native
               docking simulation and ADME prediction.
             </div>
           )}
@@ -653,7 +653,7 @@ export default function App() {
                 </button>
               </div>
               <div className="lipinski-note" style={{ marginTop: 14 }}>
-                PocketLink computes native molecular docking and ADME predictions locally in-browser using empirical force fields and RDKit WebAssembly without external server dependencies.
+                TargetForge computes native molecular docking and ADME predictions locally in-browser using empirical force fields and RDKit WebAssembly without external server dependencies.
               </div>
             </div>
           )}

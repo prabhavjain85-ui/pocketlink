@@ -179,7 +179,7 @@ export default function OrganToxicityPanel({ organToxicity, onSelectPreset }) {
             REST API with CORS headers is provided by Charité.
           </p>
           <p style={{ margin: 0 }}>
-            PocketLink has therefore implemented an in-browser, rule-based toxicophore alert engine
+            TargetForge has therefore implemented an in-browser, rule-based toxicophore alert engine
             using <strong>@rdkit/rdkit WebAssembly</strong> grounded in published medicinal chemistry
             literature. This is transparently categorized as a{" "}
             <strong>lower-confidence structural alert heuristic</strong>, avoiding overstated model certainty.

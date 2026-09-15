@@ -1,6 +1,6 @@
 {
-  "name": "PocketLink",
-  "description": "Drug Discovery Staging Bench — Search PDB targets, test scientific hypotheses with multi-evidence validation, orchestrate autonomous research pipelines, run approved drug repurposing, compute native ADME prediction, and simulate molecular docking.",
+  "name": "TargetForge",
+  "description": "Drug Discovery & Repurposing Workbench — Identify genetically validated targets, test scientific hypotheses with multi-evidence validation, screen approved drugs for repurposing, compute in-browser RDKit ADME profiles, run native molecular docking simulations, and orchestrate autonomous research agent pipelines.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

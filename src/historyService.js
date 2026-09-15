@@ -1,5 +1,5 @@
 /**
- * PocketLink Persistent Search History Service.
+ * TargetForge Persistent Search History Service.
  * Manages client-side persistence for searches, shortlists, and screenings in localStorage.
  * Capped at 50 entries to safeguard storage quotas (~5-10MB browser limit).
  */

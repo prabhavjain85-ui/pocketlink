@@ -138,7 +138,7 @@ export default function AdmePage() {
 - Cellular Safety (Carcinogenicity): ${b.carcinogenicity?.riskLevel || "Low"} Risk - ${b.carcinogenicity?.summaryExplanation || "No alerts"}\n`;
     }
 
-    const text = `PocketLink ADME Profile
+    const text = `TargetForge ADME Profile
 Compound: ${admeData.compoundName} (CID: ${admeData.cid || "N/A"})
 SMILES: ${admeData.canonicalSmiles}
 
@@ -1541,7 +1541,7 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
               Scientific Methodology &amp; Citations
             </div>
             <p style={{ margin: "0 0 10px", lineHeight: 1.5 }}>
-              PocketLink computes native ADME predictions entirely in your browser using RDKit compiled
+              TargetForge computes native ADME predictions entirely in your browser using RDKit compiled
               to WebAssembly. Algorithms adhere to published, peer-reviewed computational standards:
             </p>
             <ul style={{ margin: 0, paddingLeft: "18px", lineHeight: 1.6 }}>

@@ -1,7 +1,7 @@
 {
-  "name": "pocketlink",
+  "name": "targetforge",
   "version": "1.0.0",
-  "description": "Drug Discovery Staging Bench — Search PDB targets, shortlist PubChem compounds, rank the best AI follow-up",
+  "description": "TargetForge — Drug Discovery & Repurposing Workbench. Identify genetically validated targets, test scientific hypotheses with multi-evidence validation, screen approved drugs for repurposing, compute in-browser RDKit ADME profiles, run native molecular docking simulations, and orchestrate autonomous research agent pipelines.",
   "private": true,
   "dependencies": {
     "@google/genai": "^2.21.0",

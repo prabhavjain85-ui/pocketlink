@@ -150,7 +150,7 @@ export default function HistoryPage() {
   return (
     <>
       <div className="hero">
-        <div className="hero-eyebrow">PocketLink · persistent search history</div>
+        <div className="hero-eyebrow">TargetForge · persistent search history</div>
         <h1>Search &amp; Screening History</h1>
         <p>
           Review past target investigations, compound shortlists, AI rankings, and drug repurposing screens saved

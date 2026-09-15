@@ -352,10 +352,10 @@ export default function RepurposingPage() {
   return (
     <>
       <div className="hero">
-        <div className="hero-eyebrow">PocketLink · drug repurposing screen</div>
+        <div className="hero-eyebrow">TargetForge · drug repurposing screen</div>
         <h1>Drug Repurposing Screen</h1>
         <p>
-          Search a target, and PocketLink scores it against hundreds of already-approved drugs to surface unexpected
+          Search a target, and TargetForge scores it against hundreds of already-approved drugs to surface unexpected
           candidates. This page reuses the same target-aware scoring used on the 5-compound shortlist, but runs it across
           a bundled library of {librarySize} approved small molecules instead of a manual shortlist.
         </p>
@@ -394,7 +394,7 @@ export default function RepurposingPage() {
               Unable to score against this target with the language model ({result.aiError}).{" "}
               {result.degraded
                 ? "Insufficient structural data for a target-specific ranking."
-                : "PocketLink used its target-aware model instead."}
+                : "TargetForge used its target-aware model instead."}
             </div>
           )}
           {result?.degraded && !result.aiError && (
@@ -469,7 +469,7 @@ export default function RepurposingPage() {
                   ? "Ranked with OpenAI in 25-compound batches for this specific target"
                   : result.source === "cache" || result.fromDailyCache
                     ? "Reused cached scores for this (drug, PDB) pair"
-                    : "Ranked with PocketLink's target-aware model (batched locally to stay inside serverless limits)"}
+                    : "Ranked with TargetForge's target-aware model (batched locally to stay inside serverless limits)"}
               </div>
               <div className="lipinski-note">{SERVERLESS_TIMEOUT_NOTE}</div>
             </div>

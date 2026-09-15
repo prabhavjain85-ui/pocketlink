@@ -194,7 +194,7 @@ function mergeBatchLlmReasoning(heuristic, llm) {
     })),
     limitations: [
       ...(heuristic.limitations || []),
-      "Numeric scores come from PocketLink's target-aware model so every batch shares one scale. Language-model notes were attached as reasoning only — independent per-batch 0–100 LLM scores are not comparable across the library.",
+      "Numeric scores come from TargetForge's target-aware model so every batch shares one scale. Language-model notes were attached as reasoning only — independent per-batch 0–100 LLM scores are not comparable across the library.",
     ],
     source: "heuristic-v2",
     llmReasoning: Boolean(llm),
@@ -297,7 +297,7 @@ Scoring (integer 0–100) is a weighted combination of:
 
 You may use established pharmacological knowledge about compound classes and protein families. Do not invent docking scores, IC50 values, ADME results, residue contacts, or unpublished experimental evidence. Do not call a molecule a drug or clinically effective against this target.
 When a candidate includes pains alerts, those are deterministic RDKit substructure flags, not an LLM judgment. Mention them in reasoning. Do not invent alerts that are not in the supplied data.
-A PocketLink heuristic ranking is provided as a starting point — you may reorder if target fit and pharmacology justify it.
+A TargetForge heuristic ranking is provided as a starting point — you may reorder if target fit and pharmacology justify it.
 
 Return valid JSON only with this schema:
 {"target":{"name":string,"pdb_id":string},"candidates":[{"compound_id":string,"score":number,"reasoning":[string]}],"summary":string,"limitations":[string]}
@@ -401,13 +401,13 @@ async function handler(req, res) {
       heuristic.aiError = "The AI returned malformed or incomplete ranking data.";
       heuristic.limitations = [
         ...(heuristic.limitations || []),
-        "Language-model ranking returned malformed data, so PocketLink used its target-aware physicochemical model instead.",
+        "Language-model ranking returned malformed data, so TargetForge used its target-aware physicochemical model instead.",
       ];
     } catch (error) {
       heuristic.aiError = clean(error.message, 160) || "The AI ranking request failed.";
       heuristic.limitations = [
         ...(heuristic.limitations || []),
-        `Language-model ranking was unavailable (${heuristic.aiError}), so PocketLink used its target-aware physicochemical model instead.`,
+        `Language-model ranking was unavailable (${heuristic.aiError}), so TargetForge used its target-aware physicochemical model instead.`,
       ];
     }
 

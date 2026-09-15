@@ -360,7 +360,7 @@ export default function TargetDiscoveryPage() {
   return (
     <>
       <div className="hero">
-        <div className="hero-eyebrow">PocketLink \u00b7 target discovery</div>
+        <div className="hero-eyebrow">TargetForge · target discovery</div>
         <h1>Target Discovery</h1>
         <p>
           Find genetically-validated but underexplored protein targets for a disease — opportunities with strong
@@ -520,7 +520,7 @@ export default function TargetDiscoveryPage() {
               <a href="https://platform.opentargets.org" target="_blank" rel="noreferrer">
                 Open Targets Platform
               </a>
-              . Novelty is a PocketLink ranking, not Open Targets' own recency-based <span className="mono">novelty</span>{" "}
+              . Novelty is a TargetForge ranking, not Open Targets' own recency-based <span className="mono">novelty</span>{" "}
               field. A high novelty score is a hypothesis to follow up — not proof that a target is druggable.
             </div>
           </Panel>

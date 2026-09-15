@@ -1,12 +1,12 @@
-# PocketLink
+# TargetForge
 
-**PocketLink** is an end-to-end computational drug discovery and repurposing platform. It integrates genetic target identification, crystallographic structure selection, target-aware compound screening, in-browser ADME profiling, native molecular docking simulations, and an autonomous research agent into a unified workflow.
+**TargetForge** is an end-to-end computational drug discovery and repurposing platform. It integrates genetic target identification, crystallographic structure selection, target-aware compound screening, in-browser ADME profiling, native molecular docking simulations, and an autonomous research agent into a unified workflow.
 
 ---
 
 ## Application Navigation & Modules
 
-PocketLink is structured across nine dedicated routes:
+TargetForge is structured across nine dedicated routes:
 
 | Route | Module | Core Functionality |
 | --- | --- | --- |
@@ -39,7 +39,7 @@ Screens chemical structures against recognized pan-assay interference and reacti
 
 ### Station 3: Target-Aware Candidate Ranking (`heuristic-v2`)
 Scores 2–5 staged molecules specifically against the selected PDB target:
-- **Target-Aware Engine (`heuristic-v2`):** Rather than evaluating drug-likeness in isolation, PocketLink evaluates target context (protein name, gene symbol, family classification, co-crystal ligand functional groups, and binding pocket size/hydrophobicity).
+- **Target-Aware Engine (`heuristic-v2`):** Rather than evaluating drug-likeness in isolation, TargetForge evaluates target context (protein name, gene symbol, family classification, co-crystal ligand functional groups, and binding pocket size/hydrophobicity).
 - **Pharmacological Rule Table:** Specific rules match recognized target genes and families (e.g., EGFR, ABL1, BRAF, HER2, $\beta_2$-AR, COX-1/2, HMGCR, DPP4, HIV Protease, SARS-CoV-2 Mpro, PDE5, HDACs) into calibrated score bands:
   - **On-target canonical chemotypes:** $\sim 67$ base points
   - **Same-family chemotypes:** $\sim 24$ base points
@@ -143,7 +143,7 @@ The Autonomous Research Agent automates multi-stage hypothesis exploration from 
 
 ## Environment Variables
 
-PocketLink operates out-of-the-box with local deterministic models. Advanced AI reasoning and email delivery can be configured via environment variables:
+TargetForge operates out-of-the-box with local deterministic models. Advanced AI reasoning and email delivery can be configured via environment variables:
 
 | Variable | Required | Service | Description |
 | --- | --- | --- | --- |

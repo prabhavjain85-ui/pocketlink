@@ -56,7 +56,7 @@ async function readJson(response) {
 
 async function deliver({ name, email, message }) {
   const to = process.env.CONTACT_TO_EMAIL || DEFAULT_TO;
-  const subject = `PocketLink contact from ${name}`;
+  const subject = `TargetForge contact from ${name}`;
   const text = `Name: ${name}\nEmail: ${email}\n\n${message}`;
 
   if (process.env.CONTACT_DRY_RUN === "1") {
@@ -64,7 +64,7 @@ async function deliver({ name, email, message }) {
   }
 
   if (process.env.RESEND_API_KEY) {
-    const from = process.env.CONTACT_FROM_EMAIL || "PocketLink <onboarding@resend.dev>";
+    const from = process.env.CONTACT_FROM_EMAIL || "TargetForge <onboarding@resend.dev>";
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {

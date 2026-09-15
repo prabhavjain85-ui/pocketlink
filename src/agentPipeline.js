@@ -1,5 +1,5 @@
 /**
- * Autonomous Research Agent Orchestration Pipeline for PocketLink.
+ * Autonomous Research Agent Orchestration Pipeline for TargetForge.
  *
  * Automatically chains together:
  *   1. Target Discovery (Open Targets genetics & novelty scoring)
@@ -181,7 +181,7 @@ export function parseGoal(goal) {
 
   // Strip trailing boilerplate phrases
   text = text
-    .replace(/\s*(?:using\s+pocketlink|with\s+(?:the\s+)?agent|please|\.)+$/i, "")
+    .replace(/\s*(?:using\s+(?:pocketlink|targetforge)|with\s+(?:the\s+)?agent|please|\.)+$/i, "")
     .trim();
 
   // Alias lookup
@@ -884,7 +884,7 @@ export async function runResearchAgent({
             },
           ],
         },
-        source: "PocketLink Rule Engine (Fallback)",
+        source: "TargetForge Rule Engine (Fallback)",
       };
     }
 

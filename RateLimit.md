@@ -1,6 +1,6 @@
 # API Rate Limits & Best Practices
 
-This document outlines the rate limits and best practices for external APIs used by PocketLink.
+This document outlines the rate limits and best practices for external APIs used by TargetForge.
 
 ## RCSB PDB APIs
 

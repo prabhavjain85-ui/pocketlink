@@ -24,7 +24,7 @@ export default function StructuredParsingCard({ parsed, onChange, onConfirm, isE
           <span className="parsing-badge-tag">STRUCTURED TRANSLATION</span>
           <h3 className="parsing-title">Deconstructed Scientific Hypothesis</h3>
           <p className="parsing-subtitle">
-            PocketLink translated your natural language premise into a rigorous, testable pharmacological model.
+            TargetForge translated your natural language premise into a rigorous, testable pharmacological model.
           </p>
         </div>
         <div className="parsing-actions">

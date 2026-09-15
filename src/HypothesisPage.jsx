@@ -158,7 +158,7 @@ export default function HypothesisPage() {
         evaluation: evalData,
       });
 
-      // Save into PocketLink session history
+      // Save into TargetForge session history
       saveHistoryEntry({
         type: "hypothesis-eval",
         title: `${parsedHypothesis.target || "Target"} in ${parsedHypothesis.disease || "Disease"}`,
@@ -482,7 +482,7 @@ export default function HypothesisPage() {
                   <h3 className="score-classification-title">
                     {evaluation.decisionScore?.classification}
                   </h3>
-                  <span className="score-brand-label">PocketLink Evidence-Based Hypothesis Score</span>
+                  <span className="score-brand-label">TargetForge Evidence-Based Hypothesis Score</span>
                   <p className="score-disclaimer">
                     {evaluation.decisionScore?.note}
                   </p>
@@ -583,7 +583,7 @@ export default function HypothesisPage() {
 
               {/* Module Integration Shortcuts */}
               <div className="module-crosslink-card">
-                <span className="crosslink-title">Connect with PocketLink Modules:</span>
+                <span className="crosslink-title">Connect with TargetForge Modules:</span>
                 <div className="crosslink-buttons-row">
                   {parsedHypothesis.target && (
                     <Link
@@ -643,7 +643,7 @@ export default function HypothesisPage() {
             <div className="causality-principle-banner">
               <span className="principle-highlight">MANDATORY SCIENTIFIC PRINCIPLE:</span>
               <span className="principle-text">
-                CORRELATION ≠ CAUSATION. A target may be strongly elevated in disease tissue purely as an epiphenomenon or protective response. PocketLink explicitly differentiates "Target is associated with disease" from "Modulating the target therapeutically alters disease biology."
+                CORRELATION ≠ CAUSATION. A target may be strongly elevated in disease tissue purely as an epiphenomenon or protective response. TargetForge explicitly differentiates "Target is associated with disease" from "Modulating the target therapeutically alters disease biology."
               </span>
             </div>
 
@@ -848,7 +848,7 @@ export default function HypothesisPage() {
               <span className="section-step-badge">ALTERNATIVE EXPLANATIONS</span>
               <h3 className="competing-title">Competing Hypotheses &amp; Mechanistic Counter-Theories</h3>
               <p className="competing-subtitle">
-                To prevent confirmation bias, PocketLink generates and contrasts competing biological explanations for the observed phenotype.
+                To prevent confirmation bias, TargetForge generates and contrasts competing biological explanations for the observed phenotype.
               </p>
 
               <div className="competing-table-wrap">
@@ -941,7 +941,7 @@ export default function HypothesisPage() {
             <div className="export-modal-header">
               <div>
                 <span className="modal-badge">STANDARDIZED REPORT</span>
-                <h3 className="modal-title">PocketLink Scientific Hypothesis Report</h3>
+                <h3 className="modal-title">TargetForge Scientific Hypothesis Report</h3>
               </div>
               <button
                 type="button"

@@ -54,7 +54,7 @@ async function fetchWithRetry(url, maxRetries = 4, delayMs = 2000) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const res = await fetch(url, {
-        headers: { Accept: "application/json", "User-Agent": "PocketLink-DrugDiscovery/1.0" },
+        headers: { Accept: "application/json", "User-Agent": "TargetForge-DrugDiscovery/1.0" },
       });
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
@@ -172,7 +172,7 @@ function inferClass(mol, mechanisms = []) {
 }
 
 async function runPipeline() {
-  console.log("=== PocketLink ChEMBL Approved Drug Pipeline ===");
+  console.log("=== TargetForge ChEMBL Approved Drug Pipeline ===");
   const startTime = Date.now();
 
   // 1. Load existing curated dataset to ensure 100% backward compatibility
@@ -395,7 +395,7 @@ async function runPipeline() {
   finalDrugs.sort((a, b) => a.name.localeCompare(b.name));
 
   const outputData = {
-    source: "ChEMBL v34 (max_phase=4) + Curated PocketLink Approved Library",
+    source: "ChEMBL v34 (max_phase=4) + Curated TargetForge Approved Library",
     count: finalDrugs.length,
     generatedAt: new Date().toISOString(),
     qualityNotes: {

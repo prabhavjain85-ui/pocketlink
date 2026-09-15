@@ -144,7 +144,7 @@ async function fetchOpenTargets(diseaseName, targetSymbol) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "User-Agent": "PocketLink/1.0 (Drug Discovery Workbench)",
+        "User-Agent": "TargetForge/1.0 (Drug Discovery Workbench)",
       },
       body: JSON.stringify({
         query,
@@ -363,7 +363,7 @@ const CURATED_HYPOTHESIS_BENCHMARKS = {
           safety: 25,
           contradictoryPenalty: -26
         },
-        note: "PocketLink Evidence-Based Hypothesis Score (0–100). This is a computational triage and prioritization score, not a validated regulatory or clinical endpoint."
+        note: "TargetForge Evidence-Based Hypothesis Score (0–100). This is a computational triage and prioritization score, not a validated regulatory or clinical endpoint."
       },
       scientificVerdict: {
         verdict: "Current biological evidence demonstrates that while IKKβ drives pro-inflammatory cytokine expression in myeloid cells, it simultaneously serves an essential anti-apoptotic survival function in human intestinal epithelial cells. Systemic small-molecule inhibition has repeatedly failed in clinical development due to on-target mucosal breakdown and hepatotoxicity. The hypothesis should not be advanced as a systemic oral therapy.",
@@ -622,7 +622,7 @@ const CURATED_HYPOTHESIS_BENCHMARKS = {
           safety: 85,
           contradictoryPenalty: -29
         },
-        note: "PocketLink Evidence-Based Hypothesis Score (0–100). This is a computational triage and prioritization score, not a validated regulatory or clinical endpoint."
+        note: "TargetForge Evidence-Based Hypothesis Score (0–100). This is a computational triage and prioritization score, not a validated regulatory or clinical endpoint."
       },
       scientificVerdict: {
         verdict: "The hypothesis that standard antidiabetic doses of metformin provide broad antitumor efficacy is contradicted by definitive Phase 3 randomized controlled trials (such as CCTG MA.32) and compromised by severe pharmacokinetic exposure limits. While preclinical cell-line studies show potent inhibition at millimolar concentrations, these levels are unachievable in human solid tumors. General repurposing is not supported.",
@@ -881,7 +881,7 @@ const CURATED_HYPOTHESIS_BENCHMARKS = {
           safety: 65,
           contradictoryPenalty: -12
         },
-        note: "PocketLink Evidence-Based Hypothesis Score (0–100). This is a computational triage and prioritization score, not a validated regulatory or clinical endpoint."
+        note: "TargetForge Evidence-Based Hypothesis Score (0–100). This is a computational triage and prioritization score, not a validated regulatory or clinical endpoint."
       },
       scientificVerdict: {
         verdict: "The hypothesis that TNF inhibition reduces inflammatory activity in rheumatoid arthritis is one of the most thoroughly validated mechanisms in the history of targeted therapeutics. Extensive human genetics, definitive randomized trials, and decades of post-marketing real-world data confirm its causal therapeutic role. Limitations center on patient non-response (30–40%) and infection risk rather than biological validity.",
@@ -1507,7 +1507,7 @@ Return strictly valid JSON only matching this exact schema:
         safety: 50,
         contradictoryPenalty: -15
       },
-      note: "PocketLink Evidence-Based Hypothesis Score (0–100). This is a computational triage and prioritization score, not a validated regulatory or clinical endpoint."
+      note: "TargetForge Evidence-Based Hypothesis Score (0–100). This is a computational triage and prioritization score, not a validated regulatory or clinical endpoint."
     },
     scientificVerdict: {
       verdict: `Current evidence indicates biological plausibility for targeting ${parsed.target} in ${parsed.disease}, but robust human causal validation and pharmacologically achievable exposure profiles remain unverified. The hypothesis warrants exploratory laboratory investigation but should not be advanced into translational clinical development without target engagement proof.`,

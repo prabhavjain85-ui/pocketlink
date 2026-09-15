@@ -21,14 +21,14 @@ export default function Header() {
 
   return (
     <header className="site-header" id="main-navigation">
-      <NavLink to="/" className="site-brand" end title="PocketLink Drug Discovery Bench">
+      <NavLink to="/" className="site-brand" end title="TargetForge Drug Discovery Bench">
         <div className="brand-badge-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
           </svg>
         </div>
         <div className="brand-text-wrap">
-          <span className="site-brand-name">PocketLink</span>
+          <span className="site-brand-name">TargetForge</span>
           <span className="site-brand-tag">Drug Discovery Bench</span>
         </div>
       </NavLink>

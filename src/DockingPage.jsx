@@ -175,7 +175,7 @@ export default function DockingPage() {
 
   const handleCopyReport = () => {
     if (!dockingResults || !activePose) return;
-    const rep = `PocketLink Native Molecular Docking Report
+    const rep = `TargetForge Native Molecular Docking Report
 Target: ${targetTitle} (PDB: ${pdbIdInput})
 Ligand: ${compoundNameInput} (SMILES: ${smilesInput})
 
@@ -199,7 +199,7 @@ ${activePose.residueBreakdown
   .map((r) => `• ${r.resName}-${r.resSeq} (${r.minDistance} Å): ${r.energy} kcal/mol [HB: ${r.hbonds}]`)
   .join("\n")}
 
-Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) via PocketLink In-Browser Engine.`;
+Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) via TargetForge In-Browser Engine.`;
 
     if (navigator?.clipboard?.writeText) {
       navigator.clipboard.writeText(rep).then(() => {
@@ -1105,7 +1105,7 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
               Scientific Methodology &amp; Mathematical Force Field
             </div>
             <p style={{ margin: "0 0 8px", lineHeight: 1.5 }}>
-              PocketLink&apos;s native docking engine computes empirical binding free energies (ΔG)
+              TargetForge&apos;s native docking engine computes empirical binding free energies (ΔG)
               using an open empirical potential parameterized on crystallographic complexes:
             </p>
             <ul style={{ margin: 0, paddingLeft: "18px", lineHeight: 1.6 }}>

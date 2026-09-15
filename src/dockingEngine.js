@@ -1,7 +1,7 @@
 import { getRDKit } from "./rdkitLoader";
 
 /**
- * PocketLink Native Molecular Docking Engine
+ * TargetForge Native Molecular Docking Engine
  * 
  * Performs grid-based empirical binding affinity prediction, conformational
  * pose search, and protein-ligand contact analysis using established

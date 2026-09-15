@@ -49,7 +49,7 @@ export default function MethodologyPage() {
         <div className="methodology-meta-tag">Scientific Methodology &amp; Validation Transparency</div>
         <h1 className="methodology-title">Evaluation Criteria, Computational Heuristics &amp; Operational Boundaries</h1>
         <p className="methodology-lead">
-          PocketLink is an early-stage computational workbench designed to accelerate hit triage, structural evaluation,
+          TargetForge is an early-stage computational workbench designed to accelerate hit triage, structural evaluation,
           and hypothesis generation. This document details our scoring criteria, cheminformatics rules, algorithmic design
           choices, and honest methodological boundaries.
         </p>
@@ -153,7 +153,7 @@ export default function MethodologyPage() {
             <h2 className="section-title">PDB Target Selection Score</h2>
             <p className="section-text">
               To conduct reliable structure-based screening, researchers must select a high-fidelity representative model
-              from the Protein Data Bank (PDB). Not all PDB files are equally suited for virtual screening. PocketLink scores
+              from the Protein Data Bank (PDB). Not all PDB files are equally suited for virtual screening. TargetForge scores
               candidate crystal and cryo-EM structures on a normalized scale (0–100) based on five core structural criteria:
             </p>
 
@@ -263,7 +263,7 @@ export default function MethodologyPage() {
             </ul>
 
             <p className="section-text">
-              PocketLink runs candidate SMILES structures against algorithmic substructure pattern matching based on established
+              TargetForge runs candidate SMILES structures against algorithmic substructure pattern matching based on established
               rules (including Baell &amp; Holloway filters) to flag liabilities early in the triage pipeline.
             </p>
 
@@ -292,7 +292,7 @@ export default function MethodologyPage() {
             <p className="section-text">
               Conventional virtual screening tools often evaluate compounds solely through generic drug-likeness rules (such as Lipinski&apos;s
               Rule of Five). However, a molecule can be exceptionally &quot;drug-like&quot; in the abstract while having zero pharmacological
-              relevance to the specific target pocket. PocketLink&apos;s scoring engine (identified programmatically by <code>source: &quot;heuristic-v2&quot;</code>)
+              relevance to the specific target pocket. TargetForge&apos;s scoring engine (identified programmatically by <code>source: &quot;heuristic-v2&quot;</code>)
               combines two distinct components:
             </p>
 
@@ -402,7 +402,7 @@ export default function MethodologyPage() {
                 <strong style={{ color: "var(--primary)", display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
                   Anti-Hype Reporting Policy
                 </strong>
-                PocketLink strictly forbids synthetic promotional language. Targets with low novelty scores (e.g. 0.1/100) are explicitly labeled
+                TargetForge strictly forbids synthetic promotional language. Targets with low novelty scores (e.g. 0.1/100) are explicitly labeled
                 as low novelty, never &quot;high&quot;. Targets with multiple approved drugs are accurately identified as clinically saturated,
                 never &quot;underexplored&quot;.
               </div>
@@ -445,7 +445,7 @@ export default function MethodologyPage() {
               clinical safety records, and existing chemical manufacturing.
             </p>
             <p className="section-text">
-              PocketLink evaluates approved small molecules against a selected PDB structure. Reliable scoring requires comprehensive
+              TargetForge evaluates approved small molecules against a selected PDB structure. Reliable scoring requires comprehensive
               protein context: <strong>target gene symbol</strong>, <strong>protein name</strong>, <strong>PDB ID</strong>, and <strong>co-crystallized ligand name</strong>.
               Evaluating compounds within a broad, generic &quot;kinase&quot; or &quot;GPCR&quot; family context collapses distinct targets together
               and destroys target selectivity. The <code>heuristic-v2</code> engine uses granular gene-level rules to prevent this collapse.
@@ -574,7 +574,7 @@ export default function MethodologyPage() {
             <h2 className="section-title">ADME &amp; Pharmacokinetic Profiling</h2>
             <p className="section-text">
               Early attrition in drug discovery is predominantly driven by poor absorption, distribution, metabolism, and safety liabilities.
-              PocketLink includes an in-browser ADME engine powered by native <strong>RDKit WebAssembly</strong>, allowing researchers to evaluate
+              TargetForge includes an in-browser ADME engine powered by native <strong>RDKit WebAssembly</strong>, allowing researchers to evaluate
               physicochemical properties and predictive pharmacokinetic filters directly on client hardware with zero server data transmission.
             </p>
 
@@ -640,7 +640,7 @@ export default function MethodologyPage() {
                 </li>
                 <li>
                   <strong>Cytochrome P450 (CYP):</strong> CYP isoform inhibition (CYP1A2, 2C9, 2C19, 2D6, 3A4) and metabolic stability are
-                  <strong> not modeled</strong>. PocketLink reports <em>&quot;CYP: not modeled&quot;</em> rather than producing unverified guesses.
+                  <strong> not modeled</strong>. TargetForge reports <em>&quot;CYP: not modeled&quot;</em> rather than producing unverified guesses.
                 </li>
                 <li>
                   <strong>Structural Alerts vs. Clinical Tox:</strong> SMARTS structural alert matches are heuristic flags pointing to potential
@@ -764,12 +764,12 @@ export default function MethodologyPage() {
               </div>
               <div className="disclaimer-content">
                 <p>
-                  <strong>Hypothesis Generator Only:</strong> PocketLink is strictly an early-stage computational hypothesis generator and hit
+                  <strong>Hypothesis Generator Only:</strong> TargetForge is strictly an early-stage computational hypothesis generator and hit
                   triage research tool developed for exploratory, academic, and pre-screening workflows.
                 </p>
                 <p>
                   <strong>No Prescribing or Medical Advice:</strong> The scores, alerts, rankings, and structural assessments generated by this
-                  platform do not constitute medical, pharmacological, or clinical advice. PocketLink must not be used to prescribe treatments,
+                  platform do not constitute medical, pharmacological, or clinical advice. TargetForge must not be used to prescribe treatments,
                   guide clinical patient care, diagnose medical conditions, or inform off-label drug administration.
                 </p>
                 <p>
@@ -777,7 +777,7 @@ export default function MethodologyPage() {
                   of binding (ΔG), equilibrium dissociation constants (Kd), or experimental inhibition potency (IC50).
                 </p>
                 <p>
-                  All computational hypotheses prioritized by PocketLink require formal experimental confirmation, including biophysical binding assays
+                  All computational hypotheses prioritized by TargetForge require formal experimental confirmation, including biophysical binding assays
                   (SPR, ITC), in vitro enzymatic inhibition, cellular target engagement, and rigorous GLP ADMET evaluation conducted by qualified
                   scientific professionals.
                 </p>

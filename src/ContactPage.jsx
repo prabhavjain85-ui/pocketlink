@@ -96,7 +96,7 @@ export default function ContactPage() {
   return (
     <>
       <div className="hero">
-        <div className="hero-eyebrow">PocketLink · get in touch</div>
+        <div className="hero-eyebrow">TargetForge · get in touch</div>
         <h1>Contact us</h1>
         <p>
           Questions about the staging bench, collaborations, or feedback on a workflow —

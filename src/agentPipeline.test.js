@@ -26,7 +26,7 @@ describe("agentPipeline", () => {
       ).toBe("colorectal cancer");
 
       expect(
-        extractDiseaseQuery("Find targets for Alzheimer disease using pocketlink")
+        extractDiseaseQuery("Find targets for Alzheimer disease using targetforge")
       ).toBe("Alzheimer disease");
 
       expect(

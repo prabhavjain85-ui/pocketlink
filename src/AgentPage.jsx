@@ -172,7 +172,7 @@ export default function AgentPage() {
   const handleCopyReport = () => {
     if (!exec) return;
     const text = [
-      "PocketLink Autonomous Research Agent Report",
+      "TargetForge Autonomous Research Agent Report",
       `Objective: ${report?.goal || goalInput}`,
       `Disease: ${exec.disease} (${exec.diseaseId || report?.diseaseResolved?.id || "N/A"})`,
       `Target: ${exec.targetSymbol} — ${exec.targetOneLineWhy || "Validated disease association"}`,
@@ -213,11 +213,11 @@ export default function AgentPage() {
       {/* Hero Section */}
       <div className="hero">
         <div className="hero-eyebrow">
-          PocketLink · Autonomous Research Agent
+          TargetForge · Autonomous Research Agent
         </div>
         <h1>Autonomous Research Agent</h1>
         <p className="hero-subtitle">
-          Runs PocketLink’s Target Discovery, PDB pick, approved-drug ranking, and a critique in order. Computational only.
+          Runs TargetForge’s Target Discovery, PDB pick, approved-drug ranking, and a critique in order. Computational only.
         </p>
       </div>
 
@@ -997,7 +997,7 @@ export default function AgentPage() {
 
                     <ul className="adversarial-point-list">
                       <li className="adversarial-point-item">
-                        <strong>Target-Aware Pocket Fit:</strong> Scored {step4.data.candidate.score}/100 using PocketLink’s heuristic-v2 ranker accounting for pocket residues, ligand coordinates, and catalytic site constraints.
+                        <strong>Target-Aware Pocket Fit:</strong> Scored {step4.data.candidate.score}/100 using TargetForge’s heuristic-v2 ranker accounting for pocket residues, ligand coordinates, and catalytic site constraints.
                       </li>
                       <li className="adversarial-point-item">
                         <strong>Pharmacophore Rationale:</strong> {Array.isArray(step4.data.candidate.reasoning) ? step4.data.candidate.reasoning.slice(0, 2).join("; ") : "Favorable geometric and electrostatic complementarity."}
@@ -1040,7 +1040,7 @@ export default function AgentPage() {
                         <strong>Transporter &amp; First-Pass Clearance:</strong> Subject to hepatic CYP metabolism and P-gp/BCRP transporter efflux, which in silico heuristic scoring cannot rule out.
                       </li>
                       <li className="adversarial-point-item">
-                        <strong>Heuristic-Not-Docking Limitation:</strong> PocketLink uses 2D pharmacophores and geometric heuristics, not all-atom MD or free-energy binding simulation (ΔG).
+                        <strong>Heuristic-Not-Docking Limitation:</strong> TargetForge uses 2D pharmacophores and geometric heuristics, not all-atom MD or free-energy binding simulation (ΔG).
                       </li>
 
                       {/* Itemized concerns from API or Fallback */}
