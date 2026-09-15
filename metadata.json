@@ -1,6 +1,6 @@
 {
   "name": "Target Forge",
-  "description": "Target Forge is an AI-powered drug discovery platform for drug repurposing, target identification, molecular docking, ADME analysis, and automated research.",
+  "description": "AI-powered drug discovery for drug repurposing, target identification, molecular docking, ADME analysis, and automated research.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
