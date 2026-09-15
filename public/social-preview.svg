@@ -1,0 +1,270 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <!-- Background Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070b14" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#131e36" />
+    </linearGradient>
+    <radialGradient id="glowCyan" cx="80%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.22" />
+      <stop offset="60%" stop-color="#0ea5e9" stop-opacity="0.04" />
+      <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="glowEmerald" cx="20%" cy="30%" r="45%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.20" />
+      <stop offset="60%" stop-color="#10b981" stop-opacity="0.03" />
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="cardCenterGlow" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Accent Gradient for branding -->
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="50%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#6366f1" />
+    </linearGradient>
+
+    <!-- Subtle Grid Pattern -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="1" stroke-opacity="0.45" />
+    </pattern>
+
+    <!-- Target Icon Gradients -->
+    <linearGradient id="iconBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="iconAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#0ea5e9" />
+    </linearGradient>
+
+    <!-- Filter for soft glow -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- 1. Background Layers -->
+  <rect width="1200" height="630" fill="url(#bgGrad)" />
+  <rect width="1200" height="630" fill="url(#grid)" />
+  <rect width="1200" height="630" fill="url(#glowEmerald)" />
+  <rect width="1200" height="630" fill="url(#glowCyan)" />
+  <rect width="1200" height="630" fill="url(#cardCenterGlow)" />
+
+  <!-- Outer Card Precision Border -->
+  <rect x="20" y="20" width="1160" height="590" rx="16" fill="none" stroke="#334155" stroke-width="1.5" stroke-opacity="0.6" />
+  <rect x="28" y="28" width="1144" height="574" rx="12" fill="none" stroke="#1e293b" stroke-width="1" stroke-opacity="0.4" />
+
+  <!-- Corner Crosshair Marks -->
+  <g stroke="#38bdf8" stroke-width="1.5" stroke-opacity="0.4" stroke-linecap="round">
+    <line x1="20" y1="40" x2="40" y2="40" />
+    <line x1="40" y1="20" x2="40" y2="40" />
+    <line x1="1160" y1="40" x2="1180" y2="40" />
+    <line x1="1160" y1="20" x2="1160" y2="40" />
+    <line x1="20" y1="590" x2="40" y2="590" />
+    <line x1="40" y1="590" x2="40" y2="610" />
+    <line x1="1160" y1="590" x2="1180" y2="590" />
+    <line x1="1160" y1="570" x2="1160" y2="590" />
+  </g>
+
+  <!-- 2. RIGHT SIDE: Molecular & Target Docking Graphic -->
+  <g transform="translate(680, 50)">
+    <!-- Decorative Target Pocket Geometry -->
+    <circle cx="270" cy="240" r="190" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-opacity="0.15" stroke-dasharray="6 8" />
+    <circle cx="270" cy="240" r="130" fill="none" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.25" stroke-dasharray="4 6" />
+    <circle cx="270" cy="240" r="70" fill="none" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.3" />
+
+    <!-- Crosshair axes through pocket -->
+    <line x1="60" y1="240" x2="480" y2="240" stroke="#0ea5e9" stroke-width="1" stroke-opacity="0.15" stroke-dasharray="4 4" />
+    <line x1="270" y1="30" x2="270" y2="450" stroke="#0ea5e9" stroke-width="1" stroke-opacity="0.15" stroke-dasharray="4 4" />
+
+    <!-- Molecular Ligand Bonds & Atoms (Stylized Benzene + Heterocycle Drug Scaffold) -->
+    <!-- Bonds -->
+    <g stroke="#64748b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.75">
+      <!-- Ring 1 (Benzene / Core Scaffold) -->
+      <line x1="190" y1="180" x2="250" y2="145" />
+      <line x1="250" y1="145" x2="310" y2="180" stroke="#38bdf8" stroke-width="4" stroke-opacity="0.9" />
+      <line x1="310" y1="180" x2="310" y2="250" />
+      <line x1="310" y1="250" x2="250" y2="285" stroke="#10b981" stroke-width="4" stroke-opacity="0.9" />
+      <line x1="250" y1="285" x2="190" y2="250" />
+      <line x1="190" y1="250" x2="190" y2="180" stroke="#38bdf8" stroke-width="4" stroke-opacity="0.9" />
+      <!-- Inner aromatic circle -->
+      <circle cx="250" cy="215" r="32" fill="none" stroke="#38bdf8" stroke-width="2" stroke-opacity="0.4" stroke-dasharray="5 4" />
+
+      <!-- Ring 2 (Pyridine / Docked Pharmacophore) -->
+      <line x1="310" y1="180" x2="370" y2="145" stroke="#10b981" stroke-width="4" stroke-opacity="0.9" />
+      <line x1="370" y1="145" x2="430" y2="180" />
+      <line x1="430" y1="180" x2="430" y2="250" stroke="#38bdf8" stroke-width="4" stroke-opacity="0.9" />
+      <line x1="430" y1="250" x2="370" y2="285" />
+      <line x1="370" y1="285" x2="310" y2="250" />
+
+      <!-- Functional Substituents & Hydrogen Bonds -->
+      <line x1="190" y1="180" x2="130" y2="145" stroke="#ef4444" stroke-width="3.5" />
+      <line x1="130" y1="145" x2="90" y2="165" />
+      <line x1="190" y1="250" x2="145" y2="295" stroke="#0ea5e9" stroke-width="3.5" />
+      <line x1="250" y1="285" x2="250" y2="350" stroke="#10b981" stroke-width="3.5" />
+      <line x1="250" y1="350" x2="305" y2="385" />
+      <line x1="370" y1="145" x2="370" y2="85" stroke="#0ea5e9" stroke-width="3.5" />
+      <line x1="430" y1="180" x2="485" y2="150" stroke="#10b981" stroke-width="3.5" />
+      <line x1="430" y1="250" x2="490" y2="285" stroke="#8b5cf6" stroke-width="3.5" />
+    </g>
+
+    <!-- Hydrogen bonding / Binding interaction dashed lines -->
+    <g stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 4" stroke-opacity="0.8">
+      <line x1="370" y1="85" x2="370" y2="35" />
+      <line x1="485" y1="150" x2="525" y2="120" />
+      <line x1="250" y1="350" x2="210" y2="400" />
+      <line x1="130" y1="145" x2="90" y2="105" />
+    </g>
+
+    <!-- Pocket Receptor Interaction Residue Nodes (PDB Target Active Site) -->
+    <g>
+      <circle cx="370" cy="30" r="14" fill="#0f172a" stroke="#0ea5e9" stroke-width="2" />
+      <text x="370" y="34" font-family="'IBM Plex Mono', monospace" font-size="10" font-weight="700" fill="#38bdf8" text-anchor="middle">ASP831</text>
+
+      <circle cx="530" cy="115" r="14" fill="#0f172a" stroke="#10b981" stroke-width="2" />
+      <text x="530" y="119" font-family="'IBM Plex Mono', monospace" font-size="10" font-weight="700" fill="#34d399" text-anchor="middle">MET793</text>
+
+      <circle cx="205" cy="405" r="14" fill="#0f172a" stroke="#6366f1" stroke-width="2" />
+      <text x="205" y="409" font-family="'IBM Plex Mono', monospace" font-size="10" font-weight="700" fill="#818cf8" text-anchor="middle">LYS745</text>
+    </g>
+
+    <!-- Atoms / Nodes -->
+    <!-- Carbon / Bridge nodes -->
+    <circle cx="190" cy="180" r="7" fill="#38bdf8" />
+    <circle cx="250" cy="145" r="7" fill="#f8fafc" />
+    <circle cx="310" cy="180" r="7" fill="#10b981" />
+    <circle cx="310" cy="250" r="7" fill="#f8fafc" />
+    <circle cx="250" cy="285" r="7" fill="#38bdf8" />
+    <circle cx="190" cy="250" r="7" fill="#f8fafc" />
+    <circle cx="370" cy="145" r="8" fill="#10b981" />
+    <circle cx="430" cy="180" r="7" fill="#f8fafc" />
+    <circle cx="430" cy="250" r="8" fill="#0ea5e9" />
+    <circle cx="370" cy="285" r="7" fill="#f8fafc" />
+
+    <!-- Heteroatoms with labels -->
+    <!-- Oxygen (Red/Coral) -->
+    <circle cx="130" cy="145" r="13" fill="#ef4444" />
+    <text x="130" y="150" font-family="'IBM Plex Sans', sans-serif" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">O</text>
+
+    <!-- Nitrogen (Blue) -->
+    <circle cx="370" cy="85" r="13" fill="#0284c7" />
+    <text x="370" y="190" font-family="'IBM Plex Sans', sans-serif" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">N</text>
+
+    <!-- Nitrogen (Cyan) -->
+    <circle cx="485" cy="150" r="13" fill="#0ea5e9" />
+    <text x="485" y="155" font-family="'IBM Plex Sans', sans-serif" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">NH</text>
+
+    <!-- Sulfur / Chlorine / Fluorine -->
+    <circle cx="250" cy="350" r="13" fill="#10b981" />
+    <text x="250" y="355" font-family="'IBM Plex Sans', sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">S</text>
+
+    <circle cx="490" cy="285" r="12" fill="#8b5cf6" />
+    <text x="490" y="289" font-family="'IBM Plex Sans', sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">Cl</text>
+
+    <!-- Docking Energy Badge -->
+    <g transform="translate(300, 390)">
+      <rect x="0" y="0" width="180" height="42" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1.5" />
+      <circle cx="20" cy="21" r="5" fill="#10b981" />
+      <text x="35" y="26" font-family="'IBM Plex Mono', monospace" font-size="13" font-weight="600" fill="#34d399">ΔG = -9.4 kcal/mol</text>
+    </g>
+  </g>
+
+  <!-- 3. LEFT SIDE: Identity, Branding, Typography & Capabilities -->
+  <g transform="translate(80, 80)">
+
+    <!-- Top Badge Pill -->
+    <g transform="translate(0, 0)">
+      <rect x="0" y="0" width="280" height="34" rx="17" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <circle cx="16" cy="17" r="5" fill="#10b981" />
+      <text x="30" y="22" font-family="'IBM Plex Sans', sans-serif" font-size="12" font-weight="600" fill="#94a3b8" letter-spacing="1.2">DRUG DISCOVERY &amp; REPURPOSING</text>
+    </g>
+
+    <!-- Brand Logo Icon + Name Lockup -->
+    <g transform="translate(0, 60)">
+      <!-- TargetForge Icon Symbol -->
+      <g transform="translate(0, 4)">
+        <rect width="64" height="64" rx="16" fill="url(#iconBg)" stroke="#334155" stroke-width="1.5" />
+        <circle cx="32" cy="32" r="21" fill="none" stroke="url(#iconAccent)" stroke-width="2.5" stroke-dasharray="3 3" opacity="0.8" />
+        <circle cx="32" cy="32" r="14" fill="none" stroke="#ffffff" stroke-width="2.2" />
+        <line x1="32" y1="5" x2="32" y2="14" stroke="url(#iconAccent)" stroke-width="2.5" stroke-linecap="round" />
+        <line x1="32" y1="50" x2="32" y2="59" stroke="url(#iconAccent)" stroke-width="2.5" stroke-linecap="round" />
+        <line x1="5" y1="32" x2="14" y2="32" stroke="url(#iconAccent)" stroke-width="2.5" stroke-linecap="round" />
+        <line x1="50" y1="32" x2="59" y2="32" stroke="url(#iconAccent)" stroke-width="2.5" stroke-linecap="round" />
+        <circle cx="32" cy="32" r="5.5" fill="url(#iconAccent)" />
+      </g>
+
+      <!-- Brand Name -->
+      <text x="84" y="52" font-family="'Inter', -apple-system, BlinkMacSystemFont, sans-serif" font-size="54" font-weight="800" fill="#ffffff" letter-spacing="-0.8">
+        Target Forge
+      </text>
+    </g>
+
+    <!-- Main Platform Headline -->
+    <g transform="translate(0, 160)">
+      <text x="0" y="32" font-family="'Inter', -apple-system, BlinkMacSystemFont, sans-serif" font-size="34" font-weight="700" fill="#38bdf8" letter-spacing="-0.4">
+        AI-Powered Drug Discovery Platform
+      </text>
+    </g>
+
+    <!-- Professional Descriptive Paragraph -->
+    <g transform="translate(0, 222)">
+      <text x="0" y="0" font-family="'Inter', -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="400" fill="#cbd5e1">
+        <tspan x="0" dy="0">AI-powered drug discovery platform for drug repurposing,</tspan>
+        <tspan x="0" dy="28">target identification, molecular docking, ADME analysis,</tspan>
+        <tspan x="0" dy="28">and automated research.</tspan>
+      </text>
+    </g>
+
+    <!-- 5 Capability Badges / Pillars -->
+    <g transform="translate(0, 340)">
+      <!-- Badge 1: Target Discovery -->
+      <g transform="translate(0, 0)">
+        <rect width="168" height="36" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+        <circle cx="16" cy="18" r="4" fill="#0ea5e9" />
+        <text x="28" y="23" font-family="'IBM Plex Sans', sans-serif" font-size="13" font-weight="600" fill="#e2e8f0">Target Validation</text>
+      </g>
+
+      <!-- Badge 2: Drug Repurposing -->
+      <g transform="translate(180, 0)">
+        <rect width="176" height="36" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+        <circle cx="16" cy="18" r="4" fill="#10b981" />
+        <text x="28" y="23" font-family="'IBM Plex Sans', sans-serif" font-size="13" font-weight="600" fill="#e2e8f0">Drug Repurposing</text>
+      </g>
+
+      <!-- Badge 3: Molecular Docking -->
+      <g transform="translate(368, 0)">
+        <rect width="174" height="36" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+        <circle cx="16" cy="18" r="4" fill="#6366f1" />
+        <text x="28" y="23" font-family="'IBM Plex Sans', sans-serif" font-size="13" font-weight="600" fill="#e2e8f0">Molecular Docking</text>
+      </g>
+
+      <!-- Second row of badges -->
+      <!-- Badge 4: RDKit ADME -->
+      <g transform="translate(0, 48)">
+        <rect width="168" height="36" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+        <circle cx="16" cy="18" r="4" fill="#f59e0b" />
+        <text x="28" y="23" font-family="'IBM Plex Sans', sans-serif" font-size="13" font-weight="600" fill="#e2e8f0">ADME Profiling</text>
+      </g>
+
+      <!-- Badge 5: Autonomous Agent -->
+      <g transform="translate(180, 48)">
+        <rect width="176" height="36" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+        <circle cx="16" cy="18" r="4" fill="#ec4899" />
+        <text x="28" y="23" font-family="'IBM Plex Sans', sans-serif" font-size="13" font-weight="600" fill="#e2e8f0">Autonomous Agent</text>
+      </g>
+
+      <!-- Domain Indicator -->
+      <g transform="translate(368, 48)">
+        <rect width="174" height="36" rx="8" fill="#0f172a" stroke="#0ea5e9" stroke-width="1" stroke-dasharray="3 3" />
+        <text x="87" y="23" font-family="'IBM Plex Mono', monospace" font-size="12" font-weight="600" fill="#38bdf8" text-anchor="middle">targetforge.in</text>
+      </g>
+    </g>
+  </g>
+</svg>

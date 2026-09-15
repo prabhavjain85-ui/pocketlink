@@ -1,6 +1,6 @@
 {
-  "name": "TargetForge",
-  "description": "Drug Discovery & Repurposing Workbench — Identify genetically validated targets, test scientific hypotheses with multi-evidence validation, screen approved drugs for repurposing, compute in-browser RDKit ADME profiles, run native molecular docking simulations, and orchestrate autonomous research agent pipelines.",
+  "name": "Target Forge",
+  "description": "Target Forge is an AI-powered drug discovery platform for drug repurposing, target identification, molecular docking, ADME analysis, and automated research.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
