@@ -76,4 +76,157 @@ export function getSeoForPath(pathname) {
   };
 }
 
-export { SITE_URL, SITE_NAME, DEFAULT_TITLE, DEFAULT_DESCRIPTION };
+/** Indexable routes that receive build-time static HTML shells (excludes /history). */
+export const INDEXABLE_ROUTES = [
+  "/",
+  "/target-discovery",
+  "/hypothesis",
+  "/repurposing",
+  "/adme",
+  "/docking",
+  "/agent",
+  "/methodology",
+  "/contact",
+];
+
+const WORKFLOW_LINKS = [
+  { path: "/target-discovery", label: "Target identification" },
+  { path: "/repurposing", label: "Drug repurposing" },
+  { path: "/docking", label: "Molecular docking" },
+  { path: "/adme", label: "ADME analysis" },
+  { path: "/hypothesis", label: "Hypothesis testing" },
+  { path: "/agent", label: "Research agent" },
+  { path: "/methodology", label: "Methodology" },
+  { path: "/contact", label: "Contact" },
+];
+
+/**
+ * Semantic HTML placed inside #root before React hydration.
+ * Consumed by scripts/inject-seo-html.mjs at build time.
+ */
+export const STATIC_ROUTE_CONTENT = {
+  "/": {
+    eyebrow: "TargetForge · computational drug discovery",
+    h1: "AI-Powered Drug Discovery & Target Identification",
+    intro:
+      "TargetForge is a computational workbench that supports researchers with target identification, drug repurposing screens, molecular docking, ADME analysis, and scientific hypothesis testing. Outputs help prioritize candidates for follow-up — they are triage aids, not evidence of clinical efficacy.",
+    sections: [
+      {
+        h2: "Drug discovery",
+        text:
+          "Stage a protein target, shortlist molecules from PubChem, compare drug-likeness and PAINS flags, and generate a transparent AI recommendation before running native molecular docking and ADME prediction.",
+        path: "/",
+        linkLabel: "Open the discovery staging bench",
+      },
+      {
+        h2: "Drug repurposing",
+        text:
+          "Screen approved drugs against a protein target to surface repurposing candidates with target-aware scoring across a curated library of marketed small molecules.",
+        path: "/repurposing",
+        linkLabel: "Run a drug repurposing screen",
+      },
+      {
+        h2: "Target identification",
+        text:
+          "Find genetically validated but underexplored protein targets for a disease using Open Targets evidence. Helps researchers prioritize candidates for follow-up screening.",
+        path: "/target-discovery",
+        linkLabel: "Explore target identification",
+      },
+      {
+        h2: "Molecular docking",
+        text:
+          "Compute binding free energy estimates, inhibition constants, and inspect 3D poses in crystallographic binding pockets — simulated in-browser for structure-based prioritization.",
+        path: "/docking",
+        linkLabel: "Run molecular docking",
+      },
+      {
+        h2: "ADME analysis",
+        text:
+          "Calculate physicochemical properties, rule-based druglikeness filters (Lipinski, Veber, Ghose), and BOILED-Egg absorption models locally with RDKit for lead optimization triage.",
+        path: "/adme",
+        linkLabel: "Analyze ADME properties",
+      },
+      {
+        h2: "Scientific hypothesis testing",
+        text:
+          "Critically interrogate drug discovery and biology hypotheses with evidence mapping, falsification checks, and structured scientific critique.",
+        path: "/hypothesis",
+        linkLabel: "Test a scientific hypothesis",
+      },
+      {
+        h2: "Automated scientific research",
+        text:
+          "Run TargetForge workflows in sequence — target discovery, PDB selection, approved-drug ranking, and adversarial critique — for automated research triage.",
+        path: "/agent",
+        linkLabel: "Launch the research agent",
+      },
+    ],
+    footerLinks: [
+      { path: "/methodology", label: "Methodology & validation transparency" },
+      { path: "/contact", label: "Contact TargetForge" },
+    ],
+    includeHomeJsonLd: true,
+  },
+  "/target-discovery": {
+    eyebrow: "TargetForge · target discovery",
+    h1: "Target Discovery",
+    intro:
+      "Find genetically validated but underexplored protein targets for a disease — opportunities with strong biological evidence and little to no existing drug coverage. TargetForge supports target identification by ranking Open Targets associations; it does not replace experimental target validation.",
+    breadcrumbLabel: "Target identification",
+  },
+  "/hypothesis": {
+    eyebrow: "TargetForge · hypothesis testing",
+    h1: "Scientific Hypothesis Evaluator",
+    intro:
+      "Critically interrogate scientific and drug discovery hypotheses against empirical evidence. Supports computational hypothesis testing by evaluating biological plausibility, genetics, model systems, and counter-evidence — not a substitute for experimental or clinical validation.",
+    breadcrumbLabel: "Hypothesis testing",
+  },
+  "/repurposing": {
+    eyebrow: "TargetForge · drug repurposing screen",
+    h1: "Drug Repurposing Screen",
+    intro:
+      "Search a target and screen approved drugs for repurposing candidates. TargetForge scores each compound against the selected structure using target-aware heuristics across a curated library of marketed small molecules. Results help researchers prioritize follow-up — not confirm clinical activity.",
+    breadcrumbLabel: "Drug repurposing",
+  },
+  "/adme": {
+    eyebrow: "TargetForge · ADME profiling",
+    h1: "ADME & Pharmacokinetic Profiling",
+    intro:
+      "Calculate physicochemical properties, rule-based druglikeness filters (Lipinski, Veber, Ghose), and BOILED-Egg absorption models — evaluated locally with RDKit. Supports ADME triage for lead optimization.",
+    breadcrumbLabel: "ADME analysis",
+  },
+  "/docking": {
+    eyebrow: "TargetForge · molecular docking",
+    h1: "Receptor-Ligand Molecular Docking",
+    intro:
+      "Compute binding free energy (ΔG_bind), estimate inhibition constants (Ki), and inspect 3D poses in crystallographic binding pockets — simulated in-browser. Supports structure-based prioritization, not experimental binding confirmation.",
+    breadcrumbLabel: "Molecular docking",
+  },
+  "/agent": {
+    eyebrow: "TargetForge · autonomous research agent",
+    h1: "Autonomous Research Agent",
+    intro:
+      "Runs TargetForge's target discovery, PDB selection, approved-drug ranking, and adversarial critique in sequence. Supports automated research triage — computational outputs only.",
+    breadcrumbLabel: "Research agent",
+  },
+  "/methodology": {
+    eyebrow: "Scientific methodology & validation transparency",
+    h1: "Evaluation Criteria, Computational Heuristics & Operational Boundaries",
+    intro:
+      "TargetForge is an early-stage computational workbench designed to accelerate hit triage, structural evaluation, and hypothesis generation. This page documents scoring criteria, cheminformatics rules, algorithmic design choices, and operational boundaries for computational drug discovery.",
+    breadcrumbLabel: "Methodology",
+  },
+  "/contact": {
+    eyebrow: "TargetForge · get in touch",
+    h1: "Contact us",
+    intro:
+      "Questions about TargetForge workflows, collaborations, or feedback on computational drug discovery tools — send a note and we will get back to you.",
+    breadcrumbLabel: "Contact",
+  },
+};
+
+export function getRelatedWorkflowLinks(currentPath) {
+  return WORKFLOW_LINKS.filter((item) => item.path !== currentPath);
+}
+
+export { SITE_URL, SITE_NAME, DEFAULT_TITLE, DEFAULT_DESCRIPTION, WORKFLOW_LINKS };
