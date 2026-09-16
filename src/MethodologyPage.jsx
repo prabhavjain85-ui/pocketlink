@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import SeoIntroLinks from "./SeoIntroLinks";
 
 export default function MethodologyPage() {
   const [activeSection, setActiveSection] = useState("pdb-target-score");
@@ -50,9 +51,10 @@ export default function MethodologyPage() {
         <h1 className="methodology-title">Evaluation Criteria, Computational Heuristics &amp; Operational Boundaries</h1>
         <p className="methodology-lead">
           TargetForge is an early-stage computational workbench designed to accelerate hit triage, structural evaluation,
-          and hypothesis generation. This document details our scoring criteria, cheminformatics rules, algorithmic design
-          choices, and honest methodological boundaries.
+          and hypothesis generation. This document details scoring criteria, cheminformatics rules, algorithmic design
+          choices, and operational boundaries for computational drug discovery.
         </p>
+        <SeoIntroLinks currentPath="/methodology" />
       </div>
 
       <div className="methodology-layout">

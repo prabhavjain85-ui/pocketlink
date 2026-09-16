@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import App from "./App";
 import ContactPage from "./ContactPage";
@@ -18,8 +19,9 @@ import "./discoverySearch.css";
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
-    <BrowserRouter>
-      <Routes>
+    <HelmetProvider>
+      <BrowserRouter>
+        <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<App />} />
           <Route path="/hypothesis" element={<HypothesisPage />} />
@@ -32,7 +34,8 @@ root.render(
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/methodology" element={<MethodologyPage />} />
         </Route>
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
+    </HelmetProvider>
   </React.StrictMode>
 );

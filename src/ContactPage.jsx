@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import SeoIntroLinks from "./SeoIntroLinks";
 
 function AddressIcon() {
   return (
@@ -99,9 +100,10 @@ export default function ContactPage() {
         <div className="hero-eyebrow">TargetForge · get in touch</div>
         <h1>Contact us</h1>
         <p>
-          Questions about the staging bench, collaborations, or feedback on a workflow —
+          Questions about TargetForge workflows, collaborations, or feedback on computational drug discovery tools —
           send a note and we will get back to you.
         </p>
+        <SeoIntroLinks currentPath="/contact" />
       </div>
 
       <div className="contact-cards">

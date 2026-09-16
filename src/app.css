@@ -241,6 +241,42 @@ body {
   margin: 0;
 }
 
+.hero h2 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: clamp(20px, 3vw, 26px);
+  line-height: 1.25;
+  color: var(--text);
+  margin: 20px 0 10px;
+  letter-spacing: -0.02em;
+}
+
+.seo-intro-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 18px;
+  max-width: 900px;
+}
+
+.seo-intro-links-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.seo-intro-link {
+  font-size: 13px;
+  color: var(--primary);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.seo-intro-link:hover {
+  border-bottom-color: currentColor;
+}
+
 /* ==========================================================================
    Workflow Trace Indicator
    ========================================================================== */

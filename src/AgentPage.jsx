@@ -7,6 +7,7 @@ import {
   getActiveState,
   setActiveState,
 } from "./historyService";
+import SeoIntroLinks from "./SeoIntroLinks";
 
 const EXAMPLE_GOALS = [
   "Find repurposing candidates for pancreatic cancer",
@@ -217,8 +218,10 @@ export default function AgentPage() {
         </div>
         <h1>Autonomous Research Agent</h1>
         <p className="hero-subtitle">
-          Runs TargetForge’s Target Discovery, PDB pick, approved-drug ranking, and a critique in order. Computational only.
+          Runs TargetForge’s target discovery, PDB selection, approved-drug ranking, and adversarial critique in sequence.
+          Supports automated research triage — computational outputs only.
         </p>
+        <SeoIntroLinks currentPath="/agent" />
       </div>
 
       {/* Restore Last Run Banner */}

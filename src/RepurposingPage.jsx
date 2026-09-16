@@ -19,6 +19,7 @@ import {
   saveHistoryEntry,
   setActiveState,
 } from "./historyService";
+import SeoIntroLinks from "./SeoIntroLinks";
 
 function compareRepurposeField(a, b, key) {
   if (key === "name") return String(a.name || "").localeCompare(String(b.name || ""));
@@ -355,10 +356,11 @@ export default function RepurposingPage() {
         <div className="hero-eyebrow">TargetForge · drug repurposing screen</div>
         <h1>Drug Repurposing Screen</h1>
         <p>
-          Search a target, and TargetForge scores it against hundreds of already-approved drugs to surface unexpected
-          candidates. This page reuses the same target-aware scoring used on the 5-compound shortlist, but runs it across
-          a bundled library of {librarySize} approved small molecules instead of a manual shortlist.
+          Search a target and screen approved drugs for repurposing candidates. TargetForge scores each compound against
+          the selected structure using target-aware heuristics across a curated library of {librarySize} marketed small
+          molecules. Results help researchers prioritize follow-up — not confirm clinical activity.
         </p>
+        <SeoIntroLinks currentPath="/repurposing" />
       </div>
 
       <div className="grid with-scores">
