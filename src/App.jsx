@@ -369,7 +369,7 @@ export default function App() {
     <>
       <div className="hero">
         <div className="hero-eyebrow">TargetForge · computational drug discovery</div>
-        <h1>TargetForge — AI-Powered Drug Discovery &amp; Target Identification</h1>
+        <h1>AI-Powered Drug Discovery &amp; Target Identification</h1>
         <p>
           TargetForge supports computational drug discovery with target identification, drug repurposing screens,
           molecular docking, ADME analysis, and scientific hypothesis testing. It helps researchers prioritize
