@@ -21,6 +21,7 @@ import { checkPainsBatch } from "./painsCheck";
 import { MAX_CANDIDATES, drugLikenessChecks } from "./scoreCandidates";
 import { targetDisplayName } from "./targetContext";
 import AdversarialCritique from "./AdversarialCritique";
+import QuantumInsight from "./QuantumInsight";
 import SeoIntroLinks from "./SeoIntroLinks";
 
 function compareCandidateField(a, b, key) {
@@ -608,6 +609,11 @@ export default function App() {
               )}
               {protein && <CopyField label="Target — PDB ID" value={protein.id} />}
               {compound && <CopyField label={`${compound.displayName} — SMILES`} value={smiles} />}
+              {compound && smiles && (
+                <div style={{ marginTop: 14 }}>
+                  <QuantumInsight compound={compound} smiles={smiles} protein={protein} />
+                </div>
+              )}
               <div className="handoff-actions">
                 <Link
                   to={`/docking?pdb=${encodeURIComponent(protein?.id || "")}&smiles=${encodeURIComponent(smiles || "")}&name=${encodeURIComponent(compound?.displayName || "")}&cid=${compound?.CID || ""}`}
