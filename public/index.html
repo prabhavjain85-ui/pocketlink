@@ -3,15 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Target Forge — AI-Powered Drug Discovery Platform</title>
+    <title>TargetForge — AI-Powered Drug Discovery & Target Identification</title>
 
     <!-- Primary Meta Tags -->
     <meta
       name="description"
-      content="AI-powered drug discovery for drug repurposing, target identification, molecular docking, ADME analysis, and automated research."
+      content="AI-powered drug discovery platform for drug repurposing, target identification, molecular docking, ADME analysis, and scientific hypothesis testing."
     />
     <meta name="keywords" content="drug discovery, target identification, drug repurposing, molecular docking, ADME, cheminformatics, RDKit, AI biology, structural biology, pharmacology" />
-    <meta name="author" content="Target Forge" />
+    <meta name="author" content="TargetForge" />
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#0F172A" />
 
@@ -26,30 +26,71 @@
     <!-- Open Graph / Facebook / LinkedIn / WhatsApp -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://www.targetforge.in/" />
-    <meta property="og:site_name" content="Target Forge" />
-    <meta property="og:title" content="Target Forge — AI-Powered Drug Discovery Platform" />
+    <meta property="og:site_name" content="TargetForge" />
+    <meta property="og:title" content="TargetForge — AI-Powered Drug Discovery & Target Identification" />
     <meta
       property="og:description"
-      content="AI-powered drug discovery for drug repurposing, target identification, molecular docking, ADME analysis, and automated research."
+      content="AI-powered drug discovery platform for drug repurposing, target identification, molecular docking, ADME analysis, and scientific hypothesis testing."
     />
     <meta property="og:image" content="https://www.targetforge.in/social-preview.png" />
     <meta property="og:image:secure_url" content="https://www.targetforge.in/social-preview.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Target Forge — AI-Powered Drug Discovery Platform" />
+    <meta property="og:image:alt" content="TargetForge — AI-Powered Drug Discovery & Target Identification" />
 
     <!-- Twitter / X Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:domain" content="targetforge.in" />
     <meta name="twitter:url" content="https://www.targetforge.in/" />
-    <meta name="twitter:title" content="Target Forge — AI-Powered Drug Discovery Platform" />
+    <meta name="twitter:title" content="TargetForge — AI-Powered Drug Discovery & Target Identification" />
     <meta
       name="twitter:description"
-      content="AI-powered drug discovery for drug repurposing, target identification, molecular docking, ADME analysis, and automated research."
+      content="AI-powered drug discovery platform for drug repurposing, target identification, molecular docking, ADME analysis, and scientific hypothesis testing."
     />
     <meta name="twitter:image" content="https://www.targetforge.in/social-preview.png" />
-    <meta name="twitter:image:alt" content="Target Forge — AI-Powered Drug Discovery Platform" />
+    <meta name="twitter:image:alt" content="TargetForge — AI-Powered Drug Discovery & Target Identification" />
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://www.targetforge.in/#organization",
+            "name": "TargetForge",
+            "alternateName": "Target Forge",
+            "url": "https://www.targetforge.in/",
+            "description": "AI-powered drug discovery platform for drug repurposing, target identification, molecular docking, ADME analysis, and scientific hypothesis testing."
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://www.targetforge.in/#website",
+            "url": "https://www.targetforge.in/",
+            "name": "TargetForge",
+            "description": "AI-powered drug discovery platform for drug repurposing, target identification, molecular docking, ADME analysis, and scientific hypothesis testing.",
+            "publisher": { "@id": "https://www.targetforge.in/#organization" }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://www.targetforge.in/#software",
+            "name": "TargetForge",
+            "url": "https://www.targetforge.in/",
+            "description": "AI-powered drug discovery platform for drug repurposing, target identification, molecular docking, ADME analysis, and scientific hypothesis testing.",
+            "applicationCategory": "ScientificApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "publisher": { "@id": "https://www.targetforge.in/#organization" }
+          }
+        ]
+      }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -71,10 +112,47 @@
         width: 100%;
         min-height: 100vh;
       }
+      .noscript-intro {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 24px 20px 40px;
+        color: #1e293b;
+        line-height: 1.6;
+      }
+      .noscript-intro h1 {
+        font-size: 1.75rem;
+        margin: 0 0 12px;
+      }
+      .noscript-intro p {
+        margin: 0 0 12px;
+      }
+      .noscript-intro ul {
+        margin: 0 0 12px;
+        padding-left: 1.25rem;
+      }
     </style>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>
+      <div class="noscript-intro">
+        <h1>TargetForge — AI-Powered Drug Discovery &amp; Target Identification</h1>
+        <p>
+          TargetForge is a computational drug discovery workbench that supports researchers with target identification,
+          drug repurposing screens, molecular docking, ADME analysis, and scientific hypothesis testing. Outputs are
+          prioritization aids for early-stage research and do not replace experimental validation or clinical trials.
+        </p>
+        <p>Explore workflows:</p>
+        <ul>
+          <li><a href="/target-discovery">Target identification</a></li>
+          <li><a href="/repurposing">Drug repurposing</a></li>
+          <li><a href="/docking">Molecular docking</a></li>
+          <li><a href="/adme">ADME analysis</a></li>
+          <li><a href="/hypothesis">Hypothesis testing</a></li>
+          <li><a href="/methodology">Methodology</a></li>
+        </ul>
+        <p>JavaScript is required to run the interactive analysis tools.</p>
+      </div>
+    </noscript>
     <div id="root"></div>
   </body>
 </html>

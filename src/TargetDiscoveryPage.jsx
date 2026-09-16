@@ -9,6 +9,7 @@ import {
   saveHistoryEntry,
   setActiveState,
 } from "./historyService";
+import SeoIntroLinks from "./SeoIntroLinks";
 
 function compareDiscoveryField(a, b, key) {
   if (key === "symbol" || key === "geneticLabel" || key === "evidenceSummary") {
@@ -363,10 +364,11 @@ export default function TargetDiscoveryPage() {
         <div className="hero-eyebrow">TargetForge · target discovery</div>
         <h1>Target Discovery</h1>
         <p>
-          Find genetically-validated but underexplored protein targets for a disease — opportunities with strong
-          biological evidence and little to no existing drug coverage. This is not a list of every known target:
-          association is required, and existing drugs actively lower the novelty score.
+          Find genetically validated but underexplored protein targets for a disease — opportunities with strong
+          biological evidence and little to no existing drug coverage. TargetForge supports target identification
+          by ranking Open Targets associations; it does not replace experimental target validation.
         </p>
+        <SeoIntroLinks currentPath="/target-discovery" />
       </div>
 
       <div className="grid with-scores">

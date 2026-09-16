@@ -21,6 +21,7 @@ import { checkPainsBatch } from "./painsCheck";
 import { MAX_CANDIDATES, drugLikenessChecks } from "./scoreCandidates";
 import { targetDisplayName } from "./targetContext";
 import AdversarialCritique from "./AdversarialCritique";
+import SeoIntroLinks from "./SeoIntroLinks";
 
 function compareCandidateField(a, b, key) {
   if (key === "compound") {
@@ -367,12 +368,19 @@ export default function App() {
   return (
     <>
       <div className="hero">
-        <div className="hero-eyebrow">TargetForge · discovery staging bench</div>
-        <h1>Stage a target, shortlist up to five molecules,<br />then let AI pick the strongest follow-up.</h1>
+        <div className="hero-eyebrow">TargetForge · computational drug discovery</div>
+        <h1>TargetForge — AI-Powered Drug Discovery &amp; Target Identification</h1>
         <p>
-          Search live PDB structures and PubChem compounds, compare up to five candidates on drug-likeness,
-          and generate a transparent recommendation before running native molecular docking and ADME prediction.
+          TargetForge supports computational drug discovery with target identification, drug repurposing screens,
+          molecular docking, ADME analysis, and scientific hypothesis testing. It helps researchers prioritize
+          candidates for follow-up — outputs are triage aids, not evidence of clinical efficacy.
         </p>
+        <h2>Discovery staging bench</h2>
+        <p>
+          Stage a protein target, shortlist up to five molecules from PubChem, compare drug-likeness and PAINS flags,
+          and generate a transparent AI recommendation before running native molecular docking and ADME prediction.
+        </p>
+        <SeoIntroLinks currentPath="/" />
       </div>
 
       <div className="trace-wrap">

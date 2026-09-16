@@ -7,6 +7,7 @@ import {
 } from "./dockingEngine";
 import DockingViewer from "./DockingViewer";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
+import SeoIntroLinks from "./SeoIntroLinks";
 
 export default function DockingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -253,10 +254,11 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
             maxWidth: "840px",
           }}
         >
-          Compute genuine binding free energy (ΔG_bind), estimate inhibition constants
-          (Ki), and inspect 3D conformational poses in crystallographic binding pockets — simulated
-          directly in your browser with no external server dependencies.
+          Compute binding free energy (ΔG_bind), estimate inhibition constants (Ki), and inspect 3D poses in
+          crystallographic binding pockets — simulated in-browser. Supports structure-based prioritization, not
+          experimental binding confirmation.
         </p>
+        <SeoIntroLinks currentPath="/docking" />
       </div>
 
       {/* Target & Ligand Configuration Panel */}

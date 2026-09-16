@@ -17,6 +17,7 @@ import {
   saveHistoryEntry,
   setActiveState,
 } from "./historyService";
+import SeoIntroLinks from "./SeoIntroLinks";
 
 const EXAMPLE_HYPOTHESES = [
   {
@@ -251,8 +252,11 @@ export default function HypothesisPage() {
           </div>
           <h1 className="hero-title">Scientific Hypothesis Evaluator</h1>
           <p className="hero-description">
-            Critically interrogate scientific and drug discovery hypotheses against empirical evidence. Evaluates biological plausibility, human genetics, cellular vs in-vivo models, clinical trial failure modes, pharmacokinetic exposure limits, and active counter-evidence.
+            Critically interrogate scientific and drug discovery hypotheses against empirical evidence. Supports
+            computational hypothesis testing by evaluating biological plausibility, genetics, model systems, and
+            counter-evidence — not a substitute for experimental or clinical validation.
           </p>
+          <SeoIntroLinks currentPath="/hypothesis" />
           <div className="hero-tenet-banner">
             <span className="tenet-chip">CORRELATION ≠ CAUSATION</span>
             <span className="tenet-separator">•</span>

@@ -8,6 +8,7 @@ import { getRDKit } from "./rdkitLoader";
 import BoiledEggPlot from "./BoiledEggPlot";
 import OrganToxicityPanel from "./OrganToxicityPanel";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
+import SeoIntroLinks from "./SeoIntroLinks";
 
 export default function AdmePage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -221,10 +222,10 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
             maxWidth: "800px",
           }}
         >
-          Calculate verified physicochemical properties, rule-based druglikeness filters (Lipinski,
-          Veber, Ghose), and BOILED-Egg passive gastrointestinal absorption and blood-brain barrier
-          permeation — evaluated locally with no third-party data transmission.
+          Calculate physicochemical properties, rule-based druglikeness filters (Lipinski, Veber, Ghose), and
+          BOILED-Egg absorption models — evaluated locally with RDKit. Supports ADME triage for lead optimization.
         </p>
+        <SeoIntroLinks currentPath="/adme" />
       </div>
 
       {/* Input Panel */}
