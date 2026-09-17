@@ -1,4 +1,5 @@
 import React from "react";
+import SeoIntroLinks from "./SeoIntroLinks";
 
 const AUDIENCES = [
   "Academic / student labs",
@@ -60,6 +61,7 @@ export default function HomepageIntro({ onLoadDemo, onStartBlank, demoLoading })
         flags, and generate a transparent AI recommendation before running native molecular docking and ADME
         prediction.
       </p>
+      <SeoIntroLinks currentPath="/" />
     </div>
   );
 }
