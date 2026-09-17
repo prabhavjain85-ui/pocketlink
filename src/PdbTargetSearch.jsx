@@ -15,6 +15,8 @@ export default function PdbTargetSearch({
   title = "Find a target",
   hint = "Live query against search.rcsb.org and data.rcsb.org. Matching structures are scored locally for docking/design suitability.",
   emptyText = "No target staged yet.",
+  emptyAction = null,
+  inputId,
   initialQuery = "",
   autoSearch = false,
   noStructureHint = false,
@@ -95,6 +97,7 @@ export default function PdbTargetSearch({
     <Panel eyebrow={eyebrow} title={title} kind="target">
       <div className="search-row">
         <input
+          id={inputId}
           placeholder="Protein name, gene, or PDB ID (e.g. EGFR, 1M17)"
           value={pQuery}
           onChange={(e) => setPQuery(e.target.value)}
@@ -147,7 +150,10 @@ export default function PdbTargetSearch({
         </div>
       )}
       {!pResults.length && !pLoading && !pError && (
-        <div className="empty-state">{emptyText}</div>
+        <div className="empty-state">
+          {emptyText}
+          {emptyAction}
+        </div>
       )}
     </Panel>
   );
