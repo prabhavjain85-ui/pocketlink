@@ -7,7 +7,6 @@ import {
   getCompoundSmiles,
 } from "./benchUi";
 import PdbTargetSearch from "./PdbTargetSearch";
-import SeoIntroLinks from "./SeoIntroLinks";
 import HomepageIntro from "./HomepageIntro";
 import { CandidateRow } from "./CandidateViews";
 import HandoffStations from "./HandoffStations";
@@ -31,7 +30,6 @@ export default function StagingBenchView(b) {
         onStartBlank={startBlankScreen}
         demoLoading={demoLoading}
       />
-      <SeoIntroLinks currentPath="/" />
 
       <div className="trace-wrap" id="staging-bench">
         <div className="trace">
