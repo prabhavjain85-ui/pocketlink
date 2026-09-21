@@ -13,6 +13,7 @@ import {
 import { getDrugSafetyProfile } from "./safetyProfiles";
 import { targetDisplayName } from "./targetContext";
 import AdversarialCritique from "./AdversarialCritique";
+import HistoricalTrialSuccessContext from "./HistoricalTrialSuccessContext";
 import {
   ACTIVE_STATE_KEYS,
   getActiveState,
@@ -465,6 +466,7 @@ export default function RepurposingPage() {
                   SMILES, MW &gt; 900, or ≥5 Lipinski/Veber failures) before AI scoring.
                 </div>
               )}
+              <HistoricalTrialSuccessContext target={result.target || protein} />
               <div className="lipinski-note">{result.summary}</div>
               <div className="source-pill">
                 {result.usedLlm

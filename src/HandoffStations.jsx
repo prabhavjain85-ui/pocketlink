@@ -4,6 +4,7 @@ import { CopyField, Panel } from "./benchUi";
 import AdversarialCritique from "./AdversarialCritique";
 import QuantumInsight from "./QuantumInsight";
 import { CandidateScoreTable } from "./CandidateViews";
+import HistoricalTrialSuccessContext from "./HistoricalTrialSuccessContext";
 
 export default function HandoffStations({ b }) {
   const {
@@ -67,6 +68,7 @@ export default function HandoffStations({ b }) {
                 target={protein}
                 candidates={candidates}
               />
+              <HistoricalTrialSuccessContext target={protein} />
               <div className="lipinski-note" style={{ marginTop: 12 }}>{aiResult.summary}</div>
               <div className="lipinski-note"><strong>Limitations:</strong> {(aiResult.limitations || []).join(" ")}</div>
               <div className="source-pill">
