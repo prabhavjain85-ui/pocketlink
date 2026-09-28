@@ -6,6 +6,7 @@ const WORKFLOW_LINKS = [
   { to: "/repurposing", label: "Drug repurposing" },
   { to: "/docking", label: "Molecular docking" },
   { to: "/adme", label: "ADME analysis" },
+  { to: "/evolution", label: "Molecule evolution" },
   { to: "/hypothesis", label: "Hypothesis testing" },
   { to: "/agent", label: "Research agent" },
   { to: "/methodology", label: "Methodology" },

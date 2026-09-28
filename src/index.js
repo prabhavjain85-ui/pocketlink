@@ -13,6 +13,7 @@ import AgentPage from "./AgentPage";
 import AdmePage from "./AdmePage";
 import DockingPage from "./DockingPage";
 import HypothesisPage from "./HypothesisPage";
+import EvolutionPage from "./EvolutionPage";
 import "./app.css";
 import "./discoverySearch.css";
 
@@ -29,6 +30,7 @@ root.render(
           <Route path="/repurposing" element={<RepurposingPage />} />
           <Route path="/adme" element={<AdmePage />} />
           <Route path="/docking" element={<DockingPage />} />
+          <Route path="/evolution" element={<EvolutionPage />} />
           <Route path="/agent" element={<AgentPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/contact" element={<ContactPage />} />
