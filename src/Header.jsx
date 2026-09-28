@@ -52,6 +52,9 @@ export default function Header() {
         <NavLink to="/docking" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
           Docking
         </NavLink>
+        <NavLink to="/evolution" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
+          Molecule Evolution
+        </NavLink>
         <NavLink to="/agent" className={({ isActive }) => "site-nav-link" + (isActive ? " active" : "")}>
           Research Agent
         </NavLink>
@@ -84,4 +87,3 @@ export default function Header() {
     </header>
   );
 }
-
