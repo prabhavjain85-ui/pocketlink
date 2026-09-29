@@ -18,7 +18,7 @@ export const EVOLUTION_TRANSFORMS = [
   { id: "add_aryl_nh2", label: "Add aryl amine", smarts: "[cH:1]>>[c:1]N" },
   { id: "oh_to_ome", label: "Phenol → methoxy", smarts: "[c:1][OH]>>[c:1]OC" },
   { id: "ome_to_oh", label: "Methoxy → phenol", smarts: "[c:1]OC>>[c:1]O" },
-  { id: "piperazine_nme_to_nh", label: "N-methyl piperazine → NH", smarts: "[N:1][CH3]>>[N:1]" },
+  { id: "piperazine_nme_to_nh", label: "N-methyl piperazine → NH", smarts: "[N:1][CH3]>>[NH:1]" },
   { id: "amine_nh_to_nme", label: "Secondary amine → N-methyl", smarts: "[NH:1]>>[N:1]C" },
 ];
 
@@ -27,11 +27,14 @@ export function detectReactionSupport(RDKit) {
   if (typeof RDKit.get_rxn !== "function") {
     return { reactions: false, reason: "This WASM build has no get_rxn()" };
   }
+  if (typeof RDKit.MolList !== "function") {
+    return { reactions: false, reason: "This WASM build has no MolList (required by run_reactants)" };
+  }
   try {
     const rxn = RDKit.get_rxn("[C:1][OH]>>[C:1]O");
     const ok = Boolean(rxn);
     if (rxn && typeof rxn.delete === "function") rxn.delete();
-    return { reactions: ok, reason: ok ? "get_rxn available" : "get_rxn returned empty" };
+    return { reactions: ok, reason: ok ? "get_rxn + MolList available" : "get_rxn returned empty" };
   } catch (err) {
     return { reactions: false, reason: err?.message || "get_rxn threw" };
   }
@@ -83,35 +86,80 @@ export function molSvg(RDKit, smiles, width = 220, height = 160) {
   }
 }
 
+function collectProductLists(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw.size === "function") {
+    const n = raw.size();
+    return Array.from({ length: n }, (_, i) => (typeof raw.at === "function" ? raw.at(i) : raw.get(i)));
+  }
+  return [raw];
+}
+
+function smilesFromProductMol(prod) {
+  if (!prod) return "";
+  try {
+    if (typeof prod.get_smiles === "function") {
+      return String(prod.get_smiles() || "").trim();
+    }
+  } catch {
+    // unsanitized reaction products sometimes fail get_smiles
+  }
+  try {
+    if (typeof prod.get_molblock === "function") {
+      return String(prod.get_molblock() || "").trim();
+    }
+  } catch {
+    // ignore
+  }
+  return "";
+}
+
+/**
+ * Official MinimalLib signature:
+ *   const reactants = new RDKit.MolList();
+ *   reactants.append(mol);
+ *   const products = rxn.run_reactants(reactants, 1000);
+ * Passing a JS array throws / returns empty — that was why every generation stopped.
+ */
 function productsFromReaction(RDKit, smiles, smarts) {
   const products = [];
   let mol = null;
   let rxn = null;
+  let reactants = null;
+  let raw = null;
   try {
     mol = RDKit.get_mol(smiles);
     rxn = RDKit.get_rxn(smarts);
     if (!mol || !rxn || typeof rxn.run_reactants !== "function") return products;
-    const raw = rxn.run_reactants([mol]);
-    const lists = raw || [];
-    for (const list of lists) {
-      const members = list && typeof list.size === "function"
-        ? Array.from({ length: list.size() }, (_, i) => (typeof list.at === "function" ? list.at(i) : list.get(i)))
-        : Array.isArray(list) ? list : [];
-      for (const prod of members) {
-        if (!prod) continue;
-        try {
-          const smi = String(prod.get_smiles?.() || "").trim();
-          if (smi) products.push(smi);
-        } catch {
-          // ignore
-        }
-        if (typeof prod.delete === "function") prod.delete();
+
+    if (typeof RDKit.MolList === "function") {
+      reactants = new RDKit.MolList();
+      reactants.append(mol);
+      try {
+        raw = rxn.run_reactants(reactants, 1000);
+      } catch {
+        raw = rxn.run_reactants(reactants);
       }
-      if (list && typeof list.delete === "function") list.delete();
+    } else {
+      raw = rxn.run_reactants([mol]);
     }
+
+    const lists = collectProductLists(raw);
+    for (const list of lists) {
+      const members = collectProductLists(list);
+      for (const prod of members) {
+        const smi = smilesFromProductMol(prod);
+        if (smi) products.push(smi);
+        if (prod && typeof prod.delete === "function") prod.delete();
+      }
+      if (list && typeof list.delete === "function" && list !== raw) list.delete();
+    }
+    if (raw && typeof raw.delete === "function") raw.delete();
   } catch {
     // invalid reaction application
   } finally {
+    if (reactants && typeof reactants.delete === "function") reactants.delete();
     if (mol && typeof mol.delete === "function") mol.delete();
     if (rxn && typeof rxn.delete === "function") rxn.delete();
   }
