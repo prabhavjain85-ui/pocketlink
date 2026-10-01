@@ -20,7 +20,7 @@ export const PAGE_SIZE = 20;
 export const DAILY_SCREEN_MS = 24 * 60 * 60 * 1000;
 export const EXTREME_MW_CUTOFF = 900;
 
-const DAILY_STORAGE_KEY = "pocketlink-repurpose-daily-v3";
+const DAILY_STORAGE_KEY = "pocketlink-repurpose-daily-v4";
 
 /**
  * Scoring 200–500 compounds through one Vercel invocation would exceed the
@@ -388,6 +388,9 @@ export const KNOWN_GENE_DRUGS = {
   PIK3CA: ["alpelisib"],
   HDAC1: ["vorinostat", "panobinostat", "belinostat", "romidepsin"],
   PDE5A: ["sildenafil", "tadalafil", "vardenafil", "avanafil"],
+  SLC5A2: ["canagliflozin", "dapagliflozin", "empagliflozin", "ertugliflozin", "sotagliflozin", "bexagliflozin"],
+  SGLT2: ["canagliflozin", "dapagliflozin", "empagliflozin", "ertugliflozin", "sotagliflozin", "bexagliflozin"],
+  "SGLT-2": ["canagliflozin", "dapagliflozin", "empagliflozin", "ertugliflozin", "sotagliflozin", "bexagliflozin"],
 };
 
 /**
@@ -700,10 +703,31 @@ export async function screenApprovedLibrary(
         });
         await yieldUi();
 
-        const result = await rankCandidatesBatch(batchCandidates, protein, painsMap);
+        let result = null;
+        let lastErr = null;
+        for (let attempt = 1; attempt <= 3; attempt += 1) {
+          try {
+            result = await rankCandidatesBatch(batchCandidates, protein, painsMap);
+            if (!result?.aiError) break;
+            lastErr = result.aiError;
+            console.error(
+              `[repurposing] AI scoring attempt ${attempt}/3 failed for ${targetName} (${pdb}): ${result.aiError}`
+            );
+          } catch (err) {
+            lastErr = err?.message || String(err);
+            console.error(
+              `[repurposing] AI scoring attempt ${attempt}/3 threw for ${targetName} (${pdb}): ${lastErr}`
+            );
+            result = { aiError: lastErr, source: "heuristic-v2", ranking: [] };
+          }
+          if (attempt < 3) await new Promise((r) => setTimeout(r, 400 * attempt));
+        }
         if (result?.aiError) {
           aiError = result.aiError;
           llmAlive = false;
+          console.error(
+            `[repurposing] falling back to heuristic-v2 for remaining batches. target=${targetName} pdb=${pdb} reason=${result.aiError}`
+          );
         }
         if (result?.source === "llm") {
           usedLlm = true;
@@ -727,7 +751,9 @@ export async function screenApprovedLibrary(
         finished += batch.length;
         await yieldUi();
       } else {
-        // Fallback: use deterministic target-aware scores for remaining batches
+        console.error(
+          `[repurposing] LLM path disabled; using heuristic scores for remaining shortlist. target=${targetName} pdb=${pdb} reason=${aiError || "non-llm source"}`
+        );
         const remainingBatchDrugs = uncachedShortlist.slice(finished - cachedShortlist.length);
         for (const drug of remainingBatchDrugs) {
           const ranked = localMap.get(String(drug.cid));
@@ -766,11 +792,22 @@ export async function screenApprovedLibrary(
   const looksUnscored =
     !assembled.ranking.length ||
     (assembled.ranking.length > 8 && uniqueScores.size <= 1 && (assembled.ranking[0].score ?? 0) <= 1);
-  if (looksUnscored) {
-    const err = new Error(
-      `${INSUFFICIENT_STRUCTURE_ERROR}. Scoring returned no target-specific values${aiError ? ` (${aiError})` : ""}.`
+  const topNames = assembled.ranking.slice(0, 12).map((r) => String(r.name || ""));
+  const alpha = [...topNames].sort((a, b) => a.localeCompare(b));
+  const alphabetical = topNames.join("|") === alpha.join("|") && topNames.length >= 8;
+  const spread = (assembled.ranking[0]?.score ?? 0) - (assembled.ranking[Math.min(11, assembled.ranking.length - 1)]?.score ?? 0);
+  const onTargetHit = assembled.ranking.slice(0, 8).some((r) =>
+    /canagliflozin|dapagliflozin|empagliflozin|ertugliflozin|sotagliflozin|imatinib|gefitinib|erlotinib|atorvastatin|sitagliptin|celecoxib/i.test(r.name || "")
+    || /on-target|primary target match/i.test((r.reasoning || []).join(" "))
+  );
+  if (looksUnscored || (alphabetical && spread < 3 && !onTargetHit)) {
+    console.error(
+      `[repurposing] refusing alphabetical/flat ranking for ${targetName} (${pdb}). spread=${spread} aiError=${aiError || "none"} family=${caps.family} rule=${caps.rule}`
     );
-    err.code = "INSUFFICIENT_STRUCTURE";
+    const err = new Error(
+      `Scoring failed for ${targetName}. Results were not target-specific (flat or alphabetical approved-drug order)${aiError ? ` — ${aiError}` : ""}. No ranked list was returned.`
+    );
+    err.code = "SCORING_FAILED";
     throw err;
   }
   if (aiError && assembled.degraded) {
