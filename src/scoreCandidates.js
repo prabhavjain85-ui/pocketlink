@@ -213,6 +213,22 @@ const TARGET_RULES = [
     demotedConcern: "No HDAC inhibitor activity.",
   },
   {
+    id: "sglt2",
+    name: "SGLT2 / SLC5A2 (sodium-glucose cotransporter 2)",
+    family: "transporter",
+    pdbs: ["7VSI", "7FEN", "8HDH", "8HEZ"],
+    targetRe: /\b(sglt-?2|slc5a2|sodium[- ]glucose cotransporter[- ]?2|sodium\/glucose cotransporter[- ]?2)\b/i,
+    geneRe: /\b(slc5a2|sglt-?2)\b/i,
+    ligandRe: /\b(canagliflozin|dapagliflozin|empagliflozin|ertugliflozin|sotagliflozin)\b/i,
+    onTargetDrugs: [
+      "canagliflozin", "dapagliflozin", "empagliflozin", "ertugliflozin", "sotagliflozin", "bexagliflozin"
+    ],
+    onTargetRe: /\b(canagliflozin|dapagliflozin|empagliflozin|ertugliflozin|sotagliflozin|bexagliflozin|gliflozin)\b/i,
+    onTargetClassRe: /\b(sglt-?2 inhibitor|gliflozin)\b/i,
+    demotedRe: /\b(metformin|sitagliptin|saxagliptin|linagliptin|glipizide|glyburide|pioglitazone)\b/i,
+    demotedConcern: "Other antidiabetic class (not an SGLT2 inhibitor).",
+  },
+  {
     id: "er",
     name: "Estrogen Receptor (ER)",
     family: "nuclear",
