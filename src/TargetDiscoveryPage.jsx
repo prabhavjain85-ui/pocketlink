@@ -9,8 +9,6 @@ import {
   saveHistoryEntry,
   setActiveState,
 } from "./historyService";
-import SeoIntroLinks from "./SeoIntroLinks";
-
 function compareDiscoveryField(a, b, key) {
   if (key === "symbol" || key === "geneticLabel" || key === "evidenceSummary") {
     return String(a[key] || "").localeCompare(String(b[key] || ""));
@@ -368,7 +366,6 @@ export default function TargetDiscoveryPage() {
           biological evidence and little to no existing drug coverage. TargetForge supports target identification
           by ranking Open Targets associations; it does not replace experimental target validation.
         </p>
-        <SeoIntroLinks currentPath="/target-discovery" />
       </div>
 
       <div className="grid with-scores">

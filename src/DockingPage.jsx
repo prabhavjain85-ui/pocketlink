@@ -7,8 +7,6 @@ import {
 } from "./dockingEngine";
 import DockingViewer from "./DockingViewer";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
-import SeoIntroLinks from "./SeoIntroLinks";
-
 export default function DockingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -258,7 +256,6 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
           crystallographic binding pockets — simulated in-browser. Supports structure-based prioritization, not
           experimental binding confirmation.
         </p>
-        <SeoIntroLinks currentPath="/docking" />
       </div>
 
       {/* Target & Ligand Configuration Panel */}
