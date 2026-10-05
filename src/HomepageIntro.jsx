@@ -43,13 +43,24 @@ export default function HomepageIntro({ onLoadDemo, onStartBlank, demoLoading })
       </ol>
 
       <div className="intro-actions">
-        <button type="button" className="btn btn-primary" onClick={onLoadDemo} disabled={demoLoading}>
-          {demoLoading ? "Loading demo…" : "Load demo: EGFR + imatinib"}
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={onLoadDemo}
+          disabled={demoLoading}
+          aria-busy={demoLoading}
+        >
+          {demoLoading ? "Loading demo…" : "One-click demo: EGFR screen"}
         </button>
         <button type="button" className="btn btn-ghost" onClick={onStartBlank}>
           Start with a blank screen
         </button>
       </div>
+      <p className="intro-demo-note">
+        Stages EGFR (<span className="mono">1M17</span>), compares <strong>imatinib</strong> (a BCR-ABL drug, weak on EGFR)
+        with <strong>osimertinib</strong> (an EGFR inhibitor), and runs the AI ranking — useful for portfolio demos without
+        manual PDB search.
+      </p>
       <p className="intro-disclaimer">
         Docking scores, ADME flags, and AI rankings are computational estimates for prioritization only.
       </p>

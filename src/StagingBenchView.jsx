@@ -19,14 +19,14 @@ export default function StagingBenchView(b) {
     painsByCid, demoKey, demoTargetQuery, demoLoading,
     handoffQuery, fromDiscovery,
     searchCompound, addOrRemovePreview, removeCandidate,
-    loadEgfrImatinibDemo, startBlankScreen,
+    loadEgfrCompareDemo, startBlankScreen,
     alreadyStaged, shortlistFull, recommendedCid,
     compound, previewChecks, previewPass, progress, aiResult,
   } = b;
   return (
     <>
       <HomepageIntro
-        onLoadDemo={loadEgfrImatinibDemo}
+        onLoadDemo={loadEgfrCompareDemo}
         onStartBlank={startBlankScreen}
         demoLoading={demoLoading}
       />
@@ -55,8 +55,8 @@ export default function StagingBenchView(b) {
           inputId="target-search-input"
           emptyText="No target staged yet."
           emptyAction={
-            <button type="button" className="empty-state-action" onClick={loadEgfrImatinibDemo}>
-              Load EGFR (1M17) demo
+            <button type="button" className="empty-state-action" onClick={loadEgfrCompareDemo}>
+              Load EGFR (1M17) comparison demo
             </button>
           }
         />
@@ -138,8 +138,8 @@ export default function StagingBenchView(b) {
           {!cResult && !cLoading && !cError && candidates.length === 0 && (
             <div className="empty-state">
               No candidates staged yet. Search a compound and add it to the shortlist.
-              <button type="button" className="empty-state-action" onClick={loadEgfrImatinibDemo}>
-                Add imatinib demo compound
+              <button type="button" className="empty-state-action" onClick={loadEgfrCompareDemo}>
+                Load EGFR vs imatinib + osimertinib demo
               </button>
             </div>
           )}
