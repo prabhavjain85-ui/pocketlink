@@ -2,6 +2,8 @@ import {
   getTrialSuccessContext,
   resolveTrialSuccessCategory,
   formatPhaseRate,
+  formatPhaseDisplay,
+  describeTrialSuccessMatch,
   LIMITATION_NOTE,
 } from "./trialSuccessContext";
 
@@ -77,4 +79,24 @@ test("kinase inhibitor category has n>=10 for at least one phase", () => {
 test("formatPhaseRate returns null for unreliable phases", () => {
   expect(formatPhaseRate({ n: 3, rate: 0.5, reliable: false })).toBeNull();
   expect(formatPhaseRate({ n: 50, rate: 0.678, reliable: true })).toBe(67.8);
+});
+
+test("formatPhaseDisplay omits percentage when sample is unreliable", () => {
+  const display = formatPhaseDisplay({ n: 4, rate: 0.9, reliable: false });
+  expect(display.kind).toBe("insufficient");
+  expect(display.rateText).toBe("Insufficient sample (n=4)");
+  expect(display.rateText).not.toMatch(/%/);
+});
+
+test("formatPhaseDisplay shows rate and n for reliable phases", () => {
+  const display = formatPhaseDisplay({ n: 120, rate: 0.648, reliable: true });
+  expect(display.kind).toBe("rate");
+  expect(display.rateText).toBe("64.8%");
+  expect(display.detailText).toBe("n=120");
+});
+
+test("describeTrialSuccessMatch explains EGFR target rule match", () => {
+  const ctx = getTrialSuccessContext(egfrProtein);
+  expect(describeTrialSuccessMatch(ctx)).toMatch(/target rule/i);
+  expect(describeTrialSuccessMatch(ctx)).toMatch(/EGFR/i);
 });

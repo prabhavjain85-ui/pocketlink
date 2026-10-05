@@ -1,7 +1,11 @@
-import React, { useMemo, useState } from "react";
-import { formatPhaseRate, getTrialSuccessContext } from "./trialSuccessContext";
+import React, { useMemo } from "react";
+import {
+  describeTrialSuccessMatch,
+  formatPhaseDisplay,
+  getTrialSuccessContext,
+} from "./trialSuccessContext";
 
-const PHASE_TABS = [
+const PHASE_COLUMNS = [
   { key: "PHASE1", label: "Phase 1" },
   { key: "PHASE2", label: "Phase 2" },
   { key: "PHASE3", label: "Phase 3" },
@@ -9,13 +13,10 @@ const PHASE_TABS = [
 
 export default function HistoricalTrialSuccessContext({ target, className = "" }) {
   const context = useMemo(() => getTrialSuccessContext(target), [target]);
-  const [activePhase, setActivePhase] = useState("PHASE2");
 
   if (!context.available) return null;
 
-  const phaseData = context.phases[activePhase];
-  const pct = formatPhaseRate(phaseData);
-  const activeLabel = PHASE_TABS.find((t) => t.key === activePhase)?.label || activePhase;
+  const matchDescription = describeTrialSuccessMatch(context);
 
   return (
     <div
@@ -28,41 +29,54 @@ export default function HistoricalTrialSuccessContext({ target, className = "" }
         <h4 className="trial-success-title">Historical Trial Success Context</h4>
       </div>
 
-      <div className="trial-success-tabs" role="tablist" aria-label="Clinical trial phase">
-        {PHASE_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            role="tab"
-            aria-selected={activePhase === tab.key}
-            className={"trial-success-tab" + (activePhase === tab.key ? " active" : "")}
-            onClick={() => setActivePhase(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="trial-success-category-block">
+        <p className="trial-success-category-primary">
+          <strong>{context.categoryLabel}</strong>
+          <span className="trial-success-category-sep"> · </span>
+          <span className="trial-success-query">
+            CT.gov: &ldquo;{context.query}&rdquo;
+          </span>
+        </p>
+        {matchDescription ? (
+          <p className="trial-success-match-type">Match: {matchDescription}</p>
+        ) : null}
+        <p className="trial-success-scope-note">
+          Class and phase historical completion base rates — not a compound-specific prediction.
+        </p>
       </div>
 
-      <div className="trial-success-body" role="tabpanel">
-        <div className="trial-success-stat-row">
-          {phaseData?.reliable ? (
-            <>
-              <span className="trial-success-pct">{pct}%</span>
-              <span className="trial-success-meta">
-                historical completion rate · {activeLabel} · n={phaseData.n}
-              </span>
-            </>
-          ) : (
-            <span className="trial-success-insufficient">
-              Insufficient historical sample (n&lt;{context.minSampleSize})
-              {phaseData?.n > 0 ? ` · n=${phaseData.n} for ${activeLabel}` : ` for ${activeLabel}`}
-            </span>
-          )}
-        </div>
-        <div className="trial-success-category">
-          Category: <strong>{context.categoryLabel}</strong>
-          <span className="trial-success-query"> (CT.gov: &ldquo;{context.query}&rdquo;)</span>
-        </div>
+      <div className="trial-success-body">
+        <table className="trial-success-phase-table">
+          <caption className="trial-success-table-caption">
+            Historical trial completion rates by phase
+          </caption>
+          <thead>
+            <tr>
+              {PHASE_COLUMNS.map((col) => (
+                <th key={col.key} scope="col">{col.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {PHASE_COLUMNS.map((col) => {
+                const display = formatPhaseDisplay(context.phases[col.key]);
+                const cellClass =
+                  "trial-success-phase-cell" +
+                  (display.kind === "insufficient" ? " insufficient" : "") +
+                  (display.kind === "rate" ? " has-rate" : "");
+                return (
+                  <td key={col.key} className={cellClass}>
+                    <span className="trial-success-phase-rate">{display.rateText}</span>
+                    {display.detailText ? (
+                      <span className="trial-success-phase-n">{display.detailText}</span>
+                    ) : null}
+                  </td>
+                );
+              })}
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <p className="trial-success-limitation">{context.limitationNote}</p>
