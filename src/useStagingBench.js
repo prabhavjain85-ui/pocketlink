@@ -103,17 +103,6 @@ export function useStagingBench() {
     }
   }, [cQuery, fetchCompoundByName]);
 
-  const stageCompound = useCallback((result) => {
-    if (!result) return;
-    setAiResult(null);
-    setAiError("");
-    setCandidates((prev) => {
-      if (prev.some((c) => c.CID === result.CID)) return prev;
-      if (prev.length >= MAX_CANDIDATES) return prev;
-      return [...prev, result];
-    });
-  }, []);
-
   const scrollToBench = useCallback(() => {
     document.getElementById("staging-bench")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
