@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import PdbTargetSearch from "./PdbTargetSearch";
 import { Panel, PainsBadge } from "./benchUi";
-import SeoIntroLinks from "./SeoIntroLinks";
 import AdversarialCritique from "./AdversarialCritique";
 import { getRDKit } from "./rdkitLoader";
 import { molSvg, detectReactionSupport } from "./evolutionTransforms";
@@ -211,7 +210,6 @@ export default function EvolutionPage() {
           Start from a valid seed, apply curated medicinal-chemistry SMARTS edits in RDKit, and re-score cheap
           heuristic filters each generation. Structures are never invented by a language model.
         </p>
-        <SeoIntroLinks currentPath="/evolution" />
       </div>
 
       <div className="limitation-callout" style={{ marginBottom: 20 }}>

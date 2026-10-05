@@ -20,8 +20,6 @@ import {
   saveHistoryEntry,
   setActiveState,
 } from "./historyService";
-import SeoIntroLinks from "./SeoIntroLinks";
-
 function compareRepurposeField(a, b, key) {
   if (key === "name") return String(a.name || "").localeCompare(String(b.name || ""));
   if (key === "indication") return String(a.indication || "").localeCompare(String(b.indication || ""));
@@ -361,7 +359,6 @@ export default function RepurposingPage() {
           the selected structure using target-aware heuristics across a curated library of {librarySize} marketed small
           molecules. Results help researchers prioritize follow-up — not confirm clinical activity.
         </p>
-        <SeoIntroLinks currentPath="/repurposing" />
       </div>
 
       <div className="grid with-scores">

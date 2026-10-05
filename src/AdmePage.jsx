@@ -8,8 +8,6 @@ import { getRDKit } from "./rdkitLoader";
 import BoiledEggPlot from "./BoiledEggPlot";
 import OrganToxicityPanel from "./OrganToxicityPanel";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
-import SeoIntroLinks from "./SeoIntroLinks";
-
 export default function AdmePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [smilesInput, setSmilesInput] = useState(
@@ -225,7 +223,6 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
           Calculate physicochemical properties, rule-based druglikeness filters (Lipinski, Veber, Ghose), and
           BOILED-Egg absorption models — evaluated locally with RDKit. Supports ADME triage for lead optimization.
         </p>
-        <SeoIntroLinks currentPath="/adme" />
       </div>
 
       {/* Input Panel */}

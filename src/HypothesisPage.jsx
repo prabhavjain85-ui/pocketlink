@@ -17,8 +17,6 @@ import {
   saveHistoryEntry,
   setActiveState,
 } from "./historyService";
-import SeoIntroLinks from "./SeoIntroLinks";
-
 const EXAMPLE_HYPOTHESES = [
   {
     title: "IKKβ in Ulcerative Colitis",
@@ -256,7 +254,6 @@ export default function HypothesisPage() {
             computational hypothesis testing by evaluating biological plausibility, genetics, model systems, and
             counter-evidence — not a substitute for experimental or clinical validation.
           </p>
-          <SeoIntroLinks currentPath="/hypothesis" />
           <div className="hero-tenet-banner">
             <span className="tenet-chip">CORRELATION ≠ CAUSATION</span>
             <span className="tenet-separator">•</span>
