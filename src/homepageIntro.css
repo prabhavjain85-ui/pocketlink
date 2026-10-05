@@ -80,6 +80,19 @@
   color: var(--text-muted) !important;
 }
 
+.intro-demo-note {
+  margin: 12px 0 0 !important;
+  max-width: 720px;
+  font-size: 13.5px !important;
+  line-height: 1.5;
+  color: var(--text-muted) !important;
+}
+
+.intro-demo-note strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
 .empty-state-action {
   display: block;
   margin-top: 8px;

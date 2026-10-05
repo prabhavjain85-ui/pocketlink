@@ -341,6 +341,31 @@ test("notes insufficient target rule when target is unmodeled", () => {
   expect(row.score).toBeLessThanOrEqual(30);
 });
 
+test("EGFR (1M17) demo ranks osimertinib above imatinib", () => {
+  const egfr = {
+    id: "1M17",
+    queryName: "EGFR",
+    title: "Structure of the EGFR kinase domain in complex with erlotinib",
+    ligands: [{ compId: "AQ4", name: "ERLOTINIB" }],
+  };
+  const osimertinib = {
+    cid: "71496458",
+    displayName: "osimertinib",
+    molecularWeight: 499.6,
+    xlogp: 3.5,
+    hbd: 2,
+    hba: 8,
+    rotatableBonds: 8,
+    tpsa: 88.9,
+  };
+  const result = rankCandidatesLocal([imatinib, osimertinib], egfr);
+  expect(result.recommended.cid).toBe("71496458");
+  const ima = result.ranking.find((r) => r.cid === "5291");
+  const osi = result.ranking.find((r) => r.cid === "71496458");
+  expect(osi.score).toBeGreaterThan(ima.score);
+  expect(ima.concerns.join(" ")).toMatch(/ABL/i);
+});
+
 test("EGFR (1M17) vs ABL (1IEP) return distinct rankings and top drugs", () => {
   const egfr = {
     id: "1M17",

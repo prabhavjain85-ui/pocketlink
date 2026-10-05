@@ -10,7 +10,11 @@ import {
 import { prettyName, getCompoundSmiles } from "./benchUi";
 import { checkPainsBatch } from "./painsCheck";
 import { MAX_CANDIDATES, drugLikenessChecks } from "./scoreCandidates";
+import { searchPdbTargets } from "./pdbSearch";
 import { targetDisplayName } from "./targetContext";
+
+const EGFR_DEMO_PDB = "1M17";
+const EGFR_DEMO_COMPOUNDS = ["imatinib", "osimertinib"];
 
 export function useStagingBench() {
   const [searchParams] = useSearchParams();
@@ -99,17 +103,6 @@ export function useStagingBench() {
     }
   }, [cQuery, fetchCompoundByName]);
 
-  const stageCompound = useCallback((result) => {
-    if (!result) return;
-    setAiResult(null);
-    setAiError("");
-    setCandidates((prev) => {
-      if (prev.some((c) => c.CID === result.CID)) return prev;
-      if (prev.length >= MAX_CANDIDATES) return prev;
-      return [...prev, result];
-    });
-  }, []);
-
   const scrollToBench = useCallback(() => {
     document.getElementById("staging-bench")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
@@ -121,24 +114,84 @@ export function useStagingBench() {
     }, 250);
   }, [scrollToBench]);
 
-  const loadEgfrImatinibDemo = useCallback(async () => {
+  const loadEgfrCompareDemo = useCallback(async () => {
     setDemoLoading(true);
-    setDemoTargetQuery("1M17");
+    setDemoTargetQuery(EGFR_DEMO_PDB);
     setDemoKey((n) => n + 1);
-    setCQuery("imatinib");
+    setCError("");
+    setAiError("");
+    setAiResult(null);
+    setCandidates([]);
+    setProtein(null);
+    setCResult(null);
+    setHandoffCid(null);
     scrollToBench();
     try {
-      const result = await fetchCompoundByName("imatinib");
-      if (result) {
-        setCResult(result);
-        stageCompound(result);
+      const { results, error: pdbError } = await searchPdbTargets(EGFR_DEMO_PDB);
+      if (pdbError || !results?.length) {
+        throw new Error(pdbError || `No PDB structure found for ${EGFR_DEMO_PDB}.`);
       }
+      const row = results.find((r) => r.id === EGFR_DEMO_PDB) || results[0];
+      const staged = { ...row, queryName: EGFR_DEMO_PDB };
+      setProtein(staged);
+      saveHistoryEntry({
+        type: "pdb-search",
+        title: `PDB Target: ${staged.id} (${staged.title || EGFR_DEMO_PDB})`,
+        summary: `${staged.id} · Score ${staged.targetSelectionScore ?? staged.score}/100 · ${staged.resolution || "resolution n/a"} · ${staged.method || "METHOD"}`,
+        inputs: { query: EGFR_DEMO_PDB, pdbId: staged.id },
+        snapshot: { protein: staged, query: EGFR_DEMO_PDB },
+      });
+
+      const compounds = await Promise.all(EGFR_DEMO_COMPOUNDS.map((name) => fetchCompoundByName(name)));
+      setCandidates(compounds);
+      const osimertinib = compounds.find((c) => /osimertinib/i.test(c.displayName || ""));
+      setCQuery("osimertinib");
+      setCResult(osimertinib || compounds[compounds.length - 1]);
+
+      const latestPains = await checkPainsBatch(compounds);
+      setPainsByCid((prev) => ({ ...prev, ...latestPains }));
+      const data = await rankCandidates(compounds, staged, latestPains);
+      setAiResult(data);
+      if (data?.aiError) {
+        setAiError(
+          `Unable to score against this target with the language model (${data.aiError}). TargetForge used its target-aware model instead.`
+        );
+      }
+      if (data?.recommended?.cid) setHandoffCid(data.recommended.cid);
+
+      const winnerRow =
+        data?.ranking?.find((r) => String(r.cid) === String(data?.recommended?.cid)) || data?.ranking?.[0];
+      const winnerCandidate = compounds.find((c) => String(c.CID) === String(winnerRow?.cid));
+      const winnerName =
+        winnerCandidate?.displayName || winnerCandidate?.name || winnerRow?.name || `CID ${winnerRow?.cid}`;
+      const targetLabel = targetDisplayName(staged);
+      saveHistoryEntry({
+        type: "staging-bench",
+        title: `Staging Bench: ${targetLabel} (${compounds.length} compounds)`,
+        summary: `Winner: ${winnerName} (${winnerRow?.score ?? "n/a"}/100) · ${compounds.length} candidates scored against ${targetLabel}`,
+        inputs: {
+          target: targetLabel,
+          pdbId: staged.id,
+          compoundCount: compounds.length,
+          compoundNames: compounds.map((c) => c.displayName || c.name || `CID ${c.CID}`),
+        },
+        snapshot: {
+          protein: staged,
+          candidates: compounds,
+          aiResult: data,
+          handoffCid: data?.recommended?.cid,
+        },
+      });
+
+      window.setTimeout(() => {
+        document.querySelector(".handoff-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 400);
     } catch (e) {
-      setCError(e.message || "Couldn't load the imatinib demo compound from PubChem.");
+      setCError(e.message || "Couldn't load the EGFR comparison demo. Check your connection and try again.");
     } finally {
       setDemoLoading(false);
     }
-  }, [fetchCompoundByName, stageCompound, scrollToBench]);
+  }, [fetchCompoundByName, scrollToBench]);
 
   const alreadyStaged = cResult && candidates.some((c) => c.CID === cResult.CID);
   const shortlistFull = candidates.length >= MAX_CANDIDATES && !alreadyStaged;
@@ -280,7 +333,7 @@ export function useStagingBench() {
     aiSort, painsByCid, demoKey, demoTargetQuery, demoLoading,
     handoffQuery, fromDiscovery,
     searchCompound, addOrRemovePreview, removeCandidate, analyze, toggleAiSort,
-    loadEgfrImatinibDemo, startBlankScreen,
+    loadEgfrCompareDemo, startBlankScreen,
     alreadyStaged, shortlistFull, recommendedCid, rankingRows,
     fitTargetName, fitPdbId, compound, smiles, previewChecks, previewPass,
     progress, winner, winnerRow, winnerCandidate,
