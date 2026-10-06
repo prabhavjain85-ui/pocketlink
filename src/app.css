@@ -6749,7 +6749,7 @@ textarea.field-input {
 }
 
 /* ==========================================================================
-   Quantum Insight (experimental — unavailable placeholder)
+   Quantum Insight (planned — coming soon preview)
    ========================================================================== */
 
 .quantum-insight-container {
@@ -6783,13 +6783,13 @@ textarea.field-input {
   background: #f5f3ff;
 }
 
-.btn-quantum-toggle.unavailable {
-  border-color: var(--amber-border, #fcd34d);
-  background: var(--amber-bg, #fffbeb);
+.btn-quantum-toggle.coming-soon {
+  border-color: #c4b5fd;
+  background: linear-gradient(180deg, #faf5ff 0%, #f5f3ff 100%);
 }
 
-.btn-quantum-toggle.unavailable .quantum-label-text {
-  color: var(--amber, #92400e);
+.btn-quantum-toggle.coming-soon .quantum-label-text {
+  color: #5b21b6;
 }
 
 .btn-quantum-toggle.expanded {
@@ -6797,7 +6797,7 @@ textarea.field-input {
   border-bottom-right-radius: 0;
 }
 
-.quantum-experimental-badge {
+.quantum-coming-soon-badge {
   margin-left: auto;
   font-size: 10px;
   font-weight: 700;
@@ -6860,34 +6860,82 @@ textarea.field-input {
   color: #5b21b6;
 }
 
-.quantum-unavailable {
-  padding: 12px;
+.quantum-roadmap {
+  padding: 12px 14px;
   border-radius: 8px;
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
-  color: #9a3412;
+  background: #fff;
+  border: 1px solid #ddd6fe;
+  color: #4c1d95;
   font-size: 12px;
   line-height: 1.55;
 }
 
-.quantum-unavailable-title {
+.quantum-roadmap-kicker {
+  font-size: 10px;
   font-weight: 700;
-  margin-bottom: 8px;
-  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #7c3aed;
+  margin-bottom: 6px;
 }
 
-.quantum-unavailable p {
+.quantum-roadmap-lead {
+  margin: 0 0 12px;
+}
+
+.quantum-roadmap-heading {
+  margin: 12px 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #5b21b6;
+}
+
+.quantum-roadmap-list {
   margin: 0 0 10px;
+  padding-left: 18px;
 }
 
-.quantum-unavailable p:last-child {
+.quantum-roadmap-list li {
+  margin-bottom: 6px;
+}
+
+.quantum-roadmap-list li:last-child {
   margin-bottom: 0;
 }
 
-.quantum-unavailable-smiles {
+.quantum-roadmap p {
+  margin: 0 0 10px;
+}
+
+.quantum-roadmap-staged {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 6px;
+  background: #f5f3ff;
+  border: 1px dashed #c4b5fd;
   font-size: 11px;
-  color: #78350f;
+}
+
+.quantum-roadmap-staged p {
+  margin: 0 0 6px;
   word-break: break-all;
+}
+
+.quantum-roadmap-staged p:last-child {
+  margin-bottom: 0;
+}
+
+.quantum-roadmap-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.quantum-roadmap-actions .quantum-cta {
+  text-decoration: none;
+  font-size: 12px;
+  padding: 8px 12px;
 }
 
 
