@@ -67,13 +67,6 @@ export default function QuantumInsight({ compound, smiles, protein = null }) {
               </li>
             </ul>
 
-            <h5 className="quantum-roadmap-heading">Why it is not live yet</h5>
-            <p>
-              The previous Vercel serverless stack bundled roughly 600&nbsp;MB+ of scientific Python dependencies
-              per deployment. We removed it to keep production lean; bringing VQE back requires external compute,
-              not Vercel Functions.
-            </p>
-
             {(smiles || pdbId) && (
               <div className="quantum-roadmap-staged" aria-label="Staged inputs for future runs">
                 {pdbId && (
