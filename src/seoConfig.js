@@ -109,56 +109,21 @@ export const STATIC_ROUTE_CONTENT = {
     eyebrow: "TargetForge · computational drug discovery",
     h1: "AI-Powered Drug Discovery & Target Identification",
     intro:
-      "TargetForge is a computational workbench that supports researchers with target identification, drug repurposing screens, molecular docking, ADME analysis, and scientific hypothesis testing. Outputs help prioritize candidates for follow-up — they are triage aids, not evidence of clinical efficacy.",
+      "Rank compounds against a protein target in minutes: stage a PDB structure, shortlist PubChem molecules, get a critiqued AI ranking, then run in-browser docking and ADME.",
     sections: [
       {
-        h2: "Drug discovery",
+        h2: "How it works",
         text:
-          "Stage a protein target, shortlist molecules from PubChem, compare drug-likeness and PAINS flags, and generate a transparent AI recommendation before running native molecular docking and ADME prediction.",
-        path: "/",
-        linkLabel: "Open the discovery staging bench",
+          "Pick a target, add 2–5 compounds, and get a target-aware ranked shortlist with optional docking and ADME follow-up. Station-by-station detail is documented on Methodology",
+        path: "/methodology#staging-bench",
+        linkLabel: "see the staging bench workflow",
       },
       {
-        h2: "Drug repurposing",
+        h2: "More workflows",
         text:
-          "Screen approved drugs against a protein target to surface repurposing candidates with target-aware scoring across a curated library of marketed small molecules.",
-        path: "/repurposing",
-        linkLabel: "Run a drug repurposing screen",
-      },
-      {
-        h2: "Target identification",
-        text:
-          "Find genetically validated but underexplored protein targets for a disease using Open Targets evidence. Helps researchers prioritize candidates for follow-up screening.",
-        path: "/target-discovery",
-        linkLabel: "Explore target identification",
-      },
-      {
-        h2: "Molecular docking",
-        text:
-          "Compute binding free energy estimates, inhibition constants, and inspect 3D poses in crystallographic binding pockets — simulated in-browser for structure-based prioritization.",
-        path: "/docking",
-        linkLabel: "Run molecular docking",
-      },
-      {
-        h2: "ADME analysis",
-        text:
-          "Calculate physicochemical properties, rule-based druglikeness filters (Lipinski, Veber, Ghose), and BOILED-Egg absorption models locally with RDKit for lead optimization triage.",
-        path: "/adme",
-        linkLabel: "Analyze ADME properties",
-      },
-      {
-        h2: "Scientific hypothesis testing",
-        text:
-          "Critically interrogate drug discovery and biology hypotheses with evidence mapping, falsification checks, and structured scientific critique.",
-        path: "/hypothesis",
-        linkLabel: "Test a scientific hypothesis",
-      },
-      {
-        h2: "Automated scientific research",
-        text:
-          "Run TargetForge workflows in sequence — target discovery, PDB selection, approved-drug ranking, and adversarial critique — for automated research triage.",
-        path: "/agent",
-        linkLabel: "Launch the research agent",
+          "Target discovery, drug repurposing, molecular docking, ADME profiling, hypothesis testing, and the autonomous research agent are available from the Tools menu. Scoring rules and limitations are on Methodology",
+        path: "/methodology",
+        linkLabel: "read methodology and disclaimers",
       },
     ],
     footerLinks: [

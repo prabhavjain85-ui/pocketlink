@@ -7,6 +7,7 @@ export default function MethodologyPage() {
   useEffect(() => {
     const handleScroll = () => {
       const sectionIds = [
+        "staging-bench",
         "pdb-target-score",
         "pains-screening",
         "target-aware-scoring",
@@ -63,6 +64,14 @@ export default function MethodologyPage() {
           <div className="sidebar-inner">
             <div className="sidebar-heading">Contents</div>
             <nav className="sidebar-nav" aria-label="Methodology sections">
+              <button
+                type="button"
+                id="toc-link-staging-bench"
+                className={`sidebar-link ${activeSection === "staging-bench" ? "active" : ""}`}
+                onClick={() => scrollToSection("staging-bench")}
+              >
+                <span className="sidebar-num">00</span> Discovery Staging Bench
+              </button>
               <button
                 type="button"
                 id="toc-link-pdb"
@@ -149,6 +158,39 @@ export default function MethodologyPage() {
 
         {/* Main Content Sections */}
         <main className="methodology-main" id="methodology-main-content">
+          {/* Section 0: Discovery staging bench workflow */}
+          <section className="methodology-section" id="staging-bench">
+            <div className="section-eyebrow">Workflow Overview</div>
+            <h2 className="section-title">Discovery Staging Bench</h2>
+            <p className="section-text">
+              The home screen (<strong>Run a screen</strong>) is a four-station pipeline for structure-based hit triage.
+              Each station builds on the previous one; you can hand off to native docking and ADME when you are ready.
+            </p>
+            <ol className="methodology-staging-steps">
+              <li>
+                <strong>Station 1 — RCSB PDB target search.</strong> Stage a crystallographic structure with TargetForge&apos;s
+                Target Selection Score (resolution, co-ligand, pocket geometry, completeness, and method).
+              </li>
+              <li>
+                <strong>Station 2 — PubChem shortlist (up to five molecules).</strong> Search compounds one at a time, review
+                Lipinski/Veber pre-checks and PAINS/toxicophore flags, and build a 2–5 molecule shortlist for ranking.
+              </li>
+              <li>
+                <strong>Station 3 — AI prioritization.</strong> Score the shortlist for the <em>selected PDB</em> using pocket context,
+                known pharmacology, drug-likeness, and PAINS deprioritization. Optional OpenAI narration when an API key is configured;
+                otherwise TargetForge uses its built-in target-aware model. Adversarial critique is available for the top pick.
+              </li>
+              <li>
+                <strong>Station 4 — Docking &amp; ADME handoff.</strong> Pick a compound and launch in-browser molecular docking or
+                RDKit-based ADME profiling with the staged PDB ID and SMILES pre-filled.
+              </li>
+            </ol>
+            <p className="section-text">
+              The <strong>One-click demo: EGFR screen</strong> on the homepage loads PDB <code>1M17</code> with imatinib and osimertinib
+              so you can compare a weak vs strong EGFR binder without manual setup.
+            </p>
+          </section>
+
           {/* Section 1: PDB Target Selection Score */}
           <section className="methodology-section" id="pdb-target-score">
             <div className="section-eyebrow">Criterion 01</div>

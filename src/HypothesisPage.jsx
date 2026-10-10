@@ -250,9 +250,8 @@ export default function HypothesisPage() {
           </div>
           <h1 className="hero-title">Scientific Hypothesis Evaluator</h1>
           <p className="hero-description">
-            Critically interrogate scientific and drug discovery hypotheses against empirical evidence. Supports
-            computational hypothesis testing by evaluating biological plausibility, genetics, model systems, and
-            counter-evidence — not a substitute for experimental or clinical validation.
+            Critically interrogate scientific and drug discovery hypotheses against empirical evidence — biological
+            plausibility, genetics, model systems, and counter-evidence.
           </p>
           <div className="hero-tenet-banner">
             <span className="tenet-chip">CORRELATION ≠ CAUSATION</span>

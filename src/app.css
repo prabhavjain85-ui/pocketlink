@@ -1887,14 +1887,41 @@ body {
   border-radius: var(--radius);
 }
 
+.site-disclaimer {
+  max-width: 1080px;
+  margin: 40px auto 0;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+}
+
+.site-disclaimer p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.site-disclaimer a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.site-disclaimer a:hover {
+  text-decoration: underline;
+}
+
 .footer-note {
   max-width: 1080px;
-  margin: 48px auto 0;
+  margin: 16px auto 0;
   color: var(--text-muted);
   font-size: 12.5px;
   line-height: 1.65;
   border-top: 1px solid var(--border);
   padding-top: 24px;
+  padding-bottom: 32px;
 }
 
 .footer-note a {
@@ -2300,6 +2327,22 @@ textarea.field-input {
   line-height: 1.65;
   color: var(--text-dim);
   margin: 0 0 14px;
+}
+
+.methodology-staging-steps {
+  margin: 0 0 16px;
+  padding-left: 1.25rem;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--text-dim);
+}
+
+.methodology-staging-steps li {
+  margin-bottom: 10px;
+}
+
+.methodology-staging-steps li:last-child {
+  margin-bottom: 0;
 }
 
 .methodology-criteria-grid {
