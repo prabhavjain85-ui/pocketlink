@@ -8,10 +8,16 @@ export const DEFAULT_EVOLUTION_SETTINGS = {
   survivors: 5,
 };
 
+function clampInt(raw, fallback, min, max) {
+  const n = Number(raw);
+  const value = Number.isFinite(n) ? n : fallback;
+  return Math.max(min, Math.min(max, value));
+}
+
 export function clampSettings(raw = {}) {
-  const generations = Math.max(1, Math.min(8, Number(raw.generations) || 5));
-  const variantsPerGeneration = Math.max(4, Math.min(40, Number(raw.variantsPerGeneration) || 20));
-  const survivors = Math.max(1, Math.min(10, Number(raw.survivors) || 5));
+  const generations = clampInt(raw.generations, 5, 1, 8);
+  const variantsPerGeneration = clampInt(raw.variantsPerGeneration, 20, 4, 40);
+  const survivors = clampInt(raw.survivors, 5, 1, 10);
   return { generations, variantsPerGeneration, survivors };
 }
 

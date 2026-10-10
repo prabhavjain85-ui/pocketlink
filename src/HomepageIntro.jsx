@@ -1,48 +1,23 @@
 import React from "react";
-
-const AUDIENCES = [
-  "Academic / student labs",
-  "Biotech and CRO triage",
-  "Hypothesis checks before wet-lab spend",
-];
+import { Link } from "react-router-dom";
 
 const STEPS = [
-  { n: "1", title: "Stage a protein target", detail: "RCSB / gene / PDB" },
-  { n: "2", title: "Shortlist up to 5 molecules", detail: "from PubChem" },
-  { n: "3", title: "Compare drug-likeness and PAINS", detail: "then an AI ranking" },
-  { n: "4", title: "Run docking and ADME", detail: "on the shortlist" },
+  { n: "1", title: "Pick a protein target", detail: "RCSB PDB, gene, or disease handoff" },
+  { n: "2", title: "Add 2–5 compounds", detail: "PubChem search & drug-likeness pre-check" },
+  { n: "3", title: "Rank & follow up", detail: "Target-aware AI score, then docking & ADME" },
 ];
 
 export default function HomepageIntro({ onLoadDemo, onStartBlank, demoLoading }) {
   return (
     <div className="hero">
       <div className="hero-eyebrow">TargetForge · computational drug discovery</div>
-      <h1>AI-Powered Drug Discovery &amp; Target Identification</h1>
-      <p>
-        TargetForge is an early-stage computational workbench for target identification, approved-drug
-        repurposing, molecular docking, ADME triage, and hypothesis critique. Results help researchers
-        prioritize follow-up. They are not experimental proof and not evidence of clinical efficacy.
+      <h1>Rank compounds against a protein target — in minutes</h1>
+      <p className="hero-lead">
+        Stage a structure, shortlist molecules, and get a transparent, critiqued ranking before you run
+        in-browser docking and ADME.
       </p>
 
-      <ul className="intro-audience" aria-label="Who TargetForge is for">
-        {AUDIENCES.map((label) => (
-          <li key={label}>{label}</li>
-        ))}
-      </ul>
-
-      <ol className="intro-steps" aria-label="How a screen works">
-        {STEPS.map((step) => (
-          <li key={step.n}>
-            <span className="intro-step-n">{step.n}</span>
-            <span>
-              <strong>{step.title}</strong>
-              <span className="intro-step-detail">{step.detail}</span>
-            </span>
-          </li>
-        ))}
-      </ol>
-
-      <div className="intro-actions">
+      <div className="intro-actions intro-actions-primary">
         <button
           type="button"
           className="btn btn-primary"
@@ -57,19 +32,26 @@ export default function HomepageIntro({ onLoadDemo, onStartBlank, demoLoading })
         </button>
       </div>
       <p className="intro-demo-note">
-        Stages EGFR (<span className="mono">1M17</span>), compares <strong>imatinib</strong> (a BCR-ABL drug, weak on EGFR)
-        with <strong>osimertinib</strong> (an EGFR inhibitor), and runs the AI ranking — useful for portfolio demos without
+        Stages EGFR (<span className="mono">1M17</span>), compares <strong>imatinib</strong> (weak on EGFR) with{" "}
+        <strong>osimertinib</strong> (EGFR inhibitor), and runs the AI ranking — a quick portfolio walkthrough with no
         manual PDB search.
       </p>
-      <p className="intro-disclaimer">
-        Docking scores, ADME flags, and AI rankings are computational estimates for prioritization only.
-      </p>
 
-      <h2>Discovery staging bench</h2>
-      <p>
-        Stage a protein target, shortlist up to five molecules from PubChem, compare drug-likeness and PAINS
-        flags, and generate a transparent AI recommendation before running native molecular docking and ADME
-        prediction.
+      <h2 className="intro-section-title">How it works</h2>
+      <ol className="intro-steps intro-steps-three" aria-label="How a screen works">
+        {STEPS.map((step) => (
+          <li key={step.n}>
+            <span className="intro-step-n">{step.n}</span>
+            <span>
+              <strong>{step.title}</strong>
+              <span className="intro-step-detail">{step.detail}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="intro-methodology-link">
+        Station-by-station detail, scoring rules, and validation notes live on{" "}
+        <Link to="/methodology#staging-bench">Methodology</Link>.
       </p>
     </div>
   );
