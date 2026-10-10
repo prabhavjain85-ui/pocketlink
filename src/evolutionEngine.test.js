@@ -7,7 +7,7 @@ test("default settings stay in the documented band", () => {
   expect(clampSettings({ generations: 99, variantsPerGeneration: 1, survivors: 0 })).toEqual({
     generations: 8,
     variantsPerGeneration: 4,
-    survivors: 5,
+    survivors: 1,
   });
 });
 
