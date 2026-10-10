@@ -94,7 +94,7 @@ export default function HandoffStations({ b }) {
           {(protein || candidates.length > 0) && (
             <div>
               <div className="lipinski-note" style={{ marginTop: 0, marginBottom: 14 }}>
-                The ranking is a triage aid. It does not replace docking, ADME prediction, toxicity assessment, or experimental validation.
+                Use the handoff below for docking and ADME on your selected compound — the AI ranking does not replace those steps.
               </div>
               {candidates.length > 1 && (
                 <div className="handoff-pick">

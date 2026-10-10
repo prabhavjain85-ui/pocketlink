@@ -357,7 +357,7 @@ export default function RepurposingPage() {
         <p>
           Search a target and screen approved drugs for repurposing candidates. TargetForge scores each compound against
           the selected structure using target-aware heuristics across a curated library of {librarySize} marketed small
-          molecules. Results help researchers prioritize follow-up — not confirm clinical activity.
+          molecules.
         </p>
       </div>
 

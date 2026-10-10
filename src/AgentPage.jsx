@@ -217,7 +217,6 @@ export default function AgentPage() {
         <h1>Autonomous Research Agent</h1>
         <p className="hero-subtitle">
           Runs TargetForge’s target discovery, PDB selection, approved-drug ranking, and adversarial critique in sequence.
-          Supports automated research triage — computational outputs only.
         </p>
       </div>
 
