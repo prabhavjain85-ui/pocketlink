@@ -79,7 +79,7 @@ export default function StagingBenchView(b) {
             <div>
               <div className="compound-card">
                 <div className="compound-visual">
-                  <PubChemStructureImage cid={cResult.CID} />
+                  <PubChemStructureImage cid={cResult.CID} smiles={getCompoundSmiles(cResult)} />
                   <span className="compound-thumb-label">PubChem reference structure</span>
                 </div>
                 <div>

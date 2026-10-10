@@ -1,10 +1,62 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { getRDKit } from "./rdkitLoader";
 import { SCORE_FORMULA_TEXT } from "./targetSelectionScore";
 
-export function PubChemStructureImage({ cid, compact }) {
+/** PubChem 2D PNG via PUG-REST (works in cross-site <img>; legacy imgsrv.fcgi blocks with 403). */
+export function pubchemStructureImageUrl(cid) {
+  const id = String(cid ?? "").trim();
+  if (!id) return null;
+  return `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${encodeURIComponent(id)}/PNG`;
+}
+
+function RdkitStructureFallback({ smiles, compact, cid }) {
+  const [svg, setSvg] = useState(null);
   const [failed, setFailed] = useState(false);
 
-  if (!cid || failed) {
+  useEffect(() => {
+    let cancelled = false;
+    setSvg(null);
+    setFailed(false);
+    const raw = String(smiles || "").trim();
+    if (!raw) {
+      setFailed(true);
+      return undefined;
+    }
+
+    (async () => {
+      const RDKit = await getRDKit();
+      if (cancelled) return;
+      if (!RDKit) {
+        setFailed(true);
+        return;
+      }
+      let mol = null;
+      try {
+        mol = RDKit.get_mol(raw);
+        if (!mol) {
+          setFailed(true);
+          return;
+        }
+        const w = compact ? 120 : 220;
+        const h = compact ? 80 : 160;
+        setSvg(mol.get_svg(w, h));
+      } catch {
+        setFailed(true);
+      } finally {
+        try {
+          mol?.delete?.();
+        } catch {
+          // ignore
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [smiles, compact]);
+
+  if (failed || !svg) {
     return (
       <div className={"pubchem-structure-fallback" + (compact ? " compact" : "")}>
         Structure image unavailable
@@ -13,12 +65,70 @@ export function PubChemStructureImage({ cid, compact }) {
   }
 
   return (
+    <div
+      className={"pubchem-structure-image rdkit-structure-svg" + (compact ? " compact" : "")}
+      role="img"
+      aria-label={cid ? `2D structure for CID ${cid}` : "2D molecular structure"}
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  );
+}
+
+export function PubChemStructureImage({ cid, smiles, compact }) {
+  const [useRdkit, setUseRdkit] = useState(false);
+  const [pubchemFailed, setPubchemFailed] = useState(false);
+
+  const resolvedSmiles = useMemo(() => String(smiles || "").trim(), [smiles]);
+  const imageUrl = useMemo(() => pubchemStructureImageUrl(cid), [cid]);
+
+  useEffect(() => {
+    setUseRdkit(false);
+    setPubchemFailed(false);
+  }, [cid, imageUrl]);
+
+  if (!cid && !resolvedSmiles) {
+    return (
+      <div className={"pubchem-structure-fallback" + (compact ? " compact" : "")}>
+        Structure image unavailable
+      </div>
+    );
+  }
+
+  if (pubchemFailed) {
+    return (
+      <div className={"pubchem-structure-fallback" + (compact ? " compact" : "")}>
+        Structure image unavailable
+      </div>
+    );
+  }
+
+  if (useRdkit && resolvedSmiles) {
+    return <RdkitStructureFallback smiles={resolvedSmiles} compact={compact} cid={cid} />;
+  }
+
+  if (!imageUrl) {
+    if (resolvedSmiles) {
+      return <RdkitStructureFallback smiles={resolvedSmiles} compact={compact} cid={cid} />;
+    }
+    return (
+      <div className={"pubchem-structure-fallback" + (compact ? " compact" : "")}>
+        Structure image unavailable
+      </div>
+    );
+  }
+
+  const handleImgError = () => {
+    if (resolvedSmiles) setUseRdkit(true);
+    else setPubchemFailed(true);
+  };
+
+  return (
     <img
       className={"pubchem-structure-image" + (compact ? " compact" : "")}
-      src={`https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=${cid}&t=l`}
-      alt={`PubChem structure for CID ${cid}`}
-      title={`PubChem structure for CID ${cid}`}
-      onError={() => setFailed(true)}
+      src={imageUrl}
+      alt={cid ? `PubChem structure for CID ${cid}` : "PubChem 2D structure"}
+      title={cid ? `PubChem structure for CID ${cid}` : "PubChem 2D structure"}
+      onError={handleImgError}
     />
   );
 }
