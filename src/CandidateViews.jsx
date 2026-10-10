@@ -115,7 +115,7 @@ export function CandidateRow({ candidate, selected, recommended, pains, onToggle
   return (
     <div className={"shortlist-card" + (selected ? " selected" : "") + (recommended ? " recommended" : "")}>
       <button type="button" className="shortlist-main" onClick={onToggle}>
-        <PubChemStructureImage cid={candidate.CID} compact />
+        <PubChemStructureImage cid={candidate.CID} smiles={getCompoundSmiles(candidate)} compact />
         <div className="shortlist-copy">
           <div className="shortlist-top">
             <strong>{candidate.displayName || prettyName(candidate)}</strong>
