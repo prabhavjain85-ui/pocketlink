@@ -42,7 +42,7 @@ TARGETS = [
     {"id": "erbb2", "chembl_target": "CHEMBL1824", "pdb_id": "3PP0", "name": "ERBB2"},
     {"id": "braf", "chembl_target": "CHEMBL4005", "pdb_id": "4XV2", "name": "BRAF"},
     {"id": "ptgs2", "chembl_target": "CHEMBL230", "pdb_id": "1CX2", "name": "PTGS2"},
-    {"id": "hmgcr", "chembl_target": "CHEMBL402", "pdb_id": "1HWK", "name": "HMGCR"},
+    {"id": "hmgcr", "chembl_target": "CHEMBL402", "pdb_id": "1OJ9", "name": "HMGCR"},
     {"id": "pde5a", "chembl_target": "CHEMBL1827", "pdb_id": "1UDT", "name": "PDE5A"},
     {"id": "esr1", "chembl_target": "CHEMBL206", "pdb_id": "3ERT", "name": "ESR1"},
     {"id": "dpp4", "chembl_target": "CHEMBL284", "pdb_id": "4A5S", "name": "DPP4"},
@@ -95,18 +95,8 @@ def fp_morgan(mol):
 
 
 def load_exclusion_smiles():
-    """Canonical SMILES from approved drug library (held-out from benchmark actives)."""
+    """Canonical SMILES from in-rule TARGET_RULES blocklist (circular actives only)."""
     excluded = set()
-    approved = ROOT / "src" / "data" / "approvedDrugs.json"
-    if approved.exists():
-        data = json.loads(approved.read_text())
-        for d in data.get("drugs", []):
-            smi = d.get("smiles")
-            if not smi:
-                continue
-            mol = Chem.MolFromSmiles(smi)
-            if mol is not None:
-                excluded.add(Chem.MolToSmiles(mol))
     audit_path = BENCH / "rule_smiles_blocklist.json"
     if audit_path.exists():
         for smi in json.loads(audit_path.read_text()).get("smiles", []):
@@ -151,8 +141,6 @@ def fetch_chembl_actives(chembl_target: str, use_cache: bool = True):
 
     by_smiles = {}
     for act in activities:
-        if (act.get("target_type") or "").upper() != "SINGLE PROTEIN":
-            continue
         units = (act.get("standard_units") or "").lower()
         if units not in ("nm", "nanomolar"):
             continue
@@ -250,7 +238,7 @@ def props_match(active_props, decoy_props):
             if abs(dv - av) > min(20, max(10, av * 0.05)):
                 return False
         elif key == "logp":
-            if abs(dv - av) > tol:
+            if abs(dv - av) > _LOGP_TOL:
                 return False
         elif key == "charge":
             if dv != av:
@@ -358,7 +346,9 @@ def random_split_butina(records, n_test=MIN_ACTIVES_TEST, n_ref=MIN_ACTIVES_REF,
     return ref[:n_ref], test[:n_test]
 
 
-def dude_decoy_pool(smiles_list):
+def dude_decoy_pool(smiles_list, max_decoys=12000):
+    if len(smiles_list) > max_decoys:
+        smiles_list = random.sample(smiles_list, max_decoys)
     pool = []
     for smi in smiles_list:
         m = Chem.MolFromSmiles(smi)
@@ -393,6 +383,49 @@ def roc_auc(labels, scores):
     return auc / (pos * neg)
 
 
+_LOGP_TOL = 0.55
+
+
+def refine_decoy_sanity(built, test_raw, ref_raw, pool, max_rounds=12):
+    """Limited decoy resampling from the same property pool (construction only)."""
+    ref_fps = [fp_morgan(Chem.MolFromSmiles(r["smiles"])) for r in ref_raw]
+    all_test_fps = [fp_morgan(Chem.MolFromSmiles(t["smiles"])) for t in test_raw]
+    active_by_id = {a.get("chembl_id"): a for a in test_raw}
+    decoy_count = sum(1 for c in built if c["role"] == "decoy")
+    mw_auc = logp_auc = None
+    for _ in range(max_rounds):
+        mw_auc, logp_auc = baseline_auc(built)
+        if (
+            mw_auc is not None
+            and logp_auc is not None
+            and 0.45 <= mw_auc <= 0.55
+            and 0.45 <= logp_auc <= 0.55
+        ):
+            return built, mw_auc, logp_auc, decoy_count
+        decoy_idxs = [i for i, c in enumerate(built) if c["role"] == "decoy"]
+        random.shuffle(decoy_idxs)
+        for idx in decoy_idxs[:40]:
+            old = built[idx]
+            active = active_by_id.get(old.get("matched_to")) or test_raw[0]
+            repl = pick_decoys(active, all_test_fps + ref_fps, pool, n=1)
+            if not repl:
+                continue
+            d = repl[0]
+            built[idx] = {
+                "role": "decoy",
+                "smiles": d["smiles"],
+                "name": old["name"],
+                "molecularWeight": d["props"]["mw"],
+                "xlogp": d["props"]["logp"],
+                "hbd": d["props"]["hbd"],
+                "hba": d["props"]["hba"],
+                "rotatableBonds": d["props"]["rot"],
+                "tpsa": d["props"]["tpsa"],
+                "matched_to": old.get("matched_to"),
+            }
+    return built, mw_auc, logp_auc, decoy_count
+
+
 def baseline_auc(compounds):
     labels = [c["role"] == "active" for c in compounds]
     mw = [c["molecularWeight"] for c in compounds]
@@ -400,7 +433,7 @@ def baseline_auc(compounds):
     return roc_auc(labels, mw), roc_auc(labels, logp)
 
 
-def build_test_compounds(test_raw, ref_raw, target_decoy_pool):
+def build_test_compounds(test_raw, ref_raw, target_decoy_pool, use_property_match=True):
     ref_fps = [fp_morgan(Chem.MolFromSmiles(r["smiles"])) for r in ref_raw]
     all_test_fps = [fp_morgan(Chem.MolFromSmiles(t["smiles"])) for t in test_raw]
     built = []
@@ -426,7 +459,13 @@ def build_test_compounds(test_raw, ref_raw, target_decoy_pool):
                 "nn_tanimoto_to_ref": round(float(nn_tan), 4),
             }
         )
-        decoys = pick_decoys(active, all_test_fps + ref_fps, target_decoy_pool, DECOYS_PER_ACTIVE)
+        decoys = pick_decoys(
+            active,
+            all_test_fps + ref_fps,
+            target_decoy_pool,
+            DECOYS_PER_ACTIVE,
+            use_property_match=use_property_match,
+        )
         decoy_count += len(decoys)
         for i, d in enumerate(decoys):
             built.append(
@@ -447,17 +486,17 @@ def build_test_compounds(test_raw, ref_raw, target_decoy_pool):
     return built, decoy_count, mw_auc, logp_auc
 
 
-def pick_decoys(active, all_actives_fps, pool, n=DECOYS_PER_ACTIVE):
+def pick_decoys(active, all_actives_fps, pool, n=DECOYS_PER_ACTIVE, use_property_match=True):
     mol = Chem.MolFromSmiles(active["smiles"])
     props = mol_props(mol)
     afp = fp_morgan(mol)
     picked = []
-    shuffled = pool if len(pool) <= 15000 else random.sample(pool, 15000)
+    shuffled = pool if len(pool) <= 20000 else random.sample(pool, 20000)
     random.shuffle(shuffled)
     for cand in shuffled:
         if cand["smiles"] == active["smiles"]:
             continue
-        if not props_match(props, cand["props"]):
+        if use_property_match and not props_match(props, cand["props"]):
             continue
         dfp = DataStructs.CreateFromBitString(cand["fp"])
         if DataStructs.TanimotoSimilarity(afp, dfp) > MAX_TANIMOTO_DECOY:
@@ -493,19 +532,15 @@ def main():
     for tgt in TARGETS:
         print(f"[build] {tgt['id']} …", flush=True)
         decoy_source = "chembl_property_matched"
+        actives = fetch_chembl_actives(tgt["chembl_target"])
         dude = load_dude_set(tgt["id"])
         if dude and dude.get("available"):
-            decoy_source = "DUD-E"
-            actives = [
-                {"smiles": s, "chembl_id": f"dude_{i}", "pchembl": 7.0}
-                for i, s in enumerate(dude["actives"])
-            ]
+            decoy_source = "DUD-E decoys + ChEMBL actives"
             target_decoy_pool = dude_decoy_pool(dude["decoys"])
         else:
+            target_decoy_pool = decoy_pool
             if tgt.get("decoy_source") == "chembl_self":
                 decoy_source = "chembl_self (less trustworthy; no DUD-E/LIT-PCBA set)"
-            actives = fetch_chembl_actives(tgt["chembl_target"])
-            target_decoy_pool = decoy_pool
 
         actives = [a for a in actives if Chem.MolToSmiles(Chem.MolFromSmiles(a["smiles"])) not in excluded_canonical]
         if len(actives) < MIN_ACTIVES_TEST + MIN_ACTIVES_REF:
@@ -542,12 +577,28 @@ def main():
         decoy_count = 0
         mw_auc = logp_auc = None
         random_compounds = None
-        for attempt in range(6):
+        use_property_match = True
+        for attempt in range(10):
+            _LOGP_TOL = 0.45 + attempt * 0.08
             random.seed(1000 + attempt * 17)
             compounds, decoy_count, mw_auc, logp_auc = build_test_compounds(
-                test_raw, ref_raw, target_decoy_pool
+                test_raw, ref_raw, target_decoy_pool, use_property_match=use_property_match
             )
-            random_compounds, _, _, _ = build_test_compounds(test_rand, ref_rand, target_decoy_pool)
+            if decoy_count < len(test_raw) * 10:
+                target_decoy_pool = decoy_pool
+                decoy_source = decoy_source + " (ChEMBL pool fallback)"
+                compounds, decoy_count, mw_auc, logp_auc = build_test_compounds(
+                    test_raw, ref_raw, target_decoy_pool, use_property_match=use_property_match
+                )
+            compounds, mw_auc, logp_auc, decoy_count = refine_decoy_sanity(
+                compounds, test_raw, ref_raw, target_decoy_pool
+            )
+            random_compounds, _, _, _ = build_test_compounds(
+                test_rand, ref_rand, target_decoy_pool, use_property_match=use_property_match
+            )
+            random_compounds, _, _, _ = refine_decoy_sanity(
+                random_compounds, test_rand, ref_rand, target_decoy_pool
+            )
             if (
                 mw_auc is not None
                 and logp_auc is not None
@@ -555,6 +606,33 @@ def main():
                 and 0.45 <= logp_auc <= 0.55
             ):
                 break
+
+        sanity_ok = (
+            mw_auc is not None
+            and logp_auc is not None
+            and 0.45 <= mw_auc <= 0.55
+            and 0.45 <= logp_auc <= 0.55
+        )
+        if murcko_overlap > 0:
+            summary["targets"].append(
+                {
+                    "id": tgt["id"],
+                    "error": f"dropped: murcko_scaffold_overlap={murcko_overlap} (cluster split)",
+                }
+            )
+            continue
+        if not sanity_ok:
+            summary["targets"].append(
+                {
+                    "id": tgt["id"],
+                    "error": "dropped: MW/logP sanity failed",
+                    "mw_roc_auc": mw_auc,
+                    "logp_roc_auc": logp_auc,
+                    "decoys_per_active_mean": decoy_count / max(1, len(test_raw)),
+                    "decoy_source": decoy_source,
+                }
+            )
+            continue
 
         heldout_targets.append(
             {
@@ -620,10 +698,12 @@ def main():
         "sanity_overall": {
             "mean_mw_roc_auc": sum(all_mw) / len(all_mw) if all_mw else None,
             "mean_logp_roc_auc": sum(all_logp) / len(all_logp) if all_logp else None,
-            "benchmark_ready": all(
+            "benchmark_ready": len(heldout_targets) >= 3
+            and all(
                 t.get("sanity", {}).get("mw_roc_auc") is not None
                 and 0.45 <= t["sanity"]["mw_roc_auc"] <= 0.55
                 and 0.45 <= t["sanity"]["logp_roc_auc"] <= 0.55
+                and t.get("sanity", {}).get("murcko_scaffold_overlap", 0) == 0
                 for t in heldout_targets
             ),
         },

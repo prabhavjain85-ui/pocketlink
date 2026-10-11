@@ -93,6 +93,11 @@ function buildRandomCompounds(target, splitBlock) {
 }
 
 async function scoreTarget(compounds, protein, painsApi) {
+  const nAct = compounds.filter((c) => c.role === "active").length;
+  const nDec = compounds.filter((c) => c.role === "decoy").length;
+  if (nAct < 2 || nDec < 2 || compounds.length < 4) {
+    return null;
+  }
   const candidates = compounds.map((c) => compoundToCandidate(c, painsApi));
   const similarityByCid = await buildSimilarityMap(compounds, protein);
   const rankedH = rankCandidatesLocal(candidates, protein, {
@@ -145,9 +150,24 @@ function meanAuc(perTarget, mode, method) {
   return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
 }
 
-function fmtCi(ci) {
-  if (!ci || ci.low == null) return "—";
-  return `[${ci.low.toFixed(3)}, ${ci.high.toFixed(3)}]`;
+function fmtMetric(m) {
+  if (!m || m.roc_auc == null) return "—";
+  const ci = m.roc_auc_ci_95;
+  const ciStr = ci?.low != null ? ` (${ci.low.toFixed(3)}–${ci.high.toFixed(3)})` : "";
+  const ef = m.ef_at_1pct != null ? m.ef_at_1pct.toFixed(2) : "—";
+  return `${m.roc_auc.toFixed(3)}${ciStr}; EF@1% ${ef}`;
+}
+
+function mdTableForMode(perTarget, mode, methods) {
+  let md = `| Target | Murcko overlap | NN Tanimoto (mean) | ${methods.join(" | ")} |\n`;
+  md += `|---|:---:|:---:|${methods.map(() => ":---").join("|")}|\n`;
+  for (const t of perTarget) {
+    const murcko = t.murcko_overlap ?? 0;
+    const nn = t.nn_tanimoto_distribution?.mean;
+    const cells = methods.map((meth) => fmtMetric(t.modes?.[mode]?.[meth]));
+    md += `| ${t.target} | ${murcko} | ${nn != null ? nn.toFixed(3) : "—"} | ${cells.join(" | ")} |\n`;
+  }
+  return md;
 }
 
 async function main() {
@@ -180,6 +200,7 @@ async function main() {
       decoy_source: sanity.decoy_source,
       mw_auc: sanity.mw_roc_auc,
       logp_auc: sanity.logp_roc_auc,
+      murcko_overlap: sanity.murcko_scaffold_overlap ?? 0,
     };
     perTargetTables.push(baselineRow);
 
@@ -188,9 +209,7 @@ async function main() {
       modes.cluster = await scoreTarget(filterClusterCompounds(target), target.protein, painsApi);
       modes.cutoff = await scoreTarget(filterCutoffCompounds(target), target.protein, painsApi);
       const randomCompounds = buildRandomCompounds(target, splitBlock);
-      if (randomCompounds.length >= 4) {
-        modes.random = await scoreTarget(randomCompounds, target.protein, painsApi);
-      }
+      modes.random = await scoreTarget(randomCompounds, target.protein, painsApi);
     }
 
     const nn = target.compounds
@@ -240,20 +259,20 @@ async function main() {
   if (!benchmarkReady) {
     md += "\n**Scoring methods were not evaluated** until MW and logP baselines are 0.45–0.55 per target.\n";
   } else {
-    md += "\n## Headline: cluster split (held-out chemotypes)\n\n";
-    md += "| Method | Mean ROC-AUC |\n|---|---:|\n";
-    for (const [k, v] of Object.entries(results.overall.cluster || {})) {
-      md += `| ${k} | ${v?.toFixed?.(3) ?? "—"} |\n`;
+    const methods = ["legacy", "similarity", "combined", "mw", "logp", "random"];
+    md += "\n## Headline: cluster split (ROC-AUC 95% CI; EF@1%)\n\n";
+    md += mdTableForMode(results.per_target, "cluster", methods);
+    md += "\n### Overall (macro mean of per-target AUCs)\n\n| Method | Mean AUC |\n|---|---:|\n";
+    for (const k of methods) {
+      md += `| ${k} | ${results.overall.cluster?.[k]?.toFixed?.(3) ?? "—"} |\n`;
     }
-    md += `\nCombined beats similarity on ${clusterWins}/${results.per_target.length} targets (cluster split).\n`;
-    md += "\n## Optimistic upper bound: random scaffold assignment\n\n";
-    for (const [k, v] of Object.entries(results.overall.random || {})) {
-      md += `- ${k}: ${v?.toFixed?.(3) ?? "—"}\n`;
-    }
-    md += "\n## Hard cutoff (drop test actives with NN Tanimoto > 0.4 to reference)\n\n";
-    for (const [k, v] of Object.entries(results.overall.cutoff || {})) {
-      md += `- ${k}: ${v?.toFixed?.(3) ?? "—"}\n`;
-    }
+    md += `\n**Combined beats similarity on cluster split:** ${clusterWins}/${results.per_target.length} targets (${
+      results.combined_beats_similarity_on_cluster_split ? "yes" : "no"
+    } at majority).\n`;
+    md += "\n## Hard cutoff (NN Tanimoto ≤ 0.4 to reference actives)\n\n";
+    md += mdTableForMode(results.per_target, "cutoff", methods);
+    md += "\n## Optimistic upper bound: random split\n\n";
+    md += mdTableForMode(results.per_target, "random", methods);
   }
   writeFileSync(OUT_MD, md);
   console.log(`Wrote ${OUT_JSON} and ${OUT_MD}`);
