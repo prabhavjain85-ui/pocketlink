@@ -27,8 +27,7 @@ PR A (separate, off `main`) owns: disable in-browser docking engine, honest mark
 
 **Not ready to merge to production.** Keep as **Draft PR B** until:
 
-1. Vina screening job completes for **dpp4** (only target in multiseed ∩ DUD-E gate).
-2. Reconcile `MethodologyPage.jsx` / docking UX with PR A.
-3. Deploy `services/vina-dock` and set `VINA_DOCK_SERVICE_URL` on Vercel.
+1. Reconcile `MethodologyPage.jsx` / docking UX with PR A.
+2. Deploy `services/vina-dock` and set `VINA_DOCK_SERVICE_URL` on Vercel.
 
-**Safe to merge to an integration branch** for continued benchmark/docking work after item 1 is green.
+**Safe to merge to an integration branch** for continued benchmark/docking work; benchmark artifacts in this PR are complete for the scoped gates.
