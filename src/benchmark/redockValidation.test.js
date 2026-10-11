@@ -71,22 +71,45 @@ describeBench("co-crystal redocking validation", () => {
             "BRAF (4XV2): co-crystal ligand P06; same missing hard-coded box + strict steric clash cap caused null ΔG in cache.";
         }
 
+        const vinaPath = path.join(__dirname, "..", "..", "benchmark", "redocking_results.json");
+        let vinaRow = {};
+        if (existsSync(vinaPath)) {
+          try {
+            const prev = JSON.parse(readFileSync(vinaPath, "utf8"));
+            vinaRow = (prev.rows || []).find((r) => r.target === tgt.target_id) || {};
+          } catch {
+            vinaRow = {};
+          }
+        }
+
         rows.push({
           target: tgt.target_id,
           pdb_id: pdbId,
+          ligand_chain: tgt.ligand_chain || "A",
           ligand_resn: tgt.ligand_resn || co.resName,
-          redocking_rmsd_angstrom: result.rmsd_angstrom,
-          delta_g: result.delta_g ?? null,
-          pass: Boolean(result.pass),
-          engine: result.engine,
-          failure_reason: result.failure_reason || failureCause,
           crystal_heavy_atoms: result.crystal_heavy_atoms,
+          vina_rmsd_crystal_ligand: vinaRow.vina_rmsd_crystal_ligand ?? null,
+          vina_rmsd_rdkit_3d: vinaRow.vina_rmsd_rdkit_3d ?? null,
+          pass_vina_crystal: vinaRow.pass_vina_crystal ?? false,
+          native_rmsd_angstrom: result.rmsd_angstrom,
+          native_rmsd_crystal_ligand: result.rmsd_angstrom,
+          pass_native: Boolean(result.pass),
+          pass_native_crystal: Boolean(result.pass),
+          delta_g: result.delta_g ?? null,
+          failure_reason: result.failure_reason || failureCause || vinaRow.failure_reason,
           pose_heavy_atoms: result.pose_heavy_atoms,
         });
       }
 
       const outPath = path.join(__dirname, "..", "..", "benchmark", "redocking_results.json");
-      writeFileSync(outPath, JSON.stringify({ generated_at: new Date().toISOString(), rows }, null, 2));
+      const rmsdMethod =
+        "Heavy-atom RMSD in the receptor frame with NO Kabsch/superposition. " +
+        "Vina: RCSB chemcomp SMILES + AssignBondOrdersFromTemplate + rdMolAlign.CalcRMS (not GetBestRMS). " +
+        "Native: index-mapped heavy-atom RMSD without alignment (dockingEngine.rmsdBetweenCoords; no symmetry swap).";
+      writeFileSync(
+        outPath,
+        JSON.stringify({ generated_at: new Date().toISOString(), rmsd_method: rmsdMethod, rows }, null, 2)
+      );
       expect(rows.length).toBeGreaterThan(0);
     },
     1_200_000

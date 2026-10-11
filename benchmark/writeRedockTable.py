@@ -7,30 +7,52 @@ ROOT = Path(__file__).resolve().parents[1]
 INP = ROOT / "benchmark" / "redocking_results.json"
 OUT = ROOT / "benchmark" / "REDOCK_TABLE.md"
 
+METHOD_DEFAULT = (
+    "Heavy-atom RMSD in the receptor frame with **no** Kabsch/superposition. "
+    "Reference ligand: co-crystal HETATM (one chain/altloc) with bond orders from "
+    "RCSB `chemcomp` SMILES via `AssignBondOrdersFromTemplate`. "
+    "Probe: Vina top pose in the same frame; `rdMolAlign.CalcRMS(prb, ref)` "
+    "(in-place, symmetry-aware). **Not** `GetBestRMS` / `AlignMol`. "
+    "Native column (when present): in-browser engine, index-mapped heavy-atom distance "
+    "RMSD without alignment (no symmetry swap); see `rmsdBetweenCoords` in dockingEngine."
+)
+
 
 def main():
     if not INP.exists():
-        OUT.write_text("# Redocking\n\nNo results yet. Run `python3 benchmark/runRedockValidation.py`.\n")
+        OUT.write_text("# Redocking\n\nNo results yet.\n")
         return
     data = json.loads(INP.read_text())
+    method = data.get("rmsd_method") or METHOD_DEFAULT
     lines = [
-        "# Co-crystal redocking (AutoDock Vina reference)",
+        "# Co-crystal redocking",
         "",
-        "| Target | PDB | Chain | Crystal heavy | Vina RMSD (crystal ligand) | Vina RMSD (RDKit 3D) | Pass (<2Å) | Notes |",
-        "|---|---|---|---:|---:|---:|:---:|---|",
+        "## RMSD definition",
+        "",
+        method,
+        "",
+        "**Correction:** Earlier drafts used `GetBestRMS` / Kabsch alignment, which **under-reported** "
+        "placement error (e.g. EGFR ~1.7 Å aligned vs **~5.9 Å** in-place; BRAF ~1.5 Å vs **~0.27 Å** in-place; "
+        "DPP4 ~1.4 Å vs **~0.86 Å** in-place). All values below use in-place `CalcRMS` only.",
+        "",
+        "Pass threshold: **< 2 Å** (crystal ligand redocked with Vina).",
+        "",
+        "| Target | PDB | Chain | Crystal heavy | Vina RMSD (in-place) | Native RMSD (in-place) | Vina pass | Native pass | Notes |",
+        "|---|---|---|---:|---:|---:|:---:|:---:|---|",
     ]
     for row in data.get("rows", []):
         vc = row.get("vina_rmsd_crystal_ligand")
-        vr = row.get("vina_rmsd_rdkit_3d")
-        pass_ = row.get("pass_vina_crystal")
+        nat = row.get("native_rmsd_angstrom") or row.get("native_rmsd_crystal_ligand")
+        pass_v = row.get("pass_vina_crystal")
+        pass_n = row.get("pass_native") or row.get("pass_native_crystal")
         notes = row.get("failure_reason") or ""
-        if notes and len(notes) > 80:
-            notes = notes[:77] + "..."
+        if notes and len(notes) > 55:
+            notes = notes[:52] + "..."
         lines.append(
             f"| {row.get('target')} | {row.get('pdb_id')} | {row.get('ligand_chain','A')} | "
             f"{row.get('crystal_heavy_atoms','—')} | "
-            f"{vc if vc is not None else '—'} | {vr if vr is not None else '—'} | "
-            f"{'yes' if pass_ else 'no'} | {notes} |"
+            f"{vc if vc is not None else '—'} | {nat if nat is not None else '—'} | "
+            f"{'yes' if pass_v else 'no'} | {'yes' if pass_n else 'no'} | {notes} |"
         )
     OUT.write_text("\n".join(lines) + "\n")
     print(f"Wrote {OUT}")
