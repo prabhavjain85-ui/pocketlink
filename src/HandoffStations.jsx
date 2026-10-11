@@ -5,6 +5,7 @@ import AdversarialCritique from "./AdversarialCritique";
 import QuantumInsight from "./QuantumInsight";
 import { CandidateScoreTable } from "./CandidateViews";
 import HistoricalTrialSuccessContext from "./HistoricalTrialSuccessContext";
+import { DockingExperimentalNote } from "./DockingExperimentalNotice";
 
 export default function HandoffStations({ b }) {
   const {
@@ -84,7 +85,7 @@ export default function HandoffStations({ b }) {
       </div>
 
       <div className="handoff-panel">
-        <Panel eyebrow="Station 4 — handoff" title="Follow-up: Native Docking & ADME Prediction" kind="handoff">
+        <Panel eyebrow="Station 4 — handoff" title="Follow-up: Native Docking (experimental) & ADME Prediction" kind="handoff">
           {!protein && !candidates.length && (
             <div className="empty-state">
               Stage a target and a shortlist above — TargetForge will prepare the exact inputs for native
@@ -93,8 +94,9 @@ export default function HandoffStations({ b }) {
           )}
           {(protein || candidates.length > 0) && (
             <div>
-              <div className="lipinski-note" style={{ marginTop: 0, marginBottom: 14 }}>
-                Use the handoff below for docking and ADME on your selected compound — the AI ranking does not replace those steps.
+              <DockingExperimentalNote compact style={{ marginTop: 0, marginBottom: 14 }} />
+              <div className="lipinski-note" style={{ marginBottom: 14 }}>
+                Use the handoff below for exploratory docking and ADME on your selected compound — the AI ranking does not replace those steps.
               </div>
               {candidates.length > 1 && (
                 <div className="handoff-pick">
@@ -134,7 +136,7 @@ export default function HandoffStations({ b }) {
                 </Link>
               </div>
               <div className="lipinski-note" style={{ marginTop: 14 }}>
-                TargetForge computes native molecular docking and ADME predictions locally in-browser using empirical force fields and RDKit WebAssembly without external server dependencies.
+                Docking runs locally in-browser (experimental, not redocking-validated). ADME uses RDKit WebAssembly heuristics — both without external server dependencies.
               </div>
             </div>
           )}

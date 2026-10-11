@@ -354,7 +354,7 @@ const out = {
   count: drugs.length,
   drugs,
 };
-const dest = path.join(__dirname, "..", "src", "data", "approvedDrugs.json");
+const dest = path.join(__dirname, "..", "public", "data", "approvedDrugs.json");
 fs.mkdirSync(path.dirname(dest), { recursive: true });
 fs.writeFileSync(dest, JSON.stringify(out, null, 2) + "\n");
 console.log("wrote", drugs.length, "drugs to", dest);

@@ -8,7 +8,7 @@ const fs = require("fs");
 const path = require("path");
 
 const BASE_URL = "https://www.ebi.ac.uk/chembl/api/data";
-const OUTPUT_FILE = path.join(__dirname, "../src/data/approvedDrugs.json");
+const OUTPUT_FILE = path.join(__dirname, "../public/data/approvedDrugs.json");
 
 function toTitleCase(str) {
   if (!str) return "";

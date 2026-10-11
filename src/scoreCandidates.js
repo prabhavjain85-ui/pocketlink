@@ -1,4 +1,5 @@
 const { buildTargetContext, targetDisplayName } = require("./targetContext");
+const { drugToCandidate, loadApprovedDrugs } = require("./approvedDrugs");
 
 const MAX_CANDIDATES = 5;
 
@@ -850,29 +851,7 @@ function scoreLibraryLocal(candidates, protein = null) {
 function rankRepurposing(candidates, protein = null) {
   let list = Array.isArray(candidates) && candidates.length ? candidates : null;
   if (!list) {
-    try {
-      const raw = require("./data/approvedDrugs.json");
-      const drugs = Array.isArray(raw?.drugs) ? raw.drugs : [];
-      list = drugs.map((drug) => ({
-        CID: drug.cid,
-        cid: String(drug.cid),
-        displayName: drug.name,
-        name: drug.name,
-        IsomericSMILES: drug.smiles,
-        CanonicalSMILES: drug.smiles,
-        SMILES: drug.smiles,
-        MolecularWeight: drug.mw,
-        XLogP: drug.xlogp,
-        HBondDonorCount: drug.hbd,
-        HBondAcceptorCount: drug.hba,
-        RotatableBondCount: drug.rot,
-        TPSA: drug.tpsa,
-        indication: drug.indication,
-        drugClass: drug.class,
-      }));
-    } catch {
-      list = [];
-    }
+    list = loadApprovedDrugs().map((drug) => drugToCandidate(drug));
   }
 
   const result = scoreLibraryLocal(list, protein);

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { approvedDrugCount } from "./approvedDrugs";
+import { ensureApprovedDrugsLoaded } from "./approvedDrugs";
 import { Panel, PainsBadge, PainsInfoTip } from "./benchUi";
 import PdbTargetSearch from "./PdbTargetSearch";
 import {
@@ -144,7 +144,7 @@ function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page
                             textDecoration: "none",
                             fontWeight: 600,
                           }}
-                          title="Run native molecular docking against target binding cavity"
+                          title="Experimental in-browser docking — poses and ΔG not validated for activity"
                         >
                           Dock →
                         </Link>
@@ -266,7 +266,13 @@ function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page
 }
 
 export default function RepurposingPage() {
-  const librarySize = approvedDrugCount();
+  const [librarySize, setLibrarySize] = React.useState(null);
+
+  React.useEffect(() => {
+    ensureApprovedDrugsLoaded()
+      .then((drugs) => setLibrarySize(drugs.length))
+      .catch(() => setLibrarySize(0));
+  }, []);
 
   const savedActive = React.useMemo(() => getActiveState(ACTIVE_STATE_KEYS.REPURPOSING), []);
   const [protein, setProtein] = useState(() => savedActive?.protein || null);
@@ -292,7 +298,7 @@ export default function RepurposingPage() {
     setSort({ key: "score", dir: "desc" });
     setProgress({
       percent: 0,
-      message: `Screening ${librarySize} approved drugs against ${targetDisplayName(target) || target.id}... 0% complete`,
+      message: `Screening ${librarySize ?? "…"} approved drugs against ${targetDisplayName(target) || target.id}... 0% complete`,
     });
     try {
       const data = await screenApprovedLibrary(target, {
@@ -356,7 +362,7 @@ export default function RepurposingPage() {
         <h1>Drug Repurposing Screen</h1>
         <p>
           Search a target and screen approved drugs for repurposing candidates. TargetForge scores each compound against
-          the selected structure using target-aware heuristics across a curated library of {librarySize} marketed small
+          the selected structure using target-aware heuristics across a curated library of {librarySize ?? "…"} marketed small
           molecules.
         </p>
       </div>
@@ -375,7 +381,7 @@ export default function RepurposingPage() {
       <div className="handoff-panel">
         <Panel eyebrow="Station 2 — approved-drug library" title="Batch screen against marketed drugs" kind="candidate">
           <div className="hint" style={{ marginTop: 0 }}>
-            {librarySize} curated approved drugs (kinase inhibitors, beta-blockers, analgesics, antihistamines, statins, and
+            {librarySize ?? "…"} curated approved drugs (kinase inhibitors, beta-blockers, analgesics, antihistamines, statins, and
             other classes) are scored in batches of 25. Extreme Lipinski outliers and molecules above 900 g/mol are dropped
             before the AI pass. Scores are cached as PDB ID + compound CID, and a full screen of the same target is reused
             for 24 hours so repeat searches do not burn AI credits.

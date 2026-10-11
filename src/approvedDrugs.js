@@ -1,6 +1,7 @@
-import raw from "./data/approvedDrugs.json";
+import { loadJsonFromPublic } from "./lazyJsonData";
 
 let cachedDrugs = null;
+let loadPromise = null;
 
 const SUPPLEMENTAL_DRUGS = [
   {
@@ -61,8 +62,7 @@ const SUPPLEMENTAL_DRUGS = [
   },
 ];
 
-export function loadApprovedDrugs() {
-  if (cachedDrugs) return cachedDrugs;
+function mapRawToDrugs(raw) {
   const drugs = Array.isArray(raw?.drugs) ? raw.drugs : [];
   const mapped = drugs.map((drug) => ({
     id: String(drug.id || drug.cid),
@@ -82,7 +82,36 @@ export function loadApprovedDrugs() {
   for (const extra of SUPPLEMENTAL_DRUGS) {
     if (!names.has(extra.name.toLowerCase())) mapped.push(extra);
   }
-  cachedDrugs = mapped;
+  return mapped;
+}
+
+/** Test-only: seed library without fetch (see src/setupTests.js). */
+export function seedApprovedDrugsForTests(raw) {
+  cachedDrugs = mapRawToDrugs(raw);
+  return cachedDrugs;
+}
+
+/** Fetch and parse the approved-drug library (idempotent). */
+export async function ensureApprovedDrugsLoaded() {
+  if (cachedDrugs) return cachedDrugs;
+  if (!loadPromise) {
+    loadPromise = loadJsonFromPublic("approvedDrugs.json")
+      .then((raw) => {
+        cachedDrugs = mapRawToDrugs(raw);
+        return cachedDrugs;
+      })
+      .catch((err) => {
+        loadPromise = null;
+        throw err;
+      });
+  }
+  return loadPromise;
+}
+
+export function loadApprovedDrugs() {
+  if (!cachedDrugs) {
+    return [];
+  }
   return cachedDrugs;
 }
 

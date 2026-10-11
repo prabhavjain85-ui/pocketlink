@@ -63,7 +63,7 @@ export default function QuantumInsight({ compound, smiles, protein = null }) {
               </li>
               <li>
                 Surface quantum-chemistry-level context for ligand–pocket triage (electronic structure and
-                ground-state energies) as a complement to force-field docking scores.
+                ground-state energies) as a complement to experimental, unvalidated force-field docking scores.
               </li>
             </ul>
 

@@ -6,6 +6,7 @@ import {
   runMolecularDocking,
 } from "./dockingEngine";
 import DockingViewer from "./DockingViewer";
+import { DockingExperimentalBadge, DockingExperimentalNote } from "./DockingExperimentalNotice";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
 export default function DockingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -228,8 +229,9 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
           >
             Native Molecular Docking
           </span>
+          <DockingExperimentalBadge />
           <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-            In-Browser Empirical Force Field &amp; Pose Minimization
+            In-Browser empirical force field (experimental)
           </span>
         </div>
         <h1
@@ -252,10 +254,10 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
             maxWidth: "840px",
           }}
         >
-          Compute binding free energy (ΔG_bind), estimate inhibition constants (Ki), and inspect 3D poses in
-          crystallographic binding pockets — simulated in-browser. Supports structure-based prioritization, not
-          experimental binding confirmation.
+          Explore tentative binding poses and empirical ΔG_bind / Ki estimates in crystallographic pockets — computed
+          in-browser for triage only, not validated against co-crystal redocking.
         </p>
+        <DockingExperimentalNote compact style={{ marginTop: "14px" }} />
       </div>
 
       {/* Target & Ligand Configuration Panel */}
@@ -570,6 +572,7 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
       {/* Results Dashboard */}
       {!loading && dockingResults && activePose && (
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          <DockingExperimentalNote compact />
           {/* Top KPI Cards Row */}
           <div
             style={{
@@ -1104,8 +1107,9 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
               Scientific Methodology &amp; Mathematical Force Field
             </div>
             <p style={{ margin: "0 0 8px", lineHeight: 1.5 }}>
-              TargetForge&apos;s native docking engine computes empirical binding free energies (ΔG)
-              using an open empirical potential parameterized on crystallographic complexes:
+              TargetForge&apos;s in-browser docking uses an empirical scoring function inspired by AutoDock/Vina literature.
+              It is experimental: co-crystal redocking validation is ongoing, so reported ΔG and poses are not calibrated
+              for activity prediction. Force-field terms include:
             </p>
             <ul style={{ margin: 0, paddingLeft: "18px", lineHeight: 1.6 }}>
               <li>

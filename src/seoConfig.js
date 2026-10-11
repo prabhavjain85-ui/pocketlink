@@ -38,7 +38,7 @@ export const ROUTE_SEO = {
   "/docking": {
     title: "Molecular Docking Simulation — TargetForge",
     description:
-      "Run in-browser receptor-ligand docking with binding energy estimates and 3D pose inspection. Supports computational structure-based prioritization.",
+      "Experimental in-browser receptor-ligand docking with tentative binding poses and ΔG estimates. Not validated for activity — redocking benchmarks in progress.",
     canonical: `${SITE_URL}/docking`,
   },
   "/agent": {
@@ -164,7 +164,7 @@ export const STATIC_ROUTE_CONTENT = {
     eyebrow: "TargetForge · molecular docking",
     h1: "Receptor-Ligand Molecular Docking",
     intro:
-      "Compute binding free energy (ΔG_bind), estimate inhibition constants (Ki), and inspect 3D poses in crystallographic binding pockets — simulated in-browser. Supports structure-based prioritization, not experimental binding confirmation.",
+      "Explore tentative binding poses and empirical ΔG_bind / Ki estimates in crystallographic pockets — simulated in-browser for triage only. Docking is experimental and not validated against co-crystal redocking; do not use scores to judge activity.",
     breadcrumbLabel: "Molecular docking",
   },
   "/agent": {
