@@ -1,0 +1,189 @@
+{
+  "included": [
+    "egfr",
+    "abl1",
+    "braf",
+    "ptgs2",
+    "pde5a",
+    "esr1",
+    "dpp4",
+    "adrb2",
+    "hiv_pr",
+    "jak2",
+    "thrombin"
+  ],
+  "excluded": [
+    {
+      "id": "erbb2",
+      "reason": "DUD-E download failed"
+    },
+    {
+      "id": "hmgcr",
+      "reason": "DUD-E download failed"
+    },
+    {
+      "id": "sars_mpro",
+      "reason": "not in DUD-E"
+    },
+    {
+      "id": "hdac1",
+      "reason": "DUD-E download failed"
+    }
+  ],
+  "per_target": [
+    {
+      "id": "egfr",
+      "dude_code": "egfr",
+      "mw_roc_auc_full": 0.5526850239882712,
+      "logp_roc_auc_full": 0.6152245658399639,
+      "mw_roc_auc_subset": 0.9742635658914729,
+      "logp_roc_auc_subset": 0.8848837209302326,
+      "mw_logp_flag": true,
+      "mw_logp_flag_subset": true,
+      "inchikey_removed": 0,
+      "murcko_overlap": 0,
+      "n_test_actives": 30,
+      "n_decoys_eval": 1290
+    },
+    {
+      "id": "abl1",
+      "dude_code": "abl1",
+      "mw_roc_auc_full": 0.6253759255078128,
+      "logp_roc_auc_full": 0.6196457572619761,
+      "mw_roc_auc_subset": 0.9359459459459459,
+      "logp_roc_auc_subset": 0.653093093093093,
+      "mw_logp_flag": true,
+      "mw_logp_flag_subset": true,
+      "inchikey_removed": 0,
+      "murcko_overlap": 0,
+      "n_test_actives": 30,
+      "n_decoys_eval": 1110
+    },
+    {
+      "id": "braf",
+      "dude_code": "braf",
+      "mw_roc_auc_full": 0.5636615747349284,
+      "logp_roc_auc_full": 0.728974969600702,
+      "mw_roc_auc_subset": 0.8800387596899225,
+      "logp_roc_auc_subset": 0.7998615725359911,
+      "mw_logp_flag": true,
+      "mw_logp_flag_subset": true,
+      "inchikey_removed": 0,
+      "murcko_overlap": 0,
+      "n_test_actives": 30,
+      "n_decoys_eval": 1204
+    },
+    {
+      "id": "ptgs2",
+      "dude_code": "pgh2",
+      "mw_roc_auc_full": 0.5268803927887349,
+      "logp_roc_auc_full": 0.5103909260137648,
+      "mw_roc_auc_subset": 0.8166161616161616,
+      "logp_roc_auc_subset": 0.3443939393939394,
+      "mw_logp_flag": false,
+      "mw_logp_flag_subset": true,
+      "inchikey_removed": 0,
+      "murcko_overlap": 0,
+      "n_test_actives": 30,
+      "n_decoys_eval": 1320
+    },
+    {
+      "id": "pde5a",
+      "dude_code": "pde5a",
+      "mw_roc_auc_full": 0.5427037228748247,
+      "logp_roc_auc_full": 0.504013669695553,
+      "mw_roc_auc_subset": 0.7349471341124095,
+      "logp_roc_auc_subset": 0.8594880356149137,
+      "mw_logp_flag": false,
+      "mw_logp_flag_subset": true,
+      "inchikey_removed": 0,
+      "murcko_overlap": 0,
+      "n_test_actives": 30,
+      "n_decoys_eval": 1198
+    },
+    {
+      "id": "esr1",
+      "dude_code": "esr1",
+      "mw_roc_auc_full": 0.5543442270161557,
+      "logp_roc_auc_full": 0.6312417039419481,
+      "mw_roc_auc_subset": 0.7847514180847515,
+      "logp_roc_auc_subset": 0.7471471471471471,
+      "mw_logp_flag": true,
+      "mw_logp_flag_subset": true,
+      "inchikey_removed": 0,
+      "murcko_overlap": 0,
+      "n_test_actives": 30,
+      "n_decoys_eval": 999
+    },
+    {
+      "id": "dpp4",
+      "dude_code": "dpp4",
+      "mw_roc_auc_full": 0.535789641882145,
+      "logp_roc_auc_full": 0.4743030907347848,
+      "mw_roc_auc_subset": 0.04448246364414029,
+      "logp_roc_auc_subset": 0.25540347875677216,
+      "mw_logp_flag": false,
+      "mw_logp_flag_subset": true,
+      "inchikey_removed": 0,
+      "murcko_overlap": 0,
+      "n_test_actives": 30,
+      "n_decoys_eval": 1169
+    },
+    {
+      "id": "adrb2",
+      "dude_code": "adrb2",
+      "mw_roc_auc_full": 0.5527991335953958,
+      "logp_roc_auc_full": 0.4997314849644045,
+      "mw_roc_auc_subset": 0.12415693904020753,
+      "logp_roc_auc_subset": 0.26008430609597927,
+      "mw_logp_flag": true,
+      "mw_logp_flag_subset": true,
+      "inchikey_removed": 0,
+      "murcko_overlap": 0,
+      "n_test_actives": 30,
+      "n_decoys_eval": 1028
+    },
+    {
+      "id": "hiv_pr",
+      "dude_code": "hivpr",
+      "mw_roc_auc_full": 0.6811970149061805,
+      "logp_roc_auc_full": 0.6041176845888028,
+      "mw_roc_auc_subset": 0.6104970008568981,
+      "logp_roc_auc_subset": 0.7484147386461011,
+      "mw_logp_flag": true,
+      "mw_logp_flag_subset": true,
+      "inchikey_removed": 0,
+      "murcko_overlap": 0,
+      "n_test_actives": 30,
+      "n_decoys_eval": 778
+    },
+    {
+      "id": "jak2",
+      "dude_code": "jak2",
+      "mw_roc_auc_full": 0.49981502970434505,
+      "logp_roc_auc_full": 0.6414388011147808,
+      "mw_roc_auc_subset": 0.7238076823923691,
+      "logp_roc_auc_subset": 0.5657643722608919,
+      "mw_logp_flag": true,
+      "mw_logp_flag_subset": true,
+      "inchikey_removed": 0,
+      "murcko_overlap": 0,
+      "n_test_actives": 30,
+      "n_decoys_eval": 1293
+    },
+    {
+      "id": "thrombin",
+      "dude_code": "thrb",
+      "mw_roc_auc_full": 0.7663823707995037,
+      "logp_roc_auc_full": 0.3633708096637979,
+      "mw_roc_auc_subset": 0.9567472835611637,
+      "logp_roc_auc_subset": 0.3231335436382755,
+      "mw_logp_flag": true,
+      "mw_logp_flag_subset": true,
+      "inchikey_removed": 0,
+      "murcko_overlap": 0,
+      "n_test_actives": 30,
+      "n_decoys_eval": 951
+    }
+  ]
+}

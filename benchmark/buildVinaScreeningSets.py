@@ -46,7 +46,10 @@ def main():
         ]
         dude = load_dude_set(tgt["id"])
         if dude and dude.get("available"):
-            pool = dude_decoy_pool(dude["decoys"])
+            decoy_smiles = [
+                d["smiles"] if isinstance(d, dict) else d for d in dude["decoys"]
+            ]
+            pool = dude_decoy_pool(decoy_smiles)
         else:
             pool = chembl_pool
         if len(actives) < 70:

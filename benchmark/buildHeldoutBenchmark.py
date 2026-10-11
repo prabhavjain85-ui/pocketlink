@@ -536,7 +536,10 @@ def main():
         dude = load_dude_set(tgt["id"])
         if dude and dude.get("available"):
             decoy_source = "DUD-E decoys + ChEMBL actives"
-            target_decoy_pool = dude_decoy_pool(dude["decoys"])
+            decoy_smiles = [
+                d["smiles"] if isinstance(d, dict) else d for d in dude["decoys"]
+            ]
+            target_decoy_pool = dude_decoy_pool(decoy_smiles)
         else:
             target_decoy_pool = decoy_pool
             if tgt.get("decoy_source") == "chembl_self":
