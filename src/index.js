@@ -11,11 +11,12 @@ import RepurposingPage from "./RepurposingPage";
 import TargetDiscoveryPage from "./TargetDiscoveryPage";
 import AgentPage from "./AgentPage";
 import AdmePage from "./AdmePage";
-import DockingPage from "./DockingPage";
 import HypothesisPage from "./HypothesisPage";
 import EvolutionPage from "./EvolutionPage";
 import "./app.css";
 import "./discoverySearch.css";
+
+const DockingPage = React.lazy(() => import("./DockingPage"));
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -29,7 +30,14 @@ root.render(
           <Route path="/target-discovery" element={<TargetDiscoveryPage />} />
           <Route path="/repurposing" element={<RepurposingPage />} />
           <Route path="/adme" element={<AdmePage />} />
-          <Route path="/docking" element={<DockingPage />} />
+          <Route
+            path="/docking"
+            element={
+              <React.Suspense fallback={<div className="page-loading">Loading…</div>}>
+                <DockingPage />
+              </React.Suspense>
+            }
+          />
           <Route path="/evolution" element={<EvolutionPage />} />
           <Route path="/agent" element={<AgentPage />} />
           <Route path="/history" element={<HistoryPage />} />

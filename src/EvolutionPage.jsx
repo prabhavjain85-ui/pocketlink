@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import PdbTargetSearch from "./PdbTargetSearch";
 import { Panel, PainsBadge } from "./benchUi";
@@ -13,7 +13,7 @@ import {
 } from "./evolutionEngine";
 import { detectSaScoreSupport, lookupPubChemExact, noveltyBadge } from "./evolutionScore";
 import { getHistory, saveHistoryEntry } from "./historyService";
-import { loadApprovedDrugs } from "./approvedDrugs";
+import { ensureApprovedDrugsLoaded, loadApprovedDrugs } from "./approvedDrugs";
 import { targetDisplayName } from "./targetContext";
 import "./evolution.css";
 
@@ -85,11 +85,27 @@ export default function EvolutionPage() {
   const [svgs, setSvgs] = useState({});
   const abortRef = useRef(0);
 
-  const pickList = useMemo(() => {
-    const approved = loadApprovedDrugs()
-      .filter((d) => /imatinib|dasatinib|nilotinib|gefitinib|erlotinib/i.test(d.name))
-      .map((d) => ({ smiles: d.smiles, name: d.name, source: "Approved library" }));
-    return [...approved, ...historyMolecules()].slice(0, 16);
+  const [pickList, setPickList] = useState(() =>
+    historyMolecules().slice(0, 16).map((m) => ({ ...m, source: m.source || "History" }))
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await ensureApprovedDrugsLoaded();
+        if (cancelled) return;
+        const approved = loadApprovedDrugs()
+          .filter((d) => /imatinib|dasatinib|nilotinib|gefitinib|erlotinib/i.test(d.name))
+          .map((d) => ({ smiles: d.smiles, name: d.name, source: "Approved library" }));
+        setPickList([...approved, ...historyMolecules()].slice(0, 16));
+      } catch {
+        // keep history-only picks
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

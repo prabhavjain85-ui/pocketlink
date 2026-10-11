@@ -1,5 +1,5 @@
 import { rankCandidatesBatch, scoreLibraryLocal } from "./aiCandidateRanking";
-import { drugToCandidate, loadApprovedDrugs } from "./approvedDrugs";
+import { drugToCandidate, ensureApprovedDrugsLoaded, loadApprovedDrugs } from "./approvedDrugs";
 import { checkPainsFast } from "./painsCheck";
 import { getCachedScore, pdbIdOf, rememberScores } from "./rankingCache";
 import { rankingCacheKey, targetDisplayName, summarizeTargetData, buildTargetContext } from "./targetContext";
@@ -522,6 +522,7 @@ export async function screenApprovedLibrary(
     signal = null,
   } = {}
 ) {
+  await ensureApprovedDrugsLoaded();
   const drugs = loadApprovedDrugs();
   const pdb = pdbIdOf(protein);
   const targetName = targetDisplayName(protein) || pdb;

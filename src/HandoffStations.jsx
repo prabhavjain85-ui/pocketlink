@@ -5,6 +5,7 @@ import AdversarialCritique from "./AdversarialCritique";
 import QuantumInsight from "./QuantumInsight";
 import { CandidateScoreTable } from "./CandidateViews";
 import HistoricalTrialSuccessContext from "./HistoricalTrialSuccessContext";
+import { DOCKING_ENGINE_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
 
 export default function HandoffStations({ b }) {
   const {
@@ -20,7 +21,7 @@ export default function HandoffStations({ b }) {
             <div>
               <div className="ai-kicker">Score the shortlist for this target</div>
               <div className="hint" style={{ margin: "6px 0 0" }}>
-                Scores 2–5 molecules for the selected PDB structure using pocket/ligand context, known pharmacology, Lipinski/Veber drug-likeness, and PAINS flags. The same compound is scored differently against different targets. If an OpenAI key is configured, a language model writes the comparison; otherwise TargetForge uses its built-in target-aware model.
+                Applies a knowledge-based triage score (0–100) to 2–5 molecules for the selected PDB structure using curated target rules, pocket/ligand context, Lipinski/Veber drug-likeness, and PAINS flags — a heuristic for prioritization, not a validated activity or binding predictor. The same compound is scored differently against different targets. If an OpenAI key is configured, a language model writes the comparison; otherwise TargetForge uses its built-in target-aware model.
               </div>
             </div>
             <button className="btn btn-handoff" onClick={analyze} disabled={candidates.length < 2 || aiLoading} type="button">
@@ -84,17 +85,17 @@ export default function HandoffStations({ b }) {
       </div>
 
       <div className="handoff-panel">
-        <Panel eyebrow="Station 4 — handoff" title="Follow-up: Native Docking & ADME Prediction" kind="handoff">
+        <Panel eyebrow="Station 4 — handoff" title="Follow-up: ADME prediction (docking paused)" kind="handoff">
           {!protein && !candidates.length && (
             <div className="empty-state">
-              Stage a target and a shortlist above — TargetForge will prepare the exact inputs for native
-              docking simulation and ADME prediction.
+              Stage a target and a shortlist above — TargetForge will prepare inputs for ADME prediction.
+              Molecular docking is temporarily unavailable during validation.
             </div>
           )}
           {(protein || candidates.length > 0) && (
             <div>
               <div className="lipinski-note" style={{ marginTop: 0, marginBottom: 14 }}>
-                Use the handoff below for docking and ADME on your selected compound — the AI ranking does not replace those steps.
+                Use the handoff below for ADME on your selected compound — the triage score does not replace experimental assays or ADME modeling.
               </div>
               {candidates.length > 1 && (
                 <div className="handoff-pick">
@@ -118,23 +119,30 @@ export default function HandoffStations({ b }) {
                 </div>
               )}
               <div className="handoff-actions">
-                <Link
-                  to={`/docking?pdb=${encodeURIComponent(protein?.id || "")}&smiles=${encodeURIComponent(smiles || "")}&name=${encodeURIComponent(compound?.displayName || "")}&cid=${compound?.CID || ""}`}
-                  className="btn btn-primary"
-                  style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
-                >
-                  Run Native Docking →
-                </Link>
+                {DOCKING_ENGINE_ENABLED ? (
+                  <Link
+                    to={`/docking?pdb=${encodeURIComponent(protein?.id || "")}&smiles=${encodeURIComponent(smiles || "")}&name=${encodeURIComponent(compound?.displayName || "")}&cid=${compound?.CID || ""}`}
+                    className="btn btn-primary"
+                    style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+                  >
+                    Run Native Docking →
+                  </Link>
+                ) : (
+                  <span className="lipinski-note" style={{ margin: 0, flex: "1 1 100%" }}>
+                    {DOCKING_UNAVAILABLE_NOTICE}
+                  </span>
+                )}
                 <Link
                   to={`/adme?smiles=${encodeURIComponent(smiles || "")}&name=${encodeURIComponent(compound?.displayName || "")}&cid=${compound?.CID || ""}`}
-                  className="btn btn-secondary"
+                  className={DOCKING_ENGINE_ENABLED ? "btn btn-secondary" : "btn btn-primary"}
                   style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
                 >
                   Predict Native ADME →
                 </Link>
               </div>
               <div className="lipinski-note" style={{ marginTop: 14 }}>
-                TargetForge computes native molecular docking and ADME predictions locally in-browser using empirical force fields and RDKit WebAssembly without external server dependencies.
+                ADME descriptors are computed locally in-browser via RDKit WebAssembly without external server dependencies.
+                Docking poses and binding scores are not available while the in-browser engine is under validation.
               </div>
             </div>
           )}

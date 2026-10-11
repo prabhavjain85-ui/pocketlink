@@ -1,4 +1,10 @@
-import { approvedDrugCount, drugToCandidate, findApprovedDrug, loadApprovedDrugs } from "./approvedDrugs";
+import {
+  approvedDrugCount,
+  drugToCandidate,
+  ensureApprovedDrugsLoaded,
+  findApprovedDrug,
+  loadApprovedDrugs,
+} from "./approvedDrugs";
 import { scoreLibraryLocal } from "./scoreCandidates";
 import { clearRankingCache } from "./rankingCache";
 import {
@@ -13,6 +19,24 @@ import {
 import { rankingCacheKey } from "./targetContext";
 
 jest.setTimeout(60000);
+
+beforeAll(async () => {
+  const fs = require("fs");
+  const path = require("path");
+  const payload = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "data/approvedDrugs.json"), "utf8")
+  );
+  global.fetch = jest.fn((url) => {
+    if (String(url).includes("approvedDrugs.json")) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(payload),
+      });
+    }
+    return Promise.reject(new Error(`Unexpected fetch in test: ${url}`));
+  });
+  await ensureApprovedDrugsLoaded();
+});
 
 const kinase = {
   id: "2HYY",

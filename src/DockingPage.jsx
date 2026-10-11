@@ -7,6 +7,36 @@ import {
 } from "./dockingEngine";
 import DockingViewer from "./DockingViewer";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
+import { DOCKING_ENGINE_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
+
+function DockingUnavailableView() {
+  return (
+    <div className="docking-page-container" style={{ maxWidth: "720px", margin: "0 auto 48px" }}>
+      <h1 style={{ margin: "0 0 12px", fontSize: "26px", fontWeight: 700 }}>Molecular Docking</h1>
+      <div
+        role="status"
+        style={{
+          background: "var(--amber-bg, #FFFBEB)",
+          border: "1px solid var(--amber-border, #FDE68A)",
+          color: "var(--text)",
+          borderRadius: "var(--radius-lg)",
+          padding: "16px 20px",
+          fontSize: "15px",
+          fontWeight: 600,
+          lineHeight: 1.5,
+        }}
+      >
+        {DOCKING_UNAVAILABLE_NOTICE}
+      </div>
+      <p style={{ marginTop: 16, fontSize: "14px", color: "var(--text-dim)", lineHeight: 1.5 }}>
+        The in-browser docking engine is disabled while co-crystal redocking validation is in progress. No binding
+        scores or poses are shown. See the{" "}
+        <Link to="/methodology#validation-benchmark">Methodology validation section</Link> for current status.
+      </p>
+    </div>
+  );
+}
+
 export default function DockingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -97,8 +127,9 @@ export default function DockingPage() {
     }
   };
 
-  // Run on first mount or when URL search parameters change
+  // Run on first mount or when URL search parameters change (enabled engine only)
   useEffect(() => {
+    if (!DOCKING_ENGINE_ENABLED) return;
     const urlPdb = searchParams.get("pdb");
     const urlSmiles = searchParams.get("smiles");
     const urlName = searchParams.get("name");
@@ -207,6 +238,10 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
       });
     }
   };
+
+  if (!DOCKING_ENGINE_ENABLED) {
+    return <DockingUnavailableView />;
+  }
 
   return (
     <div className="docking-page-container" style={{ maxWidth: "1120px", margin: "0 auto 48px" }}>

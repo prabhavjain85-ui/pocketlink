@@ -14,6 +14,7 @@ import { getDrugSafetyProfile } from "./safetyProfiles";
 import { targetDisplayName } from "./targetContext";
 import AdversarialCritique from "./AdversarialCritique";
 import HistoricalTrialSuccessContext from "./HistoricalTrialSuccessContext";
+import { DOCKING_ENGINE_ENABLED } from "./featureFlags";
 import {
   ACTIVE_STATE_KEYS,
   getActiveState,
@@ -130,24 +131,26 @@ function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page
                         >
                           ADME →
                         </Link>
-                        <Link
-                          to={`/docking?pdb=${encodeURIComponent(target?.id || "1IEP")}&smiles=${encodeURIComponent(r.canonicalSmiles || r.smiles || "")}&name=${encodeURIComponent(r.name || "")}&cid=${r.cid}`}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            fontSize: "11px",
-                            padding: "3px 7px",
-                            borderRadius: "4px",
-                            background: "var(--surface-subtle)",
-                            border: "1px solid var(--border)",
-                            color: "var(--primary)",
-                            textDecoration: "none",
-                            fontWeight: 600,
-                          }}
-                          title="Run native molecular docking against target binding cavity"
-                        >
-                          Dock →
-                        </Link>
+                        {DOCKING_ENGINE_ENABLED && (
+                          <Link
+                            to={`/docking?pdb=${encodeURIComponent(target?.id || "1IEP")}&smiles=${encodeURIComponent(r.canonicalSmiles || r.smiles || "")}&name=${encodeURIComponent(r.name || "")}&cid=${r.cid}`}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              fontSize: "11px",
+                              padding: "3px 7px",
+                              borderRadius: "4px",
+                              background: "var(--surface-subtle)",
+                              border: "1px solid var(--border)",
+                              color: "var(--primary)",
+                              textDecoration: "none",
+                              fontWeight: 600,
+                            }}
+                            title="Run native molecular docking against target binding cavity"
+                          >
+                            Dock →
+                          </Link>
+                        )}
                       </div>
                     </td>
                     <td className="mono score-num">{r.score}/100</td>
