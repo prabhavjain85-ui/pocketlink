@@ -1,0 +1,6 @@
+{
+  "status": "not_run",
+  "reason": "No target passed MW/logP decoy sanity in vina_screening_compounds.json build (see build_summary). Selection bias applies when run.",
+  "selection_bias": "Targets chosen from redocking success list; retrospective Vina AUC is optimistic.",
+  "rows": []
+}

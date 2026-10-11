@@ -5,6 +5,7 @@ import {
   fetchPdbFromRcsb,
   runMolecularDocking,
 } from "./dockingEngine";
+import { isPdbVinaValidated, VINA_NOT_VALIDATED_MESSAGE } from "./vinaDockClient";
 import DockingViewer from "./DockingViewer";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
 import { DOCKING_ENGINE_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
@@ -94,6 +95,10 @@ export default function DockingPage() {
     }
     if (!ligandSmiles) {
       setError("Please provide a valid chemical SMILES string for the ligand.");
+      return;
+    }
+    if (!isPdbVinaValidated(targetPdb)) {
+      setError(VINA_NOT_VALIDATED_MESSAGE);
       return;
     }
 

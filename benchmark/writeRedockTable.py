@@ -37,12 +37,16 @@ def main():
         "",
         "Pass threshold: **< 2 Å** (crystal ligand redocked with Vina).",
         "",
-        "| Target | PDB | Chain | Crystal heavy | Vina RMSD (in-place) | Native RMSD (in-place) | Vina pass | Native pass | Notes |",
-        "|---|---|---|---:|---:|---:|:---:|:---:|---|",
+        "| Target | PDB | Chain | Crystal heavy | CalcRMS | spyrmsd | Native (spyrmsd) | Vina pass | Native pass | Notes |",
+        "|---|---|---|---:|---:|---:|---:|:---:|:---:|---|",
     ]
     for row in data.get("rows", []):
-        vc = row.get("vina_rmsd_crystal_ligand")
-        nat = row.get("native_rmsd_angstrom") or row.get("native_rmsd_crystal_ligand")
+        vc = row.get("vina_rmsd_calc_angstrom") or row.get("vina_rmsd_crystal_ligand")
+        spy = row.get("vina_rmsd_spyrmsd_angstrom")
+        nat = row.get("native_rmsd_spyrmsd_angstrom")
+        nat_idx = row.get("native_rmsd_angstrom")
+        if nat is None and nat_idx is not None:
+            nat = f"{nat_idx}*"
         pass_v = row.get("pass_vina_crystal")
         pass_n = row.get("pass_native") or row.get("pass_native_crystal")
         notes = row.get("failure_reason") or ""
@@ -51,7 +55,8 @@ def main():
         lines.append(
             f"| {row.get('target')} | {row.get('pdb_id')} | {row.get('ligand_chain','A')} | "
             f"{row.get('crystal_heavy_atoms','—')} | "
-            f"{vc if vc is not None else '—'} | {nat if nat is not None else '—'} | "
+            f"{vc if vc is not None else '—'} | {spy if spy is not None else '—'} | "
+            f"{nat if nat is not None else '—'} | "
             f"{'yes' if pass_v else 'no'} | {'yes' if pass_n else 'no'} | {notes} |"
         )
     OUT.write_text("\n".join(lines) + "\n")

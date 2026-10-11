@@ -9,6 +9,9 @@
     },
     "api/contact.js": {
       "maxDuration": 10
+    },
+    "api/dock-vina.js": {
+      "maxDuration": 60
     }
   },
   "headers": [

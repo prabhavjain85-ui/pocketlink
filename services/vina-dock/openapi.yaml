@@ -1,0 +1,46 @@
+openapi: 3.0.3
+info:
+  title: TargetForge Vina Dock Service
+  version: 0.1.0
+  description: Server-side AutoDock Vina (Meeko prep). Deploy as container; not suitable for Vercel functions.
+paths:
+  /v1/health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /v1/dock:
+    post:
+      summary: Dock a ligand to a validated target
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_id, smiles]
+              properties:
+                target_id:
+                  type: string
+                  example: abl1
+                smiles:
+                  type: string
+                exhaustiveness:
+                  type: integer
+                  default: 8
+      responses:
+        "200":
+          description: Docking result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  target_id: { type: string }
+                  vina_score_kcal_mol: { type: number }
+                  pose_pdbqt: { type: string }
+        "400":
+          description: Target not validated or bad input
+        "503":
+          description: Service misconfigured

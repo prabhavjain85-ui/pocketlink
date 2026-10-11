@@ -7,12 +7,19 @@ Bond orders: AssignBondOrdersFromTemplate using RCSB chemical component SMILES.
 from __future__ import annotations
 
 import json
+import sys
 import tempfile
 import urllib.request
 from pathlib import Path
 
+_BENCH_DIR = Path(__file__).resolve().parent
+if str(_BENCH_DIR) not in sys.path:
+    sys.path.insert(0, str(_BENCH_DIR))
+
 from rdkit import Chem
-from rdkit.Chem import AllChem, rdMolAlign
+from rdkit.Chem import AllChem
+
+from rmsd_inplace import rmsd_pose_pdbqt_vs_ref
 
 ROOT = Path(__file__).resolve().parents[1]
 CFG = ROOT / "benchmark" / "docking_targets.json"
@@ -22,9 +29,9 @@ CACHE = ROOT / "benchmark" / "pdb_cache"
 RMSD_METHOD_DOC = (
     "Heavy-atom RMSD in the receptor frame with NO Kabsch/superposition. "
     "Reference: co-crystal HETATM (single chain/altloc) with bond orders from "
-    "RCSB chemcomp SMILES (data.rcsb.org) via AssignBondOrdersFromTemplate. "
-    "Probe: Vina pose PDBQT with bond orders assigned from that reference; "
-    "RDKit rdMolAlign.CalcRMS(prb, ref) (in-place, symmetry-aware). "
+    "RCSB chemcomp SMILES via AssignBondOrdersFromTemplate. "
+    "Probe: Vina pose (Meeko PDBQT) with bond orders from reference. "
+    "Metrics: rdMolAlign.CalcRMS and spyrmsd.symmrmsd(minimize=False). "
     "Not GetBestRMS / AlignMol."
 )
 
@@ -120,24 +127,6 @@ def pose_mol_from_pdbqt(pose_pdbqt_text: str) -> Chem.Mol | None:
     return Chem.RemoveHs(mob)
 
 
-def in_place_calc_rmsd(ref_mol: Chem.Mol, pose_pdbqt_text: str) -> float | None:
-    """CalcRMS without prior alignment; heavy atoms only."""
-    if ref_mol is None:
-        return None
-    mob = pose_mol_from_pdbqt(pose_pdbqt_text)
-    if mob is None:
-        return None
-    try:
-        prb = AllChem.AssignBondOrdersFromTemplate(ref_mol, mob)
-        prb = Chem.RemoveHs(prb)
-        ref = Chem.Mol(ref_mol)
-        if prb.GetNumAtoms() != ref.GetNumAtoms():
-            return None
-        return float(rdMolAlign.CalcRMS(prb, ref))
-    except Exception:
-        return None
-
-
 def prepare_and_vina(
     receptor_pdb: str,
     ref_mol: Chem.Mol,
@@ -145,7 +134,7 @@ def prepare_and_vina(
     center: list[float],
     box_size: float,
     work: Path,
-) -> tuple[float | None, str | None]:
+) -> tuple[str | None, str | None]:
     try:
         from meeko import MoleculePreparation, PDBQTWriterLegacy
         from meeko import Polymer
@@ -184,10 +173,7 @@ def prepare_and_vina(
     v.write_poses(str(out_pdbqt), n_poses=1, overwrite=True)
 
     pose_text = out_pdbqt.read_text()
-    rmsd = in_place_calc_rmsd(ref_mol, pose_text)
-    if rmsd is None:
-        return None, "in_place_rmsd_failed"
-    return rmsd, None
+    return pose_text, None
 
 
 def strip_ligand_receptor(pdb_text: str, resn: str, chain: str, keep_het: list[str]) -> str:
@@ -256,6 +242,8 @@ def main():
             "ligand_resn": resn,
             "ligand_chain": chain,
             "crystal_heavy_atoms": heavy,
+            "vina_rmsd_calc_angstrom": None,
+            "vina_rmsd_spyrmsd_angstrom": None,
             "vina_rmsd_crystal_ligand": None,
             "vina_rmsd_rdkit_3d": None,
             "pass_vina_crystal": False,
@@ -273,12 +261,26 @@ def main():
         vina_keep_het = [h for h in keep_het if h.upper() not in ("HEM", "HEC")]
         receptor = strip_ligand_receptor(pdb_text, resn, chain, vina_keep_het)
 
+        def _apply_rmsd(pose_text: str | None) -> float | None:
+            if not pose_text:
+                return None
+            m = rmsd_pose_pdbqt_vs_ref(ref_mol, pose_text)
+            row["vina_rmsd_calc_angstrom"] = m.get("calc_rmsd_angstrom")
+            row["vina_rmsd_spyrmsd_angstrom"] = m.get("spyrmsd_angstrom")
+            calc = m.get("calc_rmsd_angstrom")
+            spy = m.get("spyrmsd_angstrom")
+            primary = calc if calc is not None else spy
+            row["vina_rmsd_crystal_ligand"] = primary
+            return primary
+
         with tempfile.TemporaryDirectory() as td:
             work = Path(td)
-            v_rmsd_c, err_c = prepare_and_vina(receptor, ref_mol, ref_mol, center, box, work)
-            row["vina_rmsd_crystal_ligand"] = v_rmsd_c
+            pose_c, err_c = prepare_and_vina(receptor, ref_mol, ref_mol, center, box, work)
+            v_rmsd_c = _apply_rmsd(pose_c)
             if err_c:
                 row["failure_reason"] = err_c
+            elif v_rmsd_c is None:
+                row["failure_reason"] = "in_place_rmsd_failed"
 
             mob = Chem.MolFromSmiles(smiles)
             if mob:
@@ -286,8 +288,12 @@ def main():
                 AllChem.EmbedMolecule(mob, randomSeed=42)
                 AllChem.MMFFOptimizeMolecule(mob)
                 mob = Chem.RemoveHs(mob)
-                v_rmsd_r, _ = prepare_and_vina(receptor, ref_mol, mob, center, box, work)
-                row["vina_rmsd_rdkit_3d"] = v_rmsd_r
+                pose_r, err_r = prepare_and_vina(receptor, ref_mol, mob, center, box, work)
+                if pose_r and not err_r:
+                    mr = rmsd_pose_pdbqt_vs_ref(ref_mol, pose_r)
+                    row["vina_rmsd_rdkit_3d"] = mr.get("calc_rmsd_angstrom") or mr.get(
+                        "spyrmsd_angstrom"
+                    )
             row["pass_vina_crystal"] = v_rmsd_c is not None and v_rmsd_c < 2.0
 
         rows.append(row)
