@@ -1,4 +1,5 @@
 import { getRDKit } from "./rdkitLoader";
+import { DOCKING_ENGINE_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
 
 /**
  * TargetForge Native Molecular Docking Engine
@@ -646,6 +647,9 @@ export function calculatePoseRmsd(poseA, poseB) {
  * Uses Monte Carlo simulated annealing and grid search within the pocket bounding box.
  */
 export async function runMolecularDocking(targetPdbText, ligandSmiles, options = {}) {
+  if (!DOCKING_ENGINE_ENABLED) {
+    throw new Error(DOCKING_UNAVAILABLE_NOTICE);
+  }
   const {
     customCenter = null,
     boxSize = 20,

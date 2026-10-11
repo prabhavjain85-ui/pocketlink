@@ -78,7 +78,13 @@ function candidateFromAdme(smiles, adme) {
 export function knownInApprovedLibrary(canonicalSmiles) {
   const target = String(canonicalSmiles || "").trim();
   if (!target) return null;
-  const hit = loadApprovedDrugs().find((d) => String(d.smiles || "").trim() === target);
+  let drugs;
+  try {
+    drugs = loadApprovedDrugs();
+  } catch {
+    return null;
+  }
+  const hit = drugs.find((d) => String(d.smiles || "").trim() === target);
   return hit || null;
 }
 

@@ -1,6 +1,10 @@
-import raw from "./data/approvedDrugs.json";
+const APPROVED_DRUGS_URL = `${process.env.PUBLIC_URL || ""}/data/approvedDrugs.json`;
+
+/** Committed metadata — used for UI before async library fetch completes. */
+export const APPROVED_DRUG_LIBRARY_COUNT = 2983;
 
 let cachedDrugs = null;
+let loadPromise = null;
 
 const SUPPLEMENTAL_DRUGS = [
   {
@@ -61,8 +65,7 @@ const SUPPLEMENTAL_DRUGS = [
   },
 ];
 
-export function loadApprovedDrugs() {
-  if (cachedDrugs) return cachedDrugs;
+function mapRawDrugs(raw) {
   const drugs = Array.isArray(raw?.drugs) ? raw.drugs : [];
   const mapped = drugs.map((drug) => ({
     id: String(drug.id || drug.cid),
@@ -82,12 +85,38 @@ export function loadApprovedDrugs() {
   for (const extra of SUPPLEMENTAL_DRUGS) {
     if (!names.has(extra.name.toLowerCase())) mapped.push(extra);
   }
-  cachedDrugs = mapped;
+  return mapped;
+}
+
+async function fetchApprovedDrugsPayload() {
+  const res = await fetch(APPROVED_DRUGS_URL);
+  if (!res.ok) {
+    throw new Error(`Failed to load approved drug library (${res.status})`);
+  }
+  return res.json();
+}
+
+/** Loads the approved-drug library from public/ (not bundled in the main JS chunk). */
+export async function ensureApprovedDrugsLoaded() {
+  if (cachedDrugs) return cachedDrugs;
+  if (!loadPromise) {
+    loadPromise = fetchApprovedDrugsPayload().then((raw) => {
+      cachedDrugs = mapRawDrugs(raw);
+      return cachedDrugs;
+    });
+  }
+  return loadPromise;
+}
+
+export function loadApprovedDrugs() {
+  if (!cachedDrugs) {
+    throw new Error("Approved drug library not loaded. Call ensureApprovedDrugsLoaded() first.");
+  }
   return cachedDrugs;
 }
 
 export function approvedDrugCount() {
-  return loadApprovedDrugs().length;
+  return cachedDrugs ? cachedDrugs.length : APPROVED_DRUG_LIBRARY_COUNT;
 }
 
 export function drugToCandidate(drug) {

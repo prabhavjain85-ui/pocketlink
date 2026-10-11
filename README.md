@@ -1,6 +1,6 @@
 # TargetForge
 
-**TargetForge** is an end-to-end computational drug discovery and repurposing platform. It integrates genetic target identification, crystallographic structure selection, target-aware compound screening, in-browser ADME profiling, native molecular docking simulations, and an autonomous research agent into a unified workflow.
+**TargetForge** is a computational drug discovery and repurposing workbench. It integrates genetic target identification, crystallographic structure selection, knowledge-based triage scoring (`heuristic-v2`), in-browser ADME profiling, an in-browser docking module (currently disabled pending validation), and an autonomous research agent into a unified workflow.
 
 ---
 
@@ -12,9 +12,9 @@ TargetForge is structured across nine dedicated routes:
 | --- | --- | --- |
 | `/` | **Staging Bench** | Search PDB structures, evaluate Target Selection Scores, search PubChem compounds, run PAINS/toxicophore screens, and rank candidates using `heuristic-v2`. |
 | `/target-discovery` | **Target Discovery** | Query Open Targets GraphQL for genetically validated disease targets, ranked by Novelty Score versus known clinical drug saturation. |
-| `/repurposing` | **Drug Repurposing Screen** | Screen a target against a bundled library of 2,983 approved small-molecule drugs using target-aware rule bands and Lipinski/Veber filters. |
+| `/repurposing` | **Drug Repurposing Screen** | Screen a target against a library of 2,983 approved small-molecule drugs using knowledge-based triage rules and Lipinski/Veber filters (not a validated activity predictor). |
 | `/adme` | **In-Browser ADME Profiling** | Calculate physicochemical descriptors, BOILED-Egg gastrointestinal and BBB permeation, ESOL aqueous solubility, Lipinski/Veber/Ghose rules, and organ toxicity alerts using client-side RDKit WASM. |
-| `/docking` | **Molecular Docking Simulation** | Run native grid-based empirical binding affinity predictions ($\Delta G_{\text{bind}}$, estimated $K_i$), 3D Monte Carlo pose optimization, and contact analysis in an interactive 3D viewer. |
+| `/docking` | **Molecular Docking (paused)** | In-browser docking is under validation and currently unavailable in the UI. Engine code remains in-repo behind `DOCKING_ENGINE_ENABLED`. |
 | `/agent` | **Autonomous Research Agent** | Orchestrate an automated 4-step pipeline: Target Discovery $\rightarrow$ PDB Selection $\rightarrow$ Repurposing Screen $\rightarrow$ Adversarial Critique ("The Case Against"). |
 | `/history` | **Session History** | Track and review past staging sessions, target discoveries, screening runs, agent investigations, and docking logs saved in persistent browser storage. |
 | `/methodology` | **Scientific Methodology** | Detailed documentation of scoring equations, rule tables, heuristic bands, algorithmic thresholds, and literature citations. |
@@ -37,9 +37,9 @@ Screens chemical structures against recognized pan-assay interference and reacti
 - **Reactive Toxicophores:** Screening for reactive functional groups not covered by PAINS, including Michael acceptors, aliphatic aldehydes, epoxides, and alkyl halides.
 - **Reporting:** Flagged compounds display actionable warnings and structural liability descriptions. Flagged molecules remain selectable, and alerts are factored into downstream candidate scoring as deductions rather than arbitrary exclusions.
 
-### Station 3: Target-Aware Candidate Ranking (`heuristic-v2`)
+### Station 3: Knowledge-Based Triage Score (`heuristic-v2`)
 Scores 2–5 staged molecules specifically against the selected PDB target:
-- **Target-Aware Engine (`heuristic-v2`):** Rather than evaluating drug-likeness in isolation, TargetForge evaluates target context (protein name, gene symbol, family classification, co-crystal ligand functional groups, and binding pocket size/hydrophobicity).
+- **Triage engine (`heuristic-v2`):** A 0–100 knowledge-based triage score built from curated target rules and literature knowledge — not a validated predictor of binding or clinical activity. It evaluates target context (protein name, gene symbol, family classification, co-crystal ligand functional groups, and binding pocket size/hydrophobicity) alongside drug-likeness.
 - **Pharmacological Rule Table:** Specific rules match recognized target genes and families (e.g., EGFR, ABL1, BRAF, HER2, $\beta_2$-AR, COX-1/2, HMGCR, DPP4, HIV Protease, SARS-CoV-2 Mpro, PDE5, HDACs) into calibrated score bands:
   - **On-target canonical chemotypes:** $\sim 67$ base points
   - **Same-family chemotypes:** $\sim 24$ base points
@@ -49,7 +49,7 @@ Scores 2–5 staged molecules specifically against the selected PDB target:
 - **Deterministic Calibration:** Numeric scores are governed by the local deterministic engine to ensure reproducibility across batches.
 - **Optional LLM Reasoning:** When `OPENAI_API_KEY` is provided, `/api/rank-candidates` invokes OpenAI (`gpt-4o-mini` by default) to generate qualitative clinical reasoning, strengths, and concerns without overriding the baseline calibrated score scale. If the LLM is absent or encounters an error, the system seamlessly uses local rule-based reasoning.
 - **Isolation:** Scores are cached by `(PDB_ID, CID)`. A score computed against one target is never reused for another.
-- **Native Workflow Handoff:** Integrated navigation directly passes staged target and molecule structures into TargetForge's native molecular docking (`/docking`) and ADME profiling (`/adme`) modules.
+- **Workflow handoff:** ADME profiling (`/adme`) is available from Station 4. In-browser docking (`/docking`) is disabled until redocking validation passes.
 
 ---
 
@@ -75,7 +75,7 @@ The Target Discovery module identifies genetically supported yet underexplored t
 
 The Repurposing Screen evaluates existing approved therapeutics against any crystallographic PDB target:
 
-- **Approved Drug Library:** Bundled in `src/data/approvedDrugs.json`, containing **2,983 approved small-molecule drugs** complete with SMILES, PubChem CIDs, clinical indications, and physicochemical properties.
+- **Approved Drug Library:** Served from `public/data/approvedDrugs.json` (lazy-loaded at runtime, not in the main JS bundle), containing **2,983 approved small-molecule drugs** with SMILES, PubChem CIDs, indications, and physicochemical properties. `src/data/approvedDrugs.json` remains for scripts and tests.
 - **Pre-Qualification Pipeline:**
   1. Filters out entries with missing SMILES, extreme molecular weight ($\text{MW} > 900\text{ g/mol}$), or severe drug-likeness failures ($\ge 5$ Lipinski/Veber violations).
   2. Evaluates pocket geometry (small, large, hydrophobic, hydrophilic) and reference ligand molecular weight.
@@ -108,17 +108,9 @@ The ADME module executes physicochemical and pharmacokinetic predictions entirel
 
 ---
 
-## 5. Molecular Docking Simulation (`/docking`)
+## 5. Molecular Docking (`/docking`) — validation paused
 
-A native, in-browser molecular docking and binding affinity simulation engine:
-
-- **Empirical Scoring Function:** Uses an empirical force field inspired by AutoDock and AutoDock Vina:
-  $$\Delta G_{\text{bind}} = w_{\text{vdw}} E_{\text{vdw}} + w_{\text{hb}} E_{\text{hb}} + w_{\text{elec}} E_{\text{elec}} + w_{\text{desolv}} E_{\text{desolv}} + w_{\text{tor}} N_{\text{rot}}$$
-- **Thermodynamic Constants:** Derives estimated dissociation constants ($K_i$ / $K_d$) using the relation $\Delta G = RT \ln(K_i)$ at $T = 298.15\text{ K}$ ($RT \approx 0.5925\text{ kcal/mol}$).
-- **Pose Optimization:** Performs Monte Carlo simulated annealing in a defined grid search box centered on the crystallographic binding site.
-- **Interaction Contact Analysis:** Detects hydrogen bonds, hydrophobic contacts, steric clashes, and torsional strain.
-- **Interactive 3D Visualization:** Rendered via `3Dmol.js`, featuring protein ribbon representations, pocket surface contours, key binding residue sidechains, and docked ligand conformations.
-- **Reference Benchmarks:** Includes curated reference targets with validated crystallographic pockets (Abl Kinase `1IEP`, EGFR `1M17`, $\beta_2$-AR `3SN6`, SARS-CoV-2 Mpro `7BQY`, COX-2 `4COX`) alongside arbitrary PDB search ingestion.
+The in-browser docking engine (`src/dockingEngine.js`) is **disabled in the UI** (`DOCKING_ENGINE_ENABLED = false`) while co-crystal redocking validation is in progress. The Docking page shows: *Docking is under validation and currently unavailable.* No binding scores or poses are shown elsewhere in the app. Source code remains for future re-enable after validation.
 
 ---
 

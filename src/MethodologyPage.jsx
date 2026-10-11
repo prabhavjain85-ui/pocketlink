@@ -181,8 +181,8 @@ export default function MethodologyPage() {
                 otherwise TargetForge uses its built-in target-aware model. Adversarial critique is available for the top pick.
               </li>
               <li>
-                <strong>Station 4 — Docking &amp; ADME handoff.</strong> Pick a compound and launch in-browser molecular docking or
-                RDKit-based ADME profiling with the staged PDB ID and SMILES pre-filled.
+                <strong>Station 4 — ADME handoff (docking paused).</strong> Pick a compound and launch RDKit-based ADME profiling with
+                the staged SMILES pre-filled. In-browser molecular docking is under validation and currently unavailable.
               </li>
             </ol>
             <p className="section-text">
@@ -332,12 +332,13 @@ export default function MethodologyPage() {
           {/* Section 3: Target-Aware Compound Ranking (heuristic-v2) */}
           <section className="methodology-section" id="target-aware-scoring">
             <div className="section-eyebrow">Criterion 03</div>
-            <h2 className="section-title">Target-Aware Compound Ranking (heuristic-v2)</h2>
+            <h2 className="section-title">Knowledge-Based Triage Score (heuristic-v2)</h2>
             <p className="section-text">
               Conventional virtual screening tools often evaluate compounds solely through generic drug-likeness rules (such as Lipinski&apos;s
               Rule of Five). However, a molecule can be exceptionally &quot;drug-like&quot; in the abstract while having zero pharmacological
-              relevance to the specific target pocket. TargetForge&apos;s scoring engine (identified programmatically by <code>source: &quot;heuristic-v2&quot;</code>)
-              combines two distinct components:
+              relevance to the specific target pocket. TargetForge&apos;s 0–100 output is a <strong>knowledge-based triage score</strong> — a heuristic
+              built from curated target rules and literature knowledge, not a validated activity or binding predictor. It is tagged programmatically
+              as <code>source: &quot;heuristic-v2&quot;</code> and combines two distinct components:
             </p>
 
             <div className="scoring-tiers-grid">
@@ -534,82 +535,43 @@ export default function MethodologyPage() {
             </div>
           </section>
 
-          {/* Section 6: Validation Benchmark */}
+          {/* Section 6: Validation */}
           <section className="methodology-section" id="validation-benchmark">
             <div className="section-eyebrow">Criterion 06</div>
-            <h2 className="section-title">Validation Benchmark: Target-Specific Rule Discrimination</h2>
+            <h2 className="section-title">Validation Status</h2>
             <p className="section-text">
-              To verify that the target-aware scoring engine distinguishes true pharmacological relevance rather than rewarding generic molecular
-              beauty, candidate sets were evaluated against human Tyrosine-protein kinase <strong>ABL1</strong> (PDB: <code>2HYY</code>).
+              TargetForge reports validation outcomes honestly. The knowledge-based triage score is for computational prioritization only;
+              it is not evidence of binding affinity, enzymatic inhibition, or clinical efficacy.
             </p>
 
-            <div className="benchmark-card" id="card-benchmark-result">
-              <div className="benchmark-card-header">
-                <div>
-                  <h3 className="benchmark-card-title">Scoring Discrimination on ABL1 Kinase Domain (PDB 2HYY)</h3>
-                  <div className="benchmark-card-sub">Comparative test across on-target, same-family, and generic drug-like compounds</div>
-                </div>
-                <span className="benchmark-status-badge">Rule Separation Verified</span>
-              </div>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginTop: 20, marginBottom: 8 }}>
+              Triage score (heuristic-v2)
+            </h3>
+            <ul className="methodology-bullet-list">
+              <li>
+                <strong>Circular first test (withdrawn):</strong> Early checks used known drugs that are explicitly encoded in the app&apos;s own
+                target rule table (for example, comparing osimertinib vs imatinib on EGFR). Those drugs scored highly because the rules were written
+                around them — this is not independent validation.
+              </li>
+              <li>
+                <strong>Held-out drugs (not in rule table):</strong> On a set of approved molecules not encoded in the rules, the triage score
+                reached ROC-AUC ~0.35 — no better than chance at separating actives from decoys.
+              </li>
+              <li>
+                <strong>Rebuilt benchmark (in progress):</strong> A property-matched decoy benchmark is being rebuilt. So far only 3 of 15
+                targets pass decoy sanity checks; where benchmarks exist, scores are near random (~0.48 AUC).
+              </li>
+            </ul>
 
-              <div className="benchmark-grid">
-                <div className="benchmark-group good" id="group-known-inhibitors">
-                  <div className="benchmark-group-title">Known On-Target ABL TKIs</div>
-                  <div className="benchmark-group-items">
-                    <div className="benchmark-item">
-                      <span className="benchmark-name">Imatinib (ABL1 targeted)</span>
-                      <span className="benchmark-score high">Score ~67 / 100</span>
-                    </div>
-                    <div className="benchmark-item">
-                      <span className="benchmark-name">Dasatinib (ABL1 targeted)</span>
-                      <span className="benchmark-score high">Score ~67 / 100</span>
-                    </div>
-                  </div>
-                  <div className="benchmark-group-note">
-                    Receives the on-target rule bonus (+55) + baseline oral drug-likeness (+12–18). Correctly prioritizes established BCR-ABL pharmacology.
-                  </div>
-                </div>
-
-                <div className="benchmark-group neutral" id="group-same-family">
-                  <div className="benchmark-group-title">Same-Family Kinase Inhibitors (Off-Target)</div>
-                  <div className="benchmark-group-items">
-                    <div className="benchmark-item">
-                      <span className="benchmark-name">Gefitinib (EGFR TKI on ABL)</span>
-                      <span className="benchmark-score low">Score ~24 / 100</span>
-                    </div>
-                    <div className="benchmark-item">
-                      <span className="benchmark-name">Erlotinib (EGFR TKI on ABL)</span>
-                      <span className="benchmark-score low">Score ~24 / 100</span>
-                    </div>
-                  </div>
-                  <div className="benchmark-group-note">
-                    Receives same-family kinase bonus (+12) + drug-likeness (+12), appropriately demoted due to primary target divergence (EGFR vs. ABL1).
-                  </div>
-                </div>
-              </div>
-
-              <div className="benchmark-group neutral" id="group-unrelated-drugs" style={{ marginTop: "14px" }}>
-                <div className="benchmark-group-title">Unrelated Oral Drugs (Generic Drug-Like)</div>
-                <div className="benchmark-group-items">
-                  <div className="benchmark-item">
-                    <span className="benchmark-name">Alprazolam (GABA-A PAM)</span>
-                    <span className="benchmark-score low">Score ~12 / 100</span>
-                  </div>
-                  <div className="benchmark-item">
-                    <span className="benchmark-name">Atorvastatin (HMGCR inhibitor)</span>
-                    <span className="benchmark-score low">Score ~12 / 100</span>
-                  </div>
-                </div>
-                <div className="benchmark-group-note">
-                  Penalized with zero target bonus (+0). Reflects only generic oral physicochemical descriptors with no kinase pharmacophore relevance.
-                </div>
-              </div>
-
-              <p className="benchmark-conclusion">
-                <strong>Methodological Note:</strong> These are rule scores, not experimental IC50. They reflect rule-table pharmacophore
-                matching and empirical triage thresholds, not physical equilibrium dissociation constants (Kd) or measured binding affinities.
-              </p>
-            </div>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginTop: 20, marginBottom: 8 }}>
+              In-browser molecular docking
+            </h3>
+            <p className="section-text">
+              Co-crystal redocking validation is in progress. The in-browser docking engine failed redocking on every target tested (in-place RMSD
+              5.5–11.5 Å where a pose was returned; no valid pose on six targets). The engine remains in the repository but is disabled in the UI
+              until it passes redocking — the Docking page shows: &quot;Docking is under validation and currently unavailable.&quot; No docking scores or
+              poses are displayed in the app.
+            </p>
           </section>
 
           {/* Section 8: ADME & Pharmacokinetic Profiling */}

@@ -1,3 +1,8 @@
+jest.mock("./featureFlags", () => ({
+  DOCKING_ENGINE_ENABLED: true,
+  DOCKING_UNAVAILABLE_NOTICE: "Docking is under validation and currently unavailable.",
+}));
+
 import {
   parsePdbStructure,
   extractPocketAtoms,

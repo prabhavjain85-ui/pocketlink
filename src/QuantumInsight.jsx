@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { DOCKING_ENGINE_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
 
 /**
  * Quantum Insight — planned future feature on Station 4 handoff.
@@ -51,8 +52,8 @@ export default function QuantumInsight({ compound, smiles, protein = null }) {
           <div className="quantum-roadmap">
             <div className="quantum-roadmap-kicker">Future feature</div>
             <p className="quantum-roadmap-lead">
-              Quantum Insight will add research-stage quantum-chemistry estimates alongside your classical
-              docking and ADME handoff — optional context, not a replacement for either.
+              Quantum Insight will add research-stage quantum-chemistry estimates alongside ADME triage — optional
+              context, not a replacement for experimental assays or validated docking.
             </p>
 
             <h5 className="quantum-roadmap-heading">What it will do</h5>
@@ -63,7 +64,7 @@ export default function QuantumInsight({ compound, smiles, protein = null }) {
               </li>
               <li>
                 Surface quantum-chemistry-level context for ligand–pocket triage (electronic structure and
-                ground-state energies) as a complement to force-field docking scores.
+                ground-state energies) as a complement to structure-based triage — not validated binding scores.
               </li>
             </ul>
 
@@ -83,9 +84,13 @@ export default function QuantumInsight({ compound, smiles, protein = null }) {
             )}
 
             <div className="quantum-roadmap-actions">
-              <Link to={dockingHandoffUrl} className="btn btn-primary quantum-cta">
-                Run native docking →
-              </Link>
+              {DOCKING_ENGINE_ENABLED ? (
+                <Link to={dockingHandoffUrl} className="btn btn-primary quantum-cta">
+                  Run native docking →
+                </Link>
+              ) : (
+                <span className="lipinski-note quantum-cta">{DOCKING_UNAVAILABLE_NOTICE}</span>
+              )}
               <Link to="/" className="btn btn-secondary quantum-cta">
                 Run a screen
               </Link>

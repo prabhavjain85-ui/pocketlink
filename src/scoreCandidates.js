@@ -712,10 +712,10 @@ function reasonFor(candidate, scored, protein) {
 
   if (rule) {
     if (scored.ligandBonus > 0) {
-      return `${name} is an established on-target clinical inhibitor for ${rule.name} and directly matches the co-crystallized reference ligand in this PDB structure (${protein.pdb_id || protein.id || "target"}). ${scored.passCount}/6 drug-likeness checks pass.${alertBit} Binding affinity is not assessed here — docking still needs to be run.`;
+      return `${name} is an established on-target clinical inhibitor for ${rule.name} and directly matches the co-crystallized reference ligand in this PDB structure (${protein.pdb_id || protein.id || "target"}). ${scored.passCount}/6 drug-likeness checks pass.${alertBit} Binding affinity is not assessed here — in-browser docking is under validation.`;
     }
     if (scored.targetBonus >= 50) {
-      return `${name} is an established on-target clinical drug for ${rule.name}. ${scored.passCount}/6 drug-likeness checks pass.${alertBit} Binding affinity is not assessed here — docking still needs to be run.`;
+      return `${name} is an established on-target clinical drug for ${rule.name}. ${scored.passCount}/6 drug-likeness checks pass.${alertBit} Binding affinity is not assessed here — in-browser docking is under validation.`;
     }
     if (scored.targetBonus >= 10) {
       return `${name} shares the ${rule.family} chemotype, but its primary target differs from ${rule.name}. ${scored.passCount}/6 drug-likeness checks pass.${alertBit} Treat this as a secondary candidate.`;
@@ -723,11 +723,11 @@ function reasonFor(candidate, scored, protein) {
   }
 
   if (protein && !rule) {
-    return `${name} has the best available drug-likeness profile in this set, but there is an insufficient target rule for ${targetName || "this target"} — no recognized pharmacology rule exists for this structure. Binding affinity is not assessed here — docking still needs to be run.`;
+    return `${name} has the best available drug-likeness profile in this set, but there is an insufficient target rule for ${targetName || "this target"} — no recognized pharmacology rule exists for this structure. Binding affinity is not assessed here — in-browser docking is under validation.`;
   }
 
   if (scored.violations === 0) {
-    return `${name} has the strongest overall physicochemical profile in this shortlist: ${scored.passCount}/6 drug-likeness checks pass, with a balanced size, polarity, and flexibility profile.${alertBit} Binding affinity is not assessed here — docking still needs to be run.`;
+    return `${name} has the strongest overall physicochemical profile in this shortlist: ${scored.passCount}/6 drug-likeness checks pass, with a balanced size, polarity, and flexibility profile.${alertBit} Binding affinity is not assessed here — in-browser docking is under validation.`;
   }
   return `${name} is the best available option in this shortlist, but it still has ${scored.violations} drug-likeness flag(s).${alertBit} Treat this as a computational triage, not evidence of activity.`;
 }
@@ -817,7 +817,7 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
       "PAINS and toxicophore matches are warnings, not automatic exclusions — some flagged chemotypes become real drugs.",
       ctx?.dataGaps?.length
         ? "Target-fit assessment is limited without pocket/ligand data — geometric fit was not treated as a confident judgment."
-        : "Use TargetForge Native Docking and ADME Profiling next, then experimental assays, before treating any molecule as a real lead.",
+        : "Use ADME profiling and experimental assays next before treating any molecule as a real lead (in-browser docking is under validation).",
     ].filter((item, index, arr) => arr.indexOf(item) === index),
     source: "heuristic-v2",
   };
@@ -848,32 +848,7 @@ function scoreLibraryLocal(candidates, protein = null) {
  * Helper to rank repurposing candidates and log top 5 for a PDB target.
  */
 function rankRepurposing(candidates, protein = null) {
-  let list = Array.isArray(candidates) && candidates.length ? candidates : null;
-  if (!list) {
-    try {
-      const raw = require("./data/approvedDrugs.json");
-      const drugs = Array.isArray(raw?.drugs) ? raw.drugs : [];
-      list = drugs.map((drug) => ({
-        CID: drug.cid,
-        cid: String(drug.cid),
-        displayName: drug.name,
-        name: drug.name,
-        IsomericSMILES: drug.smiles,
-        CanonicalSMILES: drug.smiles,
-        SMILES: drug.smiles,
-        MolecularWeight: drug.mw,
-        XLogP: drug.xlogp,
-        HBondDonorCount: drug.hbd,
-        HBondAcceptorCount: drug.hba,
-        RotatableBondCount: drug.rot,
-        TPSA: drug.tpsa,
-        indication: drug.indication,
-        drugClass: drug.class,
-      }));
-    } catch {
-      list = [];
-    }
-  }
+  const list = Array.isArray(candidates) && candidates.length ? candidates : [];
 
   const result = scoreLibraryLocal(list, protein);
   const top5 = (result.ranking || []).slice(0, 5).map((r) => {

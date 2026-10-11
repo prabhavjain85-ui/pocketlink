@@ -3,7 +3,7 @@ const SITE_NAME = "TargetForge";
 
 const DEFAULT_TITLE = "TargetForge — AI-Powered Drug Discovery & Target Identification";
 const DEFAULT_DESCRIPTION =
-  "AI-powered drug discovery platform for drug repurposing, target identification, molecular docking, ADME analysis, and scientific hypothesis testing.";
+  "Computational drug discovery workbench: knowledge-based triage scoring, target identification, repurposing screens, ADME analysis, and hypothesis testing. In-browser docking is under validation.";
 
 export const ROUTE_SEO = {
   "/": {
@@ -26,7 +26,7 @@ export const ROUTE_SEO = {
   "/repurposing": {
     title: "Drug Repurposing Screen — TargetForge",
     description:
-      "Screen approved drugs against a protein target to surface repurposing candidates. Supports computational drug discovery with target-aware scoring across a curated library.",
+      "Screen approved drugs against a protein target to surface repurposing candidates. Uses a knowledge-based triage score (curated rules), not a validated activity predictor, across a curated library.",
     canonical: `${SITE_URL}/repurposing`,
   },
   "/adme": {
@@ -38,7 +38,7 @@ export const ROUTE_SEO = {
   "/docking": {
     title: "Molecular Docking Simulation — TargetForge",
     description:
-      "Run in-browser receptor-ligand docking with binding energy estimates and 3D pose inspection. Supports computational structure-based prioritization.",
+      "Molecular docking module — under validation and currently unavailable. No binding scores or poses are shown until co-crystal redocking passes.",
     canonical: `${SITE_URL}/docking`,
   },
   "/agent": {
@@ -109,12 +109,12 @@ export const STATIC_ROUTE_CONTENT = {
     eyebrow: "TargetForge · computational drug discovery",
     h1: "AI-Powered Drug Discovery & Target Identification",
     intro:
-      "Rank compounds against a protein target in minutes: stage a PDB structure, shortlist PubChem molecules, get a critiqued AI ranking, then run in-browser docking and ADME.",
+      "Rank compounds against a protein target in minutes: stage a PDB structure, shortlist PubChem molecules, get a critiqued knowledge-based triage ranking, then run ADME (docking under validation).",
     sections: [
       {
         h2: "How it works",
         text:
-          "Pick a target, add 2–5 compounds, and get a target-aware ranked shortlist with optional docking and ADME follow-up. Station-by-station detail is documented on Methodology",
+          "Pick a target, add 2–5 compounds, and get a knowledge-based triage ranked shortlist with ADME follow-up. In-browser docking is under validation. Station-by-station detail is documented on Methodology",
         path: "/methodology#staging-bench",
         linkLabel: "see the staging bench workflow",
       },
@@ -164,7 +164,7 @@ export const STATIC_ROUTE_CONTENT = {
     eyebrow: "TargetForge · molecular docking",
     h1: "Receptor-Ligand Molecular Docking",
     intro:
-      "Compute binding free energy (ΔG_bind), estimate inhibition constants (Ki), and inspect 3D poses in crystallographic binding pockets — simulated in-browser. Supports structure-based prioritization, not experimental binding confirmation.",
+      "Docking is under validation and currently unavailable. The in-browser engine is disabled until co-crystal redocking passes; no binding scores or poses are shown.",
     breadcrumbLabel: "Molecular docking",
   },
   "/agent": {
