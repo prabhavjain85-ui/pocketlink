@@ -7,7 +7,11 @@ Retrospective validation of **heuristic-v2** (`rankCandidatesLocal` in `src/scor
 | File | Purpose |
 | --- | --- |
 | `validation_set.json` | **In-rule (circular)** panel: actives from `TARGET_RULES` drug lists |
-| `heldout_set.json` | **Held-out (non-circular)** panel: ChEMBL actives + property-matched decoys verified absent from rule lists (`rule_audit`) |
+| `heldout_set.json` | Legacy small held-out panel (superseded by v2 when present) |
+| `heldout_benchmark_v2.json` | **Held-out v2**: ChEMBL actives (scaffold-split) + property-matched decoys (`buildHeldoutBenchmark.py`) |
+| `reference_sets.json` | ChEMBL reference actives + fingerprints (generated; gitignored — use `src/data/targetReferenceFingerprints.json`) |
+| `redocking_results.json` | Co-crystal redocking RMSD table (native engine) |
+| `leakage_report.json` | Scaffold / nearest-neighbour Tanimoto leakage checks |
 | `auditRuleLists.mjs` | Grep-backed check against `TARGET_RULES`, `KINASE_INHIBITOR_RE`, `GPCR_LIGAND_RE` |
 | `runBenchmark.mjs` | Reproducible Node runner (metrics + optional docking baseline) |
 | `docking_cache.json` | Cached ΔG poses (generated; commit for reproducibility) |

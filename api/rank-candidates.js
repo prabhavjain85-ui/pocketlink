@@ -270,7 +270,22 @@ function normalizeResult(result, allowedCids, protein) {
   };
 }
 
-function buildRankPrompt(compact, protein, heuristic) {
+function formatSimilarityBlock(similarityByCid) {
+  if (!similarityByCid?.size) return "ChEMBL reference similarity: not available for this target (build reference_sets.json).";
+  const lines = [];
+  for (const [cid, row] of similarityByCid.entries()) {
+    if (!row?.evidence?.length) continue;
+    const top = row.evidence[0];
+    lines.push(
+      `- ${cid}: max Tanimoto ${(row.maxTanimoto ?? 0).toFixed(3)} vs reference ${top.chembl_id || "active"} (${(top.smiles || "").slice(0, 60)}…)`
+    );
+  }
+  return lines.length
+    ? `ChEMBL reference similarity (Morgan r=2, 2048 bits; cite these real actives instead of drug-name recognition):\n${lines.join("\n")}`
+    : "ChEMBL reference similarity: fingerprints unavailable for these SMILES.";
+}
+
+function buildRankPrompt(compact, protein, heuristic, similarityByCid) {
   const targetLabel = protein?.pdb_id
     ? `${protein.name || targetDisplayName(protein) || "staged target"} (PDB ${protein.pdb_id})`
     : "an unspecified target (no PDB structure staged)";
@@ -291,7 +306,7 @@ Score each supplied small-molecule candidate for how well it fits THIS specific 
 ${TARGET_SPECIFIC_INSTRUCTION}
 
 Scoring (integer 0–100) is a weighted combination of:
-1. Target/pocket fit (~55%): size and polarity match relative to the pocket and the co-crystallized reference ligand when available, AND genuine pharmacological relevance. If the compound is a known inhibitor class for this target family — for example a tyrosine kinase inhibitor when the target is a tyrosine kinase, a protease inhibitor when the target is HIV protease, or an NSAID when the target is COX-2 — that must meaningfully raise the score. Use real chemical and pharmacological knowledge here, not just geometric property matching.
+1. Target/pocket fit (~55%): size and polarity match relative to the pocket and the co-crystallized reference ligand when available, AND evidence of relevance (prefer supplied ChEMBL similarity to reference actives; legacy drug-name priors may apply only to listed approved drugs). Use real chemical knowledge — do not invent activity.
 2. Drug-likeness (~30%): Lipinski Rule-of-Five and Veber compliance from the supplied properties. This is a tie-breaker, not the ranking.
 3. PAINS/toxicophore penalty: deduct points if flagged (typically 8–15). Never hard-zero a score solely because of an alert — some flagged chemotypes become real drugs.
 
@@ -316,17 +331,19 @@ ${gaps}
 Candidates (PubChem properties + Lipinski/Veber + PAINS):
 ${JSON.stringify(compact, null, 2)}
 
-Heuristic ranking (target-aware physicochemical + class match, for reference only):
-${JSON.stringify(heuristic, null, 2)}`;
+Heuristic ranking (knowledge-based triage — not a potency prediction):
+${JSON.stringify(heuristic, null, 2)}
+
+${formatSimilarityBlock(similarityByCid)}`;
 
   return { system, user };
 }
 
-async function rankWithOpenAI(compact, protein, heuristic) {
+async function rankWithOpenAI(compact, protein, heuristic, similarityByCid) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return null;
 
-  const { system, user } = buildRankPrompt(compact, protein, heuristic);
+  const { system, user } = buildRankPrompt(compact, protein, heuristic, similarityByCid);
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -371,12 +388,25 @@ async function handler(req, res) {
       return json(res, 400, { error: isBatch ? "Select at least 1 candidate." : "Select at least 2 candidates." });
     }
 
+    let similarityByCid = new Map();
+    try {
+      process.env.NODE_ENV = "test";
+      const { buildSimilarityMap } = await import("../benchmark/similarityForBench.mjs");
+      similarityByCid = await buildSimilarityMap(
+        compact.map((c) => ({ smiles: c.smiles, name: c.name, chembl_id: c.cid })),
+        protein
+      );
+    } catch {
+      similarityByCid = new Map();
+    }
+
     const heuristic = rankCandidatesLocal(compact, protein, {
       maxCandidates: batchLimit,
       minCandidates: isBatch ? 1 : 2,
+      similarityByCid,
     });
     const allowedCids = compact.map((c) => String(c.cid));
-    const prompt = buildRankPrompt(compact, protein, heuristic);
+    const prompt = buildRankPrompt(compact, protein, heuristic, similarityByCid);
     logRankPrompt(prompt.system, prompt.user, protein);
 
     if (!process.env.OPENAI_API_KEY) {
@@ -384,7 +414,7 @@ async function handler(req, res) {
     }
 
     try {
-      const llmRaw = await rankWithOpenAI(compact, protein, heuristic);
+      const llmRaw = await rankWithOpenAI(compact, protein, heuristic, similarityByCid);
       const llm = normalizeResult(llmRaw, allowedCids, protein);
       if (llm) {
         // Shortlist (2–5): the LLM ranks a single comparable set.

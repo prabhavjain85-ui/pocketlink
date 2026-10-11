@@ -6,9 +6,12 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import path from "path";
 import {
-  DOCKING_REFERENCE_TARGETS,
   fetchPdbFromRcsb,
+  prepareReceptorPdb,
   runMolecularDocking,
+  parsePdbStructure,
+  computeSearchBoxFromAtoms,
+  pickCoCrystalLigandGroup,
 } from "../dockingEngine";
 
 const DOCK_SEED_BASE = 13082026;
@@ -58,8 +61,18 @@ describeBench("benchmark docking cache", () => {
         if (!pdbTexts[pdbId]) {
           pdbTexts[pdbId] = await loadPdb(pdbId);
         }
-        const pdbText = pdbTexts[pdbId];
-        const ref = DOCKING_REFERENCE_TARGETS.find((t) => t.id === pdbId.toUpperCase());
+        const rawPdb = pdbTexts[pdbId];
+        const parsed = parsePdbStructure(rawPdb);
+        const co = pickCoCrystalLigandGroup(parsed.heteroAtoms);
+        const box = computeSearchBoxFromAtoms(co.atoms, 5);
+        const pdbText = prepareReceptorPdb(rawPdb);
+        const redockPath = path.join(benchDir, "redocking_results.json");
+        let redockOk = true;
+        if (existsSync(redockPath)) {
+          const redock = JSON.parse(readFileSync(redockPath, "utf8"));
+          const row = (redock.rows || []).find((r) => r.pdb_id === pdbId.toUpperCase());
+          redockOk = row?.pass === true;
+        }
 
         for (const compound of target.compounds) {
           if (!compound.pubchem_cid) {
@@ -67,15 +80,23 @@ describeBench("benchmark docking cache", () => {
           }
           const key = `${pdbId}_${compound.pubchem_cid}`;
           if (cache[key]?.delta_g != null) continue;
+          if (!redockOk) {
+            cache[key] = {
+              skipped: true,
+              reason: "redocking_validation_failed",
+              pdb_id: pdbId,
+            };
+            continue;
+          }
 
-          const seed = DOCK_SEED_BASE + Number(compound.pubchem_cid.slice(-6)) % 100000;
+          const seed = DOCK_SEED_BASE + Number(String(compound.pubchem_cid || "0").slice(-6)) % 100000;
           const orig = Math.random;
           Math.random = mulberry32(seed);
           try {
             const result = await runMolecularDocking(pdbText, compound.smiles, {
               searchExhaustiveness: DOCK_EXHAUSTIVENESS,
-              customCenter: ref?.center || null,
-              boxSize: ref?.boxSize || 20,
+              customCenter: box.center,
+              boxSize: box.boxSize,
             });
             const deltaG = result?.bestPose?.deltaG ?? result?.rankedPoses?.[0]?.deltaG ?? null;
             cache[key] = { delta_g: deltaG, name: compound.name, pdb_id: pdbId };

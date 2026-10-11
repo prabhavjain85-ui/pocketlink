@@ -1,0 +1,101 @@
+{
+  "targets": [
+    {
+      "id": "egfr",
+      "test_actives": 30,
+      "reference_actives": 40,
+      "decoys": 85,
+      "decoys_per_active_mean": 2.8333333333333335
+    },
+    {
+      "id": "abl1",
+      "error": "only 0 actives after dedup/exclusion"
+    },
+    {
+      "id": "erbb2",
+      "test_actives": 30,
+      "reference_actives": 40,
+      "decoys": 58,
+      "decoys_per_active_mean": 1.9333333333333333
+    },
+    {
+      "id": "braf",
+      "test_actives": 30,
+      "reference_actives": 40,
+      "decoys": 61,
+      "decoys_per_active_mean": 2.033333333333333
+    },
+    {
+      "id": "ptgs2",
+      "test_actives": 30,
+      "reference_actives": 40,
+      "decoys": 257,
+      "decoys_per_active_mean": 8.566666666666666
+    },
+    {
+      "id": "hmgcr",
+      "test_actives": 30,
+      "reference_actives": 40,
+      "decoys": 62,
+      "decoys_per_active_mean": 2.066666666666667
+    },
+    {
+      "id": "pde5a",
+      "test_actives": 30,
+      "reference_actives": 40,
+      "decoys": 83,
+      "decoys_per_active_mean": 2.7666666666666666
+    },
+    {
+      "id": "esr1",
+      "error": "only 0 actives after dedup/exclusion"
+    },
+    {
+      "id": "dpp4",
+      "test_actives": 30,
+      "reference_actives": 40,
+      "decoys": 91,
+      "decoys_per_active_mean": 3.033333333333333
+    },
+    {
+      "id": "adrb2",
+      "test_actives": 30,
+      "reference_actives": 40,
+      "decoys": 45,
+      "decoys_per_active_mean": 1.5
+    },
+    {
+      "id": "hiv_pr",
+      "test_actives": 30,
+      "reference_actives": 40,
+      "decoys": 125,
+      "decoys_per_active_mean": 4.166666666666667
+    },
+    {
+      "id": "sars_mpro",
+      "error": "only 0 actives after dedup/exclusion"
+    },
+    {
+      "id": "hdac1",
+      "test_actives": 30,
+      "reference_actives": 40,
+      "decoys": 76,
+      "decoys_per_active_mean": 2.533333333333333
+    },
+    {
+      "id": "jak2",
+      "test_actives": 30,
+      "reference_actives": 40,
+      "decoys": 195,
+      "decoys_per_active_mean": 6.5
+    },
+    {
+      "id": "thrombin",
+      "test_actives": 30,
+      "reference_actives": 40,
+      "decoys": 112,
+      "decoys_per_active_mean": 3.7333333333333334
+    }
+  ],
+  "excluded_rule_smiles": 2977
+}

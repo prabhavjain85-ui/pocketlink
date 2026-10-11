@@ -1,0 +1,110 @@
+{
+  "description": "Benchmark docking structures: co-crystal ligand residue and reference SMILES for redocking validation.",
+  "targets": [
+    {
+      "target_id": "egfr",
+      "pdb_id": "1M17",
+      "ligand_resn": "AQ4",
+      "reference_smiles": "COCCOc1cc2c(cc1OCCOC)ncnc2Nc3cccc(c3)C#C",
+      "ligand_name": "erlotinib"
+    },
+    {
+      "target_id": "abl1",
+      "pdb_id": "1IEP",
+      "ligand_resn": "STI",
+      "reference_smiles": "Cc1ccc(cc1Nc2nccc(n2)c3cccnc3)NC(=O)c4ccc(cc4)CN5CCN(CC5)C",
+      "ligand_name": "imatinib"
+    },
+    {
+      "target_id": "erbb2",
+      "pdb_id": "3PP0",
+      "ligand_resn": "03Q",
+      "reference_smiles": "c1cc(cc(c1)Oc2c(cc(cn2)Nc3c4c(ccn4CCOCCO)ncn3)Cl)C(F)(F)F",
+      "ligand_name": "lapatinib (analog in structure)"
+    },
+    {
+      "target_id": "braf",
+      "pdb_id": "4XV2",
+      "ligand_resn": "P06",
+      "reference_smiles": "CC(C)(C)c1nc(c(s1)c2ccnc(n2)N)c3cccc(c3F)NS(=O)(=O)c4c(cccc4F)F",
+      "ligand_name": "dabrafenib"
+    },
+    {
+      "target_id": "ptgs2",
+      "pdb_id": "4COX",
+      "ligand_resn": "S58",
+      "reference_smiles": "c1cc(ccc1c2cc(nn2c3ccc(cc3)S(=O)(=O)N)C(F)(F)F)Br",
+      "ligand_name": "SC-558"
+    },
+    {
+      "target_id": "hmgcr",
+      "pdb_id": "1HWK",
+      "ligand_resn": "SIM",
+      "reference_smiles": "CCC(C)(C)C(=O)OC1CC(C=C2C1C(C(C=C2)C)CCC(CC(CC(=O)O)O)O)C",
+      "ligand_name": "simvastatin"
+    },
+    {
+      "target_id": "pde5a",
+      "pdb_id": "1UDT",
+      "ligand_resn": "VIA",
+      "reference_smiles": "CCCc1c2c(n(n1)C)C(=O)NC(=N2)c3cc(ccc3OCC)S(=O)(=O)N4CCN(CC4)C",
+      "ligand_name": "sildenafil"
+    },
+    {
+      "target_id": "esr1",
+      "pdb_id": "3ERT",
+      "ligand_resn": "EST",
+      "reference_smiles": "CC12CCC3c4ccc(cc4CCC3C1CCC2O)O",
+      "ligand_name": "estradiol"
+    },
+    {
+      "target_id": "dpp4",
+      "pdb_id": "1X70",
+      "ligand_resn": "1X7",
+      "reference_smiles": "c1c2c(c(cnc2N)C(=O)N)sc1Br",
+      "ligand_name": "sitagliptin-like peptide"
+    },
+    {
+      "target_id": "adrb2",
+      "pdb_id": "3SN6",
+      "ligand_resn": "P0G",
+      "reference_smiles": "Cc1ccccc1CC(C)(C)NCC(c2ccc(c3c2OCC(=O)N3)O)O",
+      "ligand_name": "carazolol"
+    },
+    {
+      "target_id": "hiv_pr",
+      "pdb_id": "1HVR",
+      "ligand_resn": "MK1",
+      "reference_smiles": "CC(C)(C)NC(=O)C1CN(CCN1CC(CC(Cc2ccccc2)C(=O)NC3c4ccccc4CC3O)O)Cc5cccnc5",
+      "ligand_name": "saquinavir (MK-639 analog)"
+    },
+    {
+      "target_id": "sars_mpro",
+      "pdb_id": "7BQY",
+      "ligand_resn": "N3",
+      "reference_smiles": "CC(C)CC(NC(=O)OCc1ccccc1)C(=O)NC(C)C(=O)N",
+      "ligand_name": "N3 inhibitor"
+    },
+    {
+      "target_id": "hdac1",
+      "pdb_id": "4BKX",
+      "ligand_resn": "TSA",
+      "reference_smiles": "C1C2C(C=CC1(CC(O2)C(=O)O)C(=O)O)O",
+      "ligand_name": "trichostatin A"
+    },
+    {
+      "target_id": "jak2",
+      "pdb_id": "4JI9",
+      "ligand_resn": "STU",
+      "reference_smiles": "CC12C(C(CC(O1)n3c4ccccc4c5c3c6n2c7ccccc7c6c8c5C(=O)NC8)NC)OC",
+      "ligand_name": "ruxolitinib-like"
+    },
+    {
+      "target_id": "thrombin",
+      "pdb_id": "1DWB",
+      "ligand_resn": "MQT",
+      "reference_smiles": "Cc1ccc(cc1)C(=O)OC2C(C(OC(C2OC(=O)C)OC)CO)O",
+      "ligand_name": "melagatran (simplified)"
+    }
+  ]
+}

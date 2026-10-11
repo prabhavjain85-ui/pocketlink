@@ -322,7 +322,10 @@ export function ScoreInfoTip() {
       </button>
       <span className="score-tip-pop" id="score-tip-pop" role="tooltip">
         <strong>Target Selection Score</strong>
-        <span className="score-tip-lead">Rules-based total out of 100 from RCSB metadata. No AI call.</span>
+        <span className="score-tip-lead">
+          Knowledge-based triage score (0–100) for prioritization — not a prediction of activity or binding. Legacy drug-name
+          rules may apply as a weak prior for known drugs; ChEMBL similarity evidence is used when reference data exists.
+        </span>
         <ul>
           <li><b>Resolution (25)</b> — ≤2.0 Å = 25, ≤2.5 = 20, ≤3.0 = 15, ≤3.5 = 10, worse = 5, missing = 0</li>
           <li><b>Completeness (25)</b> — linear, 100% = 25 pts</li>

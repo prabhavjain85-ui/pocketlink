@@ -21,6 +21,209 @@ export const R_GAS = 0.00198720425864083;
 export const TEMP_K = 298.15;
 export const RT = R_GAS * TEMP_K; // ~0.5925 kcal/mol
 
+/** HETATM residue names stripped during receptor prep (waters, buffers, common artifacts). */
+export const RECEPTOR_STRIP_HET_RESNAMES = new Set([
+  "HOH",
+  "WAT",
+  "DOD",
+  "SO4",
+  "PO4",
+  "GOL",
+  "EDO",
+  "PEG",
+  "DMS",
+  "ACT",
+  "ACE",
+  "NH2",
+  "NA",
+  "CL",
+  "MG",
+  "CA",
+  "ZN",
+  "MN",
+  "K",
+  "IOD",
+  "BR",
+  "NO3",
+  "FMT",
+  "BME",
+  "MPD",
+  "TRS",
+  "EPE",
+  "PGE",
+  "NAG",
+  "MAN",
+  "FUC",
+  "BMA",
+]);
+
+/**
+ * Pick the co-crystallized ligand HET group (largest organic hetero residue).
+ */
+export function pickCoCrystalLigandGroup(heteroAtoms) {
+  if (!heteroAtoms?.length) return { resName: null, atoms: [] };
+  const byRes = new Map();
+  for (const a of heteroAtoms) {
+    if (RECEPTOR_STRIP_HET_RESNAMES.has(a.resName)) continue;
+    const key = `${a.chainId}:${a.resName}:${a.resSeq}`;
+    if (!byRes.has(key)) byRes.set(key, []);
+    byRes.get(key).push(a);
+  }
+  let best = null;
+  let bestScore = -1;
+  for (const atoms of byRes.values()) {
+    const heavy = atoms.filter((a) => a.element !== "H").length;
+    const organic = atoms.filter((a) => ["C", "N", "O", "S", "P", "F", "Cl", "Br", "I"].includes(a.element)).length;
+    const score = organic * 2 + heavy;
+    if (score > bestScore) {
+      bestScore = score;
+      best = atoms;
+    }
+  }
+  if (!best?.length) return { resName: null, atoms: [] };
+  return { resName: best[0].resName, atoms: best };
+}
+
+/**
+ * Bounding box center and size (Å) for a ligand atom set, with optional padding.
+ */
+export function computeSearchBoxFromAtoms(atoms, padding = 5) {
+  if (!atoms?.length) {
+    return { center: { x: 0, y: 0, z: 0 }, boxSize: 22 };
+  }
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
+  for (const a of atoms) {
+    minX = Math.min(minX, a.x);
+    minY = Math.min(minY, a.y);
+    minZ = Math.min(minZ, a.z);
+    maxX = Math.max(maxX, a.x);
+    maxY = Math.max(maxY, a.y);
+    maxZ = Math.max(maxZ, a.z);
+  }
+  const center = {
+    x: (minX + maxX) / 2,
+    y: (minY + maxY) / 2,
+    z: (minZ + maxZ) / 2,
+  };
+  const span = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
+  const boxSize = Math.min(36, Math.max(18, span + padding * 2));
+  return { center, boxSize };
+}
+
+/**
+ * Prepare receptor PDB text: drop waters/buffers, keep protein ATOM records (and optional cofactors).
+ */
+export function prepareReceptorPdb(pdbText, options = {}) {
+  const keepHetResnames = new Set(
+    (options.keepHetResnames || []).map((s) => String(s).trim().toUpperCase())
+  );
+  const lines = String(pdbText || "").split("\n");
+  const out = [];
+  for (const line of lines) {
+    if (line.startsWith("ATOM  ")) {
+      out.push(line);
+      continue;
+    }
+    if (line.startsWith("HETATM")) {
+      const resName = line.substring(17, 20).trim();
+      if (keepHetResnames.has(resName)) {
+        out.push(line);
+      }
+      continue;
+    }
+    if (line.startsWith("TER") || line.startsWith("END")) {
+      out.push(line);
+    }
+  }
+  return out.join("\n");
+}
+
+/**
+ * Heavy-atom coordinates for a co-crystal ligand from parsed PDB heteroatoms.
+ */
+export function extractCrystalLigandCoords(parsedTarget, ligandResn = null) {
+  const group = ligandResn
+    ? {
+        atoms: parsedTarget.heteroAtoms.filter((a) => a.resName === ligandResn),
+        resName: ligandResn,
+      }
+    : pickCoCrystalLigandGroup(parsedTarget.heteroAtoms);
+  const heavy = group.atoms.filter((a) => a.element !== "H");
+  return {
+    resName: group.resName,
+    coords: heavy.map((a) => ({ x: a.x, y: a.y, z: a.z, element: a.element })),
+  };
+}
+
+/**
+ * RMSD (Å) between two equal-length coordinate sets (no alignment).
+ */
+export function rmsdBetweenCoords(coordsA, coordsB) {
+  if (!coordsA?.length || coordsA.length !== coordsB?.length) return null;
+  let sum = 0;
+  for (let i = 0; i < coordsA.length; i++) {
+    const dx = coordsA[i].x - coordsB[i].x;
+    const dy = coordsA[i].y - coordsB[i].y;
+    const dz = coordsA[i].z - coordsB[i].z;
+    sum += dx * dx + dy * dy + dz * dz;
+  }
+  return parseFloat(Math.sqrt(sum / coordsA.length).toFixed(2));
+}
+
+/**
+ * Redock a reference SMILES into the native pocket; report RMSD vs crystal heavy atoms (best-effort).
+ * Engine: TargetForge in-browser `runMolecularDocking` (RDKit WASM ligand prep).
+ */
+export async function redockCoCrystalLigand(targetPdbText, referenceSmiles, options = {}) {
+  const parsedFull = parsePdbStructure(targetPdbText);
+  const crystal = extractCrystalLigandCoords(parsedFull, options.ligandResn || null);
+  const boxAtoms =
+    crystal.coords.length > 0
+      ? crystal.coords
+      : parsedFull.coCrystalLigandAtoms || [];
+  const box = computeSearchBoxFromAtoms(boxAtoms, options.padding ?? 5);
+  const prepared = prepareReceptorPdb(targetPdbText, options);
+
+  const dockResult = await runMolecularDocking(prepared, referenceSmiles, {
+    customCenter: box.center,
+    boxSize: box.boxSize,
+    searchExhaustiveness: options.searchExhaustiveness ?? 8,
+    minPocketAtoms: options.minPocketAtoms ?? 8,
+  });
+
+  const poseAtoms = dockResult.bestPose?.atoms || [];
+  const poseHeavy = poseAtoms.filter((a) => a.element !== "H");
+  let rmsd = null;
+  if (poseHeavy.length === crystal.coords.length) {
+    rmsd = rmsdBetweenCoords(
+      crystal.coords,
+      poseHeavy.map((a) => ({ x: a.x, y: a.y, z: a.z }))
+    );
+  } else if (poseHeavy.length && crystal.coords.length) {
+    const n = Math.min(poseHeavy.length, crystal.coords.length);
+    rmsd = rmsdBetweenCoords(crystal.coords.slice(0, n), poseHeavy.slice(0, n).map((a) => ({ x: a.x, y: a.y, z: a.z })));
+  }
+
+  return {
+    engine: "targetforge-native",
+    pdb_ligand_resn: crystal.resName,
+    crystal_heavy_atoms: crystal.coords.length,
+    pose_heavy_atoms: poseHeavy.length,
+    search_center: box.center,
+    box_size: box.boxSize,
+    delta_g: dockResult.bestPose?.deltaG ?? null,
+    rmsd_angstrom: rmsd,
+    pass: rmsd != null && rmsd < 2,
+    pocket_atoms: dockResult.target?.pocketAtomsCount ?? null,
+    failure_reason: dockResult.bestPose ? null : "no_valid_pose",
+  };
+}
+
 // Curated reference targets with crystallographic pockets and verified reference ligands
 export const DOCKING_REFERENCE_TARGETS = [
   {
@@ -152,8 +355,7 @@ export function parsePdbStructure(pdbText) {
       }
     } else if (line.startsWith("HETATM")) {
       const resName = line.substring(17, 20).trim();
-      // Skip water, common crystallization salts, and buffer ions
-      if (!["HOH", "WAT", "SO4", "PO4", "NA", "CL", "MG", "CA", "ZN", "EDO", "DMS"].includes(resName)) {
+      if (!RECEPTOR_STRIP_HET_RESNAMES.has(resName)) {
         const serial = parseInt(line.substring(6, 11).trim(), 10);
         const atomName = line.substring(12, 16).trim();
         const chainId = line.substring(21, 22).trim() || "A";
@@ -180,18 +382,15 @@ export function parsePdbStructure(pdbText) {
     }
   }
 
-  // Calculate default pocket center
+  const coCrystal = pickCoCrystalLigandGroup(heteroAtoms);
   let pocketCenter = { x: 0, y: 0, z: 0 };
-  let detectedLigandName = null;
+  let detectedLigandName = coCrystal.resName;
+  let defaultBoxSize = 22;
 
-  if (heteroAtoms.length > 0) {
-    detectedLigandName = heteroAtoms[0].resName;
-    const ligandGroup = heteroAtoms.filter((a) => a.resName === detectedLigandName);
-    pocketCenter = {
-      x: ligandGroup.reduce((sum, a) => sum + a.x, 0) / ligandGroup.length,
-      y: ligandGroup.reduce((sum, a) => sum + a.y, 0) / ligandGroup.length,
-      z: ligandGroup.reduce((sum, a) => sum + a.z, 0) / ligandGroup.length,
-    };
+  if (coCrystal.atoms.length > 0) {
+    const box = computeSearchBoxFromAtoms(coCrystal.atoms, 5);
+    pocketCenter = box.center;
+    defaultBoxSize = box.boxSize;
   } else if (proteinAtoms.length > 0) {
     // Center of mass of protein
     pocketCenter = {
@@ -207,6 +406,8 @@ export function parsePdbStructure(pdbText) {
     heteroAtoms,
     detectedLigandName,
     pocketCenter,
+    defaultBoxSize,
+    coCrystalLigandAtoms: coCrystal.atoms,
   };
 }
 
@@ -661,11 +862,15 @@ export async function runMolecularDocking(targetPdbText, ligandSmiles, options =
   if (onProgress) onProgress({ step: "parsing_target", percent: 10, message: "Parsing crystallographic coordinates and chains..." });
   const parsedTarget = parsePdbStructure(targetPdbText);
 
-  const pocketCenter = customCenter || parsedTarget.pocketCenter;
+  const autoBox = parsedTarget.coCrystalLigandAtoms?.length
+    ? computeSearchBoxFromAtoms(parsedTarget.coCrystalLigandAtoms, 5)
+    : null;
+  const effectiveBoxSize = customCenter ? boxSize : autoBox?.boxSize || parsedTarget.defaultBoxSize || boxSize;
+  const pocketCenter = customCenter || autoBox?.center || parsedTarget.pocketCenter;
   const { pocketAtoms, pocketResidues } = extractPocketAtoms(
     parsedTarget.proteinAtoms,
     pocketCenter,
-    boxSize / 2 + 2.0
+    effectiveBoxSize / 2 + 2.0
   );
 
   const minPocketAtoms = options.minPocketAtoms !== undefined ? options.minPocketAtoms : 10;
@@ -686,7 +891,11 @@ export async function runMolecularDocking(targetPdbText, ligandSmiles, options =
   const stepsPerRun = 60;
   const candidatePoses = [];
 
-  const halfBox = boxSize / 2;
+  const halfBox = effectiveBoxSize / 2;
+  const maxStericClashes = Math.min(
+    14,
+    3 + Math.floor((ligand.atoms?.length || 10) / 6)
+  );
 
   // Multi-start Monte Carlo search
   for (let run = 0; run < numRuns; run++) {
@@ -747,8 +956,7 @@ export async function runMolecularDocking(targetPdbText, ligandSmiles, options =
       temp *= coolRate;
     }
 
-    // Filter out severely clashing unphysical poses
-    if (currentScore.stericClashes <= 3) {
+    if (currentScore.stericClashes <= maxStericClashes) {
       candidatePoses.push({
         atoms: currentAtoms,
         score: currentScore,
@@ -813,7 +1021,7 @@ export async function runMolecularDocking(targetPdbText, ligandSmiles, options =
     target: {
       title: parsedTarget.title,
       pocketCenter,
-      boxSize,
+      boxSize: effectiveBoxSize,
       pocketResiduesCount: pocketResidues.length,
       pocketAtomsCount: pocketAtoms.length,
       pocketResidues: pocketResidues.map((r) => `${r.resName}-${r.resSeq}`),

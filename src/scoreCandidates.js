@@ -1,4 +1,5 @@
 const { buildTargetContext, targetDisplayName } = require("./targetContext");
+const { combinedTriageScore } = require("./targetSimilarityScore");
 
 const MAX_CANDIDATES = 5;
 
@@ -22,8 +23,9 @@ const GPCR_CLASS_RE =
   /\b(beta-blocker|beta-2 agonist|antihistamine|opioid|antipsychotic|\barb\b|alpha-1|alpha-2 agonist|5-ht3|h2 antagonist|antimuscarinic|triptan|dopamine agonist|nachr)\b/i;
 
 /**
- * 12 Curated Target Rules with specific on-target drugs, demotions,
- * co-crystal ligands, and PDB IDs.
+ * LEGACY_NAME_PRIOR — curated drug-name lists used as a weak prior for known
+ * approved drugs only. Held-out benchmark actives must not appear here.
+ * Prefer ChEMBL similarity evidence (`targetSimilarityScore.js`) for generalization.
  */
 const TARGET_RULES = [
   {
@@ -765,12 +767,29 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
   }
 
   const ctx = protein ? buildTargetContext(protein) : null;
+  const similarityByCid = options.similarityByCid || null;
   const scored = list.map((candidate) => {
     const local = scoreOne(candidate, ctx || protein);
+    const cid = cidOf(candidate);
+    const simRow = similarityByCid?.get?.(String(cid)) || similarityByCid?.[String(cid)];
+    const similarityScore = simRow?.similarityScore ?? null;
+    const combinedScore =
+      similarityScore != null
+        ? combinedTriageScore(local.score, similarityScore)
+        : local.score;
     return {
-      cid: cidOf(candidate),
+      cid,
       name: nameOf(candidate),
       ...local,
+      legacyHeuristicScore: local.score,
+      similarityScore,
+      similarityEvidence: simRow?.evidence || [],
+      combinedScore,
+      score: options.rankMode === "similarity" && similarityScore != null
+        ? similarityScore
+        : options.rankMode === "combined" && similarityScore != null
+          ? combinedScore
+          : local.score,
     };
   });
 
@@ -819,7 +838,13 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
         ? "Target-fit assessment is limited without pocket/ligand data — geometric fit was not treated as a confident judgment."
         : "Use ADME profiling and experimental assays next before treating any molecule as a real lead (in-browser docking is under validation).",
     ].filter((item, index, arr) => arr.indexOf(item) === index),
-    source: "heuristic-v2",
+    source: options.rankMode === "similarity"
+      ? "similarity-v1"
+      : options.rankMode === "combined"
+        ? "combined-triage-v1"
+        : "heuristic-v2",
+    scoring_note:
+      "0–100 is a knowledge-based triage score for prioritization, not a prediction of biological activity or binding affinity.",
   };
 }
 
@@ -882,4 +907,5 @@ module.exports = {
   rankRepurposing,
   KINASE_INHIBITOR_RE,
   GPCR_LIGAND_RE,
+  combinedTriageScore,
 };

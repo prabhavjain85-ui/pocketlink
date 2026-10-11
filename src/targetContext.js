@@ -8,7 +8,7 @@ const { inferLigandFunctionalGroups, ligandWeightDa } = require("./targetSelecti
 const PDB_ID_RE = /^[0-9][A-Za-z0-9]{3}$/;
 
 const TARGET_SPECIFIC_INSTRUCTION =
-  "This score reflects fit for this specific target only — do not give a high score based on general drug-likeness alone; the compound must show genuine relevance to this target's pocket to score highly, and the same compound should score differently against different targets.";
+  "This score reflects fit for this specific target only — do not rank on general drug-likeness alone; prioritize compounds with target-specific evidence (ChEMBL similarity or, for known drugs only, legacy name priors), and expect the same compound to score differently against different targets.";
 
 function targetDisplayName(protein) {
   if (!protein) return "";

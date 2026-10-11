@@ -132,11 +132,11 @@ test("rank prompt instructs the model to score the compound-target pair only", (
     ligands: [{ name: "IMATINIB", compId: "STI", formulaWeight: 493.6 }],
     pocketStats: { status: "detected", available: true, residueCount: 14, hydrophobicity: 0.64, sizeLabel: "medium", hydrophobicityLabel: "hydrophobic" },
   });
-  const { system, user } = handler.buildRankPrompt([caffeine, ugly], protein, { ranking: [] });
+  const { system, user } = handler.buildRankPrompt([caffeine, ugly], protein, { ranking: [] }, new Map());
   expect(system).toContain(TARGET_SPECIFIC_INSTRUCTION);
   expect(user).toContain(TARGET_SPECIFIC_INSTRUCTION);
-  expect(system).toMatch(/same compound should score differently against different targets/i);
-  expect(system).toMatch(/do not give a high score based on general drug-likeness alone/i);
+  expect(system).toMatch(/ChEMBL similarity to reference actives/i);
+  expect(system).toMatch(/do not rank on general drug-likeness alone/i);
   expect(user).toContain("2HYY");
   expect(user).toContain("ABL1");
 });

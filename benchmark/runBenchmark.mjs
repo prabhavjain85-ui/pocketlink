@@ -13,6 +13,8 @@ import { createRequire } from "module";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { bootstrapAucCi, enrichmentFactorAtFraction, rocAuc } from "./bootstrap.mjs";
+import { buildSimilarityMap } from "./similarityForBench.mjs";
 
 // RDKit loader only initializes in Node when NODE_ENV=test (same as Jest).
 process.env.NODE_ENV = process.env.NODE_ENV || "test";
@@ -23,7 +25,10 @@ const { rankCandidatesLocal } = require("../src/scoreCandidates.js");
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 const VALIDATION_PATH = join(__dirname, "validation_set.json");
-const HELDOUT_PATH = join(__dirname, "heldout_set.json");
+const HELDOUT_PATH = existsSync(join(__dirname, "heldout_benchmark_v2.json"))
+  ? join(__dirname, "heldout_benchmark_v2.json")
+  : join(__dirname, "heldout_set.json");
+const REDOCK_PATH = join(__dirname, "redocking_results.json");
 const RESULTS_JSON = join(__dirname, "results.json");
 const DOCK_CACHE_PATH = join(__dirname, "docking_cache.json");
 
@@ -46,9 +51,10 @@ function compoundToCandidate(c, painsApi) {
     ? painsApi.checkPainsFast({ SMILES: c.smiles, IsomericSMILES: c.smiles })
     : null;
   const pains = painsRaw ? painsApi.compactPainsForRanking(painsRaw) : null;
+  const cid = c.pubchem_cid || c.chembl_id || c.name || c.smiles?.slice(0, 16);
   const row = {
-    cid: c.pubchem_cid,
-    CID: c.pubchem_cid,
+    cid,
+    CID: cid,
     displayName: c.name,
     name: c.name,
     IsomericSMILES: c.smiles,
@@ -65,38 +71,6 @@ function compoundToCandidate(c, painsApi) {
   };
   if (pains) row.pains = pains;
   return row;
-}
-
-function rocAuc(labels, scores) {
-  const pairs = labels.map((y, i) => ({ y, s: scores[i] }));
-  pairs.sort((a, b) => b.s - a.s);
-  let nPos = 0;
-  let nNeg = 0;
-  for (const p of pairs) {
-    if (p.y) nPos++;
-    else nNeg++;
-  }
-  if (!nPos || !nNeg) return null;
-
-  let tp = 0;
-  let fp = 0;
-  let prevTp = 0;
-  let prevFp = 0;
-  let auc = 0;
-  let lastScore = null;
-
-  for (const p of pairs) {
-    if (p.s !== lastScore) {
-      auc += (tp + prevTp) * (fp - prevFp) / 2;
-      prevTp = tp;
-      prevFp = fp;
-      lastScore = p.s;
-    }
-    if (p.y) tp++;
-    else fp++;
-  }
-  auc += (tp + prevTp) * (fp - prevFp) / 2;
-  return auc / (nPos * nNeg);
 }
 
 function rankByScore(items, scoreFn, higherIsBetter = true) {
@@ -132,10 +106,14 @@ function evaluateRanking(rankedRows) {
     randomRate > 0 ? (activesInTop / fracTop) / randomRate : null;
 
   const scores = rankedRows.map((r) => r.metric);
+  const aucCi = bootstrapAucCi(labels, scores);
   return {
     n,
     n_actives: nAct,
-    roc_auc: rocAuc(labels, scores),
+    roc_auc: aucCi.auc,
+    roc_auc_ci_low: aucCi.ci_low,
+    roc_auc_ci_high: aucCi.ci_high,
+    enrichment_factor_at_1pct: enrichmentFactorAtFraction(labels, scores, 0.01),
     top1_hit: top1Hit,
     top3_hit: top3Hit,
     mean_active_rank: meanActiveRank,
@@ -393,6 +371,14 @@ function findNotableFailures(rankedRows) {
 }
 
 function buildOverall(perTarget) {
+  const meanCi = (accessor) => ({
+    mean_roc_auc: aggregateMetrics(perTarget, (t) => accessor(t)?.roc_auc),
+    mean_ci_low: aggregateMetrics(perTarget, (t) => accessor(t)?.roc_auc_ci_low),
+    mean_ci_high: aggregateMetrics(perTarget, (t) => accessor(t)?.roc_auc_ci_high),
+    mean_ef1: aggregateMetrics(perTarget, (t) => accessor(t)?.enrichment_factor_at_1pct),
+    top1_hit_rate: aggregateBoolean(perTarget, (t) => accessor(t)?.top1_hit),
+  });
+
   return {
     heuristic_v2: {
       mean_roc_auc: aggregateMetrics(perTarget, (t) => t.heuristic_v2.roc_auc),
@@ -401,12 +387,19 @@ function buildOverall(perTarget) {
       mean_active_rank: aggregateMetrics(perTarget, (t) => t.heuristic_v2.mean_active_rank),
       mean_ef20: aggregateMetrics(perTarget, (t) => t.heuristic_v2.enrichment_factor_at_20pct),
     },
+    similarity_v1: meanCi((t) => t.similarity_v1),
+    combined_triage_v1: meanCi((t) => t.combined_triage_v1),
     mw_baseline: {
       mean_roc_auc: aggregateMetrics(perTarget, (t) => t.mw_baseline.roc_auc),
       top1_hit_rate: aggregateBoolean(perTarget, (t) => t.mw_baseline.top1_hit),
       top3_hit_rate: aggregateBoolean(perTarget, (t) => t.mw_baseline.top3_hit),
       mean_active_rank: aggregateMetrics(perTarget, (t) => t.mw_baseline.mean_active_rank),
       mean_ef20: aggregateMetrics(perTarget, (t) => t.mw_baseline.enrichment_factor_at_20pct),
+      mean_ef1: aggregateMetrics(perTarget, (t) => t.mw_baseline.enrichment_factor_at_1pct),
+    },
+    logp_baseline: {
+      mean_roc_auc: aggregateMetrics(perTarget, (t) => t.logp_baseline.roc_auc),
+      mean_ef1: aggregateMetrics(perTarget, (t) => t.logp_baseline.enrichment_factor_at_1pct),
     },
     docking_baseline: (() => {
       const withDock = perTarget.filter((t) => t.docking_baseline);
@@ -465,24 +458,65 @@ function collectDockingFailureCases(perTarget) {
   });
 }
 
+function loadRedockPassMap() {
+  if (!existsSync(REDOCK_PATH)) return {};
+  try {
+    const data = JSON.parse(readFileSync(REDOCK_PATH, "utf8"));
+    const map = {};
+    for (const row of data.rows || []) {
+      map[row.pdb_id] = row.pass === true;
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+function scoreRowKey(c) {
+  return String(c.pubchem_cid || c.chembl_id || c.name || c.smiles);
+}
+
 async function evaluatePanel(validation, painsApi, dockCache, skipDocking, panelLabel) {
   const perTarget = [];
+  const redockPass = loadRedockPassMap();
 
   for (const target of validation.targets) {
     const protein = target.protein;
     const candidates = target.compounds.map((c) => compoundToCandidate(c, painsApi));
-    const ranked = rankCandidatesLocal(candidates, protein, {
+    const similarityByCid = await buildSimilarityMap(target.compounds, protein);
+
+    const rankedHeuristic = rankCandidatesLocal(candidates, protein, {
       maxCandidates: candidates.length,
       minCandidates: 2,
     });
+    const rankedSimilarity = rankCandidatesLocal(candidates, protein, {
+      maxCandidates: candidates.length,
+      minCandidates: 2,
+      similarityByCid,
+      rankMode: "similarity",
+    });
+    const rankedCombined = rankCandidatesLocal(candidates, protein, {
+      maxCandidates: candidates.length,
+      minCandidates: 2,
+      similarityByCid,
+      rankMode: "combined",
+    });
 
-    const scoreByCid = new Map(ranked.ranking.map((r) => [String(r.cid), r.score]));
+    const scoreByCid = new Map(rankedHeuristic.ranking.map((r) => [String(r.cid), r.score]));
+    const simByCid = new Map(rankedSimilarity.ranking.map((r) => [String(r.cid), r.score]));
+    const combByCid = new Map(rankedCombined.ranking.map((r) => [String(r.cid), r.score]));
 
     const rows = target.compounds.map((c) => {
-      const heuristic_score = scoreByCid.get(String(c.pubchem_cid)) ?? null;
+      const key = scoreRowKey(c);
+      const heuristic_score = scoreByCid.get(key) ?? null;
+      const similarity_score = simByCid.get(key) ?? null;
+      const combined_score = combByCid.get(key) ?? null;
       return {
         ...c,
+        pubchem_cid: c.pubchem_cid || key,
         heuristic_score,
+        similarity_score,
+        combined_score,
         metric: heuristic_score,
       };
     });
@@ -491,12 +525,26 @@ async function evaluatePanel(validation, painsApi, dockCache, skipDocking, panel
       rankByScore(rows, (r) => r.heuristic_score, true).map((r) => ({ ...r, metric: r.heuristic_score }))
     );
 
+    const similarityEval = evaluateRanking(
+      rankByScore(rows, (r) => r.similarity_score, true).map((r) => ({ ...r, metric: r.similarity_score }))
+    );
+
+    const combinedEval = evaluateRanking(
+      rankByScore(rows, (r) => r.combined_score, true).map((r) => ({ ...r, metric: r.combined_score }))
+    );
+
     const mwEval = evaluateRanking(
       rankByScore(rows, (r) => r.molecularWeight, true).map((r) => ({ ...r, metric: r.molecularWeight }))
     );
 
+    const logpEval = evaluateRanking(
+      rankByScore(rows, (r) => r.xlogp, true).map((r) => ({ ...r, metric: r.xlogp }))
+    );
+
     let dockingEval = null;
-    if (!skipDocking && Object.keys(dockCache).length) {
+    const pdbId = target.pdb_id.toUpperCase();
+    const dockAllowed = redockPass[pdbId] === true;
+    if (!skipDocking && Object.keys(dockCache).length && dockAllowed) {
       for (const row of rows) {
         row.docking_delta_g = readDockingDeltaG(dockCache, target.pdb_id, row.pubchem_cid);
       }
@@ -520,8 +568,12 @@ async function evaluatePanel(validation, painsApi, dockCache, skipDocking, panel
       name: target.name,
       pdb_id: target.pdb_id,
       heuristic_v2: heuristicEval,
+      similarity_v1: similarityEval,
+      combined_triage_v1: combinedEval,
       mw_baseline: mwEval,
+      logp_baseline: logpEval,
       docking_baseline: dockingEval,
+      docking_redock_validated: dockAllowed,
       notable_failures: failures,
     });
 

@@ -1,0 +1,183 @@
+{
+  "generated_at": "2026-10-11T08:28:34.539Z",
+  "rows": [
+    {
+      "target": "egfr",
+      "pdb_id": "1M17",
+      "ligand_resn": "AQ4",
+      "redocking_rmsd_angstrom": 8.24,
+      "delta_g": -27.01,
+      "pass": false,
+      "engine": "targetforge-native",
+      "failure_reason": null,
+      "crystal_heavy_atoms": 29,
+      "pose_heavy_atoms": 29
+    },
+    {
+      "target": "abl1",
+      "pdb_id": "1IEP",
+      "ligand_resn": "STI",
+      "redocking_rmsd_angstrom": 35.36,
+      "delta_g": -15.63,
+      "pass": false,
+      "engine": "targetforge-native",
+      "failure_reason": null,
+      "crystal_heavy_atoms": 74,
+      "pose_heavy_atoms": 37
+    },
+    {
+      "target": "erbb2",
+      "pdb_id": "3PP0",
+      "ligand_resn": "03Q",
+      "redocking_rmsd_angstrom": null,
+      "delta_g": null,
+      "pass": false,
+      "engine": "targetforge-native",
+      "failure_reason": "no_valid_pose",
+      "crystal_heavy_atoms": 68,
+      "pose_heavy_atoms": 0
+    },
+    {
+      "target": "braf",
+      "pdb_id": "4XV2",
+      "ligand_resn": "P06",
+      "redocking_rmsd_angstrom": null,
+      "delta_g": null,
+      "pass": false,
+      "engine": "targetforge-native",
+      "failure_reason": "no_valid_pose",
+      "crystal_heavy_atoms": 70,
+      "pose_heavy_atoms": 0
+    },
+    {
+      "target": "ptgs2",
+      "pdb_id": "4COX",
+      "ligand_resn": "S58",
+      "redocking_rmsd_angstrom": null,
+      "delta_g": -30.27,
+      "pass": false,
+      "engine": "targetforge-native",
+      "failure_reason": null,
+      "crystal_heavy_atoms": 0,
+      "pose_heavy_atoms": 26
+    },
+    {
+      "target": "hmgcr",
+      "pdb_id": "1HWK",
+      "ligand_resn": "SIM",
+      "redocking_rmsd_angstrom": null,
+      "delta_g": -27.32,
+      "pass": false,
+      "engine": "targetforge-native",
+      "failure_reason": null,
+      "crystal_heavy_atoms": 0,
+      "pose_heavy_atoms": 31
+    },
+    {
+      "target": "pde5a",
+      "pdb_id": "1UDT",
+      "ligand_resn": "VIA",
+      "redocking_rmsd_angstrom": null,
+      "delta_g": null,
+      "pass": false,
+      "engine": "targetforge-native",
+      "failure_reason": "no_valid_pose",
+      "crystal_heavy_atoms": 33,
+      "pose_heavy_atoms": 0
+    },
+    {
+      "target": "esr1",
+      "pdb_id": "3ERT",
+      "ligand_resn": "EST",
+      "redocking_rmsd_angstrom": null,
+      "delta_g": null,
+      "pass": false,
+      "engine": "targetforge-native",
+      "failure_reason": "no_valid_pose",
+      "crystal_heavy_atoms": 0,
+      "pose_heavy_atoms": 0
+    },
+    {
+      "target": "dpp4",
+      "pdb_id": "1X70",
+      "ligand_resn": "1X7",
+      "redocking_rmsd_angstrom": null,
+      "delta_g": -22.03,
+      "pass": false,
+      "engine": "targetforge-native",
+      "failure_reason": null,
+      "crystal_heavy_atoms": 0,
+      "pose_heavy_atoms": 14
+    },
+    {
+      "target": "adrb2",
+      "pdb_id": "3SN6",
+      "ligand_resn": "P0G",
+      "redocking_rmsd_angstrom": null,
+      "delta_g": null,
+      "pass": false,
+      "engine": "targetforge-native",
+      "failure_reason": "no_valid_pose",
+      "crystal_heavy_atoms": 27,
+      "pose_heavy_atoms": 0
+    },
+    {
+      "target": "hiv_pr",
+      "pdb_id": "1HVR",
+      "ligand_resn": "MK1",
+      "redocking_rmsd_angstrom": null,
+      "delta_g": null,
+      "pass": false,
+      "engine": "targetforge-native",
+      "failure_reason": "no_valid_pose",
+      "crystal_heavy_atoms": 0,
+      "pose_heavy_atoms": 0
+    },
+    {
+      "target": "sars_mpro",
+      "pdb_id": "7BQY",
+      "ligand_resn": "N3",
+      "redocking_rmsd_angstrom": null,
+      "delta_g": null,
+      "pass": false,
+      "engine": "targetforge-native",
+      "failure_reason": "no_valid_pose",
+      "crystal_heavy_atoms": 0,
+      "pose_heavy_atoms": 0
+    },
+    {
+      "target": "hdac1",
+      "pdb_id": "4BKX",
+      "ligand_resn": "TSA",
+      "redocking_rmsd_angstrom": null,
+      "delta_g": null,
+      "pass": false,
+      "engine": "targetforge-native",
+      "failure_reason": "Insufficient protein residues detected within the specified grid box (22 Å around [0.0, 0.0, 0.0]). Try centering on a known ligand or residue."
+    },
+    {
+      "target": "jak2",
+      "pdb_id": "4JI9",
+      "ligand_resn": "STU",
+      "redocking_rmsd_angstrom": null,
+      "delta_g": -26.46,
+      "pass": false,
+      "engine": "targetforge-native",
+      "failure_reason": null,
+      "crystal_heavy_atoms": 0,
+      "pose_heavy_atoms": 35
+    },
+    {
+      "target": "thrombin",
+      "pdb_id": "1DWB",
+      "ligand_resn": "MQT",
+      "redocking_rmsd_angstrom": null,
+      "delta_g": null,
+      "pass": false,
+      "engine": "targetforge-native",
+      "failure_reason": "no_valid_pose",
+      "crystal_heavy_atoms": 0,
+      "pose_heavy_atoms": 0
+    }
+  ]
+}
