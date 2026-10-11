@@ -1,2139 +1,4793 @@
 {
-  "generated_at": "2026-10-11T07:52:37.708Z",
-  "validation_set": "benchmark/validation_set.json",
-  "overall": {
-    "heuristic_v2": {
-      "mean_roc_auc": 1,
-      "top1_hit_rate": 1,
-      "top3_hit_rate": 1,
-      "mean_active_rank": 2,
-      "mean_ef20": 2.7
+  "generated_at": "2026-10-11T08:02:39.290Z",
+  "in_rule_circular": {
+    "panel": "in-rule",
+    "dataset_file": "benchmark/validation_set.json",
+    "summary": {
+      "target_count": 10,
+      "active_count": 30
     },
-    "mw_baseline": {
-      "mean_roc_auc": 0.6777777777777778,
-      "top1_hit_rate": 0.6,
-      "top3_hit_rate": 0.9,
-      "mean_active_rank": 3.6333333333333337,
-      "mean_ef20": 1.35
+    "overall": {
+      "heuristic_v2": {
+        "mean_roc_auc": 1,
+        "top1_hit_rate": 1,
+        "top3_hit_rate": 1,
+        "mean_active_rank": 2,
+        "mean_ef20": 2.7
+      },
+      "mw_baseline": {
+        "mean_roc_auc": 0.6777777777777778,
+        "top1_hit_rate": 0.6,
+        "top3_hit_rate": 0.9,
+        "mean_active_rank": 3.6333333333333337,
+        "mean_ef20": 1.35
+      },
+      "docking_baseline": {
+        "mean_roc_auc": 0.5055555555555555,
+        "top1_hit_rate": 0.2857142857142857,
+        "top3_hit_rate": 0.5714285714285714,
+        "mean_active_rank": 4.333333333333333,
+        "mean_ef20": 0.7777777777777777
+      },
+      "random_expectation": {
+        "top1_hit_rate": 0.3708333333333333,
+        "top3_hit_rate": 0.8154761904761904,
+        "mean_active_rank": 4.55
+      }
     },
-    "docking_baseline": {
-      "mean_roc_auc": 0.5055555555555555,
-      "top1_hit_rate": 0.2857142857142857,
-      "top3_hit_rate": 0.5714285714285714,
-      "mean_active_rank": 4.333333333333333,
-      "mean_ef20": 0.7777777777777777
-    },
-    "random_expectation": {
-      "top1_hit_rate": 0.3708333333333333,
-      "top3_hit_rate": 0.8154761904761904,
-      "mean_active_rank": 4.55
-    }
+    "per_target": [
+      {
+        "id": "egfr",
+        "name": "EGFR",
+        "pdb_id": "1M17",
+        "heuristic_v2": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 1,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 3,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "erlotinib",
+              "cid": "176870",
+              "role": "active",
+              "score": 95,
+              "heuristic_score": 95
+            },
+            {
+              "rank": 2,
+              "name": "gefitinib",
+              "cid": "123631",
+              "role": "active",
+              "score": 77,
+              "heuristic_score": 77
+            },
+            {
+              "rank": 3,
+              "name": "osimertinib",
+              "cid": "71496458",
+              "role": "active",
+              "score": 75,
+              "heuristic_score": 75
+            },
+            {
+              "rank": 4,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 34,
+              "heuristic_score": 34
+            },
+            {
+              "rank": 5,
+              "name": "celecoxib",
+              "cid": "2662",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 6,
+              "name": "omeprazole",
+              "cid": "4594",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 7,
+              "name": "sitagliptin",
+              "cid": "4369359",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 8,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 9,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": 19,
+              "heuristic_score": 19
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 0.7777777777777778,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 3.3333333333333335,
+          "enrichment_factor_at_20pct": 1.5,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "osimertinib",
+              "cid": "71496458",
+              "role": "active",
+              "score": 499.6,
+              "heuristic_score": 75
+            },
+            {
+              "rank": 2,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 493.6,
+              "heuristic_score": 34
+            },
+            {
+              "rank": 3,
+              "name": "gefitinib",
+              "cid": "123631",
+              "role": "active",
+              "score": 446.9,
+              "heuristic_score": 77
+            },
+            {
+              "rank": 4,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": 422.9,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 5,
+              "name": "sitagliptin",
+              "cid": "4369359",
+              "role": "decoy",
+              "score": 407.31,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 6,
+              "name": "erlotinib",
+              "cid": "176870",
+              "role": "active",
+              "score": 393.4,
+              "heuristic_score": 95
+            },
+            {
+              "rank": 7,
+              "name": "celecoxib",
+              "cid": "2662",
+              "role": "decoy",
+              "score": 381.4,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 8,
+              "name": "omeprazole",
+              "cid": "4594",
+              "role": "decoy",
+              "score": 345.4,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 9,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": 129.16,
+              "heuristic_score": 19
+            }
+          ]
+        },
+        "docking_baseline": {
+          "n": 7,
+          "n_actives": 1,
+          "roc_auc": 0.8333333333333334,
+          "top1_hit": false,
+          "top3_hit": false,
+          "mean_active_rank": 6,
+          "enrichment_factor_at_20pct": 0,
+          "random_expectation_top1": 0.14285714285714285,
+          "random_expectation_top3": 0.4285714285714286,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "celecoxib",
+              "cid": "2662",
+              "role": "decoy",
+              "score": -19.6,
+              "heuristic_score": 24,
+              "docking_delta_g": -19.6
+            },
+            {
+              "rank": 2,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": -18.11,
+              "heuristic_score": 34,
+              "docking_delta_g": -18.11
+            },
+            {
+              "rank": 3,
+              "name": "sitagliptin",
+              "cid": "4369359",
+              "role": "decoy",
+              "score": -14.68,
+              "heuristic_score": 23,
+              "docking_delta_g": -14.68
+            },
+            {
+              "rank": 4,
+              "name": "omeprazole",
+              "cid": "4594",
+              "role": "decoy",
+              "score": -7.46,
+              "heuristic_score": 24,
+              "docking_delta_g": -7.46
+            },
+            {
+              "rank": 5,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": -6.68,
+              "heuristic_score": 22,
+              "docking_delta_g": -6.68
+            },
+            {
+              "rank": 6,
+              "name": "gefitinib",
+              "cid": "123631",
+              "role": "active",
+              "score": -5.8,
+              "heuristic_score": 77,
+              "docking_delta_g": -5.8
+            },
+            {
+              "rank": 7,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": -5.48,
+              "heuristic_score": 19,
+              "docking_delta_g": -5.48
+            }
+          ]
+        },
+        "notable_failures": []
+      },
+      {
+        "id": "abl",
+        "name": "ABL1",
+        "pdb_id": "1IEP",
+        "heuristic_v2": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 1,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 2.6666666666666665,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "active",
+              "score": 97,
+              "heuristic_score": 97
+            },
+            {
+              "rank": 2,
+              "name": "dasatinib",
+              "cid": "3062316",
+              "role": "active",
+              "score": 75,
+              "heuristic_score": 75
+            },
+            {
+              "rank": 3,
+              "name": "nilotinib",
+              "cid": "644241",
+              "role": "active",
+              "score": 72,
+              "heuristic_score": 72
+            },
+            {
+              "rank": 4,
+              "name": "gefitinib",
+              "cid": "123631",
+              "role": "decoy",
+              "score": 34,
+              "heuristic_score": 34
+            },
+            {
+              "rank": 5,
+              "name": "celecoxib",
+              "cid": "2662",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 6,
+              "name": "caffeine",
+              "cid": "2519",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 7,
+              "name": "dabrafenib",
+              "cid": "44462760",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 8,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 0.8666666666666667,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2.6666666666666665,
+          "enrichment_factor_at_20pct": 1.3333333333333333,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "nilotinib",
+              "cid": "644241",
+              "role": "active",
+              "score": 529.5,
+              "heuristic_score": 72
+            },
+            {
+              "rank": 2,
+              "name": "dabrafenib",
+              "cid": "44462760",
+              "role": "decoy",
+              "score": 519.6,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 3,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "active",
+              "score": 493.6,
+              "heuristic_score": 97
+            },
+            {
+              "rank": 4,
+              "name": "dasatinib",
+              "cid": "3062316",
+              "role": "active",
+              "score": 488,
+              "heuristic_score": 75
+            },
+            {
+              "rank": 5,
+              "name": "gefitinib",
+              "cid": "123631",
+              "role": "decoy",
+              "score": 446.9,
+              "heuristic_score": 34
+            },
+            {
+              "rank": 6,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": 422.9,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 7,
+              "name": "celecoxib",
+              "cid": "2662",
+              "role": "decoy",
+              "score": 381.4,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 8,
+              "name": "caffeine",
+              "cid": "2519",
+              "role": "decoy",
+              "score": 194.19,
+              "heuristic_score": 24
+            }
+          ]
+        },
+        "docking_baseline": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 0.8666666666666667,
+          "top1_hit": false,
+          "top3_hit": false,
+          "mean_active_rank": 6.333333333333333,
+          "enrichment_factor_at_20pct": 0,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": -20.52,
+              "heuristic_score": 22,
+              "docking_delta_g": -20.52
+            },
+            {
+              "rank": 2,
+              "name": "gefitinib",
+              "cid": "123631",
+              "role": "decoy",
+              "score": -18.45,
+              "heuristic_score": 34,
+              "docking_delta_g": -18.45
+            },
+            {
+              "rank": 3,
+              "name": "dabrafenib",
+              "cid": "44462760",
+              "role": "decoy",
+              "score": -17.69,
+              "heuristic_score": 22,
+              "docking_delta_g": -17.69
+            },
+            {
+              "rank": 4,
+              "name": "celecoxib",
+              "cid": "2662",
+              "role": "decoy",
+              "score": -16.32,
+              "heuristic_score": 24,
+              "docking_delta_g": -16.32
+            },
+            {
+              "rank": 5,
+              "name": "dasatinib",
+              "cid": "3062316",
+              "role": "active",
+              "score": -15.06,
+              "heuristic_score": 75,
+              "docking_delta_g": -15.06
+            },
+            {
+              "rank": 6,
+              "name": "nilotinib",
+              "cid": "644241",
+              "role": "active",
+              "score": -14.11,
+              "heuristic_score": 72,
+              "docking_delta_g": -14.11
+            },
+            {
+              "rank": 7,
+              "name": "caffeine",
+              "cid": "2519",
+              "role": "decoy",
+              "score": -12.77,
+              "heuristic_score": 24,
+              "docking_delta_g": -12.77
+            },
+            {
+              "rank": 8,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "active",
+              "score": -12.17,
+              "heuristic_score": 97,
+              "docking_delta_g": -12.17
+            }
+          ]
+        },
+        "notable_failures": []
+      },
+      {
+        "id": "her2",
+        "name": "ERBB2",
+        "pdb_id": "3PP0",
+        "heuristic_v2": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 1,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 2.6666666666666665,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "lapatinib",
+              "cid": "208908",
+              "role": "active",
+              "score": 84,
+              "heuristic_score": 84
+            },
+            {
+              "rank": 2,
+              "name": "neratinib",
+              "cid": "9915743",
+              "role": "active",
+              "score": 67,
+              "heuristic_score": 67
+            },
+            {
+              "rank": 3,
+              "name": "tucatinib",
+              "cid": "51039094",
+              "role": "active",
+              "score": 64,
+              "heuristic_score": 64
+            },
+            {
+              "rank": 4,
+              "name": "gefitinib",
+              "cid": "123631",
+              "role": "decoy",
+              "score": 34,
+              "heuristic_score": 34
+            },
+            {
+              "rank": 5,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 34,
+              "heuristic_score": 34
+            },
+            {
+              "rank": 6,
+              "name": "warfarin",
+              "cid": "54678486",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 7,
+              "name": "sildenafil",
+              "cid": "135398744",
+              "role": "decoy",
+              "score": 21,
+              "heuristic_score": 21
+            },
+            {
+              "rank": 8,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": 19,
+              "heuristic_score": 19
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 0.9333333333333333,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2.3333333333333335,
+          "enrichment_factor_at_20pct": 2.6666666666666665,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "lapatinib",
+              "cid": "208908",
+              "role": "active",
+              "score": 581.1,
+              "heuristic_score": 84
+            },
+            {
+              "rank": 2,
+              "name": "neratinib",
+              "cid": "9915743",
+              "role": "active",
+              "score": 557,
+              "heuristic_score": 67
+            },
+            {
+              "rank": 3,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 493.6,
+              "heuristic_score": 34
+            },
+            {
+              "rank": 4,
+              "name": "tucatinib",
+              "cid": "51039094",
+              "role": "active",
+              "score": 480.5,
+              "heuristic_score": 64
+            },
+            {
+              "rank": 5,
+              "name": "sildenafil",
+              "cid": "135398744",
+              "role": "decoy",
+              "score": 474.6,
+              "heuristic_score": 21
+            },
+            {
+              "rank": 6,
+              "name": "gefitinib",
+              "cid": "123631",
+              "role": "decoy",
+              "score": 446.9,
+              "heuristic_score": 34
+            },
+            {
+              "rank": 7,
+              "name": "warfarin",
+              "cid": "54678486",
+              "role": "decoy",
+              "score": 308.3,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 8,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": 129.16,
+              "heuristic_score": 19
+            }
+          ]
+        },
+        "docking_baseline": null,
+        "notable_failures": []
+      },
+      {
+        "id": "braf",
+        "name": "BRAF",
+        "pdb_id": "4XV2",
+        "heuristic_v2": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 1,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 2.6666666666666665,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "dabrafenib",
+              "cid": "44462760",
+              "role": "active",
+              "score": 85,
+              "heuristic_score": 85
+            },
+            {
+              "rank": 2,
+              "name": "vemurafenib",
+              "cid": "42611257",
+              "role": "active",
+              "score": 75,
+              "heuristic_score": 75
+            },
+            {
+              "rank": 3,
+              "name": "encorafenib",
+              "cid": "50922675",
+              "role": "active",
+              "score": 67,
+              "heuristic_score": 67
+            },
+            {
+              "rank": 4,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 34,
+              "heuristic_score": 34
+            },
+            {
+              "rank": 5,
+              "name": "erlotinib",
+              "cid": "176870",
+              "role": "decoy",
+              "score": 32,
+              "heuristic_score": 32
+            },
+            {
+              "rank": 6,
+              "name": "ibuprofen",
+              "cid": "3672",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 7,
+              "name": "sitagliptin",
+              "cid": "4369359",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 8,
+              "name": "amlodipine",
+              "cid": "2162",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 0.9333333333333333,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2.3333333333333335,
+          "enrichment_factor_at_20pct": 2.6666666666666665,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "encorafenib",
+              "cid": "50922675",
+              "role": "active",
+              "score": 540,
+              "heuristic_score": 67
+            },
+            {
+              "rank": 2,
+              "name": "dabrafenib",
+              "cid": "44462760",
+              "role": "active",
+              "score": 519.6,
+              "heuristic_score": 85
+            },
+            {
+              "rank": 3,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 493.6,
+              "heuristic_score": 34
+            },
+            {
+              "rank": 4,
+              "name": "vemurafenib",
+              "cid": "42611257",
+              "role": "active",
+              "score": 489.9,
+              "heuristic_score": 75
+            },
+            {
+              "rank": 5,
+              "name": "amlodipine",
+              "cid": "2162",
+              "role": "decoy",
+              "score": 408.9,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 6,
+              "name": "sitagliptin",
+              "cid": "4369359",
+              "role": "decoy",
+              "score": 407.31,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 7,
+              "name": "erlotinib",
+              "cid": "176870",
+              "role": "decoy",
+              "score": 393.4,
+              "heuristic_score": 32
+            },
+            {
+              "rank": 8,
+              "name": "ibuprofen",
+              "cid": "3672",
+              "role": "decoy",
+              "score": 206.28,
+              "heuristic_score": 24
+            }
+          ]
+        },
+        "docking_baseline": null,
+        "notable_failures": []
+      },
+      {
+        "id": "cox",
+        "name": "PTGS2",
+        "pdb_id": "4COX",
+        "heuristic_v2": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 1,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 2.6666666666666665,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "celecoxib",
+              "cid": "2662",
+              "role": "active",
+              "score": 99,
+              "heuristic_score": 99
+            },
+            {
+              "rank": 2,
+              "name": "ibuprofen",
+              "cid": "3672",
+              "role": "active",
+              "score": 79,
+              "heuristic_score": 79
+            },
+            {
+              "rank": 3,
+              "name": "indomethacin",
+              "cid": "3715",
+              "role": "active",
+              "score": 78,
+              "heuristic_score": 78
+            },
+            {
+              "rank": 4,
+              "name": "sitagliptin",
+              "cid": "4369359",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 5,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 6,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 7,
+              "name": "sildenafil",
+              "cid": "135398744",
+              "role": "decoy",
+              "score": 21,
+              "heuristic_score": 21
+            },
+            {
+              "rank": 8,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": 19,
+              "heuristic_score": 19
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 0.2,
+          "top1_hit": false,
+          "top3_hit": false,
+          "mean_active_rank": 6,
+          "enrichment_factor_at_20pct": 0,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 493.6,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 2,
+              "name": "sildenafil",
+              "cid": "135398744",
+              "role": "decoy",
+              "score": 474.6,
+              "heuristic_score": 21
+            },
+            {
+              "rank": 3,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": 422.9,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 4,
+              "name": "sitagliptin",
+              "cid": "4369359",
+              "role": "decoy",
+              "score": 407.31,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 5,
+              "name": "celecoxib",
+              "cid": "2662",
+              "role": "active",
+              "score": 381.4,
+              "heuristic_score": 99
+            },
+            {
+              "rank": 6,
+              "name": "indomethacin",
+              "cid": "3715",
+              "role": "active",
+              "score": 357.8,
+              "heuristic_score": 78
+            },
+            {
+              "rank": 7,
+              "name": "ibuprofen",
+              "cid": "3672",
+              "role": "active",
+              "score": 206.28,
+              "heuristic_score": 79
+            },
+            {
+              "rank": 8,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": 129.16,
+              "heuristic_score": 19
+            }
+          ]
+        },
+        "docking_baseline": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 0.4,
+          "top1_hit": false,
+          "top3_hit": true,
+          "mean_active_rank": 4,
+          "enrichment_factor_at_20pct": 0,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "sitagliptin",
+              "cid": "4369359",
+              "role": "decoy",
+              "score": -8.47,
+              "heuristic_score": 23,
+              "docking_delta_g": -8.47
+            },
+            {
+              "rank": 2,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": -8.12,
+              "heuristic_score": 22,
+              "docking_delta_g": -8.12
+            },
+            {
+              "rank": 3,
+              "name": "celecoxib",
+              "cid": "2662",
+              "role": "active",
+              "score": -6.9,
+              "heuristic_score": 99,
+              "docking_delta_g": -6.9
+            },
+            {
+              "rank": 4,
+              "name": "indomethacin",
+              "cid": "3715",
+              "role": "active",
+              "score": -6.48,
+              "heuristic_score": 78,
+              "docking_delta_g": -6.48
+            },
+            {
+              "rank": 5,
+              "name": "ibuprofen",
+              "cid": "3672",
+              "role": "active",
+              "score": -5.3,
+              "heuristic_score": 79,
+              "docking_delta_g": -5.3
+            },
+            {
+              "rank": 6,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": -4.83,
+              "heuristic_score": 22,
+              "docking_delta_g": -4.83
+            },
+            {
+              "rank": 7,
+              "name": "sildenafil",
+              "cid": "135398744",
+              "role": "decoy",
+              "score": -4.24,
+              "heuristic_score": 21,
+              "docking_delta_g": -4.24
+            },
+            {
+              "rank": 8,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": -1.59,
+              "heuristic_score": 19,
+              "docking_delta_g": -1.59
+            }
+          ]
+        },
+        "notable_failures": []
+      },
+      {
+        "id": "hmgcr",
+        "name": "HMGCR",
+        "pdb_id": "1HWK",
+        "heuristic_v2": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 1,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 2.6666666666666665,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "atorvastatin",
+              "cid": "60823",
+              "role": "active",
+              "score": 86,
+              "heuristic_score": 86
+            },
+            {
+              "rank": 2,
+              "name": "simvastatin",
+              "cid": "54454",
+              "role": "active",
+              "score": 77,
+              "heuristic_score": 77
+            },
+            {
+              "rank": 3,
+              "name": "rosuvastatin",
+              "cid": "446157",
+              "role": "active",
+              "score": 70,
+              "heuristic_score": 70
+            },
+            {
+              "rank": 4,
+              "name": "caffeine",
+              "cid": "2519",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 5,
+              "name": "omeprazole",
+              "cid": "4594",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 6,
+              "name": "warfarin",
+              "cid": "54678486",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 7,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 8,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": 19,
+              "heuristic_score": 19
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 0.8666666666666667,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2.6666666666666665,
+          "enrichment_factor_at_20pct": 1.3333333333333333,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "atorvastatin",
+              "cid": "60823",
+              "role": "active",
+              "score": 558.6,
+              "heuristic_score": 86
+            },
+            {
+              "rank": 2,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 493.6,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 3,
+              "name": "rosuvastatin",
+              "cid": "446157",
+              "role": "active",
+              "score": 481.5,
+              "heuristic_score": 70
+            },
+            {
+              "rank": 4,
+              "name": "simvastatin",
+              "cid": "54454",
+              "role": "active",
+              "score": 418.6,
+              "heuristic_score": 77
+            },
+            {
+              "rank": 5,
+              "name": "omeprazole",
+              "cid": "4594",
+              "role": "decoy",
+              "score": 345.4,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 6,
+              "name": "warfarin",
+              "cid": "54678486",
+              "role": "decoy",
+              "score": 308.3,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 7,
+              "name": "caffeine",
+              "cid": "2519",
+              "role": "decoy",
+              "score": 194.19,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 8,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": 129.16,
+              "heuristic_score": 19
+            }
+          ]
+        },
+        "docking_baseline": null,
+        "notable_failures": []
+      },
+      {
+        "id": "pde5",
+        "name": "PDE5A",
+        "pdb_id": "1UDT",
+        "heuristic_v2": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 1,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 2.6666666666666665,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "sildenafil",
+              "cid": "135398744",
+              "role": "active",
+              "score": 96,
+              "heuristic_score": 96
+            },
+            {
+              "rank": 2,
+              "name": "tadalafil",
+              "cid": "110635",
+              "role": "active",
+              "score": 79,
+              "heuristic_score": 79
+            },
+            {
+              "rank": 3,
+              "name": "vardenafil",
+              "cid": "135400189",
+              "role": "active",
+              "score": 76,
+              "heuristic_score": 76
+            },
+            {
+              "rank": 4,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": 31,
+              "heuristic_score": 31
+            },
+            {
+              "rank": 5,
+              "name": "celecoxib",
+              "cid": "2662",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 6,
+              "name": "sitagliptin",
+              "cid": "4369359",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 7,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 8,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 0.6666666666666666,
+          "top1_hit": false,
+          "top3_hit": true,
+          "mean_active_rank": 3.6666666666666665,
+          "enrichment_factor_at_20pct": 1.3333333333333333,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 493.6,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 2,
+              "name": "vardenafil",
+              "cid": "135400189",
+              "role": "active",
+              "score": 488.6,
+              "heuristic_score": 76
+            },
+            {
+              "rank": 3,
+              "name": "sildenafil",
+              "cid": "135398744",
+              "role": "active",
+              "score": 474.6,
+              "heuristic_score": 96
+            },
+            {
+              "rank": 4,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": 422.9,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 5,
+              "name": "sitagliptin",
+              "cid": "4369359",
+              "role": "decoy",
+              "score": 407.31,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 6,
+              "name": "tadalafil",
+              "cid": "110635",
+              "role": "active",
+              "score": 389.4,
+              "heuristic_score": 79
+            },
+            {
+              "rank": 7,
+              "name": "celecoxib",
+              "cid": "2662",
+              "role": "decoy",
+              "score": 381.4,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 8,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": 129.16,
+              "heuristic_score": 31
+            }
+          ]
+        },
+        "docking_baseline": {
+          "n": 2,
+          "n_actives": 1,
+          "roc_auc": 0,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 1,
+          "enrichment_factor_at_20pct": 2,
+          "random_expectation_top1": 0.5,
+          "random_expectation_top3": null,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "tadalafil",
+              "cid": "110635",
+              "role": "active",
+              "score": -44.89,
+              "heuristic_score": 79,
+              "docking_delta_g": -44.89
+            },
+            {
+              "rank": 2,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": -13.76,
+              "heuristic_score": 31,
+              "docking_delta_g": -13.76
+            }
+          ]
+        },
+        "notable_failures": []
+      },
+      {
+        "id": "er",
+        "name": "ESR1",
+        "pdb_id": "3ERT",
+        "heuristic_v2": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 1,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 2.6666666666666665,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "tamoxifen",
+              "cid": "2733526",
+              "role": "active",
+              "score": 90,
+              "heuristic_score": 90
+            },
+            {
+              "rank": 2,
+              "name": "raloxifene",
+              "cid": "5035",
+              "role": "active",
+              "score": 72,
+              "heuristic_score": 72
+            },
+            {
+              "rank": 3,
+              "name": "fulvestrant",
+              "cid": "104741",
+              "role": "active",
+              "score": 60,
+              "heuristic_score": 60
+            },
+            {
+              "rank": 4,
+              "name": "caffeine",
+              "cid": "2519",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 5,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 6,
+              "name": "sildenafil",
+              "cid": "135398744",
+              "role": "decoy",
+              "score": 21,
+              "heuristic_score": 21
+            },
+            {
+              "rank": 7,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": 19,
+              "heuristic_score": 19
+            },
+            {
+              "rank": 8,
+              "name": "atorvastatin",
+              "cid": "60823",
+              "role": "decoy",
+              "score": 11,
+              "heuristic_score": 11
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 0.6,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 4,
+          "enrichment_factor_at_20pct": 1.3333333333333333,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "fulvestrant",
+              "cid": "104741",
+              "role": "active",
+              "score": 606.8,
+              "heuristic_score": 60
+            },
+            {
+              "rank": 2,
+              "name": "atorvastatin",
+              "cid": "60823",
+              "role": "decoy",
+              "score": 558.6,
+              "heuristic_score": 11
+            },
+            {
+              "rank": 3,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 493.6,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 4,
+              "name": "sildenafil",
+              "cid": "135398744",
+              "role": "decoy",
+              "score": 474.6,
+              "heuristic_score": 21
+            },
+            {
+              "rank": 5,
+              "name": "raloxifene",
+              "cid": "5035",
+              "role": "active",
+              "score": 473.6,
+              "heuristic_score": 72
+            },
+            {
+              "rank": 6,
+              "name": "tamoxifen",
+              "cid": "2733526",
+              "role": "active",
+              "score": 371.5,
+              "heuristic_score": 90
+            },
+            {
+              "rank": 7,
+              "name": "caffeine",
+              "cid": "2519",
+              "role": "decoy",
+              "score": 194.19,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 8,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": 129.16,
+              "heuristic_score": 19
+            }
+          ]
+        },
+        "docking_baseline": {
+          "n": 2,
+          "n_actives": 0,
+          "roc_auc": null,
+          "top1_hit": false,
+          "top3_hit": false,
+          "mean_active_rank": null,
+          "enrichment_factor_at_20pct": null,
+          "random_expectation_top1": 0,
+          "random_expectation_top3": null,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": -16.11,
+              "heuristic_score": 19,
+              "docking_delta_g": -16.11
+            },
+            {
+              "rank": 2,
+              "name": "caffeine",
+              "cid": "2519",
+              "role": "decoy",
+              "score": -8.63,
+              "heuristic_score": 24,
+              "docking_delta_g": -8.63
+            }
+          ]
+        },
+        "notable_failures": []
+      },
+      {
+        "id": "dpp4",
+        "name": "DPP4",
+        "pdb_id": "1X70",
+        "heuristic_v2": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 1,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 2.6666666666666665,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "sitagliptin",
+              "cid": "4369359",
+              "role": "active",
+              "score": 98,
+              "heuristic_score": 98
+            },
+            {
+              "rank": 2,
+              "name": "saxagliptin",
+              "cid": "11243969",
+              "role": "active",
+              "score": 79,
+              "heuristic_score": 79
+            },
+            {
+              "rank": 3,
+              "name": "linagliptin",
+              "cid": "10096344",
+              "role": "active",
+              "score": 77,
+              "heuristic_score": 77
+            },
+            {
+              "rank": 4,
+              "name": "glipizide",
+              "cid": "3478",
+              "role": "decoy",
+              "score": 33,
+              "heuristic_score": 33
+            },
+            {
+              "rank": 5,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": 31,
+              "heuristic_score": 31
+            },
+            {
+              "rank": 6,
+              "name": "omeprazole",
+              "cid": "4594",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 7,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 8,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 0.4666666666666667,
+          "top1_hit": false,
+          "top3_hit": true,
+          "mean_active_rank": 4.666666666666667,
+          "enrichment_factor_at_20pct": 1.3333333333333333,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 493.6,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 2,
+              "name": "linagliptin",
+              "cid": "10096344",
+              "role": "active",
+              "score": 472.5,
+              "heuristic_score": 77
+            },
+            {
+              "rank": 3,
+              "name": "glipizide",
+              "cid": "3478",
+              "role": "decoy",
+              "score": 445.5,
+              "heuristic_score": 33
+            },
+            {
+              "rank": 4,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": 422.9,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 5,
+              "name": "sitagliptin",
+              "cid": "4369359",
+              "role": "active",
+              "score": 407.31,
+              "heuristic_score": 98
+            },
+            {
+              "rank": 6,
+              "name": "omeprazole",
+              "cid": "4594",
+              "role": "decoy",
+              "score": 345.4,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 7,
+              "name": "saxagliptin",
+              "cid": "11243969",
+              "role": "active",
+              "score": 315.4,
+              "heuristic_score": 79
+            },
+            {
+              "rank": 8,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": 129.16,
+              "heuristic_score": 31
+            }
+          ]
+        },
+        "docking_baseline": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 0.4,
+          "top1_hit": false,
+          "top3_hit": true,
+          "mean_active_rank": 4,
+          "enrichment_factor_at_20pct": 1.3333333333333333,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "glipizide",
+              "cid": "3478",
+              "role": "decoy",
+              "score": -20.31,
+              "heuristic_score": 33,
+              "docking_delta_g": -20.31
+            },
+            {
+              "rank": 2,
+              "name": "sitagliptin",
+              "cid": "4369359",
+              "role": "active",
+              "score": -17.81,
+              "heuristic_score": 98,
+              "docking_delta_g": -17.81
+            },
+            {
+              "rank": 3,
+              "name": "omeprazole",
+              "cid": "4594",
+              "role": "decoy",
+              "score": -11.66,
+              "heuristic_score": 24,
+              "docking_delta_g": -11.66
+            },
+            {
+              "rank": 4,
+              "name": "saxagliptin",
+              "cid": "11243969",
+              "role": "active",
+              "score": -11.03,
+              "heuristic_score": 79,
+              "docking_delta_g": -11.03
+            },
+            {
+              "rank": 5,
+              "name": "metformin",
+              "cid": "4091",
+              "role": "decoy",
+              "score": -10.85,
+              "heuristic_score": 31,
+              "docking_delta_g": -10.85
+            },
+            {
+              "rank": 6,
+              "name": "linagliptin",
+              "cid": "10096344",
+              "role": "active",
+              "score": -9.44,
+              "heuristic_score": 77,
+              "docking_delta_g": -9.44
+            },
+            {
+              "rank": 7,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": -8.15,
+              "heuristic_score": 22,
+              "docking_delta_g": -8.15
+            },
+            {
+              "rank": 8,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": -5.49,
+              "heuristic_score": 22,
+              "docking_delta_g": -5.49
+            }
+          ]
+        },
+        "notable_failures": []
+      },
+      {
+        "id": "beta2",
+        "name": "ADRB2",
+        "pdb_id": "3SN6",
+        "heuristic_v2": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 1,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 2.6666666666666665,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "salbutamol",
+              "cid": "2083",
+              "role": "active",
+              "score": 78,
+              "heuristic_score": 78
+            },
+            {
+              "rank": 2,
+              "name": "salmeterol",
+              "cid": "5152",
+              "role": "active",
+              "score": 72,
+              "heuristic_score": 72
+            },
+            {
+              "rank": 3,
+              "name": "formoterol",
+              "cid": "3410",
+              "role": "active",
+              "score": 69,
+              "heuristic_score": 69
+            },
+            {
+              "rank": 4,
+              "name": "morphine",
+              "cid": "5288826",
+              "role": "decoy",
+              "score": 36,
+              "heuristic_score": 36
+            },
+            {
+              "rank": 5,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": 34,
+              "heuristic_score": 34
+            },
+            {
+              "rank": 6,
+              "name": "caffeine",
+              "cid": "2519",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 7,
+              "name": "warfarin",
+              "cid": "54678486",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 8,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 0.4666666666666667,
+          "top1_hit": false,
+          "top3_hit": true,
+          "mean_active_rank": 4.666666666666667,
+          "enrichment_factor_at_20pct": 0,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": 493.6,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 2,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": 422.9,
+              "heuristic_score": 34
+            },
+            {
+              "rank": 3,
+              "name": "salmeterol",
+              "cid": "5152",
+              "role": "active",
+              "score": 415.6,
+              "heuristic_score": 72
+            },
+            {
+              "rank": 4,
+              "name": "formoterol",
+              "cid": "3410",
+              "role": "active",
+              "score": 344.4,
+              "heuristic_score": 69
+            },
+            {
+              "rank": 5,
+              "name": "warfarin",
+              "cid": "54678486",
+              "role": "decoy",
+              "score": 308.3,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 6,
+              "name": "morphine",
+              "cid": "5288826",
+              "role": "decoy",
+              "score": 285.34,
+              "heuristic_score": 36
+            },
+            {
+              "rank": 7,
+              "name": "salbutamol",
+              "cid": "2083",
+              "role": "active",
+              "score": 239.31,
+              "heuristic_score": 78
+            },
+            {
+              "rank": 8,
+              "name": "caffeine",
+              "cid": "2519",
+              "role": "decoy",
+              "score": 194.19,
+              "heuristic_score": 24
+            }
+          ]
+        },
+        "docking_baseline": {
+          "n": 8,
+          "n_actives": 3,
+          "roc_auc": 0.5333333333333333,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 4.666666666666667,
+          "enrichment_factor_at_20pct": 1.3333333333333333,
+          "random_expectation_top1": 0.375,
+          "random_expectation_top3": 0.8214285714285714,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "formoterol",
+              "cid": "3410",
+              "role": "active",
+              "score": -11.38,
+              "heuristic_score": 69,
+              "docking_delta_g": -11.38
+            },
+            {
+              "rank": 2,
+              "name": "imatinib",
+              "cid": "5291",
+              "role": "decoy",
+              "score": -9.12,
+              "heuristic_score": 22,
+              "docking_delta_g": -9.12
+            },
+            {
+              "rank": 3,
+              "name": "caffeine",
+              "cid": "2519",
+              "role": "decoy",
+              "score": -5.34,
+              "heuristic_score": 24,
+              "docking_delta_g": -5.34
+            },
+            {
+              "rank": 4,
+              "name": "warfarin",
+              "cid": "54678486",
+              "role": "decoy",
+              "score": -4.81,
+              "heuristic_score": 24,
+              "docking_delta_g": -4.81
+            },
+            {
+              "rank": 5,
+              "name": "morphine",
+              "cid": "5288826",
+              "role": "decoy",
+              "score": -3.87,
+              "heuristic_score": 36,
+              "docking_delta_g": -3.87
+            },
+            {
+              "rank": 6,
+              "name": "salbutamol",
+              "cid": "2083",
+              "role": "active",
+              "score": -3.53,
+              "heuristic_score": 78,
+              "docking_delta_g": -3.53
+            },
+            {
+              "rank": 7,
+              "name": "salmeterol",
+              "cid": "5152",
+              "role": "active",
+              "score": -2.68,
+              "heuristic_score": 72,
+              "docking_delta_g": -2.68
+            },
+            {
+              "rank": 8,
+              "name": "losartan",
+              "cid": "3961",
+              "role": "decoy",
+              "score": -1.46,
+              "heuristic_score": 34,
+              "docking_delta_g": -1.46
+            }
+          ]
+        },
+        "notable_failures": []
+      }
+    ],
+    "failure_cases": [],
+    "interpretation": "On the in-rule panel (10 targets, 30 actives), mean ROC-AUC 1 and top-1 hit rate 100.0% confirm that `TARGET_RULES` lookup behaves as coded — this is a **regression/consistency** check, not evidence of generalization. Docking ΔG baseline (ROC-AUC 0.506, top-1 28.6%) remains near chance and is not part of the 0–100 score."
   },
-  "per_target": [
-    {
-      "id": "egfr",
-      "name": "EGFR",
-      "pdb_id": "1M17",
+  "held_out_non_circular": {
+    "panel": "held-out",
+    "dataset_file": "benchmark/heldout_set.json",
+    "summary": {
+      "target_count": 10,
+      "active_count": 30
+    },
+    "overall": {
       "heuristic_v2": {
-        "n": 9,
-        "n_actives": 3,
-        "roc_auc": 1,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 2,
-        "enrichment_factor_at_20pct": 3,
-        "random_expectation_top1": 0.3333333333333333,
-        "random_expectation_top3": 0.7619047619047619,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "erlotinib",
-            "cid": "176870",
-            "role": "active",
-            "score": 95,
-            "heuristic_score": 95
-          },
-          {
-            "rank": 2,
-            "name": "gefitinib",
-            "cid": "123631",
-            "role": "active",
-            "score": 77,
-            "heuristic_score": 77
-          },
-          {
-            "rank": 3,
-            "name": "osimertinib",
-            "cid": "71496458",
-            "role": "active",
-            "score": 75,
-            "heuristic_score": 75
-          },
-          {
-            "rank": 4,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 34,
-            "heuristic_score": 34
-          },
-          {
-            "rank": 5,
-            "name": "celecoxib",
-            "cid": "2662",
-            "role": "decoy",
-            "score": 24,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 6,
-            "name": "omeprazole",
-            "cid": "4594",
-            "role": "decoy",
-            "score": 24,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 7,
-            "name": "sitagliptin",
-            "cid": "4369359",
-            "role": "decoy",
-            "score": 23,
-            "heuristic_score": 23
-          },
-          {
-            "rank": 8,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": 22,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 9,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": 19,
-            "heuristic_score": 19
-          }
-        ]
+        "mean_roc_auc": 0.3520833333333333,
+        "top1_hit_rate": 0.4,
+        "top3_hit_rate": 0.5,
+        "mean_active_rank": 5.641666666666667,
+        "mean_ef20": 1.075
       },
       "mw_baseline": {
-        "n": 9,
-        "n_actives": 3,
-        "roc_auc": 0.7777777777777778,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 3.3333333333333335,
-        "enrichment_factor_at_20pct": 1.5,
-        "random_expectation_top1": 0.3333333333333333,
-        "random_expectation_top3": 0.7619047619047619,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "osimertinib",
-            "cid": "71496458",
-            "role": "active",
-            "score": 499.6,
-            "heuristic_score": 75
-          },
-          {
-            "rank": 2,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 493.6,
-            "heuristic_score": 34
-          },
-          {
-            "rank": 3,
-            "name": "gefitinib",
-            "cid": "123631",
-            "role": "active",
-            "score": 446.9,
-            "heuristic_score": 77
-          },
-          {
-            "rank": 4,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": 422.9,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 5,
-            "name": "sitagliptin",
-            "cid": "4369359",
-            "role": "decoy",
-            "score": 407.31,
-            "heuristic_score": 23
-          },
-          {
-            "rank": 6,
-            "name": "erlotinib",
-            "cid": "176870",
-            "role": "active",
-            "score": 393.4,
-            "heuristic_score": 95
-          },
-          {
-            "rank": 7,
-            "name": "celecoxib",
-            "cid": "2662",
-            "role": "decoy",
-            "score": 381.4,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 8,
-            "name": "omeprazole",
-            "cid": "4594",
-            "role": "decoy",
-            "score": 345.4,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 9,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": 129.16,
-            "heuristic_score": 19
-          }
-        ]
+        "mean_roc_auc": 0.8708333333333333,
+        "top1_hit_rate": 0.8,
+        "top3_hit_rate": 0.9,
+        "mean_active_rank": 2.775,
+        "mean_ef20": 2.15
       },
       "docking_baseline": {
-        "n": 7,
-        "n_actives": 1,
-        "roc_auc": 0.8333333333333334,
-        "top1_hit": false,
-        "top3_hit": false,
-        "mean_active_rank": 6,
-        "enrichment_factor_at_20pct": 0,
-        "random_expectation_top1": 0.14285714285714285,
-        "random_expectation_top3": 0.4285714285714286,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "celecoxib",
-            "cid": "2662",
-            "role": "decoy",
-            "score": -19.6,
-            "heuristic_score": 24,
-            "docking_delta_g": -19.6
-          },
-          {
-            "rank": 2,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": -18.11,
-            "heuristic_score": 34,
-            "docking_delta_g": -18.11
-          },
-          {
-            "rank": 3,
-            "name": "sitagliptin",
-            "cid": "4369359",
-            "role": "decoy",
-            "score": -14.68,
-            "heuristic_score": 23,
-            "docking_delta_g": -14.68
-          },
-          {
-            "rank": 4,
-            "name": "omeprazole",
-            "cid": "4594",
-            "role": "decoy",
-            "score": -7.46,
-            "heuristic_score": 24,
-            "docking_delta_g": -7.46
-          },
-          {
-            "rank": 5,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": -6.68,
-            "heuristic_score": 22,
-            "docking_delta_g": -6.68
-          },
-          {
-            "rank": 6,
-            "name": "gefitinib",
-            "cid": "123631",
-            "role": "active",
-            "score": -5.8,
-            "heuristic_score": 77,
-            "docking_delta_g": -5.8
-          },
-          {
-            "rank": 7,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": -5.48,
-            "heuristic_score": 19,
-            "docking_delta_g": -5.48
-          }
-        ]
+        "mean_roc_auc": 0.4222222222222222,
+        "top1_hit_rate": 0.2857142857142857,
+        "top3_hit_rate": 0.7142857142857143,
+        "mean_active_rank": 4.333333333333334,
+        "mean_ef20": 1.2
       },
-      "notable_failures": []
+      "random_expectation": {
+        "top1_hit_rate": 0.33166666666666667,
+        "top3_hit_rate": 0.7571428571428571,
+        "mean_active_rank": 5
+      }
     },
-    {
-      "id": "abl",
-      "name": "ABL1",
-      "pdb_id": "1IEP",
-      "heuristic_v2": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 1,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 2,
-        "enrichment_factor_at_20pct": 2.6666666666666665,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
+    "per_target": [
+      {
+        "id": "egfr",
+        "name": "EGFR",
+        "pdb_id": "1M17",
+        "heuristic_v2": {
+          "n": 10,
+          "n_actives": 4,
+          "roc_auc": 0.5208333333333334,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 5.25,
+          "enrichment_factor_at_20pct": 1.25,
+          "random_expectation_top1": 0.4,
+          "random_expectation_top3": 0.8333333333333334,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "icotinib",
+              "cid": "22024915",
+              "role": "active",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 2,
+              "name": "rivaroxaban",
+              "cid": "9875401",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 3,
+              "name": "duloxetine",
+              "cid": "60835",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 4,
+              "name": "canertinib",
+              "cid": "156414",
+              "role": "active",
+              "score": 21,
+              "heuristic_score": 21
+            },
+            {
+              "rank": 5,
+              "name": "pregabalin",
+              "cid": "5486971",
+              "role": "decoy",
+              "score": 21,
+              "heuristic_score": 21
+            },
+            {
+              "rank": 6,
+              "name": "fenofibrate",
+              "cid": "3339",
+              "role": "decoy",
+              "score": 19,
+              "heuristic_score": 19
+            },
+            {
+              "rank": 7,
+              "name": "poziotinib",
+              "cid": "25127713",
+              "role": "active",
+              "score": 18,
+              "heuristic_score": 18
+            },
+            {
+              "rank": 8,
+              "name": "levothyroxine",
+              "cid": "5819",
+              "role": "decoy",
+              "score": 17,
+              "heuristic_score": 17
+            },
+            {
+              "rank": 9,
+              "name": "mobocertinib",
+              "cid": "118607832",
+              "role": "active",
+              "score": 11,
+              "heuristic_score": 11
+            },
+            {
+              "rank": 10,
+              "name": "montelukast",
+              "cid": "5281040",
+              "role": "decoy",
+              "score": 7,
+              "heuristic_score": 7
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 10,
+          "n_actives": 4,
+          "roc_auc": 0.625,
+          "top1_hit": false,
+          "top3_hit": true,
+          "mean_active_rank": 4.75,
+          "enrichment_factor_at_20pct": 0,
+          "random_expectation_top1": 0.4,
+          "random_expectation_top3": 0.8333333333333334,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "levothyroxine",
+              "cid": "5819",
+              "role": "decoy",
+              "score": 776.87,
+              "heuristic_score": 17
+            },
+            {
+              "rank": 2,
+              "name": "montelukast",
+              "cid": "5281040",
+              "role": "decoy",
+              "score": 586.2,
+              "heuristic_score": 7
+            },
+            {
+              "rank": 3,
+              "name": "mobocertinib",
+              "cid": "118607832",
+              "role": "active",
+              "score": 585.7,
+              "heuristic_score": 11
+            },
+            {
+              "rank": 4,
+              "name": "poziotinib",
+              "cid": "25127713",
+              "role": "active",
+              "score": 491.3,
+              "heuristic_score": 18
+            },
+            {
+              "rank": 5,
+              "name": "canertinib",
+              "cid": "156414",
+              "role": "active",
+              "score": 485.9,
+              "heuristic_score": 21
+            },
+            {
+              "rank": 6,
+              "name": "rivaroxaban",
+              "cid": "9875401",
+              "role": "decoy",
+              "score": 435.9,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 7,
+              "name": "icotinib",
+              "cid": "22024915",
+              "role": "active",
+              "score": 391.4,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 8,
+              "name": "fenofibrate",
+              "cid": "3339",
+              "role": "decoy",
+              "score": 360.8,
+              "heuristic_score": 19
+            },
+            {
+              "rank": 9,
+              "name": "duloxetine",
+              "cid": "60835",
+              "role": "decoy",
+              "score": 297.4,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 10,
+              "name": "pregabalin",
+              "cid": "5486971",
+              "role": "decoy",
+              "score": 159.23,
+              "heuristic_score": 21
+            }
+          ]
+        },
+        "docking_baseline": {
+          "n": 6,
+          "n_actives": 1,
+          "roc_auc": 0,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 1,
+          "enrichment_factor_at_20pct": 3,
+          "random_expectation_top1": 0.16666666666666666,
+          "random_expectation_top3": 0.5,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "icotinib",
+              "cid": "22024915",
+              "role": "active",
+              "score": -20.25,
+              "heuristic_score": 24,
+              "docking_delta_g": -20.25
+            },
+            {
+              "rank": 2,
+              "name": "levothyroxine",
+              "cid": "5819",
+              "role": "decoy",
+              "score": -15.01,
+              "heuristic_score": 17,
+              "docking_delta_g": -15.01
+            },
+            {
+              "rank": 3,
+              "name": "rivaroxaban",
+              "cid": "9875401",
+              "role": "decoy",
+              "score": -13,
+              "heuristic_score": 23,
+              "docking_delta_g": -13
+            },
+            {
+              "rank": 4,
+              "name": "fenofibrate",
+              "cid": "3339",
+              "role": "decoy",
+              "score": -9.72,
+              "heuristic_score": 19,
+              "docking_delta_g": -9.72
+            },
+            {
+              "rank": 5,
+              "name": "duloxetine",
+              "cid": "60835",
+              "role": "decoy",
+              "score": -8.02,
+              "heuristic_score": 23,
+              "docking_delta_g": -8.02
+            },
+            {
+              "rank": 6,
+              "name": "pregabalin",
+              "cid": "5486971",
+              "role": "decoy",
+              "score": -4.76,
+              "heuristic_score": 21,
+              "docking_delta_g": -4.76
+            }
+          ]
+        },
+        "notable_failures": []
+      },
+      {
+        "id": "abl",
+        "name": "ABL1",
+        "pdb_id": "1IEP",
+        "heuristic_v2": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 0,
+          "top1_hit": false,
+          "top3_hit": false,
+          "mean_active_rank": 8,
+          "enrichment_factor_at_20pct": 0,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "spironolactone",
+              "cid": "5833",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 2,
+              "name": "ezetimibe",
+              "cid": "150311",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 3,
+              "name": "donepezil",
+              "cid": "3152",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 4,
+              "name": "memantine",
+              "cid": "4054",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 5,
+              "name": "ciprofloxacin",
+              "cid": "2764",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 6,
+              "name": "hydrochlorothiazide",
+              "cid": "3639",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 7,
+              "name": "radotinib",
+              "cid": "16063245",
+              "role": "active",
+              "score": 17,
+              "heuristic_score": 17
+            },
+            {
+              "rank": 8,
+              "name": "rebastinib",
+              "cid": "25066467",
+              "role": "active",
+              "score": 16,
+              "heuristic_score": 16
+            },
+            {
+              "rank": 9,
+              "name": "bafetinib",
+              "cid": "11387605",
+              "role": "active",
+              "score": 13,
+              "heuristic_score": 13
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 1,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 3,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "bafetinib",
+              "cid": "11387605",
+              "role": "active",
+              "score": 576.6,
+              "heuristic_score": 13
+            },
+            {
+              "rank": 2,
+              "name": "rebastinib",
+              "cid": "25066467",
+              "role": "active",
+              "score": 553.6,
+              "heuristic_score": 16
+            },
+            {
+              "rank": 3,
+              "name": "radotinib",
+              "cid": "16063245",
+              "role": "active",
+              "score": 530.5,
+              "heuristic_score": 17
+            },
+            {
+              "rank": 4,
+              "name": "spironolactone",
+              "cid": "5833",
+              "role": "decoy",
+              "score": 416.6,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 5,
+              "name": "ezetimibe",
+              "cid": "150311",
+              "role": "decoy",
+              "score": 409.4,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 6,
+              "name": "donepezil",
+              "cid": "3152",
+              "role": "decoy",
+              "score": 379.5,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 7,
+              "name": "ciprofloxacin",
+              "cid": "2764",
+              "role": "decoy",
+              "score": 331.34,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 8,
+              "name": "hydrochlorothiazide",
+              "cid": "3639",
+              "role": "decoy",
+              "score": 297.7,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 9,
+              "name": "memantine",
+              "cid": "4054",
+              "role": "decoy",
+              "score": 179.3,
+              "heuristic_score": 22
+            }
+          ]
+        },
+        "docking_baseline": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 0.6666666666666666,
+          "top1_hit": false,
+          "top3_hit": true,
+          "mean_active_rank": 6,
+          "enrichment_factor_at_20pct": 1.5,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "spironolactone",
+              "cid": "5833",
+              "role": "decoy",
+              "score": -26.3,
+              "heuristic_score": 24,
+              "docking_delta_g": -26.3
+            },
+            {
+              "rank": 2,
+              "name": "radotinib",
+              "cid": "16063245",
+              "role": "active",
+              "score": -19.41,
+              "heuristic_score": 17,
+              "docking_delta_g": -19.41
+            },
+            {
+              "rank": 3,
+              "name": "hydrochlorothiazide",
+              "cid": "3639",
+              "role": "decoy",
+              "score": -17.61,
+              "heuristic_score": 22,
+              "docking_delta_g": -17.61
+            },
+            {
+              "rank": 4,
+              "name": "memantine",
+              "cid": "4054",
+              "role": "decoy",
+              "score": -17.08,
+              "heuristic_score": 22,
+              "docking_delta_g": -17.08
+            },
+            {
+              "rank": 5,
+              "name": "donepezil",
+              "cid": "3152",
+              "role": "decoy",
+              "score": -13.4,
+              "heuristic_score": 23,
+              "docking_delta_g": -13.4
+            },
+            {
+              "rank": 6,
+              "name": "ezetimibe",
+              "cid": "150311",
+              "role": "decoy",
+              "score": -12.02,
+              "heuristic_score": 23,
+              "docking_delta_g": -12.02
+            },
+            {
+              "rank": 7,
+              "name": "bafetinib",
+              "cid": "11387605",
+              "role": "active",
+              "score": -11.7,
+              "heuristic_score": 13,
+              "docking_delta_g": -11.7
+            },
+            {
+              "rank": 8,
+              "name": "ciprofloxacin",
+              "cid": "2764",
+              "role": "decoy",
+              "score": -11.29,
+              "heuristic_score": 22,
+              "docking_delta_g": -11.29
+            },
+            {
+              "rank": 9,
+              "name": "rebastinib",
+              "cid": "25066467",
+              "role": "active",
+              "score": -3.95,
+              "heuristic_score": 16,
+              "docking_delta_g": -3.95
+            }
+          ]
+        },
+        "notable_failures": [
           {
             "rank": 1,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "active",
-            "score": 97,
-            "heuristic_score": 97
+            "decoy_name": "spironolactone",
+            "decoy_cid": "5833",
+            "active_name": "radotinib",
+            "active_cid": "16063245",
+            "decoy_score": 24,
+            "active_score": 17
           },
           {
             "rank": 2,
-            "name": "dasatinib",
-            "cid": "3062316",
-            "role": "active",
-            "score": 75,
-            "heuristic_score": 75
+            "decoy_name": "ezetimibe",
+            "decoy_cid": "150311",
+            "active_name": "radotinib",
+            "active_cid": "16063245",
+            "decoy_score": 23,
+            "active_score": 17
           },
           {
             "rank": 3,
-            "name": "nilotinib",
-            "cid": "644241",
-            "role": "active",
-            "score": 72,
-            "heuristic_score": 72
-          },
-          {
-            "rank": 4,
-            "name": "gefitinib",
-            "cid": "123631",
-            "role": "decoy",
-            "score": 34,
-            "heuristic_score": 34
-          },
-          {
-            "rank": 5,
-            "name": "celecoxib",
-            "cid": "2662",
-            "role": "decoy",
-            "score": 24,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 6,
-            "name": "caffeine",
-            "cid": "2519",
-            "role": "decoy",
-            "score": 24,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 7,
-            "name": "dabrafenib",
-            "cid": "44462760",
-            "role": "decoy",
-            "score": 22,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 8,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": 22,
-            "heuristic_score": 22
+            "decoy_name": "donepezil",
+            "decoy_cid": "3152",
+            "active_name": "radotinib",
+            "active_cid": "16063245",
+            "decoy_score": 23,
+            "active_score": 17
           }
         ]
       },
-      "mw_baseline": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 0.8666666666666667,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 2.6666666666666665,
-        "enrichment_factor_at_20pct": 1.3333333333333333,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
+      {
+        "id": "her2",
+        "name": "ERBB2",
+        "pdb_id": "3PP0",
+        "heuristic_v2": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 0,
+          "top1_hit": false,
+          "top3_hit": false,
+          "mean_active_rank": 8,
+          "enrichment_factor_at_20pct": 0,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "venlafaxine",
+              "cid": "5656",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 2,
+              "name": "tramadol",
+              "cid": "33741",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 3,
+              "name": "fluoxetine",
+              "cid": "3386",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 4,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 5,
+              "name": "allopurinol",
+              "cid": "135401907",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 6,
+              "name": "sertraline",
+              "cid": "68617",
+              "role": "decoy",
+              "score": 19,
+              "heuristic_score": 19
+            },
+            {
+              "rank": 7,
+              "name": "poziotinib",
+              "cid": "25127713",
+              "role": "active",
+              "score": 18,
+              "heuristic_score": 18
+            },
+            {
+              "rank": 8,
+              "name": "pyrotinib",
+              "cid": "51039030",
+              "role": "active",
+              "score": 11,
+              "heuristic_score": 11
+            },
+            {
+              "rank": 9,
+              "name": "mubritinib",
+              "cid": "6444692",
+              "role": "active",
+              "score": 4,
+              "heuristic_score": 4
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 1,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 3,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "pyrotinib",
+              "cid": "51039030",
+              "role": "active",
+              "score": 583.1,
+              "heuristic_score": 11
+            },
+            {
+              "rank": 2,
+              "name": "poziotinib",
+              "cid": "25127713",
+              "role": "active",
+              "score": 491.3,
+              "heuristic_score": 18
+            },
+            {
+              "rank": 3,
+              "name": "mubritinib",
+              "cid": "6444692",
+              "role": "active",
+              "score": 468.5,
+              "heuristic_score": 4
+            },
+            {
+              "rank": 4,
+              "name": "fluoxetine",
+              "cid": "3386",
+              "role": "decoy",
+              "score": 309.33,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 5,
+              "name": "sertraline",
+              "cid": "68617",
+              "role": "decoy",
+              "score": 306.2,
+              "heuristic_score": 19
+            },
+            {
+              "rank": 6,
+              "name": "venlafaxine",
+              "cid": "5656",
+              "role": "decoy",
+              "score": 277.4,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 7,
+              "name": "tramadol",
+              "cid": "33741",
+              "role": "decoy",
+              "score": 263.37,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 8,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": 171.24,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 9,
+              "name": "allopurinol",
+              "cid": "135401907",
+              "role": "decoy",
+              "score": 136.11,
+              "heuristic_score": 22
+            }
+          ]
+        },
+        "docking_baseline": null,
+        "notable_failures": [
           {
             "rank": 1,
-            "name": "nilotinib",
-            "cid": "644241",
-            "role": "active",
-            "score": 529.5,
-            "heuristic_score": 72
+            "decoy_name": "venlafaxine",
+            "decoy_cid": "5656",
+            "active_name": "poziotinib",
+            "active_cid": "25127713",
+            "decoy_score": 24,
+            "active_score": 18
           },
           {
             "rank": 2,
-            "name": "dabrafenib",
-            "cid": "44462760",
-            "role": "decoy",
-            "score": 519.6,
-            "heuristic_score": 22
+            "decoy_name": "tramadol",
+            "decoy_cid": "33741",
+            "active_name": "poziotinib",
+            "active_cid": "25127713",
+            "decoy_score": 24,
+            "active_score": 18
           },
           {
             "rank": 3,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "active",
-            "score": 493.6,
-            "heuristic_score": 97
-          },
-          {
-            "rank": 4,
-            "name": "dasatinib",
-            "cid": "3062316",
-            "role": "active",
-            "score": 488,
-            "heuristic_score": 75
-          },
-          {
-            "rank": 5,
-            "name": "gefitinib",
-            "cid": "123631",
-            "role": "decoy",
-            "score": 446.9,
-            "heuristic_score": 34
-          },
-          {
-            "rank": 6,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": 422.9,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 7,
-            "name": "celecoxib",
-            "cid": "2662",
-            "role": "decoy",
-            "score": 381.4,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 8,
-            "name": "caffeine",
-            "cid": "2519",
-            "role": "decoy",
-            "score": 194.19,
-            "heuristic_score": 24
+            "decoy_name": "fluoxetine",
+            "decoy_cid": "3386",
+            "active_name": "poziotinib",
+            "active_cid": "25127713",
+            "decoy_score": 23,
+            "active_score": 18
           }
         ]
       },
-      "docking_baseline": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 0.8666666666666667,
-        "top1_hit": false,
-        "top3_hit": false,
-        "mean_active_rank": 6.333333333333333,
-        "enrichment_factor_at_20pct": 0,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
+      {
+        "id": "braf",
+        "name": "BRAF",
+        "pdb_id": "4XV2",
+        "heuristic_v2": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 0.16666666666666666,
+          "top1_hit": false,
+          "top3_hit": false,
+          "mean_active_rank": 7,
+          "enrichment_factor_at_20pct": 0,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "metronidazole",
+              "cid": "4173",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 2,
+              "name": "clopidogrel",
+              "cid": "60606",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 3,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 4,
+              "name": "ezetimibe",
+              "cid": "150311",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 5,
+              "name": "lifirafenib",
+              "cid": "89670174",
+              "role": "active",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 6,
+              "name": "pregabalin",
+              "cid": "5486971",
+              "role": "decoy",
+              "score": 21,
+              "heuristic_score": 21
+            },
+            {
+              "rank": 7,
+              "name": "plx8394",
+              "cid": "90116675",
+              "role": "active",
+              "score": 14,
+              "heuristic_score": 14
+            },
+            {
+              "rank": 8,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": 12,
+              "heuristic_score": 12
+            },
+            {
+              "rank": 9,
+              "name": "tovorafenib",
+              "cid": "25161177",
+              "role": "active",
+              "score": 11,
+              "heuristic_score": 11
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 1,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 3,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "plx8394",
+              "cid": "90116675",
+              "role": "active",
+              "score": 542.5,
+              "heuristic_score": 14
+            },
+            {
+              "rank": 2,
+              "name": "tovorafenib",
+              "cid": "25161177",
+              "role": "active",
+              "score": 506.3,
+              "heuristic_score": 11
+            },
+            {
+              "rank": 3,
+              "name": "lifirafenib",
+              "cid": "89670174",
+              "role": "active",
+              "score": 478.4,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 4,
+              "name": "ezetimibe",
+              "cid": "150311",
+              "role": "decoy",
+              "score": 409.4,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 5,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": 361.4,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 6,
+              "name": "clopidogrel",
+              "cid": "60606",
+              "role": "decoy",
+              "score": 321.8,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 7,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": 256.09,
+              "heuristic_score": 12
+            },
+            {
+              "rank": 8,
+              "name": "metronidazole",
+              "cid": "4173",
+              "role": "decoy",
+              "score": 171.15,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 9,
+              "name": "pregabalin",
+              "cid": "5486971",
+              "role": "decoy",
+              "score": 159.23,
+              "heuristic_score": 21
+            }
+          ]
+        },
+        "docking_baseline": null,
+        "notable_failures": [
           {
             "rank": 1,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": -20.52,
-            "heuristic_score": 22,
-            "docking_delta_g": -20.52
+            "decoy_name": "metronidazole",
+            "decoy_cid": "4173",
+            "active_name": "lifirafenib",
+            "active_cid": "89670174",
+            "decoy_score": 24,
+            "active_score": 22
           },
           {
             "rank": 2,
-            "name": "gefitinib",
-            "cid": "123631",
-            "role": "decoy",
-            "score": -18.45,
-            "heuristic_score": 34,
-            "docking_delta_g": -18.45
+            "decoy_name": "clopidogrel",
+            "decoy_cid": "60606",
+            "active_name": "lifirafenib",
+            "active_cid": "89670174",
+            "decoy_score": 24,
+            "active_score": 22
           },
           {
             "rank": 3,
-            "name": "dabrafenib",
-            "cid": "44462760",
-            "role": "decoy",
-            "score": -17.69,
-            "heuristic_score": 22,
-            "docking_delta_g": -17.69
-          },
-          {
-            "rank": 4,
-            "name": "celecoxib",
-            "cid": "2662",
-            "role": "decoy",
-            "score": -16.32,
-            "heuristic_score": 24,
-            "docking_delta_g": -16.32
-          },
-          {
-            "rank": 5,
-            "name": "dasatinib",
-            "cid": "3062316",
-            "role": "active",
-            "score": -15.06,
-            "heuristic_score": 75,
-            "docking_delta_g": -15.06
-          },
-          {
-            "rank": 6,
-            "name": "nilotinib",
-            "cid": "644241",
-            "role": "active",
-            "score": -14.11,
-            "heuristic_score": 72,
-            "docking_delta_g": -14.11
-          },
-          {
-            "rank": 7,
-            "name": "caffeine",
-            "cid": "2519",
-            "role": "decoy",
-            "score": -12.77,
-            "heuristic_score": 24,
-            "docking_delta_g": -12.77
-          },
-          {
-            "rank": 8,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "active",
-            "score": -12.17,
-            "heuristic_score": 97,
-            "docking_delta_g": -12.17
+            "decoy_name": "levofloxacin",
+            "decoy_cid": "149096",
+            "active_name": "lifirafenib",
+            "active_cid": "89670174",
+            "decoy_score": 23,
+            "active_score": 22
           }
         ]
       },
-      "notable_failures": []
-    },
-    {
-      "id": "her2",
-      "name": "ERBB2",
-      "pdb_id": "3PP0",
-      "heuristic_v2": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 1,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 2,
-        "enrichment_factor_at_20pct": 2.6666666666666665,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
+      {
+        "id": "cox",
+        "name": "PTGS2",
+        "pdb_id": "4COX",
+        "heuristic_v2": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 0.9444444444444444,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 3,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "etoricoxib",
+              "cid": "123619",
+              "role": "active",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 2,
+              "name": "nimesulide",
+              "cid": "4495",
+              "role": "active",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 3,
+              "name": "lumiracoxib",
+              "cid": "151166",
+              "role": "active",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 4,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 5,
+              "name": "acetaminophen",
+              "cid": "1983",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 6,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 7,
+              "name": "levothyroxine",
+              "cid": "5819",
+              "role": "decoy",
+              "score": 17,
+              "heuristic_score": 17
+            },
+            {
+              "rank": 8,
+              "name": "doxycycline",
+              "cid": "54671203",
+              "role": "decoy",
+              "score": 12,
+              "heuristic_score": 12
+            },
+            {
+              "rank": 9,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": 12,
+              "heuristic_score": 12
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 0.5,
+          "top1_hit": false,
+          "top3_hit": false,
+          "mean_active_rank": 5,
+          "enrichment_factor_at_20pct": 0,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "levothyroxine",
+              "cid": "5819",
+              "role": "decoy",
+              "score": 776.87,
+              "heuristic_score": 17
+            },
+            {
+              "rank": 2,
+              "name": "doxycycline",
+              "cid": "54671203",
+              "role": "decoy",
+              "score": 444.4,
+              "heuristic_score": 12
+            },
+            {
+              "rank": 3,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": 361.4,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 4,
+              "name": "etoricoxib",
+              "cid": "123619",
+              "role": "active",
+              "score": 358.8,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 5,
+              "name": "nimesulide",
+              "cid": "4495",
+              "role": "active",
+              "score": 308.31,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 6,
+              "name": "lumiracoxib",
+              "cid": "151166",
+              "role": "active",
+              "score": 293.72,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 7,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": 256.09,
+              "heuristic_score": 12
+            },
+            {
+              "rank": 8,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": 171.24,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 9,
+              "name": "acetaminophen",
+              "cid": "1983",
+              "role": "decoy",
+              "score": 151.16,
+              "heuristic_score": 23
+            }
+          ]
+        },
+        "docking_baseline": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 0.5555555555555556,
+          "top1_hit": false,
+          "top3_hit": true,
+          "mean_active_rank": 5.333333333333333,
+          "enrichment_factor_at_20pct": 0,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "doxycycline",
+              "cid": "54671203",
+              "role": "decoy",
+              "score": -14.55,
+              "heuristic_score": 12,
+              "docking_delta_g": -14.55
+            },
+            {
+              "rank": 2,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": -11.91,
+              "heuristic_score": 23,
+              "docking_delta_g": -11.91
+            },
+            {
+              "rank": 3,
+              "name": "etoricoxib",
+              "cid": "123619",
+              "role": "active",
+              "score": -10.55,
+              "heuristic_score": 24,
+              "docking_delta_g": -10.55
+            },
+            {
+              "rank": 4,
+              "name": "levothyroxine",
+              "cid": "5819",
+              "role": "decoy",
+              "score": -8.89,
+              "heuristic_score": 17,
+              "docking_delta_g": -8.89
+            },
+            {
+              "rank": 5,
+              "name": "nimesulide",
+              "cid": "4495",
+              "role": "active",
+              "score": -5.38,
+              "heuristic_score": 24,
+              "docking_delta_g": -5.38
+            },
+            {
+              "rank": 6,
+              "name": "acetaminophen",
+              "cid": "1983",
+              "role": "decoy",
+              "score": -4.33,
+              "heuristic_score": 23,
+              "docking_delta_g": -4.33
+            },
+            {
+              "rank": 7,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": -3.51,
+              "heuristic_score": 12,
+              "docking_delta_g": -3.51
+            },
+            {
+              "rank": 8,
+              "name": "lumiracoxib",
+              "cid": "151166",
+              "role": "active",
+              "score": -3.48,
+              "heuristic_score": 23,
+              "docking_delta_g": -3.48
+            },
+            {
+              "rank": 9,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": -2.74,
+              "heuristic_score": 22,
+              "docking_delta_g": -2.74
+            }
+          ]
+        },
+        "notable_failures": []
+      },
+      {
+        "id": "hmgcr",
+        "name": "HMGCR",
+        "pdb_id": "1HWK",
+        "heuristic_v2": {
+          "n": 8,
+          "n_actives": 2,
+          "roc_auc": 0.4166666666666667,
+          "top1_hit": false,
+          "top3_hit": true,
+          "mean_active_rank": 4.5,
+          "enrichment_factor_at_20pct": 2,
+          "random_expectation_top1": 0.25,
+          "random_expectation_top3": 0.6428571428571428,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "omeprazole",
+              "cid": "4594",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 2,
+              "name": "mevastatin",
+              "cid": "64715",
+              "role": "active",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 3,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 4,
+              "name": "furosemide",
+              "cid": "3440",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 5,
+              "name": "amlodipine",
+              "cid": "2162",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 6,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 7,
+              "name": "cerivastatin",
+              "cid": "446156",
+              "role": "active",
+              "score": 19,
+              "heuristic_score": 19
+            },
+            {
+              "rank": 8,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": 12,
+              "heuristic_score": 12
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 8,
+          "n_actives": 2,
+          "roc_auc": 0.9166666666666666,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 2,
+          "random_expectation_top1": 0.25,
+          "random_expectation_top3": 0.6428571428571428,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "cerivastatin",
+              "cid": "446156",
+              "role": "active",
+              "score": 459.5,
+              "heuristic_score": 19
+            },
+            {
+              "rank": 2,
+              "name": "amlodipine",
+              "cid": "2162",
+              "role": "decoy",
+              "score": 408.9,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 3,
+              "name": "mevastatin",
+              "cid": "64715",
+              "role": "active",
+              "score": 390.5,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 4,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": 361.4,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 5,
+              "name": "omeprazole",
+              "cid": "4594",
+              "role": "decoy",
+              "score": 345.4,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 6,
+              "name": "furosemide",
+              "cid": "3440",
+              "role": "decoy",
+              "score": 330.74,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 7,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": 256.09,
+              "heuristic_score": 12
+            },
+            {
+              "rank": 8,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": 171.24,
+              "heuristic_score": 22
+            }
+          ]
+        },
+        "docking_baseline": null,
+        "notable_failures": [
           {
             "rank": 1,
-            "name": "lapatinib",
-            "cid": "208908",
-            "role": "active",
-            "score": 84,
-            "heuristic_score": 84
+            "decoy_name": "omeprazole",
+            "decoy_cid": "4594",
+            "active_name": "mevastatin",
+            "active_cid": "64715",
+            "decoy_score": 24,
+            "active_score": 23
+          }
+        ]
+      },
+      {
+        "id": "pde5",
+        "name": "PDE5A",
+        "pdb_id": "1UDT",
+        "heuristic_v2": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 0.16666666666666666,
+          "top1_hit": false,
+          "top3_hit": false,
+          "mean_active_rank": 7,
+          "enrichment_factor_at_20pct": 0,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 2,
+              "name": "furosemide",
+              "cid": "3440",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 3,
+              "name": "ezetimibe",
+              "cid": "150311",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 4,
+              "name": "amlodipine",
+              "cid": "2162",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 5,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 6,
+              "name": "lodenafil",
+              "cid": "135452901",
+              "role": "active",
+              "score": 16,
+              "heuristic_score": 16
+            },
+            {
+              "rank": 7,
+              "name": "udenafil",
+              "cid": "135413547",
+              "role": "active",
+              "score": 14,
+              "heuristic_score": 14
+            },
+            {
+              "rank": 8,
+              "name": "mirodenafil",
+              "cid": "135497803",
+              "role": "active",
+              "score": 14,
+              "heuristic_score": 14
+            },
+            {
+              "rank": 9,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": 12,
+              "heuristic_score": 12
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 1,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 3,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "mirodenafil",
+              "cid": "135497803",
+              "role": "active",
+              "score": 531.7,
+              "heuristic_score": 14
+            },
+            {
+              "rank": 2,
+              "name": "udenafil",
+              "cid": "135413547",
+              "role": "active",
+              "score": 516.7,
+              "heuristic_score": 14
+            },
+            {
+              "rank": 3,
+              "name": "lodenafil",
+              "cid": "135452901",
+              "role": "active",
+              "score": 504.6,
+              "heuristic_score": 16
+            },
+            {
+              "rank": 4,
+              "name": "ezetimibe",
+              "cid": "150311",
+              "role": "decoy",
+              "score": 409.4,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 5,
+              "name": "amlodipine",
+              "cid": "2162",
+              "role": "decoy",
+              "score": 408.9,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 6,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": 361.4,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 7,
+              "name": "furosemide",
+              "cid": "3440",
+              "role": "decoy",
+              "score": 330.74,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 8,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": 256.09,
+              "heuristic_score": 12
+            },
+            {
+              "rank": 9,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": 171.24,
+              "heuristic_score": 22
+            }
+          ]
+        },
+        "docking_baseline": {
+          "n": 3,
+          "n_actives": 0,
+          "roc_auc": null,
+          "top1_hit": false,
+          "top3_hit": false,
+          "mean_active_rank": null,
+          "enrichment_factor_at_20pct": null,
+          "random_expectation_top1": 0,
+          "random_expectation_top3": 0,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": -32.8,
+              "heuristic_score": 22,
+              "docking_delta_g": -32.8
+            },
+            {
+              "rank": 2,
+              "name": "furosemide",
+              "cid": "3440",
+              "role": "decoy",
+              "score": -29.89,
+              "heuristic_score": 23,
+              "docking_delta_g": -29.89
+            },
+            {
+              "rank": 3,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": -24.72,
+              "heuristic_score": 12,
+              "docking_delta_g": -24.72
+            }
+          ]
+        },
+        "notable_failures": [
+          {
+            "rank": 1,
+            "decoy_name": "levofloxacin",
+            "decoy_cid": "149096",
+            "active_name": "lodenafil",
+            "active_cid": "135452901",
+            "decoy_score": 23,
+            "active_score": 16
           },
           {
             "rank": 2,
-            "name": "neratinib",
-            "cid": "9915743",
-            "role": "active",
-            "score": 67,
-            "heuristic_score": 67
+            "decoy_name": "furosemide",
+            "decoy_cid": "3440",
+            "active_name": "lodenafil",
+            "active_cid": "135452901",
+            "decoy_score": 23,
+            "active_score": 16
           },
           {
             "rank": 3,
-            "name": "tucatinib",
-            "cid": "51039094",
-            "role": "active",
-            "score": 64,
-            "heuristic_score": 64
-          },
-          {
-            "rank": 4,
-            "name": "gefitinib",
-            "cid": "123631",
-            "role": "decoy",
-            "score": 34,
-            "heuristic_score": 34
-          },
-          {
-            "rank": 5,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 34,
-            "heuristic_score": 34
-          },
-          {
-            "rank": 6,
-            "name": "warfarin",
-            "cid": "54678486",
-            "role": "decoy",
-            "score": 24,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 7,
-            "name": "sildenafil",
-            "cid": "135398744",
-            "role": "decoy",
-            "score": 21,
-            "heuristic_score": 21
-          },
-          {
-            "rank": 8,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": 19,
-            "heuristic_score": 19
+            "decoy_name": "ezetimibe",
+            "decoy_cid": "150311",
+            "active_name": "lodenafil",
+            "active_cid": "135452901",
+            "decoy_score": 23,
+            "active_score": 16
           }
         ]
       },
-      "mw_baseline": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 0.9333333333333333,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 2.3333333333333335,
-        "enrichment_factor_at_20pct": 2.6666666666666665,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
+      {
+        "id": "er",
+        "name": "ESR1",
+        "pdb_id": "3ERT",
+        "heuristic_v2": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 0.16666666666666666,
+          "top1_hit": false,
+          "top3_hit": false,
+          "mean_active_rank": 7,
+          "enrichment_factor_at_20pct": 0,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 2,
+              "name": "furosemide",
+              "cid": "3440",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 3,
+              "name": "ezetimibe",
+              "cid": "150311",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 4,
+              "name": "amlodipine",
+              "cid": "2162",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 5,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 6,
+              "name": "lasofoxifene",
+              "cid": "216416",
+              "role": "active",
+              "score": 18,
+              "heuristic_score": 18
+            },
+            {
+              "rank": 7,
+              "name": "bazedoxifene",
+              "cid": "154257",
+              "role": "active",
+              "score": 17,
+              "heuristic_score": 17
+            },
+            {
+              "rank": 8,
+              "name": "elacestrant",
+              "cid": "23642301",
+              "role": "active",
+              "score": 15,
+              "heuristic_score": 15
+            },
+            {
+              "rank": 9,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": 12,
+              "heuristic_score": 12
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 1,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2,
+          "enrichment_factor_at_20pct": 3,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "bazedoxifene",
+              "cid": "154257",
+              "role": "active",
+              "score": 470.6,
+              "heuristic_score": 17
+            },
+            {
+              "rank": 2,
+              "name": "elacestrant",
+              "cid": "23642301",
+              "role": "active",
+              "score": 458.6,
+              "heuristic_score": 15
+            },
+            {
+              "rank": 3,
+              "name": "lasofoxifene",
+              "cid": "216416",
+              "role": "active",
+              "score": 413.5,
+              "heuristic_score": 18
+            },
+            {
+              "rank": 4,
+              "name": "ezetimibe",
+              "cid": "150311",
+              "role": "decoy",
+              "score": 409.4,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 5,
+              "name": "amlodipine",
+              "cid": "2162",
+              "role": "decoy",
+              "score": 408.9,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 6,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": 361.4,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 7,
+              "name": "furosemide",
+              "cid": "3440",
+              "role": "decoy",
+              "score": 330.74,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 8,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": 256.09,
+              "heuristic_score": 12
+            },
+            {
+              "rank": 9,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": 171.24,
+              "heuristic_score": 22
+            }
+          ]
+        },
+        "docking_baseline": {
+          "n": 2,
+          "n_actives": 0,
+          "roc_auc": null,
+          "top1_hit": false,
+          "top3_hit": false,
+          "mean_active_rank": null,
+          "enrichment_factor_at_20pct": null,
+          "random_expectation_top1": 0,
+          "random_expectation_top3": null,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": -20.17,
+              "heuristic_score": 12,
+              "docking_delta_g": -20.17
+            },
+            {
+              "rank": 2,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": -17.06,
+              "heuristic_score": 22,
+              "docking_delta_g": -17.06
+            }
+          ]
+        },
+        "notable_failures": [
           {
             "rank": 1,
-            "name": "lapatinib",
-            "cid": "208908",
-            "role": "active",
-            "score": 581.1,
-            "heuristic_score": 84
+            "decoy_name": "levofloxacin",
+            "decoy_cid": "149096",
+            "active_name": "lasofoxifene",
+            "active_cid": "216416",
+            "decoy_score": 23,
+            "active_score": 18
           },
           {
             "rank": 2,
-            "name": "neratinib",
-            "cid": "9915743",
-            "role": "active",
-            "score": 557,
-            "heuristic_score": 67
+            "decoy_name": "furosemide",
+            "decoy_cid": "3440",
+            "active_name": "lasofoxifene",
+            "active_cid": "216416",
+            "decoy_score": 23,
+            "active_score": 18
           },
           {
             "rank": 3,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 493.6,
-            "heuristic_score": 34
-          },
-          {
-            "rank": 4,
-            "name": "tucatinib",
-            "cid": "51039094",
-            "role": "active",
-            "score": 480.5,
-            "heuristic_score": 64
-          },
-          {
-            "rank": 5,
-            "name": "sildenafil",
-            "cid": "135398744",
-            "role": "decoy",
-            "score": 474.6,
-            "heuristic_score": 21
-          },
-          {
-            "rank": 6,
-            "name": "gefitinib",
-            "cid": "123631",
-            "role": "decoy",
-            "score": 446.9,
-            "heuristic_score": 34
-          },
-          {
-            "rank": 7,
-            "name": "warfarin",
-            "cid": "54678486",
-            "role": "decoy",
-            "score": 308.3,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 8,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": 129.16,
-            "heuristic_score": 19
+            "decoy_name": "ezetimibe",
+            "decoy_cid": "150311",
+            "active_name": "lasofoxifene",
+            "active_cid": "216416",
+            "decoy_score": 23,
+            "active_score": 18
           }
         ]
       },
-      "docking_baseline": null,
-      "notable_failures": []
-    },
-    {
-      "id": "braf",
-      "name": "BRAF",
-      "pdb_id": "4XV2",
-      "heuristic_v2": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 1,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 2,
-        "enrichment_factor_at_20pct": 2.6666666666666665,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "dabrafenib",
-            "cid": "44462760",
-            "role": "active",
-            "score": 85,
-            "heuristic_score": 85
-          },
-          {
-            "rank": 2,
-            "name": "vemurafenib",
-            "cid": "42611257",
-            "role": "active",
-            "score": 75,
-            "heuristic_score": 75
-          },
-          {
-            "rank": 3,
-            "name": "encorafenib",
-            "cid": "50922675",
-            "role": "active",
-            "score": 67,
-            "heuristic_score": 67
-          },
-          {
-            "rank": 4,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 34,
-            "heuristic_score": 34
-          },
-          {
-            "rank": 5,
-            "name": "erlotinib",
-            "cid": "176870",
-            "role": "decoy",
-            "score": 32,
-            "heuristic_score": 32
-          },
-          {
-            "rank": 6,
-            "name": "ibuprofen",
-            "cid": "3672",
-            "role": "decoy",
-            "score": 24,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 7,
-            "name": "sitagliptin",
-            "cid": "4369359",
-            "role": "decoy",
-            "score": 23,
-            "heuristic_score": 23
-          },
-          {
-            "rank": 8,
-            "name": "amlodipine",
-            "cid": "2162",
-            "role": "decoy",
-            "score": 22,
-            "heuristic_score": 22
-          }
-        ]
+      {
+        "id": "dpp4",
+        "name": "DPP4",
+        "pdb_id": "1X70",
+        "heuristic_v2": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 0.5833333333333334,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 4,
+          "enrichment_factor_at_20pct": 1.5,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "teneligliptin",
+              "cid": "11949652",
+              "role": "active",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 2,
+              "name": "omeprazole",
+              "cid": "4594",
+              "role": "decoy",
+              "score": 24,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 3,
+              "name": "anagliptin",
+              "cid": "44513473",
+              "role": "active",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 4,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 5,
+              "name": "ezetimibe",
+              "cid": "150311",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 6,
+              "name": "amlodipine",
+              "cid": "2162",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 7,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 8,
+              "name": "gemigliptin",
+              "cid": "11953153",
+              "role": "active",
+              "score": 18,
+              "heuristic_score": 18
+            },
+            {
+              "rank": 9,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": 12,
+              "heuristic_score": 12
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 0.8888888888888888,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 2.6666666666666665,
+          "enrichment_factor_at_20pct": 3,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "gemigliptin",
+              "cid": "11953153",
+              "role": "active",
+              "score": 489.4,
+              "heuristic_score": 18
+            },
+            {
+              "rank": 2,
+              "name": "teneligliptin",
+              "cid": "11949652",
+              "role": "active",
+              "score": 426.6,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 3,
+              "name": "ezetimibe",
+              "cid": "150311",
+              "role": "decoy",
+              "score": 409.4,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 4,
+              "name": "amlodipine",
+              "cid": "2162",
+              "role": "decoy",
+              "score": 408.9,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 5,
+              "name": "anagliptin",
+              "cid": "44513473",
+              "role": "active",
+              "score": 383.4,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 6,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": 361.4,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 7,
+              "name": "omeprazole",
+              "cid": "4594",
+              "role": "decoy",
+              "score": 345.4,
+              "heuristic_score": 24
+            },
+            {
+              "rank": 8,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": 256.09,
+              "heuristic_score": 12
+            },
+            {
+              "rank": 9,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": 171.24,
+              "heuristic_score": 22
+            }
+          ]
+        },
+        "docking_baseline": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 0.4444444444444444,
+          "top1_hit": false,
+          "top3_hit": true,
+          "mean_active_rank": 4.666666666666667,
+          "enrichment_factor_at_20pct": 0,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "ezetimibe",
+              "cid": "150311",
+              "role": "decoy",
+              "score": -15.71,
+              "heuristic_score": 23,
+              "docking_delta_g": -15.71
+            },
+            {
+              "rank": 2,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": -14.36,
+              "heuristic_score": 23,
+              "docking_delta_g": -14.36
+            },
+            {
+              "rank": 3,
+              "name": "gemigliptin",
+              "cid": "11953153",
+              "role": "active",
+              "score": -14.25,
+              "heuristic_score": 18,
+              "docking_delta_g": -14.25
+            },
+            {
+              "rank": 4,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": -12.96,
+              "heuristic_score": 12,
+              "docking_delta_g": -12.96
+            },
+            {
+              "rank": 5,
+              "name": "anagliptin",
+              "cid": "44513473",
+              "role": "active",
+              "score": -12.77,
+              "heuristic_score": 23,
+              "docking_delta_g": -12.77
+            },
+            {
+              "rank": 6,
+              "name": "teneligliptin",
+              "cid": "11949652",
+              "role": "active",
+              "score": -11.88,
+              "heuristic_score": 24,
+              "docking_delta_g": -11.88
+            },
+            {
+              "rank": 7,
+              "name": "omeprazole",
+              "cid": "4594",
+              "role": "decoy",
+              "score": -11.66,
+              "heuristic_score": 24,
+              "docking_delta_g": -11.66
+            },
+            {
+              "rank": 8,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": -10.01,
+              "heuristic_score": 22,
+              "docking_delta_g": -10.01
+            },
+            {
+              "rank": 9,
+              "name": "amlodipine",
+              "cid": "2162",
+              "role": "decoy",
+              "score": -8.95,
+              "heuristic_score": 22,
+              "docking_delta_g": -8.95
+            }
+          ]
+        },
+        "notable_failures": []
       },
-      "mw_baseline": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 0.9333333333333333,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 2.3333333333333335,
-        "enrichment_factor_at_20pct": 2.6666666666666665,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "encorafenib",
-            "cid": "50922675",
-            "role": "active",
-            "score": 540,
-            "heuristic_score": 67
-          },
-          {
-            "rank": 2,
-            "name": "dabrafenib",
-            "cid": "44462760",
-            "role": "active",
-            "score": 519.6,
-            "heuristic_score": 85
-          },
-          {
-            "rank": 3,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 493.6,
-            "heuristic_score": 34
-          },
-          {
-            "rank": 4,
-            "name": "vemurafenib",
-            "cid": "42611257",
-            "role": "active",
-            "score": 489.9,
-            "heuristic_score": 75
-          },
-          {
-            "rank": 5,
-            "name": "amlodipine",
-            "cid": "2162",
-            "role": "decoy",
-            "score": 408.9,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 6,
-            "name": "sitagliptin",
-            "cid": "4369359",
-            "role": "decoy",
-            "score": 407.31,
-            "heuristic_score": 23
-          },
-          {
-            "rank": 7,
-            "name": "erlotinib",
-            "cid": "176870",
-            "role": "decoy",
-            "score": 393.4,
-            "heuristic_score": 32
-          },
-          {
-            "rank": 8,
-            "name": "ibuprofen",
-            "cid": "3672",
-            "role": "decoy",
-            "score": 206.28,
-            "heuristic_score": 24
-          }
-        ]
+      {
+        "id": "beta2",
+        "name": "ADRB2",
+        "pdb_id": "3SN6",
+        "heuristic_v2": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 0.5555555555555556,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 3.6666666666666665,
+          "enrichment_factor_at_20pct": 3,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "indacaterol",
+              "cid": "6918554",
+              "role": "active",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 2,
+              "name": "olodaterol",
+              "cid": "11504295",
+              "role": "active",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 3,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 4,
+              "name": "furosemide",
+              "cid": "3440",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 5,
+              "name": "ezetimibe",
+              "cid": "150311",
+              "role": "decoy",
+              "score": 23,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 6,
+              "name": "amlodipine",
+              "cid": "2162",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 7,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": 22,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 8,
+              "name": "vilanterol",
+              "cid": "10184665",
+              "role": "active",
+              "score": 16,
+              "heuristic_score": 16
+            },
+            {
+              "rank": 9,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": 12,
+              "heuristic_score": 12
+            }
+          ]
+        },
+        "mw_baseline": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 0.7777777777777778,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 3.3333333333333335,
+          "enrichment_factor_at_20pct": 1.5,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "vilanterol",
+              "cid": "10184665",
+              "role": "active",
+              "score": 486.4,
+              "heuristic_score": 16
+            },
+            {
+              "rank": 2,
+              "name": "ezetimibe",
+              "cid": "150311",
+              "role": "decoy",
+              "score": 409.4,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 3,
+              "name": "amlodipine",
+              "cid": "2162",
+              "role": "decoy",
+              "score": 408.9,
+              "heuristic_score": 22
+            },
+            {
+              "rank": 4,
+              "name": "indacaterol",
+              "cid": "6918554",
+              "role": "active",
+              "score": 392.5,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 5,
+              "name": "olodaterol",
+              "cid": "11504295",
+              "role": "active",
+              "score": 386.4,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 6,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": 361.4,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 7,
+              "name": "furosemide",
+              "cid": "3440",
+              "role": "decoy",
+              "score": 330.74,
+              "heuristic_score": 23
+            },
+            {
+              "rank": 8,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": 256.09,
+              "heuristic_score": 12
+            },
+            {
+              "rank": 9,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": 171.24,
+              "heuristic_score": 22
+            }
+          ]
+        },
+        "docking_baseline": {
+          "n": 9,
+          "n_actives": 3,
+          "roc_auc": 0.4444444444444444,
+          "top1_hit": true,
+          "top3_hit": true,
+          "mean_active_rank": 4.666666666666667,
+          "enrichment_factor_at_20pct": 1.5,
+          "random_expectation_top1": 0.3333333333333333,
+          "random_expectation_top3": 0.7619047619047619,
+          "ranking": [
+            {
+              "rank": 1,
+              "name": "olodaterol",
+              "cid": "11504295",
+              "role": "active",
+              "score": -9.42,
+              "heuristic_score": 23,
+              "docking_delta_g": -9.42
+            },
+            {
+              "rank": 2,
+              "name": "lamotrigine",
+              "cid": "3878",
+              "role": "decoy",
+              "score": -8.48,
+              "heuristic_score": 12,
+              "docking_delta_g": -8.48
+            },
+            {
+              "rank": 3,
+              "name": "ezetimibe",
+              "cid": "150311",
+              "role": "decoy",
+              "score": -7.01,
+              "heuristic_score": 23,
+              "docking_delta_g": -7.01
+            },
+            {
+              "rank": 4,
+              "name": "indacaterol",
+              "cid": "6918554",
+              "role": "active",
+              "score": -6.4,
+              "heuristic_score": 23,
+              "docking_delta_g": -6.4
+            },
+            {
+              "rank": 5,
+              "name": "amlodipine",
+              "cid": "2162",
+              "role": "decoy",
+              "score": -5.62,
+              "heuristic_score": 22,
+              "docking_delta_g": -5.62
+            },
+            {
+              "rank": 6,
+              "name": "levofloxacin",
+              "cid": "149096",
+              "role": "decoy",
+              "score": -4.86,
+              "heuristic_score": 23,
+              "docking_delta_g": -4.86
+            },
+            {
+              "rank": 7,
+              "name": "furosemide",
+              "cid": "3440",
+              "role": "decoy",
+              "score": -3.57,
+              "heuristic_score": 23,
+              "docking_delta_g": -3.57
+            },
+            {
+              "rank": 8,
+              "name": "gabapentin",
+              "cid": "3446",
+              "role": "decoy",
+              "score": -3.01,
+              "heuristic_score": 22,
+              "docking_delta_g": -3.01
+            },
+            {
+              "rank": 9,
+              "name": "vilanterol",
+              "cid": "10184665",
+              "role": "active",
+              "score": -1.96,
+              "heuristic_score": 16,
+              "docking_delta_g": -1.96
+            }
+          ]
+        },
+        "notable_failures": []
+      }
+    ],
+    "failure_cases": [
+      {
+        "target": "ABL1",
+        "pdb_id": "1IEP",
+        "rank": 1,
+        "decoy_name": "spironolactone",
+        "decoy_cid": "5833",
+        "active_name": "radotinib",
+        "active_cid": "16063245",
+        "decoy_score": 24,
+        "active_score": 17
       },
-      "docking_baseline": null,
-      "notable_failures": []
-    },
-    {
-      "id": "cox",
-      "name": "PTGS2",
-      "pdb_id": "4COX",
-      "heuristic_v2": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 1,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 2,
-        "enrichment_factor_at_20pct": 2.6666666666666665,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "celecoxib",
-            "cid": "2662",
-            "role": "active",
-            "score": 99,
-            "heuristic_score": 99
-          },
-          {
-            "rank": 2,
-            "name": "ibuprofen",
-            "cid": "3672",
-            "role": "active",
-            "score": 79,
-            "heuristic_score": 79
-          },
-          {
-            "rank": 3,
-            "name": "indomethacin",
-            "cid": "3715",
-            "role": "active",
-            "score": 78,
-            "heuristic_score": 78
-          },
-          {
-            "rank": 4,
-            "name": "sitagliptin",
-            "cid": "4369359",
-            "role": "decoy",
-            "score": 23,
-            "heuristic_score": 23
-          },
-          {
-            "rank": 5,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 22,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 6,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": 22,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 7,
-            "name": "sildenafil",
-            "cid": "135398744",
-            "role": "decoy",
-            "score": 21,
-            "heuristic_score": 21
-          },
-          {
-            "rank": 8,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": 19,
-            "heuristic_score": 19
-          }
-        ]
+      {
+        "target": "ABL1",
+        "pdb_id": "1IEP",
+        "rank": 2,
+        "decoy_name": "ezetimibe",
+        "decoy_cid": "150311",
+        "active_name": "radotinib",
+        "active_cid": "16063245",
+        "decoy_score": 23,
+        "active_score": 17
       },
-      "mw_baseline": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 0.2,
-        "top1_hit": false,
-        "top3_hit": false,
-        "mean_active_rank": 6,
-        "enrichment_factor_at_20pct": 0,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 493.6,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 2,
-            "name": "sildenafil",
-            "cid": "135398744",
-            "role": "decoy",
-            "score": 474.6,
-            "heuristic_score": 21
-          },
-          {
-            "rank": 3,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": 422.9,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 4,
-            "name": "sitagliptin",
-            "cid": "4369359",
-            "role": "decoy",
-            "score": 407.31,
-            "heuristic_score": 23
-          },
-          {
-            "rank": 5,
-            "name": "celecoxib",
-            "cid": "2662",
-            "role": "active",
-            "score": 381.4,
-            "heuristic_score": 99
-          },
-          {
-            "rank": 6,
-            "name": "indomethacin",
-            "cid": "3715",
-            "role": "active",
-            "score": 357.8,
-            "heuristic_score": 78
-          },
-          {
-            "rank": 7,
-            "name": "ibuprofen",
-            "cid": "3672",
-            "role": "active",
-            "score": 206.28,
-            "heuristic_score": 79
-          },
-          {
-            "rank": 8,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": 129.16,
-            "heuristic_score": 19
-          }
-        ]
+      {
+        "target": "ABL1",
+        "pdb_id": "1IEP",
+        "rank": 3,
+        "decoy_name": "donepezil",
+        "decoy_cid": "3152",
+        "active_name": "radotinib",
+        "active_cid": "16063245",
+        "decoy_score": 23,
+        "active_score": 17
       },
-      "docking_baseline": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 0.4,
-        "top1_hit": false,
-        "top3_hit": true,
-        "mean_active_rank": 4,
-        "enrichment_factor_at_20pct": 0,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "sitagliptin",
-            "cid": "4369359",
-            "role": "decoy",
-            "score": -8.47,
-            "heuristic_score": 23,
-            "docking_delta_g": -8.47
-          },
-          {
-            "rank": 2,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": -8.12,
-            "heuristic_score": 22,
-            "docking_delta_g": -8.12
-          },
-          {
-            "rank": 3,
-            "name": "celecoxib",
-            "cid": "2662",
-            "role": "active",
-            "score": -6.9,
-            "heuristic_score": 99,
-            "docking_delta_g": -6.9
-          },
-          {
-            "rank": 4,
-            "name": "indomethacin",
-            "cid": "3715",
-            "role": "active",
-            "score": -6.48,
-            "heuristic_score": 78,
-            "docking_delta_g": -6.48
-          },
-          {
-            "rank": 5,
-            "name": "ibuprofen",
-            "cid": "3672",
-            "role": "active",
-            "score": -5.3,
-            "heuristic_score": 79,
-            "docking_delta_g": -5.3
-          },
-          {
-            "rank": 6,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": -4.83,
-            "heuristic_score": 22,
-            "docking_delta_g": -4.83
-          },
-          {
-            "rank": 7,
-            "name": "sildenafil",
-            "cid": "135398744",
-            "role": "decoy",
-            "score": -4.24,
-            "heuristic_score": 21,
-            "docking_delta_g": -4.24
-          },
-          {
-            "rank": 8,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": -1.59,
-            "heuristic_score": 19,
-            "docking_delta_g": -1.59
-          }
-        ]
+      {
+        "target": "ERBB2",
+        "pdb_id": "3PP0",
+        "rank": 1,
+        "decoy_name": "venlafaxine",
+        "decoy_cid": "5656",
+        "active_name": "poziotinib",
+        "active_cid": "25127713",
+        "decoy_score": 24,
+        "active_score": 18
       },
-      "notable_failures": []
-    },
-    {
-      "id": "hmgcr",
-      "name": "HMGCR",
-      "pdb_id": "1HWK",
-      "heuristic_v2": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 1,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 2,
-        "enrichment_factor_at_20pct": 2.6666666666666665,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "atorvastatin",
-            "cid": "60823",
-            "role": "active",
-            "score": 86,
-            "heuristic_score": 86
-          },
-          {
-            "rank": 2,
-            "name": "simvastatin",
-            "cid": "54454",
-            "role": "active",
-            "score": 77,
-            "heuristic_score": 77
-          },
-          {
-            "rank": 3,
-            "name": "rosuvastatin",
-            "cid": "446157",
-            "role": "active",
-            "score": 70,
-            "heuristic_score": 70
-          },
-          {
-            "rank": 4,
-            "name": "caffeine",
-            "cid": "2519",
-            "role": "decoy",
-            "score": 24,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 5,
-            "name": "omeprazole",
-            "cid": "4594",
-            "role": "decoy",
-            "score": 24,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 6,
-            "name": "warfarin",
-            "cid": "54678486",
-            "role": "decoy",
-            "score": 24,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 7,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 22,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 8,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": 19,
-            "heuristic_score": 19
-          }
-        ]
+      {
+        "target": "ERBB2",
+        "pdb_id": "3PP0",
+        "rank": 2,
+        "decoy_name": "tramadol",
+        "decoy_cid": "33741",
+        "active_name": "poziotinib",
+        "active_cid": "25127713",
+        "decoy_score": 24,
+        "active_score": 18
       },
-      "mw_baseline": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 0.8666666666666667,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 2.6666666666666665,
-        "enrichment_factor_at_20pct": 1.3333333333333333,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "atorvastatin",
-            "cid": "60823",
-            "role": "active",
-            "score": 558.6,
-            "heuristic_score": 86
-          },
-          {
-            "rank": 2,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 493.6,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 3,
-            "name": "rosuvastatin",
-            "cid": "446157",
-            "role": "active",
-            "score": 481.5,
-            "heuristic_score": 70
-          },
-          {
-            "rank": 4,
-            "name": "simvastatin",
-            "cid": "54454",
-            "role": "active",
-            "score": 418.6,
-            "heuristic_score": 77
-          },
-          {
-            "rank": 5,
-            "name": "omeprazole",
-            "cid": "4594",
-            "role": "decoy",
-            "score": 345.4,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 6,
-            "name": "warfarin",
-            "cid": "54678486",
-            "role": "decoy",
-            "score": 308.3,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 7,
-            "name": "caffeine",
-            "cid": "2519",
-            "role": "decoy",
-            "score": 194.19,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 8,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": 129.16,
-            "heuristic_score": 19
-          }
-        ]
+      {
+        "target": "ERBB2",
+        "pdb_id": "3PP0",
+        "rank": 3,
+        "decoy_name": "fluoxetine",
+        "decoy_cid": "3386",
+        "active_name": "poziotinib",
+        "active_cid": "25127713",
+        "decoy_score": 23,
+        "active_score": 18
       },
-      "docking_baseline": null,
-      "notable_failures": []
-    },
-    {
-      "id": "pde5",
-      "name": "PDE5A",
-      "pdb_id": "1UDT",
-      "heuristic_v2": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 1,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 2,
-        "enrichment_factor_at_20pct": 2.6666666666666665,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "sildenafil",
-            "cid": "135398744",
-            "role": "active",
-            "score": 96,
-            "heuristic_score": 96
-          },
-          {
-            "rank": 2,
-            "name": "tadalafil",
-            "cid": "110635",
-            "role": "active",
-            "score": 79,
-            "heuristic_score": 79
-          },
-          {
-            "rank": 3,
-            "name": "vardenafil",
-            "cid": "135400189",
-            "role": "active",
-            "score": 76,
-            "heuristic_score": 76
-          },
-          {
-            "rank": 4,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": 31,
-            "heuristic_score": 31
-          },
-          {
-            "rank": 5,
-            "name": "celecoxib",
-            "cid": "2662",
-            "role": "decoy",
-            "score": 24,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 6,
-            "name": "sitagliptin",
-            "cid": "4369359",
-            "role": "decoy",
-            "score": 23,
-            "heuristic_score": 23
-          },
-          {
-            "rank": 7,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 22,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 8,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": 22,
-            "heuristic_score": 22
-          }
-        ]
+      {
+        "target": "BRAF",
+        "pdb_id": "4XV2",
+        "rank": 1,
+        "decoy_name": "metronidazole",
+        "decoy_cid": "4173",
+        "active_name": "lifirafenib",
+        "active_cid": "89670174",
+        "decoy_score": 24,
+        "active_score": 22
       },
-      "mw_baseline": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 0.6666666666666666,
-        "top1_hit": false,
-        "top3_hit": true,
-        "mean_active_rank": 3.6666666666666665,
-        "enrichment_factor_at_20pct": 1.3333333333333333,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 493.6,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 2,
-            "name": "vardenafil",
-            "cid": "135400189",
-            "role": "active",
-            "score": 488.6,
-            "heuristic_score": 76
-          },
-          {
-            "rank": 3,
-            "name": "sildenafil",
-            "cid": "135398744",
-            "role": "active",
-            "score": 474.6,
-            "heuristic_score": 96
-          },
-          {
-            "rank": 4,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": 422.9,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 5,
-            "name": "sitagliptin",
-            "cid": "4369359",
-            "role": "decoy",
-            "score": 407.31,
-            "heuristic_score": 23
-          },
-          {
-            "rank": 6,
-            "name": "tadalafil",
-            "cid": "110635",
-            "role": "active",
-            "score": 389.4,
-            "heuristic_score": 79
-          },
-          {
-            "rank": 7,
-            "name": "celecoxib",
-            "cid": "2662",
-            "role": "decoy",
-            "score": 381.4,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 8,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": 129.16,
-            "heuristic_score": 31
-          }
-        ]
+      {
+        "target": "BRAF",
+        "pdb_id": "4XV2",
+        "rank": 2,
+        "decoy_name": "clopidogrel",
+        "decoy_cid": "60606",
+        "active_name": "lifirafenib",
+        "active_cid": "89670174",
+        "decoy_score": 24,
+        "active_score": 22
       },
-      "docking_baseline": {
-        "n": 2,
-        "n_actives": 1,
-        "roc_auc": 0,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 1,
-        "enrichment_factor_at_20pct": 2,
-        "random_expectation_top1": 0.5,
-        "random_expectation_top3": null,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "tadalafil",
-            "cid": "110635",
-            "role": "active",
-            "score": -44.89,
-            "heuristic_score": 79,
-            "docking_delta_g": -44.89
-          },
-          {
-            "rank": 2,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": -13.76,
-            "heuristic_score": 31,
-            "docking_delta_g": -13.76
-          }
-        ]
+      {
+        "target": "BRAF",
+        "pdb_id": "4XV2",
+        "rank": 3,
+        "decoy_name": "levofloxacin",
+        "decoy_cid": "149096",
+        "active_name": "lifirafenib",
+        "active_cid": "89670174",
+        "decoy_score": 23,
+        "active_score": 22
       },
-      "notable_failures": []
-    },
-    {
-      "id": "er",
-      "name": "ESR1",
-      "pdb_id": "3ERT",
-      "heuristic_v2": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 1,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 2,
-        "enrichment_factor_at_20pct": 2.6666666666666665,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "tamoxifen",
-            "cid": "2733526",
-            "role": "active",
-            "score": 90,
-            "heuristic_score": 90
-          },
-          {
-            "rank": 2,
-            "name": "raloxifene",
-            "cid": "5035",
-            "role": "active",
-            "score": 72,
-            "heuristic_score": 72
-          },
-          {
-            "rank": 3,
-            "name": "fulvestrant",
-            "cid": "104741",
-            "role": "active",
-            "score": 60,
-            "heuristic_score": 60
-          },
-          {
-            "rank": 4,
-            "name": "caffeine",
-            "cid": "2519",
-            "role": "decoy",
-            "score": 24,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 5,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 22,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 6,
-            "name": "sildenafil",
-            "cid": "135398744",
-            "role": "decoy",
-            "score": 21,
-            "heuristic_score": 21
-          },
-          {
-            "rank": 7,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": 19,
-            "heuristic_score": 19
-          },
-          {
-            "rank": 8,
-            "name": "atorvastatin",
-            "cid": "60823",
-            "role": "decoy",
-            "score": 11,
-            "heuristic_score": 11
-          }
-        ]
+      {
+        "target": "HMGCR",
+        "pdb_id": "1HWK",
+        "rank": 1,
+        "decoy_name": "omeprazole",
+        "decoy_cid": "4594",
+        "active_name": "mevastatin",
+        "active_cid": "64715",
+        "decoy_score": 24,
+        "active_score": 23
       },
-      "mw_baseline": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 0.6,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 4,
-        "enrichment_factor_at_20pct": 1.3333333333333333,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "fulvestrant",
-            "cid": "104741",
-            "role": "active",
-            "score": 606.8,
-            "heuristic_score": 60
-          },
-          {
-            "rank": 2,
-            "name": "atorvastatin",
-            "cid": "60823",
-            "role": "decoy",
-            "score": 558.6,
-            "heuristic_score": 11
-          },
-          {
-            "rank": 3,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 493.6,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 4,
-            "name": "sildenafil",
-            "cid": "135398744",
-            "role": "decoy",
-            "score": 474.6,
-            "heuristic_score": 21
-          },
-          {
-            "rank": 5,
-            "name": "raloxifene",
-            "cid": "5035",
-            "role": "active",
-            "score": 473.6,
-            "heuristic_score": 72
-          },
-          {
-            "rank": 6,
-            "name": "tamoxifen",
-            "cid": "2733526",
-            "role": "active",
-            "score": 371.5,
-            "heuristic_score": 90
-          },
-          {
-            "rank": 7,
-            "name": "caffeine",
-            "cid": "2519",
-            "role": "decoy",
-            "score": 194.19,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 8,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": 129.16,
-            "heuristic_score": 19
-          }
-        ]
+      {
+        "target": "PDE5A",
+        "pdb_id": "1UDT",
+        "rank": 1,
+        "decoy_name": "levofloxacin",
+        "decoy_cid": "149096",
+        "active_name": "lodenafil",
+        "active_cid": "135452901",
+        "decoy_score": 23,
+        "active_score": 16
       },
-      "docking_baseline": {
-        "n": 2,
-        "n_actives": 0,
-        "roc_auc": null,
-        "top1_hit": false,
-        "top3_hit": false,
-        "mean_active_rank": null,
-        "enrichment_factor_at_20pct": null,
-        "random_expectation_top1": 0,
-        "random_expectation_top3": null,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": -16.11,
-            "heuristic_score": 19,
-            "docking_delta_g": -16.11
-          },
-          {
-            "rank": 2,
-            "name": "caffeine",
-            "cid": "2519",
-            "role": "decoy",
-            "score": -8.63,
-            "heuristic_score": 24,
-            "docking_delta_g": -8.63
-          }
-        ]
+      {
+        "target": "PDE5A",
+        "pdb_id": "1UDT",
+        "rank": 2,
+        "decoy_name": "furosemide",
+        "decoy_cid": "3440",
+        "active_name": "lodenafil",
+        "active_cid": "135452901",
+        "decoy_score": 23,
+        "active_score": 16
       },
-      "notable_failures": []
-    },
-    {
-      "id": "dpp4",
-      "name": "DPP4",
-      "pdb_id": "1X70",
-      "heuristic_v2": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 1,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 2,
-        "enrichment_factor_at_20pct": 2.6666666666666665,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "sitagliptin",
-            "cid": "4369359",
-            "role": "active",
-            "score": 98,
-            "heuristic_score": 98
-          },
-          {
-            "rank": 2,
-            "name": "saxagliptin",
-            "cid": "11243969",
-            "role": "active",
-            "score": 79,
-            "heuristic_score": 79
-          },
-          {
-            "rank": 3,
-            "name": "linagliptin",
-            "cid": "10096344",
-            "role": "active",
-            "score": 77,
-            "heuristic_score": 77
-          },
-          {
-            "rank": 4,
-            "name": "glipizide",
-            "cid": "3478",
-            "role": "decoy",
-            "score": 33,
-            "heuristic_score": 33
-          },
-          {
-            "rank": 5,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": 31,
-            "heuristic_score": 31
-          },
-          {
-            "rank": 6,
-            "name": "omeprazole",
-            "cid": "4594",
-            "role": "decoy",
-            "score": 24,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 7,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 22,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 8,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": 22,
-            "heuristic_score": 22
-          }
-        ]
+      {
+        "target": "PDE5A",
+        "pdb_id": "1UDT",
+        "rank": 3,
+        "decoy_name": "ezetimibe",
+        "decoy_cid": "150311",
+        "active_name": "lodenafil",
+        "active_cid": "135452901",
+        "decoy_score": 23,
+        "active_score": 16
       },
-      "mw_baseline": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 0.4666666666666667,
-        "top1_hit": false,
-        "top3_hit": true,
-        "mean_active_rank": 4.666666666666667,
-        "enrichment_factor_at_20pct": 1.3333333333333333,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 493.6,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 2,
-            "name": "linagliptin",
-            "cid": "10096344",
-            "role": "active",
-            "score": 472.5,
-            "heuristic_score": 77
-          },
-          {
-            "rank": 3,
-            "name": "glipizide",
-            "cid": "3478",
-            "role": "decoy",
-            "score": 445.5,
-            "heuristic_score": 33
-          },
-          {
-            "rank": 4,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": 422.9,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 5,
-            "name": "sitagliptin",
-            "cid": "4369359",
-            "role": "active",
-            "score": 407.31,
-            "heuristic_score": 98
-          },
-          {
-            "rank": 6,
-            "name": "omeprazole",
-            "cid": "4594",
-            "role": "decoy",
-            "score": 345.4,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 7,
-            "name": "saxagliptin",
-            "cid": "11243969",
-            "role": "active",
-            "score": 315.4,
-            "heuristic_score": 79
-          },
-          {
-            "rank": 8,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": 129.16,
-            "heuristic_score": 31
-          }
-        ]
+      {
+        "target": "ESR1",
+        "pdb_id": "3ERT",
+        "rank": 1,
+        "decoy_name": "levofloxacin",
+        "decoy_cid": "149096",
+        "active_name": "lasofoxifene",
+        "active_cid": "216416",
+        "decoy_score": 23,
+        "active_score": 18
       },
-      "docking_baseline": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 0.4,
-        "top1_hit": false,
-        "top3_hit": true,
-        "mean_active_rank": 4,
-        "enrichment_factor_at_20pct": 1.3333333333333333,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "glipizide",
-            "cid": "3478",
-            "role": "decoy",
-            "score": -20.31,
-            "heuristic_score": 33,
-            "docking_delta_g": -20.31
-          },
-          {
-            "rank": 2,
-            "name": "sitagliptin",
-            "cid": "4369359",
-            "role": "active",
-            "score": -17.81,
-            "heuristic_score": 98,
-            "docking_delta_g": -17.81
-          },
-          {
-            "rank": 3,
-            "name": "omeprazole",
-            "cid": "4594",
-            "role": "decoy",
-            "score": -11.66,
-            "heuristic_score": 24,
-            "docking_delta_g": -11.66
-          },
-          {
-            "rank": 4,
-            "name": "saxagliptin",
-            "cid": "11243969",
-            "role": "active",
-            "score": -11.03,
-            "heuristic_score": 79,
-            "docking_delta_g": -11.03
-          },
-          {
-            "rank": 5,
-            "name": "metformin",
-            "cid": "4091",
-            "role": "decoy",
-            "score": -10.85,
-            "heuristic_score": 31,
-            "docking_delta_g": -10.85
-          },
-          {
-            "rank": 6,
-            "name": "linagliptin",
-            "cid": "10096344",
-            "role": "active",
-            "score": -9.44,
-            "heuristic_score": 77,
-            "docking_delta_g": -9.44
-          },
-          {
-            "rank": 7,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": -8.15,
-            "heuristic_score": 22,
-            "docking_delta_g": -8.15
-          },
-          {
-            "rank": 8,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": -5.49,
-            "heuristic_score": 22,
-            "docking_delta_g": -5.49
-          }
-        ]
+      {
+        "target": "ESR1",
+        "pdb_id": "3ERT",
+        "rank": 2,
+        "decoy_name": "furosemide",
+        "decoy_cid": "3440",
+        "active_name": "lasofoxifene",
+        "active_cid": "216416",
+        "decoy_score": 23,
+        "active_score": 18
       },
-      "notable_failures": []
-    },
-    {
-      "id": "beta2",
-      "name": "ADRB2",
-      "pdb_id": "3SN6",
-      "heuristic_v2": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 1,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 2,
-        "enrichment_factor_at_20pct": 2.6666666666666665,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "salbutamol",
-            "cid": "2083",
-            "role": "active",
-            "score": 78,
-            "heuristic_score": 78
-          },
-          {
-            "rank": 2,
-            "name": "salmeterol",
-            "cid": "5152",
-            "role": "active",
-            "score": 72,
-            "heuristic_score": 72
-          },
-          {
-            "rank": 3,
-            "name": "formoterol",
-            "cid": "3410",
-            "role": "active",
-            "score": 69,
-            "heuristic_score": 69
-          },
-          {
-            "rank": 4,
-            "name": "morphine",
-            "cid": "5288826",
-            "role": "decoy",
-            "score": 36,
-            "heuristic_score": 36
-          },
-          {
-            "rank": 5,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": 34,
-            "heuristic_score": 34
-          },
-          {
-            "rank": 6,
-            "name": "caffeine",
-            "cid": "2519",
-            "role": "decoy",
-            "score": 24,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 7,
-            "name": "warfarin",
-            "cid": "54678486",
-            "role": "decoy",
-            "score": 24,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 8,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 22,
-            "heuristic_score": 22
-          }
-        ]
-      },
-      "mw_baseline": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 0.4666666666666667,
-        "top1_hit": false,
-        "top3_hit": true,
-        "mean_active_rank": 4.666666666666667,
-        "enrichment_factor_at_20pct": 0,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": 493.6,
-            "heuristic_score": 22
-          },
-          {
-            "rank": 2,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": 422.9,
-            "heuristic_score": 34
-          },
-          {
-            "rank": 3,
-            "name": "salmeterol",
-            "cid": "5152",
-            "role": "active",
-            "score": 415.6,
-            "heuristic_score": 72
-          },
-          {
-            "rank": 4,
-            "name": "formoterol",
-            "cid": "3410",
-            "role": "active",
-            "score": 344.4,
-            "heuristic_score": 69
-          },
-          {
-            "rank": 5,
-            "name": "warfarin",
-            "cid": "54678486",
-            "role": "decoy",
-            "score": 308.3,
-            "heuristic_score": 24
-          },
-          {
-            "rank": 6,
-            "name": "morphine",
-            "cid": "5288826",
-            "role": "decoy",
-            "score": 285.34,
-            "heuristic_score": 36
-          },
-          {
-            "rank": 7,
-            "name": "salbutamol",
-            "cid": "2083",
-            "role": "active",
-            "score": 239.31,
-            "heuristic_score": 78
-          },
-          {
-            "rank": 8,
-            "name": "caffeine",
-            "cid": "2519",
-            "role": "decoy",
-            "score": 194.19,
-            "heuristic_score": 24
-          }
-        ]
-      },
-      "docking_baseline": {
-        "n": 8,
-        "n_actives": 3,
-        "roc_auc": 0.5333333333333333,
-        "top1_hit": true,
-        "top3_hit": true,
-        "mean_active_rank": 4.666666666666667,
-        "enrichment_factor_at_20pct": 1.3333333333333333,
-        "random_expectation_top1": 0.375,
-        "random_expectation_top3": 0.8214285714285714,
-        "ranking": [
-          {
-            "rank": 1,
-            "name": "formoterol",
-            "cid": "3410",
-            "role": "active",
-            "score": -11.38,
-            "heuristic_score": 69,
-            "docking_delta_g": -11.38
-          },
-          {
-            "rank": 2,
-            "name": "imatinib",
-            "cid": "5291",
-            "role": "decoy",
-            "score": -9.12,
-            "heuristic_score": 22,
-            "docking_delta_g": -9.12
-          },
-          {
-            "rank": 3,
-            "name": "caffeine",
-            "cid": "2519",
-            "role": "decoy",
-            "score": -5.34,
-            "heuristic_score": 24,
-            "docking_delta_g": -5.34
-          },
-          {
-            "rank": 4,
-            "name": "warfarin",
-            "cid": "54678486",
-            "role": "decoy",
-            "score": -4.81,
-            "heuristic_score": 24,
-            "docking_delta_g": -4.81
-          },
-          {
-            "rank": 5,
-            "name": "morphine",
-            "cid": "5288826",
-            "role": "decoy",
-            "score": -3.87,
-            "heuristic_score": 36,
-            "docking_delta_g": -3.87
-          },
-          {
-            "rank": 6,
-            "name": "salbutamol",
-            "cid": "2083",
-            "role": "active",
-            "score": -3.53,
-            "heuristic_score": 78,
-            "docking_delta_g": -3.53
-          },
-          {
-            "rank": 7,
-            "name": "salmeterol",
-            "cid": "5152",
-            "role": "active",
-            "score": -2.68,
-            "heuristic_score": 72,
-            "docking_delta_g": -2.68
-          },
-          {
-            "rank": 8,
-            "name": "losartan",
-            "cid": "3961",
-            "role": "decoy",
-            "score": -1.46,
-            "heuristic_score": 34,
-            "docking_delta_g": -1.46
-          }
-        ]
-      },
-      "notable_failures": []
-    }
-  ],
+      {
+        "target": "ESR1",
+        "pdb_id": "3ERT",
+        "rank": 3,
+        "decoy_name": "ezetimibe",
+        "decoy_cid": "150311",
+        "active_name": "lasofoxifene",
+        "active_cid": "216416",
+        "decoy_score": 23,
+        "active_score": 18
+      }
+    ],
+    "interpretation": "On the held-out panel (10 targets, 30 actives not in rule lists), mean ROC-AUC 0.352 and top-1 hit rate 40.0% (33.2% random expectation) measure **external** behavior. Unlisted actives typically receive only Lipinski/Veber drug-likeness points (~0–24) unless they match `KINASE_INHIBITOR_RE` / class regexes via `drugClass` (we leave `drugClass` empty in the dataset). Same-family kinase inhibitors in the global regex still get ~12 pt demotion bands when listed in `demotedRe`, but novel chemotypes are scored like generic decoys — so separation collapses toward physicochemical tie-breaks. Docking on held-out pairs: ROC-AUC 0.422, top-1 28.6%. TargetForge can honestly claim **curated-rule coverage for known drug names**, not blind discovery of new chemical matter.",
+    "suggested_cv_claim": "Target-aware ranking separates FDA-listed on-target drugs from off-target decoys for rule-covered targets (in-rule top-1 100.0%); on held-out inhibitors absent from the rule tables, enrichment is modest (ROC-AUC 0.352, top-1 40.0%) and should be paired with docking/assays."
+  },
   "limitations": [
-    "Small, hand-curated panel (10 targets, 30 actives, 60 decoys) — not a substitute for DUD-E or large-scale virtual screens.",
-    "Decoys are other approved drugs, so all compounds are drug-like; separation is harder than vs random SMILES.",
-    "Decoys were not property-matched to actives (MW/logP), so some baselines may look better or worse than in matched decoy sets.",
-    "On-target labels come from primary indications / pharmacology tables encoded in TargetForge rules, not from fresh IC50 measurements.",
-    "Co-crystal ligand identity bonuses can inflate scores for exact reference matches (e.g., erlotinib on 1M17)."
+    "Small, hand-curated panels — not a substitute for DUD-E or large-scale virtual screens.",
+    "In-rule actives mirror `TARGET_RULES` lists (circular); held-out actives are verified absent from those lists via `benchmark/auditRuleLists.mjs`.",
+    "Held-out decoys are property-matched (MW, logP, HBD/HBA, rotatable bonds) but not full DUD-E decoy sets.",
+    "Potency labels come from ChEMBL / literature citations in `heldout_set.json`, not re-measured in this run.",
+    "Co-crystal ligand bonuses still apply when PDB titles mention rule-list drugs (e.g., erlotinib on 1M17)."
   ],
   "pipeline_notes": [
     "Scored with `rankCandidatesLocal` / `scoreOne` from `src/scoreCandidates.js` (source: heuristic-v2) — identical to local Staging Bench and repurposing batch numeric ranks.",
@@ -2142,7 +4796,6 @@
     "RDKit WASM ADME (`admeCalculator.js`) and organ-toxicity flags are not combined into the 0–100 ranking score in production; they were not applied here.",
     "Native docking baseline uses `runMolecularDocking` (via `src/benchmark/dockingBench.test.js` + RDKit WASM) with searchExhaustiveness=4 and seeded Math.random per (PDB, CID)."
   ],
-  "failure_cases": [],
   "docking_failure_cases": [
     {
       "target": "EGFR",
@@ -2253,7 +4906,6 @@
       "rank": 1
     }
   ],
-  "interpretation": "On this 10-target panel, TargetForge's deterministic target-aware heuristic (30 labeled actives) achieved mean ROC-AUC 1 with top-1 hit rate 100.0% (37.1% expected by chance on these class priors). That near-perfect separation is expected: the benchmark labels are the same drug-name lists encoded in `TARGET_RULES`, so the test largely verifies lookup consistency rather than predictive binding. By contrast, the empirical docking baseline (mean ROC-AUC 0.506, top-1 28.6%) is only slightly better than chance on this small set and is **not** wired into the 0–100 Staging Bench score. RDKit ADME and organ-toxicity modules are likewise separate. For portfolio messaging, cite the heuristic panel result as \"rule-table consistency on curated actives vs approved decoys,\" not as prospective virtual-screening accuracy.",
   "options": {
     "skip_docking": false,
     "dock_exhaustiveness": 4

@@ -23,6 +23,7 @@ const { rankCandidatesLocal } = require("../src/scoreCandidates.js");
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 const VALIDATION_PATH = join(__dirname, "validation_set.json");
+const HELDOUT_PATH = join(__dirname, "heldout_set.json");
 const RESULTS_JSON = join(__dirname, "results.json");
 const DOCK_CACHE_PATH = join(__dirname, "docking_cache.json");
 
@@ -225,20 +226,14 @@ function readDockingDeltaG(cache, pdbId, cid) {
   return null;
 }
 
-function formatMarkdownReport(payload) {
+function headlineTable(overall) {
   const lines = [];
-  lines.push("# TargetForge ranking benchmark — results");
-  lines.push("");
-  lines.push(`Generated: ${payload.generated_at}`);
-  lines.push("");
-  lines.push("## Headline metrics (heuristic-v2 / Staging Bench engine)");
-  lines.push("");
+  const h = overall.heuristic_v2;
+  const r = overall.random_expectation;
+  const mw = overall.mw_baseline;
+  const d = overall.docking_baseline;
   lines.push("| Metric | TargetForge | Random expectation | MW baseline | Docking-only baseline |");
   lines.push("| --- | --- | --- | --- | --- |");
-  const h = payload.overall.heuristic_v2;
-  const r = payload.overall.random_expectation;
-  const mw = payload.overall.mw_baseline;
-  const d = payload.overall.docking_baseline;
   lines.push(
     `| Mean ROC-AUC | ${fmt(h.mean_roc_auc)} | 0.50 | ${fmt(mw.mean_roc_auc)} | ${fmt(d.mean_roc_auc)} |`
   );
@@ -254,14 +249,16 @@ function formatMarkdownReport(payload) {
   lines.push(
     `| Mean EF@20% | ${fmt(h.mean_ef20)} | 1.00 | ${fmt(mw.mean_ef20)} | ${fmt(d.mean_ef20)} |`
   );
-  lines.push("");
-  lines.push("## Per-target summary");
-  lines.push("");
+  return lines;
+}
+
+function perTargetTable(perTarget) {
+  const lines = [];
   lines.push(
     "| Target | PDB | N | Actives | ROC-AUC | Top-1 | Top-3 | Mean active rank | EF@20% | Top failure (if any) |"
   );
   lines.push("| --- | --- | ---: | ---: | ---: | --- | --- | ---: | ---: | --- |");
-  for (const t of payload.per_target) {
+  for (const t of perTarget) {
     const m = t.heuristic_v2;
     const fail = t.notable_failures?.[0];
     const failCell = fail
@@ -271,7 +268,49 @@ function formatMarkdownReport(payload) {
       `| ${t.name} | ${t.pdb_id} | ${m.n} | ${m.n_actives} | ${fmt(m.roc_auc)} | ${m.top1_hit ? "✓" : "✗"} | ${m.top3_hit ? "✓" : "✗"} | ${fmt(m.mean_active_rank)} | ${fmt(m.enrichment_factor_at_20pct)} | ${failCell} |`
     );
   }
+  return lines;
+}
+
+function formatMarkdownReport(payload) {
+  const lines = [];
+  lines.push("# TargetForge ranking benchmark — results");
   lines.push("");
+  lines.push(`Generated: ${payload.generated_at}`);
+  lines.push("");
+  lines.push("## In-rule (circular) — `validation_set.json`");
+  lines.push("");
+  lines.push(
+    "Actives are drawn from the same drug-name lists encoded in `TARGET_RULES`; expect near-perfect separation."
+  );
+  lines.push("");
+  lines.push("### Headline metrics (heuristic-v2)");
+  lines.push("");
+  lines.push(...headlineTable(payload.in_rule_circular.overall));
+  lines.push("");
+  lines.push("### Per-target summary");
+  lines.push("");
+  lines.push(...perTargetTable(payload.in_rule_circular.per_target));
+  lines.push("");
+  lines.push("## Held-out (non-circular) — `heldout_set.json`");
+  lines.push("");
+  lines.push(
+    "Actives are real inhibitors **not** present in `TARGET_RULES` / `KINASE_INHIBITOR_RE` / `GPCR_LIGAND_RE` (see `rule_audit` in JSON). Decoys are property-matched off-target drugs also absent from those lists."
+  );
+  lines.push("");
+  lines.push("### Headline metrics (heuristic-v2)");
+  lines.push("");
+  lines.push(...headlineTable(payload.held_out_non_circular.overall));
+  lines.push("");
+  lines.push("### Per-target summary");
+  lines.push("");
+  lines.push(...perTargetTable(payload.held_out_non_circular.per_target));
+  lines.push("");
+  if (payload.held_out_non_circular.suggested_cv_claim) {
+    lines.push("### Suggested honest one-line claim (CV / site)");
+    lines.push("");
+    lines.push(`> ${payload.held_out_non_circular.suggested_cv_claim}`);
+    lines.push("");
+  }
   lines.push("## Honest limitations");
   lines.push("");
   for (const note of payload.limitations) {
@@ -284,18 +323,20 @@ function formatMarkdownReport(payload) {
     lines.push(`- ${note}`);
   }
   lines.push("");
-  if (payload.failure_cases?.length) {
-    lines.push("## Notable mis-ranks (heuristic-v2)");
+  const misrankSection = (title, failureCases) => {
+    if (!failureCases?.length) return;
+    lines.push(`## ${title}`);
     lines.push("");
-    for (const f of payload.failure_cases) {
+    for (const f of failureCases.slice(0, 12)) {
       lines.push(
         `- **${f.target} (${f.pdb_id})**: ${f.decoy_name} (#${f.rank}, score ${fmt(f.decoy_score)}) ranked above ${f.active_name} (score ${fmt(f.active_score)})`
       );
     }
     lines.push("");
-  }
+  };
+  misrankSection("Held-out mis-ranks (heuristic-v2)", payload.held_out_non_circular.failure_cases);
   if (payload.docking_failure_cases?.length) {
-    lines.push("## Notable mis-ranks (docking ΔG baseline)");
+    lines.push("## Notable mis-ranks (docking ΔG baseline, in-rule panel)");
     lines.push("");
     for (const f of payload.docking_failure_cases.slice(0, 8)) {
       lines.push(
@@ -306,7 +347,13 @@ function formatMarkdownReport(payload) {
   }
   lines.push("## Interpretation");
   lines.push("");
-  lines.push(payload.interpretation);
+  lines.push("### In-rule (circular)");
+  lines.push("");
+  lines.push(payload.in_rule_circular.interpretation);
+  lines.push("");
+  lines.push("### Held-out (non-circular)");
+  lines.push("");
+  lines.push(payload.held_out_non_circular.interpretation);
   lines.push("");
   return lines.join("\n");
 }
@@ -345,32 +392,80 @@ function findNotableFailures(rankedRows) {
   return failures.slice(0, 3);
 }
 
-async function main() {
-  const skipDocking = process.argv.includes("--skip-docking");
-  const painsApi = await import("../src/painsCheck.js");
-  const validation = JSON.parse(readFileSync(VALIDATION_PATH, "utf8"));
+function buildOverall(perTarget) {
+  return {
+    heuristic_v2: {
+      mean_roc_auc: aggregateMetrics(perTarget, (t) => t.heuristic_v2.roc_auc),
+      top1_hit_rate: aggregateBoolean(perTarget, (t) => t.heuristic_v2.top1_hit),
+      top3_hit_rate: aggregateBoolean(perTarget, (t) => t.heuristic_v2.top3_hit),
+      mean_active_rank: aggregateMetrics(perTarget, (t) => t.heuristic_v2.mean_active_rank),
+      mean_ef20: aggregateMetrics(perTarget, (t) => t.heuristic_v2.enrichment_factor_at_20pct),
+    },
+    mw_baseline: {
+      mean_roc_auc: aggregateMetrics(perTarget, (t) => t.mw_baseline.roc_auc),
+      top1_hit_rate: aggregateBoolean(perTarget, (t) => t.mw_baseline.top1_hit),
+      top3_hit_rate: aggregateBoolean(perTarget, (t) => t.mw_baseline.top3_hit),
+      mean_active_rank: aggregateMetrics(perTarget, (t) => t.mw_baseline.mean_active_rank),
+      mean_ef20: aggregateMetrics(perTarget, (t) => t.mw_baseline.enrichment_factor_at_20pct),
+    },
+    docking_baseline: (() => {
+      const withDock = perTarget.filter((t) => t.docking_baseline);
+      if (!withDock.length) {
+        return {
+          mean_roc_auc: null,
+          top1_hit_rate: null,
+          top3_hit_rate: null,
+          mean_active_rank: null,
+          mean_ef20: null,
+        };
+      }
+      return {
+        mean_roc_auc: aggregateMetrics(withDock, (t) => t.docking_baseline.roc_auc),
+        top1_hit_rate: aggregateBoolean(withDock, (t) => t.docking_baseline.top1_hit),
+        top3_hit_rate: aggregateBoolean(withDock, (t) => t.docking_baseline.top3_hit),
+        mean_active_rank: aggregateMetrics(withDock, (t) => t.docking_baseline.mean_active_rank),
+        mean_ef20: aggregateMetrics(withDock, (t) => t.docking_baseline.enrichment_factor_at_20pct),
+      };
+    })(),
+    random_expectation: {
+      top1_hit_rate: aggregateMetrics(perTarget, (t) => t.heuristic_v2.random_expectation_top1),
+      top3_hit_rate: aggregateMetrics(perTarget, (t) => t.heuristic_v2.random_expectation_top3),
+      mean_active_rank: aggregateMetrics(perTarget, (t) => (t.heuristic_v2.n + 1) / 2),
+    },
+  };
+}
 
-  let dockCache = loadDockCache();
-  if (!skipDocking) {
-    const expectedKeys = validation.targets.reduce(
-      (n, t) => n + t.compounds.length,
-      0
-    );
-    const attemptedKeys = validation.targets.reduce((n, t) => {
-      return (
-        n +
-        t.compounds.filter((c) => dockCache[`${t.pdb_id}_${c.pubchem_cid}`] != null).length
-      );
-    }, 0);
-    if (attemptedKeys < expectedKeys) {
-      console.log(
-        `[benchmark] Populating docking cache via Jest (${attemptedKeys}/${expectedKeys} entries)...`
-      );
-      await runDockingCachePopulation();
-      dockCache = loadDockCache();
+function collectFailureCases(perTarget) {
+  return perTarget.flatMap((t) =>
+    (t.notable_failures || []).map((f) => ({ target: t.name, pdb_id: t.pdb_id, ...f }))
+  );
+}
+
+function collectDockingFailureCases(perTarget) {
+  return perTarget.flatMap((t) => {
+    if (!t.docking_baseline?.ranking) return [];
+    const ranked = t.docking_baseline.ranking;
+    const failures = [];
+    const bestActive = ranked.filter((r) => r.role === "active").sort((a, b) => a.rank - b.rank)[0];
+    if (!bestActive) return failures;
+    for (const row of ranked) {
+      if (row.role === "decoy" && row.rank < bestActive.rank) {
+        failures.push({
+          target: t.name,
+          pdb_id: t.pdb_id,
+          decoy_name: row.name,
+          decoy_score: row.score,
+          active_name: bestActive.name,
+          active_score: bestActive.score,
+          rank: row.rank,
+        });
+      }
     }
-  }
+    return failures;
+  });
+}
 
+async function evaluatePanel(validation, painsApi, dockCache, skipDocking, panelLabel) {
   const perTarget = [];
 
   for (const target of validation.targets) {
@@ -431,57 +526,55 @@ async function main() {
     });
 
     console.log(
-      `[benchmark] ${target.id} (${target.pdb_id}) ROC-AUC=${fmt(heuristicEval.roc_auc)} top1=${heuristicEval.top1_hit}`
+      `[benchmark:${panelLabel}] ${target.id} (${target.pdb_id}) ROC-AUC=${fmt(heuristicEval.roc_auc)} top1=${heuristicEval.top1_hit}`
     );
   }
 
-  const overall = {
-    heuristic_v2: {
-      mean_roc_auc: aggregateMetrics(perTarget, (t) => t.heuristic_v2.roc_auc),
-      top1_hit_rate: aggregateBoolean(perTarget, (t) => t.heuristic_v2.top1_hit),
-      top3_hit_rate: aggregateBoolean(perTarget, (t) => t.heuristic_v2.top3_hit),
-      mean_active_rank: aggregateMetrics(perTarget, (t) => t.heuristic_v2.mean_active_rank),
-      mean_ef20: aggregateMetrics(perTarget, (t) => t.heuristic_v2.enrichment_factor_at_20pct),
-    },
-    mw_baseline: {
-      mean_roc_auc: aggregateMetrics(perTarget, (t) => t.mw_baseline.roc_auc),
-      top1_hit_rate: aggregateBoolean(perTarget, (t) => t.mw_baseline.top1_hit),
-      top3_hit_rate: aggregateBoolean(perTarget, (t) => t.mw_baseline.top3_hit),
-      mean_active_rank: aggregateMetrics(perTarget, (t) => t.mw_baseline.mean_active_rank),
-      mean_ef20: aggregateMetrics(perTarget, (t) => t.mw_baseline.enrichment_factor_at_20pct),
-    },
-    docking_baseline: (() => {
-      const withDock = perTarget.filter((t) => t.docking_baseline);
-      if (!withDock.length) {
-        return {
-          mean_roc_auc: null,
-          top1_hit_rate: null,
-          top3_hit_rate: null,
-          mean_active_rank: null,
-          mean_ef20: null,
-        };
-      }
-      return {
-        mean_roc_auc: aggregateMetrics(withDock, (t) => t.docking_baseline.roc_auc),
-        top1_hit_rate: aggregateBoolean(withDock, (t) => t.docking_baseline.top1_hit),
-        top3_hit_rate: aggregateBoolean(withDock, (t) => t.docking_baseline.top3_hit),
-        mean_active_rank: aggregateMetrics(withDock, (t) => t.docking_baseline.mean_active_rank),
-        mean_ef20: aggregateMetrics(withDock, (t) => t.docking_baseline.enrichment_factor_at_20pct),
-      };
-    })(),
-    random_expectation: {
-      top1_hit_rate: aggregateMetrics(perTarget, (t) => t.heuristic_v2.random_expectation_top1),
-      top3_hit_rate: aggregateMetrics(perTarget, (t) => t.heuristic_v2.random_expectation_top3),
-      mean_active_rank: aggregateMetrics(perTarget, (t) => (t.heuristic_v2.n + 1) / 2),
-    },
+  const overall = buildOverall(perTarget);
+  return {
+    panel: panelLabel,
+    dataset_file: panelLabel === "in-rule" ? "benchmark/validation_set.json" : "benchmark/heldout_set.json",
+    summary: validation.summary,
+    overall,
+    per_target: perTarget,
+    failure_cases: collectFailureCases(perTarget),
   };
+}
+
+async function main() {
+  const skipDocking = process.argv.includes("--skip-docking");
+  const painsApi = await import("../src/painsCheck.js");
+  const validation = JSON.parse(readFileSync(VALIDATION_PATH, "utf8"));
+  const heldout = JSON.parse(readFileSync(HELDOUT_PATH, "utf8"));
+
+  let dockCache = loadDockCache();
+  if (!skipDocking) {
+    const allTargets = [...validation.targets, ...heldout.targets];
+    const expectedKeys = allTargets.reduce((n, t) => n + t.compounds.length, 0);
+    const attemptedKeys = allTargets.reduce((n, t) => {
+      return (
+        n +
+        t.compounds.filter((c) => dockCache[`${t.pdb_id}_${c.pubchem_cid}`] != null).length
+      );
+    }, 0);
+    if (attemptedKeys < expectedKeys) {
+      console.log(
+        `[benchmark] Populating docking cache via Jest (${attemptedKeys}/${expectedKeys} entries)...`
+      );
+      await runDockingCachePopulation();
+      dockCache = loadDockCache();
+    }
+  }
+
+  const inRule = await evaluatePanel(validation, painsApi, dockCache, skipDocking, "in-rule");
+  const heldOut = await evaluatePanel(heldout, painsApi, dockCache, skipDocking, "held-out");
 
   const limitations = [
-    "Small, hand-curated panel (10 targets, 30 actives, 60 decoys) — not a substitute for DUD-E or large-scale virtual screens.",
-    "Decoys are other approved drugs, so all compounds are drug-like; separation is harder than vs random SMILES.",
-    "Decoys were not property-matched to actives (MW/logP), so some baselines may look better or worse than in matched decoy sets.",
-    "On-target labels come from primary indications / pharmacology tables encoded in TargetForge rules, not from fresh IC50 measurements.",
-    "Co-crystal ligand identity bonuses can inflate scores for exact reference matches (e.g., erlotinib on 1M17).",
+    "Small, hand-curated panels — not a substitute for DUD-E or large-scale virtual screens.",
+    "In-rule actives mirror `TARGET_RULES` lists (circular); held-out actives are verified absent from those lists via `benchmark/auditRuleLists.mjs`.",
+    "Held-out decoys are property-matched (MW, logP, HBD/HBA, rotatable bonds) but not full DUD-E decoy sets.",
+    "Potency labels come from ChEMBL / literature citations in `heldout_set.json`, not re-measured in this run.",
+    "Co-crystal ligand bonuses still apply when PDB titles mention rule-list drugs (e.g., erlotinib on 1M17).",
   ];
 
   const pipeline_notes = [
@@ -494,49 +587,41 @@ async function main() {
       : `Native docking baseline uses \`runMolecularDocking\` (via \`src/benchmark/dockingBench.test.js\` + RDKit WASM) with searchExhaustiveness=${DOCK_EXHAUSTIVENESS} and seeded Math.random per (PDB, CID).`,
   ];
 
-  const h = overall.heuristic_v2;
-  const d = overall.docking_baseline;
-  const failure_cases = perTarget.flatMap((t) =>
-    (t.notable_failures || []).map((f) => ({ target: t.name, pdb_id: t.pdb_id, ...f }))
-  );
-  const docking_failure_cases = perTarget.flatMap((t) => {
-    if (!t.docking_baseline?.ranking) return [];
-    const ranked = t.docking_baseline.ranking;
-    const failures = [];
-    const bestActive = ranked.filter((r) => r.role === "active").sort((a, b) => a.rank - b.rank)[0];
-    if (!bestActive) return failures;
-    for (const row of ranked) {
-      if (row.role === "decoy" && row.rank < bestActive.rank) {
-        failures.push({
-          target: t.name,
-          pdb_id: t.pdb_id,
-          decoy_name: row.name,
-          decoy_score: row.score,
-          active_name: bestActive.name,
-          active_score: bestActive.score,
-          rank: row.rank,
-        });
-      }
-    }
-    return failures;
-  });
+  const hIn = inRule.overall.heuristic_v2;
+  const dIn = inRule.overall.docking_baseline;
+  const inRuleInterpretation = `On the in-rule panel (${validation.summary.target_count} targets, ${validation.summary.active_count} actives), mean ROC-AUC ${fmt(
+    hIn.mean_roc_auc
+  )} and top-1 hit rate ${pct(hIn.top1_hit_rate)} confirm that \`TARGET_RULES\` lookup behaves as coded — this is a **regression/consistency** check, not evidence of generalization. Docking ΔG baseline (ROC-AUC ${fmt(
+    dIn.mean_roc_auc
+  )}, top-1 ${pct(dIn.top1_hit_rate)}) remains near chance and is not part of the 0–100 score.`;
 
-  const interpretation = `On this ${validation.summary.target_count}-target panel, TargetForge's deterministic target-aware heuristic (${validation.summary.active_count} labeled actives) achieved mean ROC-AUC ${fmt(
-    h.mean_roc_auc
-  )} with top-1 hit rate ${pct(h.top1_hit_rate)} (${pct(overall.random_expectation.top1_hit_rate)} expected by chance on these class priors). That near-perfect separation is expected: the benchmark labels are the same drug-name lists encoded in \`TARGET_RULES\`, so the test largely verifies lookup consistency rather than predictive binding. By contrast, the empirical docking baseline (mean ROC-AUC ${fmt(
-    d.mean_roc_auc
-  )}, top-1 ${pct(d.top1_hit_rate)}) is only slightly better than chance on this small set and is **not** wired into the 0–100 Staging Bench score. RDKit ADME and organ-toxicity modules are likewise separate. For portfolio messaging, cite the heuristic panel result as "rule-table consistency on curated actives vs approved decoys," not as prospective virtual-screening accuracy.`;
+  const hOut = heldOut.overall.heuristic_v2;
+  const dOut = heldOut.overall.docking_baseline;
+  const heldOutInterpretation = `On the held-out panel (${heldout.summary.target_count} targets, ${heldout.summary.active_count} actives not in rule lists), mean ROC-AUC ${fmt(
+    hOut.mean_roc_auc
+  )} and top-1 hit rate ${pct(hOut.top1_hit_rate)} (${pct(heldOut.overall.random_expectation.top1_hit_rate)} random expectation) measure **external** behavior. Unlisted actives typically receive only Lipinski/Veber drug-likeness points (~0–24) unless they match \`KINASE_INHIBITOR_RE\` / class regexes via \`drugClass\` (we leave \`drugClass\` empty in the dataset). Same-family kinase inhibitors in the global regex still get ~12 pt demotion bands when listed in \`demotedRe\`, but novel chemotypes are scored like generic decoys — so separation collapses toward physicochemical tie-breaks. Docking on held-out pairs: ROC-AUC ${fmt(
+    dOut.mean_roc_auc
+  )}, top-1 ${pct(dOut.top1_hit_rate)}. TargetForge can honestly claim **curated-rule coverage for known drug names**, not blind discovery of new chemical matter.`;
+
+  const suggestedCvClaim = `Target-aware ranking separates FDA-listed on-target drugs from off-target decoys for rule-covered targets (in-rule top-1 ${pct(
+    hIn.top1_hit_rate
+  )}); on held-out inhibitors absent from the rule tables, enrichment is modest (ROC-AUC ${fmt(hOut.mean_roc_auc)}, top-1 ${pct(
+    hOut.top1_hit_rate
+  )}) and should be paired with docking/assays.`;
+
+  const docking_failure_cases = collectDockingFailureCases(inRule.per_target);
 
   const payload = {
     generated_at: new Date().toISOString(),
-    validation_set: "benchmark/validation_set.json",
-    overall,
-    per_target: perTarget,
+    in_rule_circular: { ...inRule, interpretation: inRuleInterpretation },
+    held_out_non_circular: {
+      ...heldOut,
+      interpretation: heldOutInterpretation,
+      suggested_cv_claim: suggestedCvClaim,
+    },
     limitations,
     pipeline_notes,
-    failure_cases,
     docking_failure_cases,
-    interpretation,
     options: { skip_docking: skipDocking, dock_exhaustiveness: DOCK_EXHAUSTIVENESS },
   };
 

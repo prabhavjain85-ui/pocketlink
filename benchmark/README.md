@@ -6,7 +6,9 @@ Retrospective validation of **heuristic-v2** (`rankCandidatesLocal` in `src/scor
 
 | File | Purpose |
 | --- | --- |
-| `validation_set.json` | 10 targets × (2–3 actives + 5–6 decoys); PubChem CID, SMILES, properties, and audit fields |
+| `validation_set.json` | **In-rule (circular)** panel: actives from `TARGET_RULES` drug lists |
+| `heldout_set.json` | **Held-out (non-circular)** panel: ChEMBL actives + property-matched decoys verified absent from rule lists (`rule_audit`) |
+| `auditRuleLists.mjs` | Grep-backed check against `TARGET_RULES`, `KINASE_INHIBITOR_RE`, `GPCR_LIGAND_RE` |
 | `runBenchmark.mjs` | Reproducible Node runner (metrics + optional docking baseline) |
 | `docking_cache.json` | Cached ΔG poses (generated; commit for reproducibility) |
 | `../src/benchmark/dockingBench.test.js` | Jest harness for RDKit docking (skipped unless `RUN_DOCKING_BENCH=1`) |

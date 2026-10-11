@@ -403,5 +403,445 @@
     "delta_g": -4.81,
     "name": "warfarin",
     "pdb_id": "3SN6"
+  },
+  "1M17_118607832": {
+    "delta_g": null,
+    "name": "mobocertinib",
+    "pdb_id": "1M17"
+  },
+  "1M17_25127713": {
+    "delta_g": null,
+    "name": "poziotinib",
+    "pdb_id": "1M17"
+  },
+  "1M17_22024915": {
+    "delta_g": -20.25,
+    "name": "icotinib",
+    "pdb_id": "1M17"
+  },
+  "1M17_156414": {
+    "delta_g": null,
+    "name": "canertinib",
+    "pdb_id": "1M17"
+  },
+  "1M17_9875401": {
+    "delta_g": -13,
+    "name": "rivaroxaban",
+    "pdb_id": "1M17"
+  },
+  "1M17_60835": {
+    "delta_g": -8.02,
+    "name": "duloxetine",
+    "pdb_id": "1M17"
+  },
+  "1M17_5281040": {
+    "delta_g": null,
+    "name": "montelukast",
+    "pdb_id": "1M17"
+  },
+  "1M17_3339": {
+    "delta_g": -9.72,
+    "name": "fenofibrate",
+    "pdb_id": "1M17"
+  },
+  "1M17_5819": {
+    "delta_g": -15.01,
+    "name": "levothyroxine",
+    "pdb_id": "1M17"
+  },
+  "1M17_5486971": {
+    "delta_g": -4.76,
+    "name": "pregabalin",
+    "pdb_id": "1M17"
+  },
+  "1IEP_16063245": {
+    "delta_g": -19.41,
+    "name": "radotinib",
+    "pdb_id": "1IEP"
+  },
+  "1IEP_11387605": {
+    "delta_g": -11.7,
+    "name": "bafetinib",
+    "pdb_id": "1IEP"
+  },
+  "1IEP_25066467": {
+    "delta_g": -3.95,
+    "name": "rebastinib",
+    "pdb_id": "1IEP"
+  },
+  "1IEP_150311": {
+    "delta_g": -12.02,
+    "name": "ezetimibe",
+    "pdb_id": "1IEP"
+  },
+  "1IEP_3152": {
+    "delta_g": -13.4,
+    "name": "donepezil",
+    "pdb_id": "1IEP"
+  },
+  "1IEP_4054": {
+    "delta_g": -17.08,
+    "name": "memantine",
+    "pdb_id": "1IEP"
+  },
+  "1IEP_2764": {
+    "delta_g": -11.29,
+    "name": "ciprofloxacin",
+    "pdb_id": "1IEP"
+  },
+  "1IEP_3639": {
+    "delta_g": -17.61,
+    "name": "hydrochlorothiazide",
+    "pdb_id": "1IEP"
+  },
+  "1IEP_5833": {
+    "delta_g": -26.3,
+    "name": "spironolactone",
+    "pdb_id": "1IEP"
+  },
+  "3PP0_51039030": {
+    "delta_g": null,
+    "name": "pyrotinib",
+    "pdb_id": "3PP0"
+  },
+  "3PP0_25127713": {
+    "delta_g": null,
+    "name": "poziotinib",
+    "pdb_id": "3PP0"
+  },
+  "3PP0_6444692": {
+    "delta_g": null,
+    "name": "mubritinib",
+    "pdb_id": "3PP0"
+  },
+  "3PP0_5656": {
+    "delta_g": null,
+    "name": "venlafaxine",
+    "pdb_id": "3PP0"
+  },
+  "3PP0_68617": {
+    "delta_g": null,
+    "name": "sertraline",
+    "pdb_id": "3PP0"
+  },
+  "3PP0_3386": {
+    "delta_g": null,
+    "name": "fluoxetine",
+    "pdb_id": "3PP0"
+  },
+  "3PP0_33741": {
+    "delta_g": null,
+    "name": "tramadol",
+    "pdb_id": "3PP0"
+  },
+  "3PP0_3446": {
+    "delta_g": null,
+    "name": "gabapentin",
+    "pdb_id": "3PP0"
+  },
+  "3PP0_135401907": {
+    "delta_g": null,
+    "name": "allopurinol",
+    "pdb_id": "3PP0"
+  },
+  "4XV2_89670174": {
+    "delta_g": null,
+    "name": "lifirafenib",
+    "pdb_id": "4XV2"
+  },
+  "4XV2_25161177": {
+    "delta_g": null,
+    "name": "tovorafenib",
+    "pdb_id": "4XV2"
+  },
+  "4XV2_90116675": {
+    "delta_g": null,
+    "name": "plx8394",
+    "pdb_id": "4XV2"
+  },
+  "4XV2_149096": {
+    "delta_g": null,
+    "name": "levofloxacin",
+    "pdb_id": "4XV2"
+  },
+  "4XV2_4173": {
+    "delta_g": null,
+    "name": "metronidazole",
+    "pdb_id": "4XV2"
+  },
+  "4XV2_60606": {
+    "delta_g": null,
+    "name": "clopidogrel",
+    "pdb_id": "4XV2"
+  },
+  "4XV2_150311": {
+    "delta_g": null,
+    "name": "ezetimibe",
+    "pdb_id": "4XV2"
+  },
+  "4XV2_5486971": {
+    "delta_g": null,
+    "name": "pregabalin",
+    "pdb_id": "4XV2"
+  },
+  "4XV2_3878": {
+    "delta_g": null,
+    "name": "lamotrigine",
+    "pdb_id": "4XV2"
+  },
+  "4COX_123619": {
+    "delta_g": -10.55,
+    "name": "etoricoxib",
+    "pdb_id": "4COX"
+  },
+  "4COX_151166": {
+    "delta_g": -3.48,
+    "name": "lumiracoxib",
+    "pdb_id": "4COX"
+  },
+  "4COX_4495": {
+    "delta_g": -5.38,
+    "name": "nimesulide",
+    "pdb_id": "4COX"
+  },
+  "4COX_149096": {
+    "delta_g": -11.91,
+    "name": "levofloxacin",
+    "pdb_id": "4COX"
+  },
+  "4COX_54671203": {
+    "delta_g": -14.55,
+    "name": "doxycycline",
+    "pdb_id": "4COX"
+  },
+  "4COX_1983": {
+    "delta_g": -4.33,
+    "name": "acetaminophen",
+    "pdb_id": "4COX"
+  },
+  "4COX_3878": {
+    "delta_g": -3.51,
+    "name": "lamotrigine",
+    "pdb_id": "4COX"
+  },
+  "4COX_3446": {
+    "delta_g": -2.74,
+    "name": "gabapentin",
+    "pdb_id": "4COX"
+  },
+  "4COX_5819": {
+    "delta_g": -8.89,
+    "name": "levothyroxine",
+    "pdb_id": "4COX"
+  },
+  "1HWK_64715": {
+    "delta_g": null,
+    "name": "mevastatin",
+    "pdb_id": "1HWK"
+  },
+  "1HWK_446156": {
+    "delta_g": null,
+    "name": "cerivastatin",
+    "pdb_id": "1HWK"
+  },
+  "1HWK_149096": {
+    "delta_g": null,
+    "name": "levofloxacin",
+    "pdb_id": "1HWK"
+  },
+  "1HWK_3440": {
+    "delta_g": null,
+    "name": "furosemide",
+    "pdb_id": "1HWK"
+  },
+  "1HWK_2162": {
+    "delta_g": null,
+    "name": "amlodipine",
+    "pdb_id": "1HWK"
+  },
+  "1HWK_3446": {
+    "delta_g": null,
+    "name": "gabapentin",
+    "pdb_id": "1HWK"
+  },
+  "1HWK_3878": {
+    "delta_g": null,
+    "name": "lamotrigine",
+    "pdb_id": "1HWK"
+  },
+  "1UDT_135413547": {
+    "delta_g": null,
+    "name": "udenafil",
+    "pdb_id": "1UDT"
+  },
+  "1UDT_135452901": {
+    "delta_g": null,
+    "name": "lodenafil",
+    "pdb_id": "1UDT"
+  },
+  "1UDT_135497803": {
+    "delta_g": null,
+    "name": "mirodenafil",
+    "pdb_id": "1UDT"
+  },
+  "1UDT_149096": {
+    "delta_g": null,
+    "name": "levofloxacin",
+    "pdb_id": "1UDT"
+  },
+  "1UDT_3440": {
+    "delta_g": -29.89,
+    "name": "furosemide",
+    "pdb_id": "1UDT"
+  },
+  "1UDT_2162": {
+    "delta_g": null,
+    "name": "amlodipine",
+    "pdb_id": "1UDT"
+  },
+  "1UDT_3446": {
+    "delta_g": -32.8,
+    "name": "gabapentin",
+    "pdb_id": "1UDT"
+  },
+  "1UDT_3878": {
+    "delta_g": -24.72,
+    "name": "lamotrigine",
+    "pdb_id": "1UDT"
+  },
+  "1UDT_150311": {
+    "delta_g": null,
+    "name": "ezetimibe",
+    "pdb_id": "1UDT"
+  },
+  "3ERT_23642301": {
+    "delta_g": null,
+    "name": "elacestrant",
+    "pdb_id": "3ERT"
+  },
+  "3ERT_154257": {
+    "delta_g": null,
+    "name": "bazedoxifene",
+    "pdb_id": "3ERT"
+  },
+  "3ERT_216416": {
+    "delta_g": null,
+    "name": "lasofoxifene",
+    "pdb_id": "3ERT"
+  },
+  "3ERT_149096": {
+    "delta_g": null,
+    "name": "levofloxacin",
+    "pdb_id": "3ERT"
+  },
+  "3ERT_3440": {
+    "delta_g": null,
+    "name": "furosemide",
+    "pdb_id": "3ERT"
+  },
+  "3ERT_2162": {
+    "delta_g": null,
+    "name": "amlodipine",
+    "pdb_id": "3ERT"
+  },
+  "3ERT_3446": {
+    "delta_g": -17.06,
+    "name": "gabapentin",
+    "pdb_id": "3ERT"
+  },
+  "3ERT_3878": {
+    "delta_g": -20.17,
+    "name": "lamotrigine",
+    "pdb_id": "3ERT"
+  },
+  "3ERT_150311": {
+    "delta_g": null,
+    "name": "ezetimibe",
+    "pdb_id": "3ERT"
+  },
+  "1X70_44513473": {
+    "delta_g": -12.77,
+    "name": "anagliptin",
+    "pdb_id": "1X70"
+  },
+  "1X70_11953153": {
+    "delta_g": -14.25,
+    "name": "gemigliptin",
+    "pdb_id": "1X70"
+  },
+  "1X70_11949652": {
+    "delta_g": -11.88,
+    "name": "teneligliptin",
+    "pdb_id": "1X70"
+  },
+  "1X70_149096": {
+    "delta_g": -14.36,
+    "name": "levofloxacin",
+    "pdb_id": "1X70"
+  },
+  "1X70_2162": {
+    "delta_g": -8.95,
+    "name": "amlodipine",
+    "pdb_id": "1X70"
+  },
+  "1X70_3446": {
+    "delta_g": -10.01,
+    "name": "gabapentin",
+    "pdb_id": "1X70"
+  },
+  "1X70_3878": {
+    "delta_g": -12.96,
+    "name": "lamotrigine",
+    "pdb_id": "1X70"
+  },
+  "1X70_150311": {
+    "delta_g": -15.71,
+    "name": "ezetimibe",
+    "pdb_id": "1X70"
+  },
+  "3SN6_6918554": {
+    "delta_g": -6.4,
+    "name": "indacaterol",
+    "pdb_id": "3SN6"
+  },
+  "3SN6_11504295": {
+    "delta_g": -9.42,
+    "name": "olodaterol",
+    "pdb_id": "3SN6"
+  },
+  "3SN6_10184665": {
+    "delta_g": -1.96,
+    "name": "vilanterol",
+    "pdb_id": "3SN6"
+  },
+  "3SN6_149096": {
+    "delta_g": -4.86,
+    "name": "levofloxacin",
+    "pdb_id": "3SN6"
+  },
+  "3SN6_3440": {
+    "delta_g": -3.57,
+    "name": "furosemide",
+    "pdb_id": "3SN6"
+  },
+  "3SN6_2162": {
+    "delta_g": -5.62,
+    "name": "amlodipine",
+    "pdb_id": "3SN6"
+  },
+  "3SN6_3446": {
+    "delta_g": -3.01,
+    "name": "gabapentin",
+    "pdb_id": "3SN6"
+  },
+  "3SN6_3878": {
+    "delta_g": -8.48,
+    "name": "lamotrigine",
+    "pdb_id": "3SN6"
+  },
+  "3SN6_150311": {
+    "delta_g": -7.01,
+    "name": "ezetimibe",
+    "pdb_id": "3SN6"
   }
 }

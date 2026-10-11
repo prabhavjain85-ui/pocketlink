@@ -36,6 +36,8 @@ describeBench("benchmark docking cache", () => {
       const validation = JSON.parse(
         readFileSync(path.join(benchDir, "validation_set.json"), "utf8")
       );
+      const heldout = JSON.parse(readFileSync(path.join(benchDir, "heldout_set.json"), "utf8"));
+      const allTargets = [...validation.targets, ...heldout.targets];
       const cachePath = path.join(benchDir, "docking_cache.json");
       const pdbCacheDir = path.join(benchDir, "pdb_cache");
 
@@ -51,7 +53,7 @@ describeBench("benchmark docking cache", () => {
       const cache = existsSync(cachePath) ? JSON.parse(readFileSync(cachePath, "utf8")) : {};
       const pdbTexts = {};
 
-      for (const target of validation.targets) {
+      for (const target of allTargets) {
         const pdbId = target.pdb_id;
         if (!pdbTexts[pdbId]) {
           pdbTexts[pdbId] = await loadPdb(pdbId);
@@ -60,6 +62,9 @@ describeBench("benchmark docking cache", () => {
         const ref = DOCKING_REFERENCE_TARGETS.find((t) => t.id === pdbId.toUpperCase());
 
         for (const compound of target.compounds) {
+          if (!compound.pubchem_cid) {
+            continue;
+          }
           const key = `${pdbId}_${compound.pubchem_cid}`;
           if (cache[key]?.delta_g != null) continue;
 
