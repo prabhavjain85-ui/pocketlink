@@ -7,6 +7,10 @@ __pycache__/
 
 # testing
 /coverage
+benchmark/pdb_cache/
+benchmark/run-full.log
+benchmark/dock-test.log
+benchmark/run.log
 
 # production
 /build

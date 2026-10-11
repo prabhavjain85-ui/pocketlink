@@ -18,6 +18,8 @@
     "build": "BUILD_PATH=dist react-scripts build && node scripts/inject-seo-html.mjs",
     "lint": "eslint src --ext .js,.jsx --max-warnings=10",
     "test": "react-scripts test",
+    "benchmark": "node benchmark/runBenchmark.mjs",
+    "benchmark:fast": "node benchmark/runBenchmark.mjs --skip-docking",
     "build:trial-rates": "node scripts/build-trial-success-rates.mjs",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
