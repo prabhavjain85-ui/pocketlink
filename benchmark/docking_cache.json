@@ -1,0 +1,407 @@
+{
+  "1M17_71496458": {
+    "delta_g": null,
+    "name": "osimertinib",
+    "pdb_id": "1M17"
+  },
+  "1M17_176870": {
+    "delta_g": null,
+    "name": "erlotinib",
+    "pdb_id": "1M17"
+  },
+  "1M17_123631": {
+    "delta_g": -5.8,
+    "name": "gefitinib",
+    "pdb_id": "1M17"
+  },
+  "1M17_5291": {
+    "delta_g": -18.11,
+    "name": "imatinib",
+    "pdb_id": "1M17"
+  },
+  "1M17_4091": {
+    "delta_g": -5.48,
+    "name": "metformin",
+    "pdb_id": "1M17"
+  },
+  "1M17_3961": {
+    "delta_g": -6.68,
+    "name": "losartan",
+    "pdb_id": "1M17"
+  },
+  "1M17_4369359": {
+    "delta_g": -14.68,
+    "name": "sitagliptin",
+    "pdb_id": "1M17"
+  },
+  "1M17_2662": {
+    "delta_g": -19.6,
+    "name": "celecoxib",
+    "pdb_id": "1M17"
+  },
+  "1M17_4594": {
+    "delta_g": -7.46,
+    "name": "omeprazole",
+    "pdb_id": "1M17"
+  },
+  "1IEP_5291": {
+    "delta_g": -12.17,
+    "name": "imatinib",
+    "pdb_id": "1IEP"
+  },
+  "1IEP_3062316": {
+    "delta_g": -15.06,
+    "name": "dasatinib",
+    "pdb_id": "1IEP"
+  },
+  "1IEP_644241": {
+    "delta_g": -14.11,
+    "name": "nilotinib",
+    "pdb_id": "1IEP"
+  },
+  "1IEP_123631": {
+    "delta_g": -18.45,
+    "name": "gefitinib",
+    "pdb_id": "1IEP"
+  },
+  "1IEP_44462760": {
+    "delta_g": -17.69,
+    "name": "dabrafenib",
+    "pdb_id": "1IEP"
+  },
+  "1IEP_2662": {
+    "delta_g": -16.32,
+    "name": "celecoxib",
+    "pdb_id": "1IEP"
+  },
+  "1IEP_3961": {
+    "delta_g": -20.52,
+    "name": "losartan",
+    "pdb_id": "1IEP"
+  },
+  "1IEP_2519": {
+    "delta_g": -12.77,
+    "name": "caffeine",
+    "pdb_id": "1IEP"
+  },
+  "3PP0_208908": {
+    "delta_g": null,
+    "name": "lapatinib",
+    "pdb_id": "3PP0"
+  },
+  "3PP0_9915743": {
+    "delta_g": null,
+    "name": "neratinib",
+    "pdb_id": "3PP0"
+  },
+  "3PP0_51039094": {
+    "delta_g": null,
+    "name": "tucatinib",
+    "pdb_id": "3PP0"
+  },
+  "3PP0_123631": {
+    "delta_g": null,
+    "name": "gefitinib",
+    "pdb_id": "3PP0"
+  },
+  "3PP0_5291": {
+    "delta_g": null,
+    "name": "imatinib",
+    "pdb_id": "3PP0"
+  },
+  "3PP0_135398744": {
+    "delta_g": null,
+    "name": "sildenafil",
+    "pdb_id": "3PP0"
+  },
+  "3PP0_4091": {
+    "delta_g": null,
+    "name": "metformin",
+    "pdb_id": "3PP0"
+  },
+  "3PP0_54678486": {
+    "delta_g": null,
+    "name": "warfarin",
+    "pdb_id": "3PP0"
+  },
+  "4XV2_44462760": {
+    "delta_g": null,
+    "name": "dabrafenib",
+    "pdb_id": "4XV2"
+  },
+  "4XV2_42611257": {
+    "delta_g": null,
+    "name": "vemurafenib",
+    "pdb_id": "4XV2"
+  },
+  "4XV2_50922675": {
+    "delta_g": null,
+    "name": "encorafenib",
+    "pdb_id": "4XV2"
+  },
+  "4XV2_5291": {
+    "delta_g": null,
+    "name": "imatinib",
+    "pdb_id": "4XV2"
+  },
+  "4XV2_176870": {
+    "delta_g": null,
+    "name": "erlotinib",
+    "pdb_id": "4XV2"
+  },
+  "4XV2_4369359": {
+    "delta_g": null,
+    "name": "sitagliptin",
+    "pdb_id": "4XV2"
+  },
+  "4XV2_2162": {
+    "delta_g": null,
+    "name": "amlodipine",
+    "pdb_id": "4XV2"
+  },
+  "4XV2_3672": {
+    "delta_g": null,
+    "name": "ibuprofen",
+    "pdb_id": "4XV2"
+  },
+  "4COX_2662": {
+    "delta_g": -6.9,
+    "name": "celecoxib",
+    "pdb_id": "4COX"
+  },
+  "4COX_3672": {
+    "delta_g": -5.3,
+    "name": "ibuprofen",
+    "pdb_id": "4COX"
+  },
+  "4COX_3715": {
+    "delta_g": -6.48,
+    "name": "indomethacin",
+    "pdb_id": "4COX"
+  },
+  "4COX_5291": {
+    "delta_g": -8.12,
+    "name": "imatinib",
+    "pdb_id": "4COX"
+  },
+  "4COX_4091": {
+    "delta_g": -1.59,
+    "name": "metformin",
+    "pdb_id": "4COX"
+  },
+  "4COX_135398744": {
+    "delta_g": -4.24,
+    "name": "sildenafil",
+    "pdb_id": "4COX"
+  },
+  "4COX_4369359": {
+    "delta_g": -8.47,
+    "name": "sitagliptin",
+    "pdb_id": "4COX"
+  },
+  "4COX_3961": {
+    "delta_g": -4.83,
+    "name": "losartan",
+    "pdb_id": "4COX"
+  },
+  "1HWK_60823": {
+    "delta_g": null,
+    "name": "atorvastatin",
+    "pdb_id": "1HWK"
+  },
+  "1HWK_446157": {
+    "delta_g": null,
+    "name": "rosuvastatin",
+    "pdb_id": "1HWK"
+  },
+  "1HWK_54454": {
+    "delta_g": null,
+    "name": "simvastatin",
+    "pdb_id": "1HWK"
+  },
+  "1HWK_5291": {
+    "delta_g": null,
+    "name": "imatinib",
+    "pdb_id": "1HWK"
+  },
+  "1HWK_2519": {
+    "delta_g": null,
+    "name": "caffeine",
+    "pdb_id": "1HWK"
+  },
+  "1HWK_4091": {
+    "delta_g": null,
+    "name": "metformin",
+    "pdb_id": "1HWK"
+  },
+  "1HWK_4594": {
+    "delta_g": null,
+    "name": "omeprazole",
+    "pdb_id": "1HWK"
+  },
+  "1HWK_54678486": {
+    "delta_g": null,
+    "name": "warfarin",
+    "pdb_id": "1HWK"
+  },
+  "1UDT_135398744": {
+    "delta_g": null,
+    "name": "sildenafil",
+    "pdb_id": "1UDT"
+  },
+  "1UDT_110635": {
+    "delta_g": -44.89,
+    "name": "tadalafil",
+    "pdb_id": "1UDT"
+  },
+  "1UDT_135400189": {
+    "delta_g": null,
+    "name": "vardenafil",
+    "pdb_id": "1UDT"
+  },
+  "1UDT_5291": {
+    "delta_g": null,
+    "name": "imatinib",
+    "pdb_id": "1UDT"
+  },
+  "1UDT_4091": {
+    "delta_g": -13.76,
+    "name": "metformin",
+    "pdb_id": "1UDT"
+  },
+  "1UDT_2662": {
+    "delta_g": null,
+    "name": "celecoxib",
+    "pdb_id": "1UDT"
+  },
+  "1UDT_4369359": {
+    "delta_g": null,
+    "name": "sitagliptin",
+    "pdb_id": "1UDT"
+  },
+  "1UDT_3961": {
+    "delta_g": null,
+    "name": "losartan",
+    "pdb_id": "1UDT"
+  },
+  "3ERT_2733526": {
+    "delta_g": null,
+    "name": "tamoxifen",
+    "pdb_id": "3ERT"
+  },
+  "3ERT_5035": {
+    "delta_g": null,
+    "name": "raloxifene",
+    "pdb_id": "3ERT"
+  },
+  "3ERT_104741": {
+    "delta_g": null,
+    "name": "fulvestrant",
+    "pdb_id": "3ERT"
+  },
+  "3ERT_5291": {
+    "delta_g": null,
+    "name": "imatinib",
+    "pdb_id": "3ERT"
+  },
+  "3ERT_4091": {
+    "delta_g": -16.11,
+    "name": "metformin",
+    "pdb_id": "3ERT"
+  },
+  "3ERT_135398744": {
+    "delta_g": null,
+    "name": "sildenafil",
+    "pdb_id": "3ERT"
+  },
+  "3ERT_60823": {
+    "delta_g": null,
+    "name": "atorvastatin",
+    "pdb_id": "3ERT"
+  },
+  "3ERT_2519": {
+    "delta_g": -8.63,
+    "name": "caffeine",
+    "pdb_id": "3ERT"
+  },
+  "1X70_4369359": {
+    "delta_g": -17.81,
+    "name": "sitagliptin",
+    "pdb_id": "1X70"
+  },
+  "1X70_11243969": {
+    "delta_g": -11.03,
+    "name": "saxagliptin",
+    "pdb_id": "1X70"
+  },
+  "1X70_10096344": {
+    "delta_g": -9.44,
+    "name": "linagliptin",
+    "pdb_id": "1X70"
+  },
+  "1X70_4091": {
+    "delta_g": -10.85,
+    "name": "metformin",
+    "pdb_id": "1X70"
+  },
+  "1X70_3478": {
+    "delta_g": -20.31,
+    "name": "glipizide",
+    "pdb_id": "1X70"
+  },
+  "1X70_5291": {
+    "delta_g": -5.49,
+    "name": "imatinib",
+    "pdb_id": "1X70"
+  },
+  "1X70_3961": {
+    "delta_g": -8.15,
+    "name": "losartan",
+    "pdb_id": "1X70"
+  },
+  "1X70_4594": {
+    "delta_g": -11.66,
+    "name": "omeprazole",
+    "pdb_id": "1X70"
+  },
+  "3SN6_2083": {
+    "delta_g": -3.53,
+    "name": "salbutamol",
+    "pdb_id": "3SN6"
+  },
+  "3SN6_3410": {
+    "delta_g": -11.38,
+    "name": "formoterol",
+    "pdb_id": "3SN6"
+  },
+  "3SN6_5152": {
+    "delta_g": -2.68,
+    "name": "salmeterol",
+    "pdb_id": "3SN6"
+  },
+  "3SN6_5288826": {
+    "delta_g": -3.87,
+    "name": "morphine",
+    "pdb_id": "3SN6"
+  },
+  "3SN6_3961": {
+    "delta_g": -1.46,
+    "name": "losartan",
+    "pdb_id": "3SN6"
+  },
+  "3SN6_5291": {
+    "delta_g": -9.12,
+    "name": "imatinib",
+    "pdb_id": "3SN6"
+  },
+  "3SN6_2519": {
+    "delta_g": -5.34,
+    "name": "caffeine",
+    "pdb_id": "3SN6"
+  },
+  "3SN6_54678486": {
+    "delta_g": -4.81,
+    "name": "warfarin",
+    "pdb_id": "3SN6"
+  }
+}
