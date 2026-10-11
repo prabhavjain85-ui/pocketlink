@@ -14,11 +14,12 @@ const require = createRequire(import.meta.url);
 const { rankCandidatesLocal } = require("../src/scoreCandidates.js");
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const HELDOUT = join(__dirname, "heldout_benchmark_v2.json");
+const HELDOUT = process.env.HELDOUT_BENCHMARK_PATH || join(__dirname, "heldout_benchmark_v2.json");
 const SPLITS = join(__dirname, "split_sets.json");
 const REF = join(__dirname, "reference_sets.json");
-const OUT_JSON = join(__dirname, "heldout_split_results.json");
-const OUT_MD = join(__dirname, "HELDOUT_RESULTS.md");
+const OUT_JSON = process.env.HELDOUT_RESULTS_JSON || join(__dirname, "heldout_split_results.json");
+const OUT_MD = process.env.HELDOUT_RESULTS_MD || join(__dirname, "HELDOUT_RESULTS.md");
+const BENCHMARK_TITLE = process.env.HELDOUT_RESULTS_TITLE || "Held-out benchmark results";
 
 const NN_CUTOFF = 0.4;
 
@@ -250,7 +251,7 @@ async function main() {
 
   writeFileSync(OUT_JSON, JSON.stringify(results, null, 2));
 
-  let md = "# Held-out benchmark results\n\n";
+  let md = `# ${BENCHMARK_TITLE}\n\n`;
   md += `Benchmark ready (MW/logP sanity): **${benchmarkReady}**\n\n`;
   md += "## Per-target decoys and baselines\n\n| Target | Actives | Decoys | Decoys/active | Source | MW AUC | logP AUC |\n|---|---:|---:|---:|---|---:|---:|\n";
   for (const r of perTargetTables) {
@@ -260,6 +261,10 @@ async function main() {
     md += "\n**Scoring methods were not evaluated** until MW and logP baselines are 0.45–0.55 per target.\n";
   } else {
     const methods = ["legacy", "similarity", "combined", "mw", "logp", "random"];
+    if (process.env.HELDOUT_BENCHMARK_PATH?.includes("dude")) {
+      md +=
+        "\n> **DUD-E analogue bias:** property-matched decoys may inflate similarity-only methods vs true inactive distributions.\n";
+    }
     md += "\n## Headline: cluster split (ROC-AUC 95% CI; EF@1%)\n\n";
     md += mdTableForMode(results.per_target, "cluster", methods);
     md += "\n### Overall (macro mean of per-target AUCs)\n\n| Method | Mean AUC |\n|---|---:|\n";

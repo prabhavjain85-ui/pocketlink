@@ -7,7 +7,7 @@ import urllib.request
 from pathlib import Path
 
 from rdkit import Chem
-from rdkit.Chem import Crippen, Descriptors
+from rdkit.Chem import Crippen, Descriptors, Lipinski
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / "benchmark" / "dude_cache"
@@ -68,6 +68,10 @@ def mol2_block_to_record(block: str, mol_id: str, dude_idx: int) -> dict | None:
         "smiles": smiles,
         "molecularWeight": float(Descriptors.MolWt(mol)),
         "xlogp": float(Crippen.MolLogP(mol)),
+        "hbd": int(Lipinski.NumHDonors(mol)),
+        "hba": int(Lipinski.NumHAcceptors(mol)),
+        "rotatableBonds": int(Lipinski.NumRotatableBonds(mol)),
+        "formal_charge": int(Chem.GetFormalCharge(mol)),
     }
 
 
@@ -116,20 +120,6 @@ def load_dude_set(target_key: str) -> dict | None:
             decoys.append(rec)
 
     sizes = decoy_block_sizes(len(act_blocks), len(dec_blocks))
-    if sizes and sum(sizes) != len(dec_blocks):
-        return {
-            "available": False,
-            "dude_name": dude,
-            "reason": "decoy_block_size_mismatch",
-        }
-
-    # Map each decoy to its source active index (order in DUD-E archives).
-    decoy_active_idx: list[int] = []
-    for ai, sz in enumerate(sizes):
-        decoy_active_idx.extend([ai] * sz)
-    for j, pai in enumerate(decoy_active_idx):
-        if j < len(decoys):
-            decoys[j]["paired_active_idx"] = pai
 
     return {
         "available": len(actives) > 0 and len(decoys) > 0,
@@ -141,6 +131,7 @@ def load_dude_set(target_key: str) -> dict | None:
         "actives": actives,
         "decoys": decoys,
         "decoys_per_active_sizes": sizes,
+        "pairing_note": "mol2 file order is NOT reliable for active→decoy mapping; use dudeDecoyMatch.assign_decoys_greedy.",
         "n_actives_mol2": len(act_blocks),
         "n_decoys_mol2": len(dec_blocks),
     }

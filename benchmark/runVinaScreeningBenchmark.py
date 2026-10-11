@@ -115,6 +115,16 @@ def vina_score_for_smiles(target_cfg, full_tgt, smiles: str) -> float | None:
 
 
 def load_compounds(target_id: str):
+    dude_path = BENCH / "dude_benchmark.json"
+    if dude_path.exists():
+        data = json.loads(dude_path.read_text())
+        for t in data.get("targets", []):
+            if t.get("id") != target_id:
+                continue
+            act = [c["smiles"] for c in t.get("compounds", []) if c.get("role") == "active"]
+            dec = [c["smiles"] for c in t.get("compounds", []) if c.get("role") == "decoy"]
+            if act and dec:
+                return act[:MAX_ACTIVES], dec[:MAX_DECOYS]
     sets_path = BENCH / "vina_screening_compounds.json"
     if sets_path.exists():
         data = json.loads(sets_path.read_text())

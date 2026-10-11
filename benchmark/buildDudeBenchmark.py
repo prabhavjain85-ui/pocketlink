@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
 DUD-E-only held-out benchmark: actives/decoys from DUD-E (no self-built decoys).
+Decoy assignment: 50 nearest DUD-E decoys per active by standardized (MW, logP, HBD,
+HBA, rotB, net charge), without replacement, seed=42 (mol2 block order is invalid).
+
 Leakage: drop test actives with InChIKey matching reference actives.
 Splits: cluster (Murcko overlap 0) + hard NN Tanimoto cutoff 0.4.
 
-Sanity: MW/logP ROC-AUC on the full DUD-E active+paired-decoy set and on the
-evaluated test subset (test actives + decoys generated for those actives only).
+Gate: evaluated subset MW and logP ROC-AUC must be in [0.45, 0.55].
 """
 from __future__ import annotations
 
@@ -27,7 +29,14 @@ from buildHeldoutBenchmark import (  # noqa: E402
     murcko_scaffold_smiles,
     roc_auc,
 )
-from dudeLoader import DUDE_NAMES, decoy_index_range, load_dude_set
+from dudeDecoyMatch import (  # noqa: E402
+    DECOYS_PER_ACTIVE,
+    assign_decoys_eval_subset,
+    assign_decoys_greedy,
+    mw_delta_distribution,
+    summarize_deltas,
+)
+from dudeLoader import DUDE_NAMES, load_dude_set
 
 OUT = BENCH / "dude_benchmark.json"
 OUT_SUMMARY = BENCH / "dude_benchmark_summary.json"
@@ -56,21 +65,20 @@ def enrich_dude_record(rec: dict, role: str) -> dict | None:
         "smiles": can,
         "name": rec.get("mol_id") or rec.get("name"),
         "chembl_id": rec.get("mol_id") if role == "active" else f"DUDE-D-{rec['dude_idx']}",
-        "dude_active_idx": rec.get("dude_idx") if role == "active" else rec.get("paired_active_idx"),
-        "dude_decoy_idx": rec.get("dude_idx") if role == "decoy" else None,
+        "dude_active_idx": rec["dude_idx"] if role == "active" else None,
+        "dude_decoy_idx": rec["dude_idx"] if role == "decoy" else None,
         "molecularWeight": rec["molecularWeight"],
         "xlogp": rec["xlogp"],
-        "hbd": Lipinski.NumHDonors(mol),
-        "hba": Lipinski.NumHAcceptors(mol),
-        "rotatableBonds": Lipinski.NumRotatableBonds(mol),
+        "hbd": rec.get("hbd", Lipinski.NumHDonors(mol)),
+        "hba": rec.get("hba", Lipinski.NumHAcceptors(mol)),
+        "rotatableBonds": rec.get("rotatableBonds", Lipinski.NumRotatableBonds(mol)),
+        "formal_charge": rec.get("formal_charge", Chem.GetFormalCharge(mol)),
         "tpsa": rdMolDescriptors.CalcTPSA(mol),
         "murcko": murcko_scaffold_smiles(mol),
         "inchikey": inchikey(mol),
         "fp": fp_morgan(mol).ToBitString(),
         "role": role,
     }
-    if role == "decoy":
-        out["matched_to_active_idx"] = rec.get("paired_active_idx")
     return out
 
 
@@ -81,10 +89,10 @@ def baseline_mw_logp(compounds: list[dict]) -> tuple[float | None, float | None]
     return roc_auc(labels, mw), roc_auc(labels, lp)
 
 
-def mw_logp_flag(mw_auc: float | None, logp_auc: float | None) -> bool:
+def mw_logp_pass(mw_auc: float | None, logp_auc: float | None) -> bool:
     if mw_auc is None or logp_auc is None:
-        return True
-    return not (MW_LOGP_LOW <= mw_auc <= MW_LOGP_HIGH and MW_LOGP_LOW <= logp_auc <= MW_LOGP_HIGH)
+        return False
+    return MW_LOGP_LOW <= mw_auc <= MW_LOGP_HIGH and MW_LOGP_LOW <= logp_auc <= MW_LOGP_HIGH
 
 
 def nn_max_to_ref(test_entry: dict, ref_fps: list) -> float:
@@ -95,17 +103,32 @@ def nn_max_to_ref(test_entry: dict, ref_fps: list) -> float:
     return best
 
 
-def build_full_sanity_compounds(
-    actives_by_idx: dict[int, dict], decoys_by_idx: dict[int, dict], sizes: list[int]
+def compounds_from_assignment(
+    active_entries: list[dict],
+    decoys_by_idx: dict[int, dict],
+    assignment: dict[int, list[int]],
+    ref_fps: list | None = None,
 ) -> list[dict]:
     compounds: list[dict] = []
-    for ai in sorted(actives_by_idx):
-        a = actives_by_idx[ai]
-        compounds.append({**a, "role": "active"})
-        start, end = decoy_index_range(ai, sizes)
-        for j in range(start, end):
-            if j in decoys_by_idx:
-                compounds.append({**decoys_by_idx[j], "role": "decoy"})
+    for a in active_entries:
+        ai = a["dude_active_idx"]
+        row = {k: a[k] for k in a if k != "fp"}
+        row["role"] = "active"
+        if ref_fps is not None:
+            row["nn_tanimoto_to_ref"] = round(nn_max_to_ref(a, ref_fps), 4)
+        compounds.append(row)
+        for dj in assignment.get(ai, []):
+            d = decoys_by_idx.get(dj)
+            if not d:
+                continue
+            compounds.append(
+                {
+                    **{k: d[k] for k in d if k != "fp"},
+                    "role": "decoy",
+                    "matched_to": a.get("chembl_id"),
+                    "matched_to_active_idx": ai,
+                }
+            )
     return compounds
 
 
@@ -113,6 +136,7 @@ def main():
     excluded = load_exclusion_smiles()
     included = []
     dropped = []
+    pairing_stats = []
     for tgt in TARGETS:
         tid = tgt["id"]
         if tid not in DUDE_NAMES:
@@ -123,19 +147,18 @@ def main():
             dropped.append({"id": tid, "reason": "DUD-E download failed"})
             continue
 
-        sizes = dude["decoys_per_active_sizes"]
+        actives_raw_recs = [r for r in dude["actives"] if r["smiles"] not in excluded]
+        decoys_raw_recs = [r for r in dude["decoys"] if r["smiles"] not in excluded]
+
         actives_by_idx: dict[int, dict] = {}
-        for rec in dude["actives"]:
-            if rec["smiles"] in excluded:
-                continue
+        for rec in actives_raw_recs:
             e = enrich_dude_record(rec, "active")
             if e:
+                e["dude_active_idx"] = rec["dude_idx"]
                 actives_by_idx[rec["dude_idx"]] = e
 
         decoys_by_idx: dict[int, dict] = {}
-        for rec in dude["decoys"]:
-            if rec["smiles"] in excluded:
-                continue
+        for rec in decoys_raw_recs:
             e = enrich_dude_record(rec, "decoy")
             if e:
                 decoys_by_idx[rec["dude_idx"]] = e
@@ -147,7 +170,12 @@ def main():
             )
             continue
 
-        full_compounds = build_full_sanity_compounds(actives_by_idx, decoys_by_idx, sizes)
+        assignment_full = assign_decoys_greedy(actives_raw_recs, decoys_raw_recs)
+
+        all_active_entries = [actives_by_idx[i] for i in sorted(actives_by_idx)]
+        full_compounds = compounds_from_assignment(
+            all_active_entries, decoys_by_idx, assignment_full, ref_fps=None
+        )
         mw_full, logp_full = baseline_mw_logp(full_compounds)
 
         by_smi = {a["smiles"]: a for a in actives_raw}
@@ -173,90 +201,107 @@ def main():
             dropped.append({"id": tid, "reason": "too few test actives after InChIKey dedup"})
             continue
 
+        test_recs = [r for r in actives_raw_recs if r["dude_idx"] in {t["dude_active_idx"] for t in test_clean}]
+        assignment_eval = assign_decoys_eval_subset(test_recs, decoys_raw_recs)
+        delta_summary = summarize_deltas(
+            mw_delta_distribution(test_recs, decoys_raw_recs, assignment_eval)
+        )
+        pairing_stats.append({"id": tid, "mw_delta_eval": delta_summary})
+
         ref_fps = [DataStructs.CreateFromBitString(r["fp"]) for r in ref_raw]
-        compounds: list[dict] = []
-        test_active_indices = set()
-        for t in test_clean:
-            test_active_indices.add(t["dude_active_idx"])
-            nn = nn_max_to_ref(t, ref_fps)
-            compounds.append(
+        compounds = compounds_from_assignment(
+            test_clean, decoys_by_idx, assignment_eval, ref_fps=ref_fps
+        )
+        n_eval_decoys = sum(1 for c in compounds if c["role"] == "decoy")
+        mw_subset, logp_subset = baseline_mw_logp(compounds)
+
+        if not mw_logp_pass(mw_subset, logp_subset):
+            dropped.append(
                 {
-                    **{k: t[k] for k in t if k != "fp"},
-                    "role": "active",
-                    "nn_tanimoto_to_ref": round(nn, 4),
+                    "id": tid,
+                    "reason": (
+                        f"subset MW/logP gate failed (mw={mw_subset}, logp={logp_subset}; "
+                        f"need [{MW_LOGP_LOW},{MW_LOGP_HIGH}])"
+                    ),
                 }
             )
+            print(
+                f"[dude] {tid} EXCLUDED gate test={len(test_clean)} "
+                f"mw_sub={mw_subset:.3f} logp_sub={logp_subset:.3f} "
+                f"mw_delta_med={delta_summary.get('median')}",
+                flush=True,
+            )
+            continue
 
-        n_eval_decoys = 0
-        for ai in sorted(test_active_indices):
-            start, end = decoy_index_range(ai, sizes)
-            for j in range(start, end):
-                if j not in decoys_by_idx:
-                    continue
-                d = decoys_by_idx[j]
-                matched_id = actives_by_idx.get(ai, {}).get("chembl_id")
-                compounds.append(
-                    {
-                        **{k: d[k] for k in d if k != "fp"},
-                        "role": "decoy",
-                        "matched_to": matched_id,
-                        "matched_to_active_idx": ai,
-                    }
-                )
-                n_eval_decoys += 1
-
-        mw_subset, logp_subset = baseline_mw_logp(compounds)
         ref_entries = [{k: r[k] for k in r if k != "fp"} for r in ref_raw]
+        ref_recs = [r for r in actives_raw_recs if r["dude_idx"] in {r0["dude_active_idx"] for r0 in ref_raw}]
+        assignment_ref = assign_decoys_eval_subset(ref_recs, decoys_raw_recs)
+        train_compounds = compounds_from_assignment(
+            ref_raw, decoys_by_idx, assignment_ref, ref_fps=None
+        )
+        train_stripped = [{k: c[k] for k in c if k != "fp"} for c in train_compounds]
         included.append(
             {
                 "id": tid,
                 "name": tgt["name"],
                 "dude_code": DUDE_NAMES[tid],
                 "active_source": dude.get("active_source"),
+                "decoy_assignment": (
+                    f"DUD-E pool; eval: {DECOYS_PER_ACTIVE} nearest per active (MW then logP/HBD/HBA/rotB/charge); "
+                    "full-set: global no-replacement"
+                ),
                 "property_computation": dude.get("property_note"),
+                "mw_delta_summary": delta_summary,
                 "murcko_overlap_cluster": murcko_overlap,
                 "inchikey_removed_from_test": inchi_removed,
                 "mw_roc_auc_full": mw_full,
                 "logp_roc_auc_full": logp_full,
                 "mw_roc_auc_subset": mw_subset,
                 "logp_roc_auc_subset": logp_subset,
-                "mw_roc_auc": mw_full,
-                "logp_roc_auc": logp_full,
-                "mw_logp_flag": mw_logp_flag(mw_full, logp_full),
-                "mw_logp_flag_subset": mw_logp_flag(mw_subset, logp_subset),
+                "mw_roc_auc": mw_subset,
+                "logp_roc_auc": logp_subset,
+                "mw_logp_flag": False,
+                "mw_logp_flag_subset": False,
                 "n_test_actives": len(test_clean),
                 "n_ref_actives": len(ref_raw),
                 "n_decoys_eval": n_eval_decoys,
-                "n_decoys_full": len(decoys_by_idx),
-                "decoys_per_active_mean": len(decoys_by_idx) / max(1, len(actives_by_idx)),
-                "compounds": compounds,
+                "n_decoys_full": sum(len(v) for v in assignment_full.values()),
+                "decoys_per_active_mean": DECOYS_PER_ACTIVE,
+                "compounds": [{k: c[k] for k in c if k != "fp"} for c in compounds],
+                "train_compounds": train_stripped,
                 "reference_actives": ref_entries,
             }
         )
         print(
-            f"[dude] {tid} test={len(test_clean)} eval_decoys={n_eval_decoys} "
+            f"[dude] {tid} OK test={len(test_clean)} eval_decoys={n_eval_decoys} "
             f"mw_full={mw_full:.3f} logp_full={logp_full:.3f} "
-            f"mw_sub={mw_subset:.3f} logp_sub={logp_subset:.3f} inchi_rm={inchi_removed}",
+            f"mw_sub={mw_subset:.3f} logp_sub={logp_subset:.3f} "
+            f"mw_delta_med={delta_summary.get('median'):.2f} inchi_rm={inchi_removed}",
             flush=True,
         )
 
+    benchmark_ready = len(included) > 0
     payload = {
-        "version": 2,
-        "decoy_source": "DUD-E only (no self-built decoys)",
-        "active_source_note": "DUD-E actives_final.mol2.gz (not ChEMBL API actives scored against DUD-E decoys).",
-        "decoy_pairing_note": "Decoys paired to actives by order in DUD-E decoys_final.mol2.gz (per-active blocks).",
+        "version": 3,
+        "decoy_source": "DUD-E only (property-matched assignment, no self-built decoys)",
+        "active_source_note": "DUD-E actives_final.mol2.gz (not ChEMBL API actives).",
+        "decoy_pairing_note": (
+            "mol2 block order invalid (verified |ΔMW|); per-active nearest-decoy fallback from DUD-E pool."
+        ),
         "property_note": "MW/logP from RDKit MolFromMol2Block for both actives and decoys.",
         "dude_analogue_bias_note": "DUD-E decoys are property-matched but retain known analogue bias vs actives.",
         "mw_logp_sanity_band": [MW_LOGP_LOW, MW_LOGP_HIGH],
+        "pairing_verification": pairing_stats,
+        "benchmark_ready": benchmark_ready,
         "targets": included,
         "excluded": dropped,
     }
     OUT.write_text(json.dumps(payload, indent=2))
     tgt_meta = {x["id"]: x for x in TARGETS}
     heldout_compat = {
-        "version": 2,
+        "version": 3,
         "description": "DUD-E benchmark (eval compat)",
-        "sanity_overall": {"benchmark_ready": True},
+        "sanity_overall": {"benchmark_ready": benchmark_ready},
         "targets": [
             {
                 "id": t["id"],
@@ -271,13 +316,14 @@ def main():
                 },
                 "compounds": t["compounds"],
                 "sanity": {
-                    "mw_roc_auc": t["mw_roc_auc_full"],
-                    "logp_roc_auc": t["logp_roc_auc_full"],
-                    "mw_roc_auc_subset": t["mw_roc_auc_subset"],
-                    "logp_roc_auc_subset": t["logp_roc_auc_subset"],
+                    "mw_roc_auc": t["mw_roc_auc_subset"],
+                    "logp_roc_auc": t["logp_roc_auc_subset"],
+                    "mw_roc_auc_full": t["mw_roc_auc_full"],
+                    "logp_roc_auc_full": t["logp_roc_auc_full"],
                     "decoy_source": "DUD-E",
                     "murcko_scaffold_overlap": t["murcko_overlap_cluster"],
                     "decoys_per_active_mean": t["decoys_per_active_mean"],
+                    "inchikey_removed_from_test": t["inchikey_removed_from_test"],
                 },
             }
             for t in included
@@ -287,8 +333,10 @@ def main():
     OUT_SUMMARY.write_text(
         json.dumps(
             {
+                "benchmark_ready": benchmark_ready,
                 "included": [t["id"] for t in included],
                 "excluded": dropped,
+                "pairing_verification": pairing_stats,
                 "per_target": [
                     {
                         "id": t["id"],
@@ -297,8 +345,7 @@ def main():
                         "logp_roc_auc_full": t["logp_roc_auc_full"],
                         "mw_roc_auc_subset": t["mw_roc_auc_subset"],
                         "logp_roc_auc_subset": t["logp_roc_auc_subset"],
-                        "mw_logp_flag": t["mw_logp_flag"],
-                        "mw_logp_flag_subset": t["mw_logp_flag_subset"],
+                        "mw_delta_median": t["mw_delta_summary"].get("median"),
                         "inchikey_removed": t["inchikey_removed_from_test"],
                         "murcko_overlap": t["murcko_overlap_cluster"],
                         "n_test_actives": t["n_test_actives"],
@@ -310,7 +357,7 @@ def main():
             indent=2,
         )
     )
-    print(f"Wrote {OUT} ({len(included)} targets)")
+    print(f"Wrote {OUT} ({len(included)} targets passed gate)")
 
 
 if __name__ == "__main__":

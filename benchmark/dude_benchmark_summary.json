@@ -1,25 +1,46 @@
 {
+  "benchmark_ready": true,
   "included": [
-    "egfr",
-    "abl1",
-    "braf",
-    "ptgs2",
-    "pde5a",
-    "esr1",
     "dpp4",
     "adrb2",
-    "hiv_pr",
-    "jak2",
-    "thrombin"
+    "jak2"
   ],
   "excluded": [
+    {
+      "id": "egfr",
+      "reason": "subset MW/logP gate failed (mw=0.5114, logp=0.6014222222222222; need [0.45,0.55])"
+    },
+    {
+      "id": "abl1",
+      "reason": "subset MW/logP gate failed (mw=0.5113555555555556, logp=0.5643111111111111; need [0.45,0.55])"
+    },
     {
       "id": "erbb2",
       "reason": "DUD-E download failed"
     },
     {
+      "id": "braf",
+      "reason": "subset MW/logP gate failed (mw=0.5417777777777778, logp=0.6389777777777778; need [0.45,0.55])"
+    },
+    {
+      "id": "ptgs2",
+      "reason": "subset MW/logP gate failed (mw=0.5158666666666667, logp=0.23022222222222222; need [0.45,0.55])"
+    },
+    {
       "id": "hmgcr",
       "reason": "DUD-E download failed"
+    },
+    {
+      "id": "pde5a",
+      "reason": "subset MW/logP gate failed (mw=0.49448888888888887, logp=0.7467555555555555; need [0.45,0.55])"
+    },
+    {
+      "id": "esr1",
+      "reason": "subset MW/logP gate failed (mw=0.5025, logp=0.7340666666666666; need [0.45,0.55])"
+    },
+    {
+      "id": "hiv_pr",
+      "reason": "subset MW/logP gate failed (mw=0.5236222222222222, logp=0.6507777777777778; need [0.45,0.55])"
     },
     {
       "id": "sars_mpro",
@@ -28,162 +49,174 @@
     {
       "id": "hdac1",
       "reason": "DUD-E download failed"
+    },
+    {
+      "id": "thrombin",
+      "reason": "subset MW/logP gate failed (mw=0.5206222222222222, logp=0.25653333333333334; need [0.45,0.55])"
     }
   ],
-  "per_target": [
+  "pairing_verification": [
     {
       "id": "egfr",
-      "dude_code": "egfr",
-      "mw_roc_auc_full": 0.5526850239882712,
-      "logp_roc_auc_full": 0.6152245658399639,
-      "mw_roc_auc_subset": 0.9742635658914729,
-      "logp_roc_auc_subset": 0.8848837209302326,
-      "mw_logp_flag": true,
-      "mw_logp_flag_subset": true,
-      "inchikey_removed": 0,
-      "murcko_overlap": 0,
-      "n_test_actives": 30,
-      "n_decoys_eval": 1290
+      "mw_delta_eval": {
+        "n": 30,
+        "median": 0.4610000000000696,
+        "mean": 1.3462999999999663,
+        "p90": 3.084500000000048,
+        "max": 8.945500000000038,
+        "frac_within_25Da": 1.0
+      }
     },
     {
       "id": "abl1",
-      "dude_code": "abl1",
-      "mw_roc_auc_full": 0.6253759255078128,
-      "logp_roc_auc_full": 0.6196457572619761,
-      "mw_roc_auc_subset": 0.9359459459459459,
-      "logp_roc_auc_subset": 0.653093093093093,
-      "mw_logp_flag": true,
-      "mw_logp_flag_subset": true,
-      "inchikey_removed": 0,
-      "murcko_overlap": 0,
-      "n_test_actives": 30,
-      "n_decoys_eval": 1110
+      "mw_delta_eval": {
+        "n": 30,
+        "median": 0.30074999999999363,
+        "mean": 1.6814166666666799,
+        "p90": 4.469499999999925,
+        "max": 12.985000000000241,
+        "frac_within_25Da": 1.0
+      }
     },
     {
       "id": "braf",
-      "dude_code": "braf",
-      "mw_roc_auc_full": 0.5636615747349284,
-      "logp_roc_auc_full": 0.728974969600702,
-      "mw_roc_auc_subset": 0.8800387596899225,
-      "logp_roc_auc_subset": 0.7998615725359911,
-      "mw_logp_flag": true,
-      "mw_logp_flag_subset": true,
-      "inchikey_removed": 0,
-      "murcko_overlap": 0,
-      "n_test_actives": 30,
-      "n_decoys_eval": 1204
+      "mw_delta_eval": {
+        "n": 30,
+        "median": 3.1630000000001246,
+        "mean": 3.9060666666665838,
+        "p90": 8.64149999999995,
+        "max": 18.06699999999978,
+        "frac_within_25Da": 1.0
+      }
     },
     {
       "id": "ptgs2",
-      "dude_code": "pgh2",
-      "mw_roc_auc_full": 0.5268803927887349,
-      "logp_roc_auc_full": 0.5103909260137648,
-      "mw_roc_auc_subset": 0.8166161616161616,
-      "logp_roc_auc_subset": 0.3443939393939394,
-      "mw_logp_flag": false,
-      "mw_logp_flag_subset": true,
-      "inchikey_removed": 0,
-      "murcko_overlap": 0,
-      "n_test_actives": 30,
-      "n_decoys_eval": 1320
+      "mw_delta_eval": {
+        "n": 30,
+        "median": 0.09149999999999636,
+        "mean": 0.12579999999997352,
+        "p90": 0.31699999999995043,
+        "max": 0.3589999999999236,
+        "frac_within_25Da": 1.0
+      }
     },
     {
       "id": "pde5a",
-      "dude_code": "pde5a",
-      "mw_roc_auc_full": 0.5427037228748247,
-      "logp_roc_auc_full": 0.504013669695553,
-      "mw_roc_auc_subset": 0.7349471341124095,
-      "logp_roc_auc_subset": 0.8594880356149137,
-      "mw_logp_flag": false,
-      "mw_logp_flag_subset": true,
-      "inchikey_removed": 0,
-      "murcko_overlap": 0,
-      "n_test_actives": 30,
-      "n_decoys_eval": 1198
+      "mw_delta_eval": {
+        "n": 30,
+        "median": 0.011000000000024102,
+        "mean": 0.07276666666662474,
+        "p90": 0.0654999999999859,
+        "max": 0.8539999999998145,
+        "frac_within_25Da": 1.0
+      }
     },
     {
       "id": "esr1",
-      "dude_code": "esr1",
-      "mw_roc_auc_full": 0.5543442270161557,
-      "logp_roc_auc_full": 0.6312417039419481,
-      "mw_roc_auc_subset": 0.7847514180847515,
-      "logp_roc_auc_subset": 0.7471471471471471,
-      "mw_logp_flag": true,
-      "mw_logp_flag_subset": true,
-      "inchikey_removed": 0,
-      "murcko_overlap": 0,
-      "n_test_actives": 30,
-      "n_decoys_eval": 999
+      "mw_delta_eval": {
+        "n": 30,
+        "median": 0.016999999999967486,
+        "mean": 0.023483333333352143,
+        "p90": 0.05199999999990723,
+        "max": 0.07450000000017099,
+        "frac_within_25Da": 1.0
+      }
     },
+    {
+      "id": "dpp4",
+      "mw_delta_eval": {
+        "n": 30,
+        "median": 0.0015000000000782165,
+        "mean": 0.003250000000033045,
+        "p90": 0.009499999999945885,
+        "max": 0.009499999999945885,
+        "frac_within_25Da": 1.0
+      }
+    },
+    {
+      "id": "adrb2",
+      "mw_delta_eval": {
+        "n": 30,
+        "median": 0.0392500000000382,
+        "mean": 0.11200000000004025,
+        "p90": 0.05900000000013961,
+        "max": 1.1580000000000155,
+        "frac_within_25Da": 1.0
+      }
+    },
+    {
+      "id": "hiv_pr",
+      "mw_delta_eval": {
+        "n": 30,
+        "median": 0.05600000000004002,
+        "mean": 0.1559000000000784,
+        "p90": 0.593000000000302,
+        "max": 0.7584999999996853,
+        "frac_within_25Da": 1.0
+      }
+    },
+    {
+      "id": "jak2",
+      "mw_delta_eval": {
+        "n": 30,
+        "median": 0.030249999999995225,
+        "mean": 1.4784666666666566,
+        "p90": 3.364500000000021,
+        "max": 20.930999999999926,
+        "frac_within_25Da": 1.0
+      }
+    },
+    {
+      "id": "thrombin",
+      "mw_delta_eval": {
+        "n": 30,
+        "median": 3.5899999999996908,
+        "mean": 3.4966833333331997,
+        "p90": 8.44250000000011,
+        "max": 8.60149999999976,
+        "frac_within_25Da": 1.0
+      }
+    }
+  ],
+  "per_target": [
     {
       "id": "dpp4",
       "dude_code": "dpp4",
       "mw_roc_auc_full": 0.535789641882145,
       "logp_roc_auc_full": 0.4743030907347848,
-      "mw_roc_auc_subset": 0.04448246364414029,
-      "logp_roc_auc_subset": 0.25540347875677216,
-      "mw_logp_flag": false,
-      "mw_logp_flag_subset": true,
+      "mw_roc_auc_subset": 0.4716444444444444,
+      "logp_roc_auc_subset": 0.48902222222222225,
+      "mw_delta_median": 0.0015000000000782165,
       "inchikey_removed": 0,
       "murcko_overlap": 0,
       "n_test_actives": 30,
-      "n_decoys_eval": 1169
+      "n_decoys_eval": 1500
     },
     {
       "id": "adrb2",
       "dude_code": "adrb2",
       "mw_roc_auc_full": 0.5527991335953958,
       "logp_roc_auc_full": 0.4997314849644045,
-      "mw_roc_auc_subset": 0.12415693904020753,
-      "logp_roc_auc_subset": 0.26008430609597927,
-      "mw_logp_flag": true,
-      "mw_logp_flag_subset": true,
+      "mw_roc_auc_subset": 0.5368333333333334,
+      "logp_roc_auc_subset": 0.47984444444444446,
+      "mw_delta_median": 0.0392500000000382,
       "inchikey_removed": 0,
       "murcko_overlap": 0,
       "n_test_actives": 30,
-      "n_decoys_eval": 1028
-    },
-    {
-      "id": "hiv_pr",
-      "dude_code": "hivpr",
-      "mw_roc_auc_full": 0.6811970149061805,
-      "logp_roc_auc_full": 0.6041176845888028,
-      "mw_roc_auc_subset": 0.6104970008568981,
-      "logp_roc_auc_subset": 0.7484147386461011,
-      "mw_logp_flag": true,
-      "mw_logp_flag_subset": true,
-      "inchikey_removed": 0,
-      "murcko_overlap": 0,
-      "n_test_actives": 30,
-      "n_decoys_eval": 778
+      "n_decoys_eval": 1500
     },
     {
       "id": "jak2",
       "dude_code": "jak2",
       "mw_roc_auc_full": 0.49981502970434505,
       "logp_roc_auc_full": 0.6414388011147808,
-      "mw_roc_auc_subset": 0.7238076823923691,
-      "logp_roc_auc_subset": 0.5657643722608919,
-      "mw_logp_flag": true,
-      "mw_logp_flag_subset": true,
+      "mw_roc_auc_subset": 0.5094777777777778,
+      "logp_roc_auc_subset": 0.5218888888888888,
+      "mw_delta_median": 0.030249999999995225,
       "inchikey_removed": 0,
       "murcko_overlap": 0,
       "n_test_actives": 30,
-      "n_decoys_eval": 1293
-    },
-    {
-      "id": "thrombin",
-      "dude_code": "thrb",
-      "mw_roc_auc_full": 0.7663823707995037,
-      "logp_roc_auc_full": 0.3633708096637979,
-      "mw_roc_auc_subset": 0.9567472835611637,
-      "logp_roc_auc_subset": 0.3231335436382755,
-      "mw_logp_flag": true,
-      "mw_logp_flag_subset": true,
-      "inchikey_removed": 0,
-      "murcko_overlap": 0,
-      "n_test_actives": 30,
-      "n_decoys_eval": 951
+      "n_decoys_eval": 1500
     }
   ]
 }

@@ -1,66 +1,56 @@
 {
-  "description": "Targets allowed for server-side Vina docking (co-crystal redock in-place Vina RMSD < 2 Å on the reference validation run). Selection introduces benchmark bias if used for retrospective screening.",
-  "validation_run_note": "Latest full redock (2026-10-11) shows Vina stochasticity: abl1 ~12.3 Å and jak2 ~2.56 Å failed while erbb2/ptgs2/pde5a/esr1/dpp4/thrombin passed. Gate list below matches the user-approved 8-target allowlist from the prior passing run; see REDOCK_TABLE.md for current dual RMSD.",
-  "rmsd_gate_angstrom": 2.0,
-  "rmsd_metric": "vina_in_place_primary: min(calc_rmsd, spyrmsd) or calc_rmsd from benchmark/redocking_results.json",
+  "description": "Server-side Vina allowlist: >=8/10 seeds spyrmsd<2\u00c5 (exhaustiveness=16).",
+  "exhaustiveness": 16,
+  "gate": ">=8/10 seeds",
   "validated": [
     {
       "target_id": "abl1",
-      "display_name": "ABL1",
+      "display_name": "abl1",
       "pdb_id": "1IEP",
       "ligand_resn": "STI",
-      "ligand_chain": "A"
+      "ligand_chain": "A",
+      "passes_out_of_10": 9
     },
     {
       "target_id": "erbb2",
-      "display_name": "HER2 (ERBB2)",
+      "display_name": "erbb2",
       "pdb_id": "3PP0",
       "ligand_resn": "03Q",
-      "ligand_chain": "A"
+      "ligand_chain": "A",
+      "passes_out_of_10": 10
     },
     {
       "target_id": "ptgs2",
-      "display_name": "COX-2 (PTGS2)",
+      "display_name": "ptgs2",
       "pdb_id": "1CX2",
       "ligand_resn": "S58",
       "ligand_chain": "A",
-      "keep_het_resnames": ["HEM"]
+      "passes_out_of_10": 10
     },
     {
       "target_id": "pde5a",
-      "display_name": "PDE5A",
+      "display_name": "pde5a",
       "pdb_id": "1UDT",
       "ligand_resn": "VIA",
-      "ligand_chain": "A"
+      "ligand_chain": "A",
+      "passes_out_of_10": 10
     },
     {
       "target_id": "esr1",
-      "display_name": "ESR1",
+      "display_name": "esr1",
       "pdb_id": "3ERT",
       "ligand_resn": "OHT",
-      "ligand_chain": "A"
+      "ligand_chain": "A",
+      "passes_out_of_10": 10
     },
     {
       "target_id": "dpp4",
-      "display_name": "DPP4",
+      "display_name": "dpp4",
       "pdb_id": "4A5S",
       "ligand_resn": "N7F",
-      "ligand_chain": "A"
-    },
-    {
-      "target_id": "jak2",
-      "display_name": "JAK2",
-      "pdb_id": "4JI9",
-      "ligand_resn": "1M3",
-      "ligand_chain": "A"
-    },
-    {
-      "target_id": "thrombin",
-      "display_name": "Thrombin",
-      "pdb_id": "1PPB",
-      "ligand_resn": "0G6",
-      "ligand_chain": "H"
+      "ligand_chain": "A",
+      "passes_out_of_10": 10
     }
   ],
-  "not_validated_message": "Docking not validated for this target. Server-side Vina is only enabled where co-crystal redocking in-place RMSD < 2 Å."
+  "not_validated_message": "Docking not validated for this target."
 }

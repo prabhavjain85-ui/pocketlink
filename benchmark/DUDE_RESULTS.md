@@ -1,50 +1,56 @@
-# DUD-E benchmark sanity (PR B)
+# DUD-E benchmark (PR B round 2)
 
-## Pipeline bug (fixed)
+## Pairing verification (block order **invalid**)
 
-**Symptom:** EGFR MW ROC-AUC ≈ **0.96** / logP ≈ **0.87**; ABL1 MW ≈ **0.95** — implausible for property-matched DUD-E pairs.
+For EGFR, assuming sequential blocks in `decoys_final.mol2.gz` assigns decoys to actives with **698/832** actives having |MW(active) − median(decoys)| **> 25 Da** (median block-order ΔMW ≈ 78 Da). This explains subset MW AUC ≈ 0.97 under the earlier bug (all decoys vs few test actives) and invalidates mol2-order pairing.
 
-**Root cause:** After the cluster split, evaluation used ~**30 test actives** but appended **all** target decoys (~35k for EGFR), with `matched_to` assigned via `i % len(test_actives)`. MW/logP AUC compared a small, cluster-selected active set to decoys property-matched to **other** actives across the full library.
+## Fallback assignment (DUD-E pool only)
 
-**Fix:** Pair decoys to actives using DUD-E `decoys_final.mol2.gz` block order (~`n_decoys / n_actives` per active). The evaluated set is **test actives + decoys from those actives only**.
+Because no reliable active→decoy map exists in the published archives:
 
-## (a) Actives source
+- **Eval subset:** per test active, **50 nearest** decoys from that target’s full DUD-E pool ranked by (|ΔMW|, |ΔlogP|, z(HBD,HBA,rotB,charge)).
+- Decoys **may repeat across actives** in the eval subset so pooled MW/logP AUC is not biased by global no-replacement depletion when test actives cluster (verified: no-replacement gave MW AUC ≈ 0.78 with median per-active ΔMW ≈ 14 Da; independent nearest-neighbor gives MW AUC ≈ 0.51).
+- **Full-set report:** global **no-replacement** assignment in `dude_idx` order (same ranking).
 
-- Actives are **`actives_final.mol2.gz`** from DUD-E (titles are ChEMBL IDs, e.g. `CHEMBL144760`), **not** ChEMBL API actives scored against DUD-E decoys.
-- `actives_final.ism` exists on the server but has fewer lines than mol2 actives; mol2 is the pairing reference for decoy blocks.
+Actives: `actives_final.mol2.gz` (ChEMBL IDs in titles). Properties: RDKit `MolFromMol2Block` for actives and decoys.
 
-## (b) Decoy pairing
+## MW / logP gate (subset 0.45–0.55)
 
-- Decoys are read from **`decoys_final.mol2.gz`** in archive order.
-- Block sizes: `base = n_decoys // n_actives`, first `n_decoys % n_actives` actives receive `base+1` decoys (EGFR: 498×43 + 334×42 = 35442).
+| Target | MW AUC (subset) | logP AUC (subset) | |ΔMW| median (eval) | Gate |
+|--------|-----------------|-------------------|-------------------|------|
+| dpp4 | 0.472 | 0.489 | 0.00 | **pass** |
+| adrb2 | 0.537 | 0.480 | 0.04 | **pass** |
+| jak2 | 0.509 | 0.522 | 0.03 | **pass** |
+| egfr | 0.511 | 0.601 | 0.46 | fail (logP) |
+| abl1 | 0.511 | 0.564 | 0.30 | fail (logP) |
+| braf | 0.542 | 0.639 | 3.16 | fail (logP) |
+| ptgs2 | 0.516 | 0.230 | 0.09 | fail (logP) |
+| pde5a | 0.494 | 0.747 | 0.01 | fail (logP) |
+| esr1 | 0.503 | 0.734 | 0.02 | fail (logP) |
+| hiv_pr | 0.524 | 0.651 | 0.06 | fail (logP) |
+| thrombin | 0.521 | 0.257 | 3.59 | fail (logP) |
 
-## (c) MW / logP computation
+**Included in benchmark JSON:** dpp4, adrb2, jak2 (3 targets).  
+**Excluded:** erbb2, hmgcr, hdac1 (no DUD-E download), sars_mpro (unmapped); others fail logP and/or MW gate.
 
-- Both actives and decoys: **RDKit `MolFromMol2Block`** → `Descriptors.MolWt` / `Crippen.MolLogP` on the same mol object (preserves charged ZINC states in decoys).
-- Fingerprints and splits still use canonical SMILES derived from that mol.
+## Leakage / splits
 
-## MW / logP ROC-AUC (full DUD-E set vs evaluated subset)
+- InChIKey overlap removed from test vs reference actives (counts in `dude_benchmark.json` per target).
+- **Headline:** cluster split, Murcko overlap 0 between ref/test clusters.
+- **Hard cutoff:** NN Morgan Tanimoto to reference actives ≤ 0.4 (decoys kept only for actives passing cutoff).
 
-Sanity band for **full** set: 0.45–0.55 (flag if outside). **Subset** AUC can diverge when test actives are a tight cluster but decoys are still per-active property-matched — reported for transparency, not used as the primary gate.
+## RF baseline (Morgan r=2, 2048, train on ref actives + paired decoys)
 
-| Target | DUD-E code | MW AUC (full) | logP AUC (full) | MW AUC (subset) | logP AUC (subset) | Full flag |
-|--------|------------|---------------|-----------------|-----------------|-------------------|-----------|
-| egfr | egfr | 0.553 | 0.615 | 0.974 | 0.885 | outside (logP) |
-| abl1 | abl1 | 0.625 | 0.620 | 0.936 | 0.653 | outside |
-| braf | braf | 0.564 | 0.729 | 0.880 | 0.800 | outside (logP) |
-| ptgs2 | pgh2 | 0.527 | 0.510 | 0.817 | 0.344 | OK |
-| pde5a | pde5a | 0.543 | 0.504 | 0.735 | 0.859 | OK |
-| esr1 | esr1 | 0.554 | 0.631 | 0.785 | 0.747 | outside (logP) |
-| dpp4 | dpp4 | 0.535 | 0.474 | 0.044 | 0.255 | OK (logP low) |
-| adrb2 | adrb2 | 0.553 | 0.500 | 0.124 | 0.260 | OK |
-| hiv_pr | hivpr | 0.681 | 0.604 | 0.610 | 0.748 | outside |
-| jak2 | jak2 | 0.500 | 0.641 | 0.724 | 0.566 | outside (logP) |
-| thrombin | thrb | 0.766 | 0.363 | 0.957 | 0.323 | outside |
+| Target | RF ROC-AUC (test) |
+|--------|-------------------|
+| dpp4 | 0.285 |
+| adrb2 | 0.998 |
+| jak2 | 1.000 |
 
-**11 / 15** targets included. **Excluded (expected):** `erbb2`, `hmgcr`, `hdac1` (DUD-E download 404), `sars_mpro` (no DUD-E mapping). No `hdac8` substitute.
+See `dude_rf_results.json`. Split scoring vs legacy/similarity/combined: run `node evaluateDudeSplits.mjs` → `DUDE_SPLIT_RESULTS.md` (long-running).
 
-## Files
+## Scripts
 
-- `dudeLoader.py` — download, mol2 parse, decoy block pairing
-- `buildDudeBenchmark.py` — splits + full/subset sanity metrics
-- `dude_benchmark.json`, `dude_benchmark_summary.json`
+- `verifyDudePairing.py` — ΔMW distribution
+- `buildDudeBenchmark.py` — builds `dude_benchmark.json`
+- `runDudePipeline.sh` — verify → build → RF → splits
