@@ -1,13 +1,11 @@
-# Vina screening benchmark (8 redock-validated targets)
+# Vina screening (multi-seed pass ∩ DUD-E gate)
 
-**Selection bias:** Targets were pre-selected because an earlier co-crystal redock run reported in-place Vina RMSD &lt; 2 Å. This is **not** an unbiased virtual-screening benchmark.
+Retrospective Vina ROC-AUC on targets that passed BOTH multi-seed redocking (≥8/10 seeds spyrmsd <2 Å) AND DUD-E subset MW/logP gate. Highly optimistic.
 
-**Compound sets:** `buildVinaScreeningSets.py` must produce property-matched decoys with MW and logP baseline ROC-AUC in **0.45–0.55** per target. As of the latest build attempt, **0/8** targets passed that gate in `vina_screening_compounds.json` (see `build_summary` — decoy pools still biased for several kinases). **Full Vina ROC-AUC screening was not run** until decoy sanity passes; running anyway would confound affinity ranking with decoy bias.
+Intersection: **dpp4**
 
-**Next step:** Reuse the same `refine_decoy_sanity` loop as `buildHeldoutBenchmark.py` (DUD-E + ChEMBL pool) until each validated target passes MW/logP gate, then:
+Caps (fixed-seed subsample): 25 actives, 100 decoys per target.
 
-```bash
-VINA_SCREEN_MAX_ACTIVES=25 VINA_SCREEN_MAX_DECOYS=100 python3 benchmark/runVinaScreeningBenchmark.py
-```
-
-Expected runtime: hours (one Vina dock per compound).
+| Target | N scored | ROC-AUC | 95% CI | EF@1% | Dock failures |
+|---|---:|---:|---|---:|---:|
+| dpp4 | 125 | 0.3044 | [0.1936813186813187, 0.43956270627062705] | 0.0 | 0 |

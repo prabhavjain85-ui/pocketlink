@@ -19,7 +19,7 @@ PR A (separate, off `main`) owns: disable in-browser docking engine, honest mark
 | 8 | DUD-E actives + nearest-50 decoys (eval repeats OK) | **PASS** | `DUDE_RESULTS.md`, `dude_pairing_verify.json` |
 | 9 | DUD-E MW/logP gate; 3 targets in benchmark | **PASS** | `dude_benchmark_summary.json` — dpp4, adrb2, jak2 |
 | 10 | Cluster + hard-cutoff split eval + RF sanity | **PASS** | `DUDE_SPLIT_RESULTS.md`, `dude_rf_split_results.json` |
-| 11 | Vina screening on multiseed ∩ DUD-E gate | **RUN** | `runVinaScreeningBenchmark.py` → `VINA_SCREENING_RESULTS.md` (intersection: **dpp4** only) |
+| 11 | Vina screening on multiseed ∩ DUD-E gate | **PASS** | `VINA_SCREENING_RESULTS.md` — intersection **dpp4** only; AUC 0.30 (95% CI 0.19–0.44) |
 | 12 | No method tuning / honest bad numbers | **PASS** | RF caveat on adrb2/jak2; redock FAIL targets documented |
 | 13 | Every changed file listed in PR body | **PASS** | See PR description |
 
