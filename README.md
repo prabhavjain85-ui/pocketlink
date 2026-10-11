@@ -166,7 +166,7 @@ TargetForge operates out-of-the-box with local deterministic models. Advanced AI
 
 ## Ranking benchmark (retrospective validation)
 
-An auditable small panel (10 targets, 30 known actives vs approved decoys) exercises the same local **heuristic-v2** ranking engine as the Staging Bench without changing production weights. See [`benchmark/README.md`](benchmark/README.md) and the generated report [`benchmark/RESULTS.md`](benchmark/RESULTS.md).
+An auditable benchmark exercises the same local **heuristic-v2** ranking engine as the Staging Bench without changing production weights: an **in-rule (circular)** panel plus a **held-out (non-circular)** panel of ChEMBL actives not in `TARGET_RULES`. See [`benchmark/README.md`](benchmark/README.md) and [`benchmark/RESULTS.md`](benchmark/RESULTS.md).
 
 ```bash
 npm run benchmark:fast   # heuristic + baselines only
