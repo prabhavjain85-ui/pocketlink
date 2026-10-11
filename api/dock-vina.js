@@ -4,13 +4,11 @@
  */
 const VALIDATED_IDS = new Set([
   "abl1",
-  "erbb2",
-  "ptgs2",
-  "pde5a",
-  "esr1",
   "dpp4",
-  "jak2",
-  "thrombin",
+  "erbb2",
+  "esr1",
+  "pde5a",
+  "ptgs2",
 ]);
 
 const NOT_VALIDATED_MSG =

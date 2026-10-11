@@ -114,6 +114,23 @@ def vina_score_for_smiles(target_cfg, full_tgt, smiles: str) -> float | None:
     return None
 
 
+def subsample_fixed(smiles_list: list[str], cap: int, seed: int = 42) -> list[str]:
+    if len(smiles_list) <= cap:
+        return smiles_list
+    rng = random.Random(seed)
+    idx = list(range(len(smiles_list)))
+    rng.shuffle(idx)
+    return [smiles_list[i] for i in sorted(idx[:cap])]
+
+
+def dude_gated_target_ids() -> set[str]:
+    summary = BENCH / "dude_benchmark_summary.json"
+    if summary.exists():
+        data = json.loads(summary.read_text())
+        return set(data.get("included") or [])
+    return set()
+
+
 def load_compounds(target_id: str):
     dude_path = BENCH / "dude_benchmark.json"
     if dude_path.exists():
@@ -124,7 +141,10 @@ def load_compounds(target_id: str):
             act = [c["smiles"] for c in t.get("compounds", []) if c.get("role") == "active"]
             dec = [c["smiles"] for c in t.get("compounds", []) if c.get("role") == "decoy"]
             if act and dec:
-                return act[:MAX_ACTIVES], dec[:MAX_DECOYS]
+                return (
+                    subsample_fixed(act, MAX_ACTIVES, seed=42),
+                    subsample_fixed(dec, MAX_DECOYS, seed=43),
+                )
     sets_path = BENCH / "vina_screening_compounds.json"
     if sets_path.exists():
         data = json.loads(sets_path.read_text())
@@ -146,9 +166,28 @@ def load_compounds(target_id: str):
 def main():
     docking_cfg = json.loads((BENCH / "docking_targets.json").read_text())
     by_id = {t["target_id"]: t for t in docking_cfg["targets"]}
+    dude_gate = dude_gated_target_ids()
+    multiseed_ids = {v["target_id"] for v in VALIDATED}
+    intersection = sorted(dude_gate & multiseed_ids)
     rows = []
-    for vt in VALIDATED:
-        tid = vt["target_id"]
+    if not intersection:
+        payload = {
+            "selection_bias": (
+                "Intersection of multi-seed redock passers and DUD-E MW/logP-gated targets was empty."
+            ),
+            "dude_gated": sorted(dude_gate),
+            "multiseed_validated": sorted(multiseed_ids),
+            "intersection": [],
+            "rows": [],
+        }
+        OUT_JSON.write_text(json.dumps(payload, indent=2))
+        OUT_MD.write_text(
+            "# Vina screening (multiseed ∩ DUD-E gate)\n\n**Intersection empty** — no targets run.\n"
+        )
+        print("Wrote empty Vina screening (intersection empty)")
+        return
+    for tid in intersection:
+        vt = next(v for v in VALIDATED if v["target_id"] == tid)
         full = by_id.get(tid)
         if not full:
             continue
@@ -165,20 +204,17 @@ def main():
         labels = []
         scores = []
         failures = 0
-        for smi in act:
+        compounds = [(smi, 1) for smi in act] + [(smi, 0) for smi in dec]
+        for i, (smi, lab) in enumerate(compounds, start=1):
             s = vina_score_for_smiles(vt, full, smi)
             if s is None:
                 failures += 1
+                print(f"[vina-screen] {tid} {i}/{len(compounds)} dock failed", flush=True)
                 continue
-            labels.append(1)
+            labels.append(lab)
             scores.append(s)
-        for smi in dec:
-            s = vina_score_for_smiles(vt, full, smi)
-            if s is None:
-                failures += 1
-                continue
-            labels.append(0)
-            scores.append(s)
+            if i % 5 == 0 or i == len(compounds):
+                print(f"[vina-screen] {tid} {i}/{len(compounds)} scored", flush=True)
         auc, lo, hi = bootstrap_auc(labels, scores, n=BOOT)
         rows.append(
             {
@@ -188,24 +224,36 @@ def main():
                 "roc_auc": auc,
                 "roc_auc_ci_95": [lo, hi],
                 "ef_at_1pct": ef_at_pct(labels, scores, 0.01),
-                "selection_bias_note": "Target included because redocking passed <2 Å",
+                "selection_bias_note": (
+                    "Target in intersection: multi-seed redock pass AND DUD-E MW/logP gate pass."
+                ),
             }
         )
         print(f"[vina-screen] {tid} n={len(labels)} auc={auc}", flush=True)
 
     payload = {
-        "selection_bias": "Targets chosen by redocking success (<2 Å in-place Vina). Retrospective Vina ROC-AUC is optimistic.",
+        "selection_bias": (
+            "Retrospective Vina ROC-AUC on targets that passed BOTH multi-seed redocking "
+            "(≥8/10 seeds spyrmsd <2 Å) AND DUD-E subset MW/logP gate. Highly optimistic."
+        ),
+        "dude_gated": sorted(dude_gate),
+        "multiseed_validated": sorted(multiseed_ids),
+        "intersection": intersection,
+        "subsample_seed_actives": 42,
+        "subsample_seed_decoys": 43,
         "max_actives": MAX_ACTIVES,
         "max_decoys": MAX_DECOYS,
         "rows": rows,
     }
     OUT_JSON.write_text(json.dumps(payload, indent=2))
     lines = [
-        "# Vina screening benchmark (redock-validated targets only)",
+        "# Vina screening (multi-seed pass ∩ DUD-E gate)",
         "",
         payload["selection_bias"],
         "",
-        f"Caps: {MAX_ACTIVES} actives, {MAX_DECOYS} decoys per target.",
+        f"Intersection: **{', '.join(intersection) or 'none'}**",
+        "",
+        f"Caps (fixed-seed subsample): {MAX_ACTIVES} actives, {MAX_DECOYS} decoys per target.",
         "",
         "| Target | N scored | ROC-AUC | 95% CI | EF@1% | Dock failures |",
         "|---|---:|---:|---|---:|---:|",

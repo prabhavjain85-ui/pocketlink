@@ -5,13 +5,11 @@
 
 const VALIDATED = [
   { targetId: "abl1", pdbId: "1IEP", label: "ABL1" },
-  { targetId: "erbb2", pdbId: "3PP0", label: "HER2 (ERBB2)" },
-  { targetId: "ptgs2", pdbId: "1CX2", label: "COX-2" },
+  { targetId: "erbb2", pdbId: "3PP0", label: "ERBB2" },
+  { targetId: "ptgs2", pdbId: "1CX2", label: "PTGS2" },
   { targetId: "pde5a", pdbId: "1UDT", label: "PDE5A" },
   { targetId: "esr1", pdbId: "3ERT", label: "ESR1" },
   { targetId: "dpp4", pdbId: "4A5S", label: "DPP4" },
-  { targetId: "jak2", pdbId: "4JI9", label: "JAK2" },
-  { targetId: "thrombin", pdbId: "1PPB", label: "Thrombin" },
 ];
 
 export const VINA_NOT_VALIDATED_MESSAGE =

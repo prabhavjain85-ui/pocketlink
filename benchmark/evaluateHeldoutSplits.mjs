@@ -20,8 +20,43 @@ const REF = join(__dirname, "reference_sets.json");
 const OUT_JSON = process.env.HELDOUT_RESULTS_JSON || join(__dirname, "heldout_split_results.json");
 const OUT_MD = process.env.HELDOUT_RESULTS_MD || join(__dirname, "HELDOUT_RESULTS.md");
 const BENCHMARK_TITLE = process.env.HELDOUT_RESULTS_TITLE || "Held-out benchmark results";
+const RF_SPLITS = process.env.DUDE_RF_SPLITS_JSON || join(__dirname, "dude_rf_split_results.json");
+const DUDE_BENCH = join(__dirname, "dude_benchmark.json");
 
 const NN_CUTOFF = 0.4;
+
+function loadRfByTarget() {
+  if (!existsSync(RF_SPLITS)) return {};
+  const data = JSON.parse(readFileSync(RF_SPLITS, "utf8"));
+  const map = {};
+  for (const row of data.per_target || []) {
+    map[row.id] = row;
+  }
+  return map;
+}
+
+function loadInchiRemoved() {
+  if (!existsSync(DUDE_BENCH)) return {};
+  const data = JSON.parse(readFileSync(DUDE_BENCH, "utf8"));
+  const map = {};
+  for (const t of data.targets || []) {
+    map[t.id] = t.inchikey_removed_from_test ?? 0;
+  }
+  return map;
+}
+
+function rfMetric(rfRow, mode) {
+  const m = rfRow?.modes?.[mode]?.rf_morgan;
+  if (!m || m.roc_auc == null) return null;
+  const ci = m.roc_auc_ci_95;
+  return {
+    roc_auc: m.roc_auc,
+    roc_auc_ci_95: ci ? { low: ci.low, high: ci.high } : null,
+    ef_at_1pct: m.ef_at_1pct,
+    n: m.n_test,
+    n_actives: m.n_test_actives,
+  };
+}
 
 function compoundToCandidate(c, painsApi) {
   const painsRaw = c.smiles
@@ -180,6 +215,8 @@ async function main() {
   const splits = existsSync(SPLITS) ? JSON.parse(readFileSync(SPLITS, "utf8")) : { targets: {} };
   const painsApi = await import("../src/painsCheck.js");
   const benchmarkReady = heldout.sanity_overall?.benchmark_ready === true;
+  const rfByTarget = loadRfByTarget();
+  const inchiRemoved = loadInchiRemoved();
 
   const perTargetTables = [];
   const results = {
@@ -211,6 +248,9 @@ async function main() {
       modes.cutoff = await scoreTarget(filterCutoffCompounds(target), target.protein, painsApi);
       const randomCompounds = buildRandomCompounds(target, splitBlock);
       modes.random = await scoreTarget(randomCompounds, target.protein, painsApi);
+      const rfRow = rfByTarget[target.id];
+      if (rfRow && modes.cluster) modes.cluster.rf = rfMetric(rfRow, "cluster");
+      if (rfRow && modes.cutoff) modes.cutoff.rf = rfMetric(rfRow, "cutoff");
     }
 
     const nn = target.compounds
@@ -219,9 +259,15 @@ async function main() {
       .filter((x) => x != null);
     results.per_target.push({
       ...baselineRow,
+      inchikey_removed_from_test: inchiRemoved[target.id] ?? sanity.inchikey_removed_from_test ?? 0,
       nn_tanimoto_distribution: nn.length
         ? { mean: nn.reduce((a, b) => a + b, 0) / nn.length, min: Math.min(...nn), max: Math.max(...nn) }
         : null,
+      rf_leakage_audit: rfByTarget[target.id]?.leakage_audit ?? null,
+      rf_descriptor_sanity: {
+        cluster: rfByTarget[target.id]?.modes?.cluster?.rf_descriptors ?? null,
+        cutoff: rfByTarget[target.id]?.modes?.cutoff?.rf_descriptors ?? null,
+      },
       modes,
     });
   }
@@ -236,8 +282,17 @@ async function main() {
         mw: meanAuc(results.per_target, mode, "mw"),
         logp: meanAuc(results.per_target, mode, "logp"),
         random: meanAuc(results.per_target, mode, "random"),
+        rf: meanAuc(results.per_target, mode, "rf"),
       };
     }
+    const legacyBeatsRf = results.per_target.filter(
+      (t) =>
+        t.modes?.cluster?.legacy?.roc_auc != null &&
+        t.modes?.cluster?.rf?.roc_auc != null &&
+        t.modes.cluster.legacy.roc_auc > t.modes.cluster.rf.roc_auc
+    ).length;
+    results.legacy_beats_rf_on_cluster = legacyBeatsRf > results.per_target.length / 2;
+    results.legacy_beats_rf_targets = legacyBeatsRf;
     clusterWins = results.per_target.filter(
       (t) =>
         t.modes?.cluster?.combined?.roc_auc != null &&
@@ -260,12 +315,21 @@ async function main() {
   if (!benchmarkReady) {
     md += "\n**Scoring methods were not evaluated** until MW and logP baselines are 0.45–0.55 per target.\n";
   } else {
-    const methods = ["legacy", "similarity", "combined", "mw", "logp", "random"];
+    const methods = ["legacy", "similarity", "combined", "rf", "mw", "logp", "random"];
     if (process.env.HELDOUT_BENCHMARK_PATH?.includes("dude")) {
       md +=
         "\n> **DUD-E analogue bias:** property-matched decoys may inflate similarity-only methods vs true inactive distributions.\n";
+      md +=
+        "\n> **Decoy assignment (eval):** independent nearest-50 per test active from the DUD-E decoy pool (repeats allowed across actives). See `DUDE_RESULTS.md`.\n";
     }
-    md += "\n## Headline: cluster split (ROC-AUC 95% CI; EF@1%)\n\n";
+    md += "\n## Leakage / split metadata\n\n";
+    md +=
+      "| Target | InChIKey removed (test) | NN Tanimoto mean (test actives) | NN min | NN max |\n|---|---:|---:|---:|---:|\n";
+    for (const t of results.per_target) {
+      const nn = t.nn_tanimoto_distribution;
+      md += `| ${t.target} | ${t.inchikey_removed_from_test ?? 0} | ${nn?.mean?.toFixed?.(3) ?? "—"} | ${nn?.min?.toFixed?.(3) ?? "—"} | ${nn?.max?.toFixed?.(3) ?? "—"} |\n`;
+    }
+    md += "\n## Headline: cluster split (Murcko overlap 0; ROC-AUC 95% CI; EF@1%)\n\n";
     md += mdTableForMode(results.per_target, "cluster", methods);
     md += "\n### Overall (macro mean of per-target AUCs)\n\n| Method | Mean AUC |\n|---|---:|\n";
     for (const k of methods) {
@@ -274,7 +338,19 @@ async function main() {
     md += `\n**Combined beats similarity on cluster split:** ${clusterWins}/${results.per_target.length} targets (${
       results.combined_beats_similarity_on_cluster_split ? "yes" : "no"
     } at majority).\n`;
-    md += "\n## Hard cutoff (NN Tanimoto ≤ 0.4 to reference actives)\n\n";
+    md += `\n**Legacy (heuristic) beats RF on cluster split:** ${results.legacy_beats_rf_targets}/${results.per_target.length} targets (${
+      results.legacy_beats_rf_on_cluster ? "yes" : "no"
+    } at majority).\n`;
+    md += "\n### RF sanity (Morgan RF train=ref actives+decoys; test=cluster/cutoff sets)\n\n";
+    md +=
+      "| Target | Train/test SMILES overlap | Test actives in train | Descriptor-RF AUC (cluster) | Morgan RF AUC (cluster) |\n|---|---:|---:|---:|---:|\n";
+    for (const t of results.per_target) {
+      const aud = t.rf_leakage_audit || {};
+      const desc = t.rf_descriptor_sanity?.cluster?.roc_auc;
+      const morg = t.modes?.cluster?.rf?.roc_auc;
+      md += `| ${t.target} | ${aud.smiles_overlap_train_test ?? "—"} | ${aud.test_actives_in_train ?? "—"} | ${desc?.toFixed?.(3) ?? "—"} | ${morg?.toFixed?.(3) ?? "—"} |\n`;
+    }
+    md += "\n## Hard cutoff (NN Tanimoto ≤ 0.4 to any reference active)\n\n";
     md += mdTableForMode(results.per_target, "cutoff", methods);
     md += "\n## Optimistic upper bound: random split\n\n";
     md += mdTableForMode(results.per_target, "random", methods);
