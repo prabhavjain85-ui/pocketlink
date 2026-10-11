@@ -46,7 +46,9 @@ describeBench("co-crystal redocking validation", () => {
         try {
           result = await redockCoCrystalLigand(pdbText, tgt.reference_smiles, {
             ligandResn: tgt.ligand_resn || co.resName,
-            searchExhaustiveness: 8,
+            preferredChain: tgt.ligand_chain || "A",
+            keepHetResnames: tgt.keep_het_resnames || [],
+            searchExhaustiveness: 12,
           });
         } catch (err) {
           failureCause = err?.message || String(err);

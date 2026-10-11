@@ -19,6 +19,8 @@
     "lint": "eslint src --ext .js,.jsx --max-warnings=10",
     "test": "react-scripts test",
     "benchmark": "node benchmark/runBenchmark.mjs",
+    "benchmark:heldout": "node benchmark/evaluateHeldoutSplits.mjs",
+    "benchmark:chembl-audit": "python3 benchmark/chemblFetchAudit.py",
     "benchmark:fast": "node benchmark/runBenchmark.mjs --skip-docking",
     "benchmark:redock": "CI=true RUN_REDOCK_BENCH=1 react-scripts test --watchAll=false --runInBand --testPathPattern=benchmark/redockValidation",
     "benchmark:build-heldout": "python3 benchmark/buildHeldoutBenchmark.py && node scripts/buildTargetReferenceBundle.mjs",

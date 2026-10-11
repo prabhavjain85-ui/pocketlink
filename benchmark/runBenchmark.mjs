@@ -464,7 +464,11 @@ function loadRedockPassMap() {
     const data = JSON.parse(readFileSync(REDOCK_PATH, "utf8"));
     const map = {};
     for (const row of data.rows || []) {
-      map[row.pdb_id] = row.pass === true;
+      const pdb = String(row.pdb_id || "").toUpperCase();
+      map[pdb] =
+        row.pass_vina_crystal === true ||
+        row.pass === true ||
+        row.pass_native_crystal === true;
     }
     return map;
   } catch {
@@ -593,11 +597,43 @@ async function evaluatePanel(validation, painsApi, dockCache, skipDocking, panel
   };
 }
 
+function evaluateSanityBaselines(heldout) {
+  const perTarget = (heldout.targets || []).map((t) => {
+    const rows = (t.compounds || []).map((c) => ({ ...c, role: c.role }));
+    const mwEval = evaluateRanking(
+      rankByScore(rows, (r) => r.molecularWeight, true).map((r) => ({ ...r, metric: r.molecularWeight }))
+    );
+    const logpEval = evaluateRanking(
+      rankByScore(rows, (r) => r.xlogp, true).map((r) => ({ ...r, metric: r.xlogp }))
+    );
+    return {
+      id: t.id,
+      name: t.name,
+      pdb_id: t.pdb_id,
+      sanity: t.sanity || {},
+      mw_baseline: mwEval,
+      logp_baseline: logpEval,
+    };
+  });
+  return {
+    panel: "held-out-sanity-only",
+    benchmark_ready: false,
+    sanity_overall: heldout.sanity_overall || {},
+    per_target: perTarget,
+  };
+}
+
 async function main() {
   const skipDocking = process.argv.includes("--skip-docking");
   const painsApi = await import("../src/painsCheck.js");
   const validation = JSON.parse(readFileSync(VALIDATION_PATH, "utf8"));
   const heldout = JSON.parse(readFileSync(HELDOUT_PATH, "utf8"));
+  const benchmarkReady = heldout.sanity_overall?.benchmark_ready === true;
+  if (!benchmarkReady) {
+    console.warn(
+      "[benchmark] Held-out panel failed MW/logP sanity (need 0.45–0.55 per target). Skipping scoring-method evaluation."
+    );
+  }
 
   let dockCache = loadDockCache();
   if (!skipDocking) {
@@ -619,7 +655,9 @@ async function main() {
   }
 
   const inRule = await evaluatePanel(validation, painsApi, dockCache, skipDocking, "in-rule");
-  const heldOut = await evaluatePanel(heldout, painsApi, dockCache, skipDocking, "held-out");
+  const heldOut = benchmarkReady
+    ? await evaluatePanel(heldout, painsApi, dockCache, skipDocking, "held-out")
+    : evaluateSanityBaselines(heldout);
 
   const limitations = [
     "Small, hand-curated panels — not a substitute for DUD-E or large-scale virtual screens.",
@@ -647,19 +685,23 @@ async function main() {
     dIn.mean_roc_auc
   )}, top-1 ${pct(dIn.top1_hit_rate)}) remains near chance and is not part of the 0–100 score.`;
 
-  const hOut = heldOut.overall.heuristic_v2;
-  const dOut = heldOut.overall.docking_baseline;
-  const heldOutInterpretation = `On the held-out panel (${heldout.summary.target_count} targets, ${heldout.summary.active_count} actives not in rule lists), mean ROC-AUC ${fmt(
-    hOut.mean_roc_auc
-  )} and top-1 hit rate ${pct(hOut.top1_hit_rate)} (${pct(heldOut.overall.random_expectation.top1_hit_rate)} random expectation) measure **external** behavior. Unlisted actives typically receive only Lipinski/Veber drug-likeness points (~0–24) unless they match \`KINASE_INHIBITOR_RE\` / class regexes via \`drugClass\` (we leave \`drugClass\` empty in the dataset). Same-family kinase inhibitors in the global regex still get ~12 pt demotion bands when listed in \`demotedRe\`, but novel chemotypes are scored like generic decoys — so separation collapses toward physicochemical tie-breaks. Docking on held-out pairs: ROC-AUC ${fmt(
-    dOut.mean_roc_auc
-  )}, top-1 ${pct(dOut.top1_hit_rate)}. TargetForge can honestly claim **curated-rule coverage for known drug names**, not blind discovery of new chemical matter.`;
+  const heldOutInterpretation = benchmarkReady
+    ? (() => {
+        const hOut = heldOut.overall.heuristic_v2;
+        const dOut = heldOut.overall.docking_baseline;
+        return `On the held-out panel (${heldout.summary?.target_count ?? heldout.targets?.length} targets), mean ROC-AUC ${fmt(
+          hOut.mean_roc_auc
+        )} and top-1 hit rate ${pct(hOut.top1_hit_rate)} (${pct(heldOut.overall.random_expectation.top1_hit_rate)} random expectation) measure **external** behavior. Docking on redock-validated targets: ROC-AUC ${fmt(
+          dOut.mean_roc_auc
+        )}, top-1 ${pct(dOut.top1_hit_rate)}.`;
+      })()
+    : `Held-out benchmark **did not pass** property-decoy sanity (MW and logP ROC-AUC must be ~0.50 per target). Scoring methods were **not** evaluated; see per-target \`mw_baseline\` / \`logp_baseline\` in results. Rebuild with \`python3 benchmark/buildHeldoutBenchmark.py\`.`;
 
-  const suggestedCvClaim = `Target-aware ranking separates FDA-listed on-target drugs from off-target decoys for rule-covered targets (in-rule top-1 ${pct(
-    hIn.top1_hit_rate
-  )}); on held-out inhibitors absent from the rule tables, enrichment is modest (ROC-AUC ${fmt(hOut.mean_roc_auc)}, top-1 ${pct(
-    hOut.top1_hit_rate
-  )}) and should be paired with docking/assays.`;
+  const suggestedCvClaim = benchmarkReady
+    ? `Target-aware ranking separates FDA-listed on-target drugs from off-target decoys for rule-covered targets (in-rule top-1 ${pct(
+        hIn.top1_hit_rate
+      )}); on held-out inhibitors, enrichment (ROC-AUC ${fmt(heldOut.overall.heuristic_v2.mean_roc_auc)}) should be paired with docking/assays.`
+    : "Held-out method claims withheld until decoy sanity checks pass.";
 
   const docking_failure_cases = collectDockingFailureCases(inRule.per_target);
 

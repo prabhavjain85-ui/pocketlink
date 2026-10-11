@@ -60,28 +60,49 @@ export const RECEPTOR_STRIP_HET_RESNAMES = new Set([
 /**
  * Pick the co-crystallized ligand HET group (largest organic hetero residue).
  */
-export function pickCoCrystalLigandGroup(heteroAtoms) {
-  if (!heteroAtoms?.length) return { resName: null, atoms: [] };
-  const byRes = new Map();
+function isPrimaryAltLoc(altLoc) {
+  const c = altLoc == null ? "" : String(altLoc).trim();
+  return !c || c === "A" || c === "1";
+}
+
+/**
+ * Group hetero atoms into residue instances (chain + seq + resname); one altloc per atom name.
+ */
+export function groupLigandInstances(heteroAtoms, ligandResn = null) {
+  const byInst = new Map();
   for (const a of heteroAtoms) {
     if (RECEPTOR_STRIP_HET_RESNAMES.has(a.resName)) continue;
-    const key = `${a.chainId}:${a.resName}:${a.resSeq}`;
-    if (!byRes.has(key)) byRes.set(key, []);
-    byRes.get(key).push(a);
+    if (ligandResn && a.resName !== ligandResn) continue;
+    if (!isPrimaryAltLoc(a.altLoc)) continue;
+    const key = `${a.chainId}|${a.resSeq}|${a.resName}`;
+    if (!byInst.has(key)) byInst.set(key, []);
+    byInst.get(key).push(a);
   }
-  let best = null;
-  let bestScore = -1;
-  for (const atoms of byRes.values()) {
-    const heavy = atoms.filter((a) => a.element !== "H").length;
-    const organic = atoms.filter((a) => ["C", "N", "O", "S", "P", "F", "Cl", "Br", "I"].includes(a.element)).length;
-    const score = organic * 2 + heavy;
-    if (score > bestScore) {
-      bestScore = score;
-      best = atoms;
-    }
-  }
-  if (!best?.length) return { resName: null, atoms: [] };
-  return { resName: best[0].resName, atoms: best };
+  return Array.from(byInst.entries()).map(([key, atoms]) => {
+    const [chainId, resSeq, resName] = key.split("|");
+    return { chainId, resSeq: Number(resSeq), resName, atoms };
+  });
+}
+
+export function pickCoCrystalLigandGroup(heteroAtoms, options = {}) {
+  const ligandResn = options.ligandResn || null;
+  const preferredChain = options.preferredChain || "A";
+  const instances = groupLigandInstances(heteroAtoms, ligandResn);
+  if (!instances.length) return { resName: null, atoms: [], chainId: null };
+
+  const scoreInst = (inst) => {
+    const heavy = inst.atoms.filter((a) => a.element !== "H").length;
+    const organic = inst.atoms.filter((a) =>
+      ["C", "N", "O", "S", "P", "F", "Cl", "Br", "I"].includes(a.element)
+    ).length;
+    let score = organic * 2 + heavy;
+    if (inst.chainId === preferredChain) score += 50;
+    return score;
+  };
+
+  instances.sort((a, b) => scoreInst(b) - scoreInst(a));
+  const best = instances[0];
+  return { resName: best.resName, atoms: best.atoms, chainId: best.chainId };
 }
 
 /**
@@ -122,10 +143,17 @@ export function prepareReceptorPdb(pdbText, options = {}) {
   const keepHetResnames = new Set(
     (options.keepHetResnames || []).map((s) => String(s).trim().toUpperCase())
   );
+  const proteinChains = options.proteinChains
+    ? new Set(options.proteinChains.map((c) => String(c).trim()))
+    : null;
   const lines = String(pdbText || "").split("\n");
   const out = [];
   for (const line of lines) {
     if (line.startsWith("ATOM  ")) {
+      const chainId = line.substring(21, 22).trim() || "A";
+      const altLoc = line.substring(16, 17).trim();
+      if (proteinChains && !proteinChains.has(chainId)) continue;
+      if (!isPrimaryAltLoc(altLoc)) continue;
       out.push(line);
       continue;
     }
@@ -146,17 +174,23 @@ export function prepareReceptorPdb(pdbText, options = {}) {
 /**
  * Heavy-atom coordinates for a co-crystal ligand from parsed PDB heteroatoms.
  */
-export function extractCrystalLigandCoords(parsedTarget, ligandResn = null) {
-  const group = ligandResn
-    ? {
-        atoms: parsedTarget.heteroAtoms.filter((a) => a.resName === ligandResn),
-        resName: ligandResn,
-      }
-    : pickCoCrystalLigandGroup(parsedTarget.heteroAtoms);
+export function extractCrystalLigandCoords(parsedTarget, ligandResn = null, options = {}) {
+  const group = pickCoCrystalLigandGroup(parsedTarget.heteroAtoms, {
+    ligandResn: ligandResn || null,
+    preferredChain: options.preferredChain || "A",
+  });
   const heavy = group.atoms.filter((a) => a.element !== "H");
   return {
     resName: group.resName,
-    coords: heavy.map((a) => ({ x: a.x, y: a.y, z: a.z, element: a.element })),
+    chainId: group.chainId,
+    coords: heavy.map((a) => ({
+      x: a.x,
+      y: a.y,
+      z: a.z,
+      element: a.element,
+      atomName: a.atomName,
+      serial: a.serial,
+    })),
   };
 }
 
@@ -181,13 +215,18 @@ export function rmsdBetweenCoords(coordsA, coordsB) {
  */
 export async function redockCoCrystalLigand(targetPdbText, referenceSmiles, options = {}) {
   const parsedFull = parsePdbStructure(targetPdbText);
-  const crystal = extractCrystalLigandCoords(parsedFull, options.ligandResn || null);
+  const crystal = extractCrystalLigandCoords(parsedFull, options.ligandResn || null, {
+    preferredChain: options.preferredChain || "A",
+  });
   const boxAtoms =
     crystal.coords.length > 0
       ? crystal.coords
       : parsedFull.coCrystalLigandAtoms || [];
   const box = computeSearchBoxFromAtoms(boxAtoms, options.padding ?? 5);
-  const prepared = prepareReceptorPdb(targetPdbText, options);
+  const prepared = prepareReceptorPdb(targetPdbText, {
+    ...options,
+    proteinChains: options.proteinChains || [crystal.chainId || "A"],
+  });
 
   const dockResult = await runMolecularDocking(prepared, referenceSmiles, {
     customCenter: box.center,
@@ -358,6 +397,7 @@ export function parsePdbStructure(pdbText) {
       if (!RECEPTOR_STRIP_HET_RESNAMES.has(resName)) {
         const serial = parseInt(line.substring(6, 11).trim(), 10);
         const atomName = line.substring(12, 16).trim();
+        const altLoc = line.substring(16, 17).trim();
         const chainId = line.substring(21, 22).trim() || "A";
         const resSeq = parseInt(line.substring(22, 26).trim(), 10);
         const x = parseFloat(line.substring(30, 38).trim());
@@ -369,6 +409,7 @@ export function parsePdbStructure(pdbText) {
           heteroAtoms.push({
             serial,
             atomName,
+            altLoc,
             resName,
             chainId,
             resSeq,
@@ -382,7 +423,7 @@ export function parsePdbStructure(pdbText) {
     }
   }
 
-  const coCrystal = pickCoCrystalLigandGroup(heteroAtoms);
+  const coCrystal = pickCoCrystalLigandGroup(heteroAtoms, { preferredChain: "A" });
   let pocketCenter = { x: 0, y: 0, z: 0 };
   let detectedLigandName = coCrystal.resName;
   let defaultBoxSize = 22;

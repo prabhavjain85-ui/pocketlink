@@ -5,6 +5,8 @@ jest.mock("./featureFlags", () => ({
 
 import {
   parsePdbStructure,
+  extractCrystalLigandCoords,
+  groupLigandInstances,
   extractPocketAtoms,
   eulerToRotationMatrix,
   transformLigandPose,
@@ -26,6 +28,19 @@ HETATM 2345  C1  STI A 999      14.500  75.500  37.000  1.00 25.00           C
 HETATM 2346  N2  STI A 999      13.800  74.800  36.800  1.00 25.00           N
 END
 `;
+
+  test("extracts a single co-crystal ligand instance (one chain, no altloc dupes)", () => {
+    const dualChainLigand = `HETATM    1  C1  STI A 999      0.0   0.0   0.0  1.00  0.00           C
+HETATM    2  C1  STI B 999      5.0   0.0   0.0  1.00  0.00           C
+END
+`;
+    const parsed = parsePdbStructure(dualChainLigand);
+    const inst = groupLigandInstances(parsed.heteroAtoms, "STI");
+    expect(inst.length).toBe(2);
+    const crystal = extractCrystalLigandCoords(parsed, "STI", { preferredChain: "A" });
+    expect(crystal.coords.length).toBe(1);
+    expect(crystal.chainId).toBe("A");
+  });
 
   test("parses PDB structure correctly with protein atoms and hetero ligands", () => {
     const parsed = parsePdbStructure(SAMPLE_PDB);

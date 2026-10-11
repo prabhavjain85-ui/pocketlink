@@ -9,6 +9,9 @@ __pycache__/
 /coverage
 benchmark/pdb_cache/
 benchmark/chembl_cache/
+benchmark/dude_cache/
+benchmark/build_v3.log
+benchmark/redock.log
 benchmark/reference_sets.json
 benchmark/build.log
 benchmark/run-full.log

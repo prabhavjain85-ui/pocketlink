@@ -3,16 +3,39 @@
  * Reference actives are scaffold-split from benchmark test actives (see benchmark build).
  */
 
-let _bundle = null;
+const _targetCache = new Map();
 
-function loadBundle() {
-  if (_bundle) return _bundle;
+function loadIndex() {
   try {
-    _bundle = require("./data/targetReferenceFingerprints.json");
+    return require("./data/targetReferenceIndex.json");
   } catch {
-    _bundle = { targets: {} };
+    return { targets: {} };
   }
-  return _bundle;
+}
+
+async function loadTargetBlock(targetKey) {
+  if (_targetCache.has(targetKey)) return _targetCache.get(targetKey);
+  const index = loadIndex();
+  const meta = index.targets?.[targetKey];
+  if (!meta?.url) {
+    _targetCache.set(targetKey, null);
+    return null;
+  }
+  const base = typeof process !== "undefined" && process.env.PUBLIC_URL ? process.env.PUBLIC_URL : "";
+  const url = `${base}${meta.url}`;
+  try {
+    if (typeof fetch !== "undefined") {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`http ${res.status}`);
+      const data = await res.json();
+      _targetCache.set(targetKey, data);
+      return data;
+    }
+  } catch {
+    /* unavailable in this runtime */
+  }
+  _targetCache.set(targetKey, null);
+  return null;
 }
 
 function popcountAnd(a, b) {
@@ -43,10 +66,12 @@ function resolveTargetKey(protein) {
     "3pp0": "erbb2",
     "4xv2": "braf",
     "4cox": "ptgs2",
+    "1cx2": "ptgs2",
     "1hwk": "hmgcr",
     "1udt": "pde5a",
     "3ert": "esr1",
     "1x70": "dpp4",
+    "4a5s": "dpp4",
     "3sn6": "adrb2",
     "1hvr": "hiv_pr",
     "7bqy": "sars_mpro",
@@ -72,10 +97,9 @@ function resolveTargetKey(protein) {
 /**
  * Score candidate by max Tanimoto to reference actives; returns 0–100 and top-3 evidence.
  */
-function scoreSimilarityToReference(candidate, protein, precomputedFp = null) {
-  const bundle = loadBundle();
+function scoreSimilarityToReference(candidate, protein, precomputedFp = null, targetBlock = null) {
   const key = resolveTargetKey(protein);
-  const block = key ? bundle.targets?.[key] : null;
+  const block = targetBlock || (key ? _targetCache.get(key) : null);
   if (!block?.actives?.length) {
     return {
       similarityScore: null,
@@ -130,6 +154,8 @@ function scoreSimilarityToReference(candidate, protein, precomputedFp = null) {
 }
 
 async function scoreSimilarityToReferenceAsync(candidate, protein) {
+  const key = resolveTargetKey(protein);
+  const block = key ? await loadTargetBlock(key) : null;
   const smiles = String(
     candidate.IsomericSMILES || candidate.CanonicalSMILES || candidate.SMILES || candidate.smiles || ""
   ).trim();
@@ -156,7 +182,7 @@ async function scoreSimilarityToReferenceAsync(candidate, protein) {
     fpText = null;
   }
   mol.delete();
-  return scoreSimilarityToReference(candidate, protein, fpText);
+  return scoreSimilarityToReference(candidate, protein, fpText, block);
 }
 
 function combinedTriageScore(heuristicScore, similarityScore, weights = { heuristic: 0.35, similarity: 0.65 }) {
@@ -167,7 +193,8 @@ function combinedTriageScore(heuristicScore, similarityScore, weights = { heuris
 }
 
 module.exports = {
-  loadBundle,
+  loadIndex,
+  loadTargetBlock,
   resolveTargetKey,
   scoreSimilarityToReference,
   scoreSimilarityToReferenceAsync,
