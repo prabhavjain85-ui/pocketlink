@@ -4,7 +4,7 @@
 
 Heavy-atom RMSD in the receptor frame with NO Kabsch/superposition. Vina: RCSB chemcomp SMILES + AssignBondOrdersFromTemplate + rdMolAlign.CalcRMS (not GetBestRMS). Native: index-mapped heavy-atom RMSD without alignment (dockingEngine.rmsdBetweenCoords; no symmetry swap).
 
-**Correction:** Earlier drafts used `GetBestRMS` / Kabsch alignment, which **under-reported** placement error (e.g. EGFR ~1.7 Å aligned vs **~5.9 Å** in-place; BRAF ~1.5 Å vs **~0.27 Å** in-place; DPP4 ~1.4 Å vs **~0.86 Å** in-place). All values below use in-place `CalcRMS` only.
+**Correction:** Earlier drafts used `GetBestRMS` / Kabsch alignment, which **under-reported** placement error (e.g. EGFR ~1.7 Å aligned vs **~5.96 Å** in-place on this run; DPP4 ~1.4 Å aligned vs **~0.84 Å** in-place). All values below use in-place `CalcRMS` only.
 
 Pass threshold: **< 2 Å** (crystal ligand redocked with Vina).
 
