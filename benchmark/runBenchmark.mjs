@@ -218,10 +218,6 @@ function loadDockCache() {
   }
 }
 
-function saveDockCache(cache) {
-  writeFileSync(DOCK_CACHE_PATH, JSON.stringify(cache, null, 2));
-}
-
 function readDockingDeltaG(cache, pdbId, cid) {
   const entry = cache[`${pdbId}_${cid}`];
   if (typeof entry === "number") return entry;
