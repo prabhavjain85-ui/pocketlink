@@ -15,45 +15,45 @@
       "modes": {
         "cluster": {
           "rf_morgan": {
-            "roc_auc": 0.2846666666666667,
+            "roc_auc": 0.246,
             "roc_auc_ci_95": {
-              "low": 0.2721224218230206,
-              "high": 0.29840319361277445
+              "low": 0.21595330739299612,
+              "high": 0.27530364372469635
             },
             "ef_at_1pct": 0.0,
-            "n_test": 1530,
+            "n_test": 280,
             "n_test_actives": 30
           },
           "rf_descriptors": {
-            "roc_auc": 0.6926888888888889,
+            "roc_auc": 0.6737333333333333,
             "roc_auc_ci_95": {
-              "low": 0.588166144200627,
-              "high": 0.7825583401099037
+              "low": 0.5600927606372252,
+              "high": 0.7790218436598434
             },
             "ef_at_1pct": 0.0,
-            "n_test": 1530,
+            "n_test": 280,
             "n_test_actives": 30
           }
         },
         "cutoff": {
           "rf_morgan": {
-            "roc_auc": 0.2846666666666667,
+            "roc_auc": 0.246,
             "roc_auc_ci_95": {
-              "low": 0.2721224218230206,
-              "high": 0.29840319361277445
+              "low": 0.21595330739299612,
+              "high": 0.27530364372469635
             },
             "ef_at_1pct": 0.0,
-            "n_test": 1530,
+            "n_test": 280,
             "n_test_actives": 30
           },
           "rf_descriptors": {
-            "roc_auc": 0.6926888888888889,
+            "roc_auc": 0.6737333333333333,
             "roc_auc_ci_95": {
-              "low": 0.588166144200627,
-              "high": 0.7825583401099037
+              "low": 0.5600927606372252,
+              "high": 0.7790218436598434
             },
             "ef_at_1pct": 0.0,
-            "n_test": 1530,
+            "n_test": 280,
             "n_test_actives": 30
           }
         }
@@ -63,56 +63,56 @@
       "id": "adrb2",
       "inchikey_removed_from_test": 0,
       "leakage_audit": {
-        "train_smiles": 1139,
+        "train_smiles": 1134,
         "test_smiles": 576,
-        "smiles_overlap_train_test": 5,
+        "smiles_overlap_train_test": 0,
         "test_actives_in_train": 0,
-        "test_decoys_in_train": 5,
+        "test_decoys_in_train": 0,
         "test_actives_in_train_decoys": 0,
         "train_on_reference_actives_decoys_only": true
       },
       "modes": {
         "cluster": {
           "rf_morgan": {
-            "roc_auc": 0.9982777777777778,
+            "roc_auc": 0.9897435897435898,
             "roc_auc_ci_95": {
-              "low": 0.9964261744966443,
-              "high": 0.9996067945894935
+              "low": 0.9817305810995891,
+              "high": 0.9953232687889728
             },
-            "ef_at_1pct": 47.8125,
-            "n_test": 1530,
+            "ef_at_1pct": 19.2,
+            "n_test": 576,
             "n_test_actives": 30
           },
           "rf_descriptors": {
-            "roc_auc": 0.37976666666666664,
+            "roc_auc": 0.3481074481074481,
             "roc_auc_ci_95": {
-              "low": 0.318611906710311,
-              "high": 0.4515167196471255
+              "low": 0.27792447847900714,
+              "high": 0.422640771637122
             },
             "ef_at_1pct": 0.0,
-            "n_test": 1530,
+            "n_test": 576,
             "n_test_actives": 30
           }
         },
         "cutoff": {
           "rf_morgan": {
-            "roc_auc": 0.9982777777777778,
+            "roc_auc": 0.9897435897435898,
             "roc_auc_ci_95": {
-              "low": 0.9964261744966443,
-              "high": 0.9996067945894935
+              "low": 0.9817305810995891,
+              "high": 0.9953232687889728
             },
-            "ef_at_1pct": 47.8125,
-            "n_test": 1530,
+            "ef_at_1pct": 19.2,
+            "n_test": 576,
             "n_test_actives": 30
           },
           "rf_descriptors": {
-            "roc_auc": 0.37976666666666664,
+            "roc_auc": 0.3481074481074481,
             "roc_auc_ci_95": {
-              "low": 0.318611906710311,
-              "high": 0.4515167196471255
+              "low": 0.27792447847900714,
+              "high": 0.422640771637122
             },
             "ef_at_1pct": 0.0,
-            "n_test": 1530,
+            "n_test": 576,
             "n_test_actives": 30
           }
         }
@@ -122,11 +122,11 @@
       "id": "jak2",
       "inchikey_removed_from_test": 0,
       "leakage_audit": {
-        "train_smiles": 1204,
+        "train_smiles": 1015,
         "test_smiles": 1029,
-        "smiles_overlap_train_test": 189,
+        "smiles_overlap_train_test": 0,
         "test_actives_in_train": 0,
-        "test_decoys_in_train": 189,
+        "test_decoys_in_train": 0,
         "test_actives_in_train_decoys": 0,
         "train_on_reference_actives_decoys_only": true
       },
@@ -138,18 +138,18 @@
               "low": 1.0,
               "high": 1.0
             },
-            "ef_at_1pct": 51.0,
-            "n_test": 1530,
+            "ef_at_1pct": 34.3,
+            "n_test": 1029,
             "n_test_actives": 30
           },
           "rf_descriptors": {
-            "roc_auc": 0.6991777777777778,
+            "roc_auc": 0.631715048381715,
             "roc_auc_ci_95": {
-              "low": 0.5984247425059865,
-              "high": 0.800390103471295
+              "low": 0.5265151515151515,
+              "high": 0.7411069651741293
             },
-            "ef_at_1pct": 0.0,
-            "n_test": 1530,
+            "ef_at_1pct": 3.118181818181818,
+            "n_test": 1029,
             "n_test_actives": 30
           }
         },
@@ -160,18 +160,18 @@
               "low": 1.0,
               "high": 1.0
             },
-            "ef_at_1pct": 51.0,
-            "n_test": 816,
+            "ef_at_1pct": 30.3125,
+            "n_test": 485,
             "n_test_actives": 16
           },
           "rf_descriptors": {
-            "roc_auc": 0.6728125,
+            "roc_auc": 0.6586487206823027,
             "roc_auc_ci_95": {
-              "low": 0.5313727368521889,
-              "high": 0.8154150197628458
+              "low": 0.5040521494009866,
+              "high": 0.7910447761194029
             },
-            "ef_at_1pct": 0.0,
-            "n_test": 816,
+            "ef_at_1pct": 6.0625,
+            "n_test": 485,
             "n_test_actives": 16
           }
         }

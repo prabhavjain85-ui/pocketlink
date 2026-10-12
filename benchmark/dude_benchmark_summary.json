@@ -8,11 +8,11 @@
   "excluded": [
     {
       "id": "egfr",
-      "reason": "subset MW/logP gate failed (mw=0.5114, logp=0.6014222222222222; need [0.45,0.55])"
+      "reason": "subset MW/logP gate failed (mw=0.681636060100167, logp=0.6789092932665554; need [0.45,0.55])"
     },
     {
       "id": "abl1",
-      "reason": "subset MW/logP gate failed (mw=0.5113555555555556, logp=0.5643111111111111; need [0.45,0.55])"
+      "reason": "subset MW/logP gate failed (mw=0.6790422885572139, logp=0.5656094527363185; need [0.45,0.55])"
     },
     {
       "id": "erbb2",
@@ -20,11 +20,11 @@
     },
     {
       "id": "braf",
-      "reason": "subset MW/logP gate failed (mw=0.5417777777777778, logp=0.6389777777777778; need [0.45,0.55])"
+      "reason": "subset MW/logP gate failed (mw=0.7616524216524216, logp=0.7370940170940171; need [0.45,0.55])"
     },
     {
       "id": "ptgs2",
-      "reason": "subset MW/logP gate failed (mw=0.5158666666666667, logp=0.23022222222222222; need [0.45,0.55])"
+      "reason": "subset MW/logP gate failed (mw=0.5385964912280702, logp=0.2346282372598162; need [0.45,0.55])"
     },
     {
       "id": "hmgcr",
@@ -32,15 +32,15 @@
     },
     {
       "id": "pde5a",
-      "reason": "subset MW/logP gate failed (mw=0.49448888888888887, logp=0.7467555555555555; need [0.45,0.55])"
+      "reason": "subset MW/logP gate failed (mw=0.5067278287461774, logp=0.7653414882772681; need [0.45,0.55])"
     },
     {
       "id": "esr1",
-      "reason": "subset MW/logP gate failed (mw=0.5025, logp=0.7340666666666666; need [0.45,0.55])"
+      "reason": "subset MW/logP gate failed (mw=0.5456757703081232, logp=0.7093137254901961; need [0.45,0.55])"
     },
     {
       "id": "hiv_pr",
-      "reason": "subset MW/logP gate failed (mw=0.5236222222222222, logp=0.6507777777777778; need [0.45,0.55])"
+      "reason": "subset MW/logP gate failed (mw=0.48206796818510483, logp=0.6357917570498915; need [0.45,0.55])"
     },
     {
       "id": "sars_mpro",
@@ -52,7 +52,7 @@
     },
     {
       "id": "thrombin",
-      "reason": "subset MW/logP gate failed (mw=0.5206222222222222, logp=0.25653333333333334; need [0.45,0.55])"
+      "reason": "subset MW/logP gate failed (mw=0.5512670565302145, logp=0.26471734892787524; need [0.45,0.55])"
     }
   ],
   "pairing_verification": [
@@ -184,39 +184,66 @@
       "dude_code": "dpp4",
       "mw_roc_auc_full": 0.535789641882145,
       "logp_roc_auc_full": 0.4743030907347848,
-      "mw_roc_auc_subset": 0.4716444444444444,
-      "logp_roc_auc_subset": 0.48902222222222225,
+      "mw_roc_auc_subset": 0.5441333333333334,
+      "logp_roc_auc_subset": 0.5037333333333334,
       "mw_delta_median": 0.0015000000000782165,
       "inchikey_removed": 0,
       "murcko_overlap": 0,
       "n_test_actives": 30,
-      "n_decoys_eval": 1500
+      "n_decoys_eval": 250,
+      "canonical_smiles_dedup": {
+        "test_actives_removed": 0,
+        "test_decoys_removed": 1250,
+        "train_actives_removed": 0,
+        "train_decoys_removed": 958,
+        "reference_actives_removed": 0,
+        "train_removed_overlap_test": 0,
+        "reference_removed_overlap_test": 0
+      }
     },
     {
       "id": "adrb2",
       "dude_code": "adrb2",
       "mw_roc_auc_full": 0.5527991335953958,
       "logp_roc_auc_full": 0.4997314849644045,
-      "mw_roc_auc_subset": 0.5368333333333334,
-      "logp_roc_auc_subset": 0.47984444444444446,
+      "mw_roc_auc_subset": 0.4869047619047619,
+      "logp_roc_auc_subset": 0.45897435897435895,
       "mw_delta_median": 0.0392500000000382,
       "inchikey_removed": 0,
       "murcko_overlap": 0,
       "n_test_actives": 30,
-      "n_decoys_eval": 1500
+      "n_decoys_eval": 546,
+      "canonical_smiles_dedup": {
+        "test_actives_removed": 0,
+        "test_decoys_removed": 954,
+        "train_actives_removed": 0,
+        "train_decoys_removed": 906,
+        "reference_actives_removed": 0,
+        "train_removed_overlap_test": 5,
+        "reference_removed_overlap_test": 0
+      }
     },
     {
       "id": "jak2",
       "dude_code": "jak2",
       "mw_roc_auc_full": 0.49981502970434505,
       "logp_roc_auc_full": 0.6414388011147808,
-      "mw_roc_auc_subset": 0.5094777777777778,
-      "logp_roc_auc_subset": 0.5218888888888888,
+      "mw_roc_auc_subset": 0.5358358358358358,
+      "logp_roc_auc_subset": 0.5145145145145145,
       "mw_delta_median": 0.030249999999995225,
       "inchikey_removed": 0,
       "murcko_overlap": 0,
       "n_test_actives": 30,
-      "n_decoys_eval": 1500
+      "n_decoys_eval": 999,
+      "canonical_smiles_dedup": {
+        "test_actives_removed": 0,
+        "test_decoys_removed": 501,
+        "train_actives_removed": 0,
+        "train_decoys_removed": 1025,
+        "reference_actives_removed": 0,
+        "train_removed_overlap_test": 408,
+        "reference_removed_overlap_test": 0
+      }
     }
   ]
 }

@@ -132,6 +132,75 @@ def compounds_from_assignment(
     return compounds
 
 
+def canonical_smiles(smiles: str) -> str | None:
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    return Chem.MolToSmiles(mol)
+
+
+def dedup_partitions(
+    test_compounds: list[dict],
+    train_compounds: list[dict],
+    reference_actives: list[dict],
+) -> tuple[list[dict], list[dict], list[dict], dict]:
+    """One canonical SMILES per partition; test wins over reference and train."""
+    stats = {
+        "test_actives_removed": 0,
+        "test_decoys_removed": 0,
+        "train_actives_removed": 0,
+        "train_decoys_removed": 0,
+        "reference_actives_removed": 0,
+        "train_removed_overlap_test": 0,
+        "reference_removed_overlap_test": 0,
+    }
+
+    def can_key(c: dict) -> str | None:
+        return canonical_smiles(c.get("smiles") or "")
+
+    test_out: list[dict] = []
+    test_seen: set[str] = set()
+    for c in test_compounds:
+        ck = can_key(c)
+        if not ck or ck in test_seen:
+            if c.get("role") == "active":
+                stats["test_actives_removed"] += 1
+            else:
+                stats["test_decoys_removed"] += 1
+            continue
+        test_seen.add(ck)
+        test_out.append(c)
+
+    ref_out: list[dict] = []
+    ref_seen: set[str] = set()
+    for r in reference_actives:
+        ck = can_key(r)
+        if not ck or ck in test_seen or ck in ref_seen:
+            stats["reference_actives_removed"] += 1
+            if ck and ck in test_seen:
+                stats["reference_removed_overlap_test"] += 1
+            continue
+        ref_seen.add(ck)
+        ref_out.append(r)
+
+    train_out: list[dict] = []
+    train_seen: set[str] = set()
+    for c in train_compounds:
+        ck = can_key(c)
+        if not ck or ck in test_seen or ck in train_seen:
+            if c.get("role") == "active":
+                stats["train_actives_removed"] += 1
+            else:
+                stats["train_decoys_removed"] += 1
+            if ck and ck in test_seen:
+                stats["train_removed_overlap_test"] += 1
+            continue
+        train_seen.add(ck)
+        train_out.append(c)
+
+    return test_out, train_out, ref_out, stats
+
+
 def main():
     excluded = load_exclusion_smiles()
     included = []
@@ -208,10 +277,33 @@ def main():
         )
         pairing_stats.append({"id": tid, "mw_delta_eval": delta_summary})
 
-        ref_fps = [DataStructs.CreateFromBitString(r["fp"]) for r in ref_raw]
-        compounds = compounds_from_assignment(
-            test_clean, decoys_by_idx, assignment_eval, ref_fps=ref_fps
+        ref_entries_pre = [{k: r[k] for k in r if k != "fp"} for r in ref_raw]
+        ref_recs = [r for r in actives_raw_recs if r["dude_idx"] in {r0["dude_active_idx"] for r0 in ref_raw}]
+        assignment_ref = assign_decoys_eval_subset(ref_recs, decoys_raw_recs)
+        train_compounds = compounds_from_assignment(
+            ref_raw, decoys_by_idx, assignment_ref, ref_fps=None
         )
+        ref_fps_pre = [DataStructs.CreateFromBitString(r["fp"]) for r in ref_raw]
+        compounds = compounds_from_assignment(
+            test_clean, decoys_by_idx, assignment_eval, ref_fps=ref_fps_pre
+        )
+        compounds, train_compounds, ref_entries, dedup_stats = dedup_partitions(
+            compounds, train_compounds, ref_entries_pre
+        )
+        ref_smi_to_fp = {r["smiles"]: r for r in ref_raw}
+        ref_fps_dedup = []
+        for re in ref_entries:
+            src = ref_smi_to_fp.get(re["smiles"])
+            if src and src.get("fp"):
+                ref_fps_dedup.append(DataStructs.CreateFromBitString(src["fp"]))
+        if ref_fps_dedup:
+            for c in compounds:
+                if c.get("role") != "active":
+                    continue
+                src = next((a for a in actives_raw if a["smiles"] == c["smiles"]), None)
+                if src and src.get("fp"):
+                    c["nn_tanimoto_to_ref"] = round(nn_max_to_ref(src, ref_fps_dedup), 4)
+
         n_eval_decoys = sum(1 for c in compounds if c["role"] == "decoy")
         mw_subset, logp_subset = baseline_mw_logp(compounds)
 
@@ -233,12 +325,6 @@ def main():
             )
             continue
 
-        ref_entries = [{k: r[k] for k in r if k != "fp"} for r in ref_raw]
-        ref_recs = [r for r in actives_raw_recs if r["dude_idx"] in {r0["dude_active_idx"] for r0 in ref_raw}]
-        assignment_ref = assign_decoys_eval_subset(ref_recs, decoys_raw_recs)
-        train_compounds = compounds_from_assignment(
-            ref_raw, decoys_by_idx, assignment_ref, ref_fps=None
-        )
         train_stripped = [{k: c[k] for k in c if k != "fp"} for c in train_compounds]
         included.append(
             {
@@ -262,8 +348,11 @@ def main():
                 "logp_roc_auc": logp_subset,
                 "mw_logp_flag": False,
                 "mw_logp_flag_subset": False,
-                "n_test_actives": len(test_clean),
-                "n_ref_actives": len(ref_raw),
+                "n_test_actives": sum(1 for c in compounds if c["role"] == "active"),
+                "n_ref_actives": len(ref_entries),
+                "n_train_actives": sum(1 for c in train_compounds if c["role"] == "active"),
+                "n_train_decoys": sum(1 for c in train_compounds if c["role"] == "decoy"),
+                "canonical_smiles_dedup": dedup_stats,
                 "n_decoys_eval": n_eval_decoys,
                 "n_decoys_full": sum(len(v) for v in assignment_full.values()),
                 "decoys_per_active_mean": DECOYS_PER_ACTIVE,
@@ -350,6 +439,7 @@ def main():
                         "murcko_overlap": t["murcko_overlap_cluster"],
                         "n_test_actives": t["n_test_actives"],
                         "n_decoys_eval": t["n_decoys_eval"],
+                        "canonical_smiles_dedup": t.get("canonical_smiles_dedup"),
                     }
                     for t in included
                 ],

@@ -7,7 +7,7 @@ import { readFileSync, writeFileSync, existsSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { bootstrapAucCi, enrichmentFactorAtFraction, rocAuc } from "./bootstrap.mjs";
-import { buildSimilarityMap } from "./similarityForBench.mjs";
+import { buildSimilarityMap, scoreRowKey } from "./similarityForBench.mjs";
 
 process.env.NODE_ENV = "test";
 const require = createRequire(import.meta.url);
@@ -35,14 +35,25 @@ function loadRfByTarget() {
   return map;
 }
 
-function loadInchiRemoved() {
-  if (!existsSync(DUDE_BENCH)) return {};
-  const data = JSON.parse(readFileSync(DUDE_BENCH, "utf8"));
-  const map = {};
-  for (const t of data.targets || []) {
-    map[t.id] = t.inchikey_removed_from_test ?? 0;
+function loadDudeMeta() {
+  if (!existsSync(DUDE_BENCH)) {
+    return { inchiRemoved: {}, referenceActives: {}, trainCounts: {}, dedup: {} };
   }
-  return map;
+  const data = JSON.parse(readFileSync(DUDE_BENCH, "utf8"));
+  const inchiRemoved = {};
+  const referenceActives = {};
+  const trainCounts = {};
+  const dedup = {};
+  for (const t of data.targets || []) {
+    inchiRemoved[t.id] = t.inchikey_removed_from_test ?? 0;
+    referenceActives[t.id] = t.reference_actives || [];
+    trainCounts[t.id] = {
+      actives: t.n_train_actives ?? 0,
+      decoys: t.n_train_decoys ?? 0,
+    };
+    dedup[t.id] = t.canonical_smiles_dedup || null;
+  }
+  return { inchiRemoved, referenceActives, trainCounts, dedup };
 }
 
 function rfMetric(rfRow, mode) {
@@ -63,7 +74,7 @@ function compoundToCandidate(c, painsApi) {
     ? painsApi.checkPainsFast({ SMILES: c.smiles, IsomericSMILES: c.smiles })
     : null;
   const pains = painsRaw ? painsApi.compactPainsForRanking(painsRaw) : null;
-  const cid = c.chembl_id || c.name || c.smiles?.slice(0, 16);
+  const cid = scoreRowKey(c);
   const row = {
     cid,
     CID: cid,
@@ -128,14 +139,16 @@ function buildRandomCompounds(target, splitBlock) {
   return splitBlock.random_compounds || [];
 }
 
-async function scoreTarget(compounds, protein, painsApi) {
+async function scoreTarget(compounds, protein, painsApi, options = {}) {
   const nAct = compounds.filter((c) => c.role === "active").length;
   const nDec = compounds.filter((c) => c.role === "decoy").length;
   if (nAct < 2 || nDec < 2 || compounds.length < 4) {
     return null;
   }
   const candidates = compounds.map((c) => compoundToCandidate(c, painsApi));
-  const similarityByCid = await buildSimilarityMap(compounds, protein);
+  const similarityByCid = await buildSimilarityMap(compounds, protein, {
+    referenceActives: options.referenceActives,
+  });
   const rankedH = rankCandidatesLocal(candidates, protein, {
     maxCandidates: candidates.length,
     minCandidates: 2,
@@ -157,7 +170,7 @@ async function scoreTarget(compounds, protein, painsApi) {
   const sMap = byCid(rankedS);
   const cMap = byCid(rankedC);
   const rows = compounds.map((c) => {
-    const key = String(c.chembl_id || c.name || c.smiles?.slice(0, 16));
+    const key = scoreRowKey(c);
     return {
       ...c,
       heuristic_score: hMap.get(key) ?? null,
@@ -216,7 +229,8 @@ async function main() {
   const painsApi = await import("../src/painsCheck.js");
   const benchmarkReady = heldout.sanity_overall?.benchmark_ready === true;
   const rfByTarget = loadRfByTarget();
-  const inchiRemoved = loadInchiRemoved();
+  const dudeMeta = loadDudeMeta();
+  const inchiRemoved = dudeMeta.inchiRemoved;
 
   const perTargetTables = [];
   const results = {
@@ -244,10 +258,16 @@ async function main() {
 
     const modes = {};
     if (benchmarkReady) {
-      modes.cluster = await scoreTarget(filterClusterCompounds(target), target.protein, painsApi);
-      modes.cutoff = await scoreTarget(filterCutoffCompounds(target), target.protein, painsApi);
+      const scoreOpts = { referenceActives: dudeMeta.referenceActives[target.id] };
+      modes.cluster = await scoreTarget(
+        filterClusterCompounds(target),
+        target.protein,
+        painsApi,
+        scoreOpts
+      );
+      modes.cutoff = await scoreTarget(filterCutoffCompounds(target), target.protein, painsApi, scoreOpts);
       const randomCompounds = buildRandomCompounds(target, splitBlock);
-      modes.random = await scoreTarget(randomCompounds, target.protein, painsApi);
+      modes.random = await scoreTarget(randomCompounds, target.protein, painsApi, scoreOpts);
       const rfRow = rfByTarget[target.id];
       if (rfRow && modes.cluster) modes.cluster.rf = rfMetric(rfRow, "cluster");
       if (rfRow && modes.cutoff) modes.cutoff.rf = rfMetric(rfRow, "cutoff");
@@ -257,8 +277,19 @@ async function main() {
       .filter((c) => c.role === "active")
       .map((c) => c.nn_tanimoto_to_ref)
       .filter((x) => x != null);
+    const trainCounts = dudeMeta.trainCounts[target.id] || {
+      actives: sanity.n_ref_actives,
+      decoys: null,
+    };
+    const testAct = target.compounds.filter((c) => c.role === "active").length;
+    const testDec = target.compounds.filter((c) => c.role === "decoy").length;
     results.per_target.push({
       ...baselineRow,
+      train_actives: trainCounts.actives,
+      train_decoys: trainCounts.decoys,
+      test_actives: testAct,
+      test_decoys: testDec,
+      canonical_smiles_dedup: dudeMeta.dedup[target.id] ?? null,
       inchikey_removed_from_test: inchiRemoved[target.id] ?? sanity.inchikey_removed_from_test ?? 0,
       nn_tanimoto_distribution: nn.length
         ? { mean: nn.reduce((a, b) => a + b, 0) / nn.length, min: Math.min(...nn), max: Math.max(...nn) }
@@ -322,6 +353,13 @@ async function main() {
       md +=
         "\n> **Decoy assignment (eval):** independent nearest-50 per test active from the DUD-E decoy pool (repeats allowed across actives). See `DUDE_RESULTS.md`.\n";
     }
+    md += "\n## Canonical SMILES deduplication (test wins over reference/train)\n\n";
+    md +=
+      "| Target | Test actives removed | Test decoys removed | Train actives removed | Train decoys removed | Reference actives removed | Train∩test removed |\n|---|---:|---:|---:|---:|---:|---:|\n";
+    for (const t of results.per_target) {
+      const d = t.canonical_smiles_dedup || {};
+      md += `| ${t.target} | ${d.test_actives_removed ?? 0} | ${d.test_decoys_removed ?? 0} | ${d.train_actives_removed ?? 0} | ${d.train_decoys_removed ?? 0} | ${d.reference_actives_removed ?? 0} | ${d.train_removed_overlap_test ?? 0} |\n`;
+    }
     md += "\n## Leakage / split metadata\n\n";
     md +=
       "| Target | InChIKey removed (test) | NN Tanimoto mean (test actives) | NN min | NN max |\n|---|---:|---:|---:|---:|\n";
@@ -329,6 +367,30 @@ async function main() {
       const nn = t.nn_tanimoto_distribution;
       md += `| ${t.target} | ${t.inchikey_removed_from_test ?? 0} | ${nn?.mean?.toFixed?.(3) ?? "—"} | ${nn?.min?.toFixed?.(3) ?? "—"} | ${nn?.max?.toFixed?.(3) ?? "—"} |\n`;
     }
+    md += "\n## Cluster split (headline): train/test sizes and ROC-AUC\n\n";
+    md +=
+      "| Target | Train actives | Train decoys | Test actives | Test decoys | Legacy AUC (95% CI) | Similarity | Combined | Morgan RF | Legacy>RF | Combined>Sim |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|:---:|:---:|\n";
+    for (const t of results.per_target) {
+      const cl = t.modes?.cluster || {};
+      const leg = cl.legacy;
+      const sim = cl.similarity;
+      const comb = cl.combined;
+      const rf = cl.rf;
+      const legCi =
+        leg?.roc_auc_ci_95?.low != null
+          ? `${leg.roc_auc?.toFixed(3)} (${leg.roc_auc_ci_95.low.toFixed(3)}–${leg.roc_auc_ci_95.high.toFixed(3)})`
+          : leg?.roc_auc?.toFixed(3) ?? "—";
+      const rfCi =
+        rf?.roc_auc_ci_95?.low != null
+          ? `${rf.roc_auc?.toFixed(3)} (${rf.roc_auc_ci_95.low.toFixed(3)}–${rf.roc_auc_ci_95.high.toFixed(3)})`
+          : rf?.roc_auc?.toFixed(3) ?? "—";
+      const legBeatsRf =
+        leg?.roc_auc != null && rf?.roc_auc != null ? leg.roc_auc > rf.roc_auc : null;
+      const combBeatsSim =
+        comb?.roc_auc != null && sim?.roc_auc != null ? comb.roc_auc > sim.roc_auc : null;
+      md += `| ${t.target} | ${t.train_actives ?? "—"} | ${t.train_decoys ?? "—"} | ${t.test_actives ?? "—"} | ${t.test_decoys ?? "—"} | ${legCi} | ${sim?.roc_auc?.toFixed(3) ?? "—"} | ${comb?.roc_auc?.toFixed(3) ?? "—"} | ${rfCi} | ${legBeatsRf === null ? "—" : legBeatsRf ? "yes" : "no"} | ${combBeatsSim === null ? "—" : combBeatsSim ? "yes" : "no"} |\n`;
+    }
+    md += "\n> **Scoring paths:** legacy = `rankCandidatesLocal` → `scoreOne` (heuristic-v2, no `rankMode`); similarity = same with `rankMode:\"similarity\"` + Morgan Tanimoto vs reference actives; combined = `combinedTriageScore` (0.35/0.65). See `src/scoreCandidates.js` and `benchmark/similarityForBench.mjs`.\n";
     md += "\n## Headline: cluster split (Murcko overlap 0; ROC-AUC 95% CI; EF@1%)\n\n";
     md += mdTableForMode(results.per_target, "cluster", methods);
     md += "\n### Overall (macro mean of per-target AUCs)\n\n| Method | Mean AUC |\n|---|---:|\n";

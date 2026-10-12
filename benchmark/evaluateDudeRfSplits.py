@@ -136,14 +136,19 @@ def eval_mode(train: list[dict], test: list[dict], feature: str) -> dict | None:
     }
 
 
+def canon(smiles: str) -> str | None:
+    m = Chem.MolFromSmiles(smiles)
+    return Chem.MolToSmiles(m) if m else None
+
+
 def leakage_audit(train: list[dict], test: list[dict]) -> dict:
-    tr = {c["smiles"] for c in train}
-    te = {c["smiles"] for c in test}
+    tr = {canon(c["smiles"]) for c in train if canon(c["smiles"])}
+    te = {canon(c["smiles"]) for c in test if canon(c["smiles"])}
     overlap = tr & te
-    tr_a = {c["smiles"] for c in train if c["role"] == "active"}
-    tr_d = {c["smiles"] for c in train if c["role"] == "decoy"}
-    te_a = {c["smiles"] for c in test if c["role"] == "active"}
-    te_d = {c["smiles"] for c in test if c["role"] == "decoy"}
+    tr_a = {canon(c["smiles"]) for c in train if c["role"] == "active" and canon(c["smiles"])}
+    tr_d = {canon(c["smiles"]) for c in train if c["role"] == "decoy" and canon(c["smiles"])}
+    te_a = {canon(c["smiles"]) for c in test if c["role"] == "active" and canon(c["smiles"])}
+    te_d = {canon(c["smiles"]) for c in test if c["role"] == "decoy" and canon(c["smiles"])}
     return {
         "train_smiles": len(tr),
         "test_smiles": len(te),
