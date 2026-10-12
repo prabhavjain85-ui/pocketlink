@@ -8,6 +8,8 @@ import {
   setActiveState,
   subscribeToHistory,
 } from "./historyService";
+import ReportExportButtons from "./ReportExportButtons";
+import { buildHistoryEntryReportMarkdown, defaultReportFilename } from "./reportExport";
 
 function formatTime(timestamp) {
   if (!timestamp) return "";
@@ -500,6 +502,12 @@ export default function HistoryPage() {
                     )}
 
                     <div className="snapshot-drawer-actions">
+                      <ReportExportButtons
+                        compact
+                        label="Export report"
+                        filename={defaultReportFilename(item.type, item.title)}
+                        getMarkdown={() => buildHistoryEntryReportMarkdown(item)}
+                      />
                       <button
                         type="button"
                         className="btn btn-primary-sm"

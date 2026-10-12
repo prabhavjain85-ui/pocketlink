@@ -9,6 +9,9 @@ import {
   saveHistoryEntry,
   setActiveState,
 } from "./historyService";
+import ReportExportButtons from "./ReportExportButtons";
+import { buildTargetDiscoveryReportMarkdown, defaultReportFilename } from "./reportExport";
+
 function compareDiscoveryField(a, b, key) {
   if (key === "symbol" || key === "geneticLabel" || key === "evidenceSummary") {
     return String(a[key] || "").localeCompare(String(b[key] || ""));
@@ -489,6 +492,18 @@ export default function TargetDiscoveryPage() {
                 </button>
               </div>
               <NoveltyInfoTip />
+              <ReportExportButtons
+                compact
+                label="Export report"
+                filename={defaultReportFilename("target-discovery-report", diseaseName)}
+                getMarkdown={() =>
+                  buildTargetDiscoveryReportMarkdown({
+                    result,
+                    query,
+                    view,
+                  })
+                }
+              />
             </div>
 
             {view === "established" && (

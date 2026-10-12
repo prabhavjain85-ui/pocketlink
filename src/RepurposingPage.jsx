@@ -13,6 +13,8 @@ import {
 import { getDrugSafetyProfile } from "./safetyProfiles";
 import { targetDisplayName } from "./targetContext";
 import AdversarialCritique from "./AdversarialCritique";
+import ReportExportButtons from "./ReportExportButtons";
+import { buildRepurposingReportMarkdown, defaultReportFilename } from "./reportExport";
 import HistoricalTrialSuccessContext from "./HistoricalTrialSuccessContext";
 import { DOCKING_ENGINE_ENABLED } from "./featureFlags";
 import {
@@ -448,6 +450,15 @@ export default function RepurposingPage() {
               <div className="score-toolbar" style={{ marginTop: 14 }}>
                 <span className="score-toolbar-label">Full library ranking</span>
                 <PainsInfoTip />
+                <ReportExportButtons
+                  compact
+                  label="Export report"
+                  filename={defaultReportFilename(
+                    "repurposing-report",
+                    result.target?.pdb_id || targetName
+                  )}
+                  getMarkdown={() => buildRepurposingReportMarkdown({ result })}
+                />
               </div>
               <RepurposingTable
                 rows={result.ranking}
