@@ -6,6 +6,8 @@ import QuantumInsight from "./QuantumInsight";
 import { CandidateScoreTable } from "./CandidateViews";
 import HistoricalTrialSuccessContext from "./HistoricalTrialSuccessContext";
 import { DOCKING_ENGINE_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
+import ReportExportButtons from "./ReportExportButtons";
+import { buildBenchReportMarkdown, defaultReportFilename } from "./reportExport";
 
 export default function HandoffStations({ b }) {
   const {
@@ -79,6 +81,20 @@ export default function HandoffStations({ b }) {
                     ? "Reused cached scores for this (compound, PDB) pair"
                     : "Ranked with TargetForge's target-aware model"}
               </div>
+              <ReportExportButtons
+                label="Export report"
+                filename={defaultReportFilename(
+                  "staging-bench-report",
+                  protein?.id || protein?.pdb_id || fitPdbId
+                )}
+                getMarkdown={() =>
+                  buildBenchReportMarkdown({
+                    protein,
+                    candidates,
+                    aiResult,
+                  })
+                }
+              />
             </div>
           )}
         </Panel>
