@@ -98,6 +98,7 @@ def fit_predict_rf(X_tr, y_tr, X_te) -> list[float]:
 
 
 def eval_mode(train: list[dict], test: list[dict], feature: str) -> dict | None:
+    test_records: list[dict] = []
     if feature == "morgan":
         X_tr, y_tr, X_te, y_te = [], [], [], []
         for c in train:
@@ -110,6 +111,7 @@ def eval_mode(train: list[dict], test: list[dict], feature: str) -> dict | None:
             b = fp_bits(c["smiles"])
             if b is None:
                 continue
+            test_records.append(c)
             X_te.append(b)
             y_te.append(1 if c["role"] == "active" else 0)
         if sum(y_tr) < 5 or len(y_tr) - sum(y_tr) < 5 or sum(y_te) < 2 or len(y_te) - sum(y_te) < 2:
@@ -121,18 +123,29 @@ def eval_mode(train: list[dict], test: list[dict], feature: str) -> dict | None:
             X_tr.append(desc_vec(c))
             y_tr.append(1 if c["role"] == "active" else 0)
         for c in test:
+            test_records.append(c)
             X_te.append(desc_vec(c))
             y_te.append(1 if c["role"] == "active" else 0)
         if sum(y_tr) < 5 or len(y_tr) - sum(y_tr) < 5 or sum(y_te) < 2 or len(y_te) - sum(y_te) < 2:
             return None
         prob = fit_predict_rf(np.array(X_tr), y_tr, np.array(X_te))
     auc, ci = bootstrap_ci(y_te, prob)
+    per_compound = [
+        {
+            "smiles": c["smiles"],
+            "chembl_id": c.get("chembl_id") or c.get("name"),
+            "role": c.get("role"),
+            "rf_score": float(prob[i]),
+        }
+        for i, c in enumerate(test_records)
+    ]
     return {
         "roc_auc": auc,
         "roc_auc_ci_95": ci,
         "ef_at_1pct": ef_at_pct(y_te, prob),
         "n_test": len(y_te),
         "n_test_actives": sum(y_te),
+        "per_compound_scores": per_compound,
     }
 
 

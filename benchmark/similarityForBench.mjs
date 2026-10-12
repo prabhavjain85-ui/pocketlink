@@ -47,6 +47,14 @@ function loadReferenceBlock(protein, referenceActives) {
 
 export async function buildSimilarityMap(compounds, protein, options = {}) {
   const block = loadReferenceBlock(protein, options.referenceActives);
+  if (options.requireReference) {
+    if (!block?.actives?.length) {
+      const key = resolveTargetKey(protein);
+      throw new Error(
+        `Benchmark similarity requires non-empty reference actives (target=${key || "unknown"})`
+      );
+    }
+  }
   const map = new Map();
   for (const c of compounds) {
     const key = scoreRowKey(c);
@@ -58,6 +66,11 @@ export async function buildSimilarityMap(compounds, protein, options = {}) {
       cid: key,
     };
     const row = scoreSimilarityToReference(candidate, protein, fp, block);
+    if (options.requireReference && row.similarityScore == null) {
+      throw new Error(
+        `Benchmark similarity: null similarityScore for compound key=${key} (refs loaded=${block.actives.length})`
+      );
+    }
     map.set(key, row);
   }
   return map;

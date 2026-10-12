@@ -768,15 +768,42 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
 
   const ctx = protein ? buildTargetContext(protein) : null;
   const similarityByCid = options.similarityByCid || null;
+  const strictSimilarity = options.strictSimilarity === true;
+  if (
+    strictSimilarity &&
+    (options.rankMode === "similarity" || options.rankMode === "combined") &&
+    !similarityByCid
+  ) {
+    throw new Error(
+      "strictSimilarity: similarityByCid is required for similarity or combined rankMode"
+    );
+  }
   const scored = list.map((candidate) => {
     const local = scoreOne(candidate, ctx || protein);
     const cid = cidOf(candidate);
     const simRow = similarityByCid?.get?.(String(cid)) || similarityByCid?.[String(cid)];
     const similarityScore = simRow?.similarityScore ?? null;
+    if (
+      strictSimilarity &&
+      (options.rankMode === "similarity" || options.rankMode === "combined") &&
+      similarityScore == null
+    ) {
+      throw new Error(
+        `strictSimilarity: missing similarityScore for candidate cid=${cid} (rankMode=${options.rankMode})`
+      );
+    }
     const combinedScore =
       similarityScore != null
         ? combinedTriageScore(local.score, similarityScore)
-        : local.score;
+        : strictSimilarity && options.rankMode === "combined"
+          ? null
+          : local.score;
+    let score = local.score;
+    if (options.rankMode === "similarity") {
+      score = strictSimilarity ? similarityScore : similarityScore != null ? similarityScore : local.score;
+    } else if (options.rankMode === "combined") {
+      score = strictSimilarity ? combinedScore : similarityScore != null ? combinedScore : local.score;
+    }
     return {
       cid,
       name: nameOf(candidate),
@@ -785,11 +812,7 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
       similarityScore,
       similarityEvidence: simRow?.evidence || [],
       combinedScore,
-      score: options.rankMode === "similarity" && similarityScore != null
-        ? similarityScore
-        : options.rankMode === "combined" && similarityScore != null
-          ? combinedScore
-          : local.score,
+      score,
     };
   });
 

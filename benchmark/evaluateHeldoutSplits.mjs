@@ -7,6 +7,7 @@ import { readFileSync, writeFileSync, existsSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { bootstrapAucCi, enrichmentFactorAtFraction, rocAuc } from "./bootstrap.mjs";
+import { pairedStratifiedBootstrap } from "./pairedBootstrap.mjs";
 import { buildSimilarityMap, scoreRowKey } from "./similarityForBench.mjs";
 
 process.env.NODE_ENV = "test";
@@ -24,6 +25,42 @@ const RF_SPLITS = process.env.DUDE_RF_SPLITS_JSON || join(__dirname, "dude_rf_sp
 const DUDE_BENCH = join(__dirname, "dude_benchmark.json");
 
 const NN_CUTOFF = 0.4;
+const PAIRED_BOOT_N = 1000;
+const PAIRED_BOOT_SEED = 42;
+
+function isDudeBenchmarkRun() {
+  return (process.env.HELDOUT_BENCHMARK_PATH || "").includes("dude");
+}
+
+function rfScoresMapForCluster(rfRow) {
+  const block = rfRow?.modes?.cluster?.rf_morgan?.per_compound_scores;
+  if (!block) return null;
+  const map = new Map();
+  for (const row of block) {
+    const key = String(row.chembl_id || row.name || row.smiles);
+    map.set(key, row.rf_score);
+  }
+  return map;
+}
+
+function pairedClusterFromRows(rows, rfByKey) {
+  const labels = rows.map((r) => r.role === "active");
+  const legacy = rows.map((r) => r.heuristic_score);
+  const similarity = rows.map((r) => r.similarity_score);
+  const combined = rows.map((r) => r.combined_score);
+  const rf = rows.map((r) => {
+    const v = rfByKey.get(scoreRowKey(r));
+    if (v == null) {
+      throw new Error(`paired cluster: missing Morgan RF score for ${scoreRowKey(r)}`);
+    }
+    return v;
+  });
+  return pairedStratifiedBootstrap(
+    labels,
+    { legacy, similarity, combined, rf },
+    { nBoot: PAIRED_BOOT_N, seed: PAIRED_BOOT_SEED }
+  );
+}
 
 function loadRfByTarget() {
   if (!existsSync(RF_SPLITS)) return {};
@@ -37,7 +74,7 @@ function loadRfByTarget() {
 
 function loadDudeMeta() {
   if (!existsSync(DUDE_BENCH)) {
-    return { inchiRemoved: {}, referenceActives: {}, trainCounts: {}, dedup: {} };
+    return { inchiRemoved: {}, referenceActives: {}, trainCounts: {}, dedup: {}, refActivesKept: {} };
   }
   const data = JSON.parse(readFileSync(DUDE_BENCH, "utf8"));
   const inchiRemoved = {};
@@ -53,7 +90,11 @@ function loadDudeMeta() {
     };
     dedup[t.id] = t.canonical_smiles_dedup || null;
   }
-  return { inchiRemoved, referenceActives, trainCounts, dedup };
+  const refActivesKept = {};
+  for (const t of data.targets || []) {
+    refActivesKept[t.id] = t.n_ref_actives ?? (t.reference_actives || []).length;
+  }
+  return { inchiRemoved, referenceActives, trainCounts, dedup, refActivesKept };
 }
 
 function rfMetric(rfRow, mode) {
@@ -145,9 +186,11 @@ async function scoreTarget(compounds, protein, painsApi, options = {}) {
   if (nAct < 2 || nDec < 2 || compounds.length < 4) {
     return null;
   }
+  const strict = options.strictSimilarity === true;
   const candidates = compounds.map((c) => compoundToCandidate(c, painsApi));
   const similarityByCid = await buildSimilarityMap(compounds, protein, {
     referenceActives: options.referenceActives,
+    requireReference: strict,
   });
   const rankedH = rankCandidatesLocal(candidates, protein, {
     maxCandidates: candidates.length,
@@ -158,12 +201,14 @@ async function scoreTarget(compounds, protein, painsApi, options = {}) {
     minCandidates: 2,
     similarityByCid,
     rankMode: "similarity",
+    strictSimilarity: strict,
   });
   const rankedC = rankCandidatesLocal(candidates, protein, {
     maxCandidates: candidates.length,
     minCandidates: 2,
     similarityByCid,
     rankMode: "combined",
+    strictSimilarity: strict,
   });
   const byCid = (ranked) => new Map(ranked.ranking.map((r) => [String(r.cid), r.score]));
   const hMap = byCid(rankedH);
@@ -178,7 +223,7 @@ async function scoreTarget(compounds, protein, painsApi, options = {}) {
       combined_score: cMap.get(key) ?? null,
     };
   });
-  return {
+  const out = {
     legacy: evalMethod(rows, "heuristic_score", true),
     similarity: evalMethod(rows, "similarity_score", true),
     combined: evalMethod(rows, "combined_score", true),
@@ -189,7 +234,12 @@ async function scoreTarget(compounds, protein, painsApi, options = {}) {
       "random_score",
       true
     ),
+    _scored_rows: rows,
   };
+  if (options.rfScoresByKey) {
+    out.paired_bootstrap = pairedClusterFromRows(rows, options.rfScoresByKey);
+  }
+  return out;
 }
 
 function meanAuc(perTarget, mode, method) {
@@ -258,19 +308,43 @@ async function main() {
 
     const modes = {};
     if (benchmarkReady) {
-      const scoreOpts = { referenceActives: dudeMeta.referenceActives[target.id] };
-      modes.cluster = await scoreTarget(
-        filterClusterCompounds(target),
-        target.protein,
-        painsApi,
-        scoreOpts
-      );
+      const dudeRun = isDudeBenchmarkRun();
+      const scoreOpts = {
+        referenceActives: dudeMeta.referenceActives[target.id],
+        strictSimilarity: dudeRun,
+      };
+      const rfRow = rfByTarget[target.id];
+      const rfKeyMap = rfRow ? rfScoresMapForCluster(rfRow) : null;
+      if (dudeRun && !rfKeyMap) {
+        throw new Error(`DUD-E eval: missing Morgan RF per_compound_scores for ${target.id}`);
+      }
+      modes.cluster = await scoreTarget(filterClusterCompounds(target), target.protein, painsApi, {
+        ...scoreOpts,
+        rfScoresByKey: dudeRun ? rfKeyMap : null,
+      });
       modes.cutoff = await scoreTarget(filterCutoffCompounds(target), target.protein, painsApi, scoreOpts);
       const randomCompounds = buildRandomCompounds(target, splitBlock);
       modes.random = await scoreTarget(randomCompounds, target.protein, painsApi, scoreOpts);
-      const rfRow = rfByTarget[target.id];
-      if (rfRow && modes.cluster) modes.cluster.rf = rfMetric(rfRow, "cluster");
+      if (rfRow && modes.cluster) {
+        const pb = modes.cluster.paired_bootstrap;
+        if (pb?.methodCi?.rf) {
+          modes.cluster.rf = {
+            roc_auc: pb.methodCi.rf.roc_auc,
+            roc_auc_ci_95: { low: pb.methodCi.rf.ci_low, high: pb.methodCi.rf.ci_high },
+            ef_at_1pct: pb.methodCi.rf.ef_at_1pct,
+            n: modes.cluster.legacy?.n,
+            n_actives: modes.cluster.legacy?.n_actives,
+            paired_bootstrap: true,
+          };
+        } else {
+          modes.cluster.rf = rfMetric(rfRow, "cluster");
+        }
+      }
       if (rfRow && modes.cutoff) modes.cutoff.rf = rfMetric(rfRow, "cutoff");
+      if (modes.cluster?.paired_bootstrap) {
+        modes.cluster.paired_bootstrap_diffs = modes.cluster.paired_bootstrap.diffs;
+      }
+      delete modes.cluster?._scored_rows;
     }
 
     const nn = target.compounds
@@ -289,6 +363,8 @@ async function main() {
       train_decoys: trainCounts.decoys,
       test_actives: testAct,
       test_decoys: testDec,
+      reference_actives_kept: dudeMeta.refActivesKept?.[target.id] ?? null,
+      paired_bootstrap_cluster: modes.cluster?.paired_bootstrap ?? null,
       canonical_smiles_dedup: dudeMeta.dedup[target.id] ?? null,
       inchikey_removed_from_test: inchiRemoved[target.id] ?? sanity.inchikey_removed_from_test ?? 0,
       nn_tanimoto_distribution: nn.length
@@ -347,11 +423,58 @@ async function main() {
     md += "\n**Scoring methods were not evaluated** until MW and logP baselines are 0.45–0.55 per target.\n";
   } else {
     const methods = ["legacy", "similarity", "combined", "rf", "mw", "logp", "random"];
-    if (process.env.HELDOUT_BENCHMARK_PATH?.includes("dude")) {
+    if (isDudeBenchmarkRun()) {
       md +=
         "\n> **DUD-E analogue bias:** property-matched decoys may inflate similarity-only methods vs true inactive distributions.\n";
       md +=
         "\n> **Decoy assignment (eval):** independent nearest-50 per test active from the DUD-E decoy pool (repeats allowed across actives). See `DUDE_RESULTS.md`.\n";
+      md += `\n> **Paired bootstrap:** ${PAIRED_BOOT_N} stratified resamples (actives and decoys separately), seed **${PAIRED_BOOT_SEED}**; same indices for legacy, similarity, combined, and Morgan RF.\n`;
+      md += "\n## Cluster split — compound counts (after canonical dedup)\n\n";
+      md +=
+        "| Target | Reference actives kept | Test actives | Test decoys |\n|---|---:|---:|---:|\n";
+      for (const t of results.per_target) {
+        md += `| ${t.target} | ${t.reference_actives_kept ?? "—"} | ${t.test_actives ?? "—"} | ${t.test_decoys ?? "—"} |\n`;
+      }
+      md += "\n## Cluster split — methods (paired bootstrap 95% CIs)\n\n";
+      md += "| Target | Method | AUC | 95% CI | EF@1% |\n|---|---|---:|---|---:|\n";
+      for (const t of results.per_target) {
+        const pb = t.paired_bootstrap_cluster?.methodCi;
+        if (!pb) continue;
+        for (const meth of ["legacy", "similarity", "combined", "rf"]) {
+          const m = pb[meth];
+          if (!m) continue;
+          const ci =
+            m.ci_low != null && m.ci_high != null
+              ? `[${m.ci_low.toFixed(4)}, ${m.ci_high.toFixed(4)}]`
+              : "—";
+          const ef = m.ef_at_1pct != null ? m.ef_at_1pct.toFixed(2) : "—";
+          const label = meth === "rf" ? "morgan_rf" : meth;
+          md += `| ${t.target} | ${label} | ${m.roc_auc?.toFixed(4) ?? "—"} | ${ci} | ${ef} |\n`;
+        }
+      }
+      md += "\n## Cluster split — paired AUC differences (95% CI; significant if CI excludes 0)\n\n";
+      md +=
+        "| Target | Comparison | Mean ΔAUC | 95% CI | Significant |\n|---|---|---:|---|:---:|\n";
+      const diffLabels = {
+        similarity_minus_legacy: "similarity − legacy",
+        combined_minus_similarity: "combined − similarity",
+        legacy_minus_rf: "legacy − morgan_rf",
+        similarity_minus_rf: "similarity − morgan_rf",
+        combined_minus_rf: "combined − morgan_rf",
+      };
+      for (const t of results.per_target) {
+        const diffs = t.paired_bootstrap_cluster?.diffs;
+        if (!diffs) continue;
+        for (const [key, label] of Object.entries(diffLabels)) {
+          const d = diffs[key];
+          if (!d) continue;
+          const ci =
+            d.ci_low != null && d.ci_high != null
+              ? `[${d.ci_low.toFixed(4)}, ${d.ci_high.toFixed(4)}]`
+              : "—";
+          md += `| ${t.target} | ${label} | ${d.mean_diff?.toFixed(4) ?? "—"} | ${ci} | ${d.significant ? "yes" : "no"} |\n`;
+        }
+      }
     }
     md += "\n## Canonical SMILES deduplication (test wins over reference/train)\n\n";
     md +=
