@@ -180,6 +180,7 @@ def main():
         train = t.get("train_compounds") or []
         test_cluster = t.get("compounds") or []
         test_cutoff = filter_cutoff(test_cluster)
+        test_random = t.get("random_split_compounds") or []
         audit = leakage_audit(train, test_cluster)
         row = {
             "id": t["id"],
@@ -193,6 +194,9 @@ def main():
                 "cutoff": {
                     "rf_morgan": eval_mode(train, test_cutoff, "morgan"),
                     "rf_descriptors": eval_mode(train, test_cutoff, "descriptors"),
+                },
+                "random": {
+                    "rf_morgan": eval_mode(train, test_random, "morgan") if test_random else None,
                 },
             },
         }

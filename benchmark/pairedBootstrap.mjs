@@ -52,6 +52,13 @@ export function pairedStratifiedBootstrap(labels, scoreByMethod, opts = {}) {
     ["similarity_minus_rf", "similarity", "rf"],
     ["combined_minus_rf", "combined", "rf"],
   ];
+  if (scoreByMethod.druglikeness) {
+    for (const m of ["legacy", "similarity", "combined", "rf"]) {
+      if (scoreByMethod[m]) {
+        diffKeys.push([`druglikeness_minus_${m}`, "druglikeness", m]);
+      }
+    }
+  }
   const diffSamples = {};
   for (const [key] of diffKeys) diffSamples[key] = [];
 

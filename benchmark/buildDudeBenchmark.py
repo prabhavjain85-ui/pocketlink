@@ -23,10 +23,11 @@ sys.path.insert(0, str(BENCH))
 
 from buildHeldoutBenchmark import (  # noqa: E402
     TARGETS,
-    cluster_split_butina,
+    cluster_split_butina_audit,
     fp_morgan,
     load_exclusion_smiles,
     murcko_scaffold_smiles,
+    random_split_butina,
     roc_auc,
 )
 from dudeDecoyMatch import (  # noqa: E402
@@ -248,7 +249,7 @@ def main():
         mw_full, logp_full = baseline_mw_logp(full_compounds)
 
         by_smi = {a["smiles"]: a for a in actives_raw}
-        ref_raw, test_raw = cluster_split_butina(
+        ref_raw, test_raw, cluster_audit = cluster_split_butina_audit(
             [{"smiles": a["smiles"]} for a in actives_raw],
             n_test=MIN_TEST,
             n_ref=MIN_REF,
@@ -326,6 +327,35 @@ def main():
             continue
 
         train_stripped = [{k: c[k] for k in c if k != "fp"} for c in train_compounds]
+
+        ref_rand, test_rand = random_split_butina(
+            [{"smiles": a["smiles"]} for a in actives_raw],
+            n_test=MIN_TEST,
+            n_ref=MIN_REF,
+            seed=42,
+        )
+        ref_rand = [by_smi[r["smiles"]] for r in ref_rand if r["smiles"] in by_smi]
+        test_rand = [by_smi[r["smiles"]] for r in test_rand if r["smiles"] in by_smi]
+        ref_rand_keys = {r.get("inchikey") for r in ref_rand if r.get("inchikey")}
+        test_rand_clean = []
+        for t in test_rand:
+            if t.get("inchikey") and t["inchikey"] in ref_rand_keys:
+                continue
+            test_rand_clean.append(t)
+        test_recs_rand = [
+            r
+            for r in actives_raw_recs
+            if r["dude_idx"] in {t["dude_active_idx"] for t in test_rand_clean}
+        ]
+        assignment_rand = assign_decoys_eval_subset(test_recs_rand, decoys_raw_recs)
+        ref_rand_fps = [DataStructs.CreateFromBitString(r["fp"]) for r in ref_rand]
+        random_compounds = compounds_from_assignment(
+            test_rand_clean, decoys_by_idx, assignment_rand, ref_fps=ref_rand_fps
+        )
+        random_compounds, _, _, _ = dedup_partitions(
+            random_compounds, train_compounds, ref_entries
+        )
+
         included.append(
             {
                 "id": tid,
@@ -359,6 +389,10 @@ def main():
                 "compounds": [{k: c[k] for k in c if k != "fp"} for c in compounds],
                 "train_compounds": train_stripped,
                 "reference_actives": ref_entries,
+                "cluster_active_groups": cluster_audit,
+                "random_split_compounds": [
+                    {k: c[k] for k in c if k != "fp"} for c in random_compounds
+                ],
             }
         )
         print(
@@ -404,6 +438,7 @@ def main():
                     "title": t["name"],
                 },
                 "compounds": t["compounds"],
+                "random_compounds": t.get("random_split_compounds") or [],
                 "sanity": {
                     "mw_roc_auc": t["mw_roc_auc_subset"],
                     "logp_roc_auc": t["logp_roc_auc_subset"],

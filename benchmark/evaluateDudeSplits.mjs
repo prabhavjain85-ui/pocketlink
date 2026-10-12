@@ -5,6 +5,12 @@ import { fileURLToPath } from "url";
 
 const dir = dirname(fileURLToPath(import.meta.url));
 
+const diag = spawnSync("python3", [join(dir, "dudeDiagnostics.py")], {
+  cwd: dir,
+  stdio: "inherit",
+});
+if (diag.status !== 0) process.exit(diag.status ?? 1);
+
 const py = spawnSync("python3", [join(dir, "evaluateDudeRfSplits.py")], {
   cwd: dir,
   stdio: "inherit",

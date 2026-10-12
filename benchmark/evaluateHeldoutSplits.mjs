@@ -12,7 +12,7 @@ import { buildSimilarityMap, scoreRowKey } from "./similarityForBench.mjs";
 
 process.env.NODE_ENV = "test";
 const require = createRequire(import.meta.url);
-const { rankCandidatesLocal } = require("../src/scoreCandidates.js");
+const { rankCandidatesLocal, scoreOne } = require("../src/scoreCandidates.js");
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const HELDOUT = process.env.HELDOUT_BENCHMARK_PATH || join(__dirname, "heldout_benchmark_v2.json");
@@ -23,6 +23,8 @@ const OUT_MD = process.env.HELDOUT_RESULTS_MD || join(__dirname, "HELDOUT_RESULT
 const BENCHMARK_TITLE = process.env.HELDOUT_RESULTS_TITLE || "Held-out benchmark results";
 const RF_SPLITS = process.env.DUDE_RF_SPLITS_JSON || join(__dirname, "dude_rf_split_results.json");
 const DUDE_BENCH = join(__dirname, "dude_benchmark.json");
+const DUDE_DIAG = join(__dirname, "dude_diagnostic.json");
+const WHAT_BENCHMARK_MD = join(__dirname, "WHAT_THIS_BENCHMARK_CAN_SHOW.md");
 
 const NN_CUTOFF = 0.4;
 const PAIRED_BOOT_N = 1000;
@@ -32,8 +34,8 @@ function isDudeBenchmarkRun() {
   return (process.env.HELDOUT_BENCHMARK_PATH || "").includes("dude");
 }
 
-function rfScoresMapForCluster(rfRow) {
-  const block = rfRow?.modes?.cluster?.rf_morgan?.per_compound_scores;
+function rfScoresMapForMode(rfRow, mode = "cluster") {
+  const block = rfRow?.modes?.[mode]?.rf_morgan?.per_compound_scores;
   if (!block) return null;
   const map = new Map();
   for (const row of block) {
@@ -43,7 +45,7 @@ function rfScoresMapForCluster(rfRow) {
   return map;
 }
 
-function pairedClusterFromRows(rows, rfByKey) {
+function pairedEvalFromRows(rows, rfByKey, includeDruglikeness = true) {
   const labels = rows.map((r) => r.role === "active");
   const legacy = rows.map((r) => r.heuristic_score);
   const similarity = rows.map((r) => r.similarity_score);
@@ -51,15 +53,44 @@ function pairedClusterFromRows(rows, rfByKey) {
   const rf = rows.map((r) => {
     const v = rfByKey.get(scoreRowKey(r));
     if (v == null) {
-      throw new Error(`paired cluster: missing Morgan RF score for ${scoreRowKey(r)}`);
+      throw new Error(`paired eval: missing Morgan RF score for ${scoreRowKey(r)}`);
     }
     return v;
   });
-  return pairedStratifiedBootstrap(
-    labels,
-    { legacy, similarity, combined, rf },
-    { nBoot: PAIRED_BOOT_N, seed: PAIRED_BOOT_SEED }
-  );
+  const scoreByMethod = { legacy, similarity, combined, rf };
+  if (includeDruglikeness) {
+    scoreByMethod.druglikeness = rows.map((r) => r.druglikeness_score);
+  }
+  return pairedStratifiedBootstrap(labels, scoreByMethod, {
+    nBoot: PAIRED_BOOT_N,
+    seed: PAIRED_BOOT_SEED,
+  });
+}
+
+function loadDudeDiagnostic() {
+  if (!existsSync(DUDE_DIAG)) return null;
+  return JSON.parse(readFileSync(DUDE_DIAG, "utf8"));
+}
+
+function formatQuartileRow(target, setName, q) {
+  if (!q || q.n === 0) return `| ${target} | ${setName} | — | — | — | — | — | 0 |\n`;
+  return `| ${target} | ${setName} | ${q.min?.toFixed(4)} | ${q.q1?.toFixed(4)} | ${q.median?.toFixed(4)} | ${q.q3?.toFixed(4)} | ${q.max?.toFixed(4)} | ${q.n} |\n`;
+}
+
+function dpp4ScoreDirectionSample(rows) {
+  const act = rows.filter((r) => r.role === "active").slice(0, 5);
+  const dec = rows.filter((r) => r.role === "decoy").slice(0, 5);
+  const pick = (r) => ({
+    id: scoreRowKey(r),
+    smiles: r.smiles,
+    label: r.role === "active" ? 1 : 0,
+    legacy: r.heuristic_score,
+    similarity: r.similarity_score,
+    combined: r.combined_score,
+    rf: r.rf_score,
+    druglikeness: r.druglikeness_score,
+  });
+  return { actives: act.map(pick), decoys: dec.map(pick) };
 }
 
 function loadRfByTarget() {
@@ -177,6 +208,7 @@ function filterCutoffCompounds(target) {
 }
 
 function buildRandomCompounds(target, splitBlock) {
+  if (target.random_compounds?.length) return target.random_compounds;
   return splitBlock.random_compounds || [];
 }
 
@@ -216,11 +248,16 @@ async function scoreTarget(compounds, protein, painsApi, options = {}) {
   const cMap = byCid(rankedC);
   const rows = compounds.map((c) => {
     const key = scoreRowKey(c);
+    const cand = compoundToCandidate(c, painsApi);
+    const dl = scoreOne(cand, null);
+    const rfScore = options.rfScoresByKey?.get(key) ?? null;
     return {
       ...c,
       heuristic_score: hMap.get(key) ?? null,
       similarity_score: sMap.get(key) ?? null,
       combined_score: cMap.get(key) ?? null,
+      druglikeness_score: dl?.score ?? null,
+      rf_score: rfScore,
     };
   });
   const out = {
@@ -237,7 +274,7 @@ async function scoreTarget(compounds, protein, painsApi, options = {}) {
     _scored_rows: rows,
   };
   if (options.rfScoresByKey) {
-    out.paired_bootstrap = pairedClusterFromRows(rows, options.rfScoresByKey);
+    out.paired_bootstrap = pairedEvalFromRows(rows, options.rfScoresByKey, options.includeDruglikeness !== false);
   }
   return out;
 }
@@ -314,17 +351,24 @@ async function main() {
         strictSimilarity: dudeRun,
       };
       const rfRow = rfByTarget[target.id];
-      const rfKeyMap = rfRow ? rfScoresMapForCluster(rfRow) : null;
-      if (dudeRun && !rfKeyMap) {
+      const rfKeyMapCluster = rfRow ? rfScoresMapForMode(rfRow, "cluster") : null;
+      const rfKeyMapRandom = rfRow ? rfScoresMapForMode(rfRow, "random") : null;
+      if (dudeRun && !rfKeyMapCluster) {
         throw new Error(`DUD-E eval: missing Morgan RF per_compound_scores for ${target.id}`);
       }
       modes.cluster = await scoreTarget(filterClusterCompounds(target), target.protein, painsApi, {
         ...scoreOpts,
-        rfScoresByKey: dudeRun ? rfKeyMap : null,
+        rfScoresByKey: dudeRun ? rfKeyMapCluster : null,
       });
       modes.cutoff = await scoreTarget(filterCutoffCompounds(target), target.protein, painsApi, scoreOpts);
       const randomCompounds = buildRandomCompounds(target, splitBlock);
-      modes.random = await scoreTarget(randomCompounds, target.protein, painsApi, scoreOpts);
+      if (dudeRun && randomCompounds.length && !rfKeyMapRandom) {
+        throw new Error(`DUD-E eval: missing random-split Morgan RF scores for ${target.id}`);
+      }
+      modes.random = await scoreTarget(randomCompounds, target.protein, painsApi, {
+        ...scoreOpts,
+        rfScoresByKey: dudeRun && randomCompounds.length ? rfKeyMapRandom : null,
+      });
       if (rfRow && modes.cluster) {
         const pb = modes.cluster.paired_bootstrap;
         if (pb?.methodCi?.rf) {
@@ -341,8 +385,35 @@ async function main() {
         }
       }
       if (rfRow && modes.cutoff) modes.cutoff.rf = rfMetric(rfRow, "cutoff");
+      if (rfRow && modes.random?.paired_bootstrap?.methodCi?.rf) {
+        const pbR = modes.random.paired_bootstrap;
+        modes.random.rf = {
+          roc_auc: pbR.methodCi.rf.roc_auc,
+          roc_auc_ci_95: { low: pbR.methodCi.rf.ci_low, high: pbR.methodCi.rf.ci_high },
+          ef_at_1pct: pbR.methodCi.rf.ef_at_1pct,
+          n: modes.random.legacy?.n,
+          n_actives: modes.random.legacy?.n_actives,
+          paired_bootstrap: true,
+        };
+      } else if (rfRow && modes.random) {
+        modes.random.rf = rfMetric(rfRow, "random");
+      }
       if (modes.cluster?.paired_bootstrap) {
         modes.cluster.paired_bootstrap_diffs = modes.cluster.paired_bootstrap.diffs;
+      }
+      if (modes.random?.paired_bootstrap) {
+        modes.random.paired_bootstrap_diffs = modes.random.paired_bootstrap.diffs;
+      }
+      if (dudeRun && target.id === "dpp4" && modes.cluster?._scored_rows) {
+        results.dpp4_score_direction = dpp4ScoreDirectionSample(modes.cluster._scored_rows);
+        results.auc_direction_verdict = {
+          higher_score_more_likely_active: true,
+          label_active_is_one: true,
+          implementation: "bootstrap.mjs rocAuc sorts by descending score; labels true=active",
+        };
+        console.log("\n[DPP4 score direction sample]");
+        console.log(JSON.stringify(results.dpp4_score_direction, null, 2));
+        console.log("[AUC direction verdict]", results.auc_direction_verdict);
       }
       delete modes.cluster?._scored_rows;
     }
@@ -365,6 +436,7 @@ async function main() {
       test_decoys: testDec,
       reference_actives_kept: dudeMeta.refActivesKept?.[target.id] ?? null,
       paired_bootstrap_cluster: modes.cluster?.paired_bootstrap ?? null,
+      paired_bootstrap_random: modes.random?.paired_bootstrap ?? null,
       canonical_smiles_dedup: dudeMeta.dedup[target.id] ?? null,
       inchikey_removed_from_test: inchiRemoved[target.id] ?? sanity.inchikey_removed_from_test ?? 0,
       nn_tanimoto_distribution: nn.length
@@ -474,6 +546,93 @@ async function main() {
               : "—";
           md += `| ${t.target} | ${label} | ${d.mean_diff?.toFixed(4) ?? "—"} | ${ci} | ${d.significant ? "yes" : "no"} |\n`;
         }
+      }
+      md += "\n## Cluster split — drug-likeness-only baseline (scoreOne with protein=null)\n\n";
+      md += "| Target | AUC | 95% CI | EF@1% |\n|---|---:|---|---:|\n";
+      for (const t of results.per_target) {
+        const m = t.paired_bootstrap_cluster?.methodCi?.druglikeness;
+        if (!m) continue;
+        const ci =
+          m.ci_low != null && m.ci_high != null
+            ? `[${m.ci_low.toFixed(4)}, ${m.ci_high.toFixed(4)}]`
+            : "—";
+        const ef = m.ef_at_1pct != null ? m.ef_at_1pct.toFixed(2) : "—";
+        md += `| ${t.target} | ${m.roc_auc?.toFixed(4) ?? "—"} | ${ci} | ${ef} |\n`;
+      }
+      md += "\n## Cluster split — drug-likeness paired ΔAUC vs other methods\n\n";
+      md +=
+        "| Target | Comparison | Mean ΔAUC | 95% CI | Significant |\n|---|---|---:|---|:---:|\n";
+      const dlLabels = {
+        druglikeness_minus_legacy: "druglikeness − legacy",
+        druglikeness_minus_similarity: "druglikeness − similarity",
+        druglikeness_minus_combined: "druglikeness − combined",
+        druglikeness_minus_rf: "druglikeness − morgan_rf",
+      };
+      for (const t of results.per_target) {
+        const diffs = t.paired_bootstrap_cluster?.diffs;
+        if (!diffs) continue;
+        for (const [key, label] of Object.entries(dlLabels)) {
+          const d = diffs[key];
+          if (!d) continue;
+          const ci =
+            d.ci_low != null && d.ci_high != null
+              ? `[${d.ci_low.toFixed(4)}, ${d.ci_high.toFixed(4)}]`
+              : "—";
+          md += `| ${t.target} | ${label} | ${d.mean_diff?.toFixed(4) ?? "—"} | ${ci} | ${d.significant ? "yes" : "no"} |\n`;
+        }
+      }
+      if (results.dpp4_score_direction) {
+        md += "\n## DPP4 score direction sample (cluster test set)\n\n";
+        md += `Verdict: higher score ⇒ more likely active (**${results.auc_direction_verdict?.higher_score_more_likely_active}**); benchmark label active = **${results.auc_direction_verdict?.label_active_is_one ? "1" : "0"}** (${results.auc_direction_verdict?.implementation}).\n\n`;
+        md += "| ID | SMILES | label | legacy | similarity | combined | morgan_rf |\n|---|---|---:|---:|---:|---:|---:|\n";
+        for (const row of [...results.dpp4_score_direction.actives, ...results.dpp4_score_direction.decoys]) {
+          md += `| ${row.id} | ${row.smiles} | ${row.label} | ${row.legacy?.toFixed?.(2) ?? row.legacy} | ${row.similarity?.toFixed?.(2) ?? row.similarity} | ${row.combined?.toFixed?.(2) ?? row.combined} | ${row.rf?.toFixed?.(4) ?? row.rf} |\n`;
+        }
+      }
+      const diag = loadDudeDiagnostic();
+      if (diag?.per_target) {
+        md += "\n## Max Morgan Tanimoto to reference actives (quartiles)\n\n";
+        md +=
+          "| Target | Set | min | Q1 | median | Q3 | max | n |\n|---|---|---:|---:|---:|---:|---:|---:|\n";
+        for (const tid of ["dpp4", "adrb2", "jak2"]) {
+          const block = diag.per_target[tid]?.max_tanimoto_to_reference;
+          if (!block) continue;
+          for (const [setName, q] of [
+            ["test_actives", block.test_actives],
+            ["test_decoys", block.test_decoys],
+            ["reference_actives_loo", block.reference_actives_loo],
+          ]) {
+            md += formatQuartileRow(tid, setName, q);
+          }
+        }
+        const dpp4Clusters = diag.per_target.dpp4?.cluster_active_groups || [];
+        if (dpp4Clusters.length) {
+          md += "\n## DPP4 active clusters (Butina Tanimoto 0.4; Murcko-disjoint test assignment)\n\n";
+          md += "| cluster_id | size | partition |\n|---:|---:|---|\n";
+          for (const cl of dpp4Clusters) {
+            md += `| ${cl.cluster_id} | ${cl.size} | ${cl.partition} |\n`;
+          }
+        }
+      }
+      md += "\n## Random split — methods (paired bootstrap 95% CIs; optimistic upper bound)\n\n";
+      md += "| Target | Method | AUC | 95% CI | EF@1% |\n|---|---|---:|---|---:|\n";
+      for (const t of results.per_target) {
+        const pb = t.paired_bootstrap_random?.methodCi;
+        if (!pb) continue;
+        for (const meth of ["legacy", "similarity", "combined", "rf", "druglikeness"]) {
+          const m = pb[meth];
+          if (!m) continue;
+          const ci =
+            m.ci_low != null && m.ci_high != null
+              ? `[${m.ci_low.toFixed(4)}, ${m.ci_high.toFixed(4)}]`
+              : "—";
+          const ef = m.ef_at_1pct != null ? m.ef_at_1pct.toFixed(2) : "—";
+          const label = meth === "rf" ? "morgan_rf" : meth;
+          md += `| ${t.target} | ${label} | ${m.roc_auc?.toFixed(4) ?? "—"} | ${ci} | ${ef} |\n`;
+        }
+      }
+      if (existsSync(WHAT_BENCHMARK_MD)) {
+        md += `\n---\n\n${readFileSync(WHAT_BENCHMARK_MD, "utf8")}\n`;
       }
     }
     md += "\n## Canonical SMILES deduplication (test wins over reference/train)\n\n";

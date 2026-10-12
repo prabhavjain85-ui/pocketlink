@@ -303,6 +303,61 @@ def cluster_split_butina(records, n_test=MIN_ACTIVES_TEST, n_ref=MIN_ACTIVES_REF
     return ref[:n_ref], test[:n_test]
 
 
+def cluster_split_butina_audit(records, n_test=MIN_ACTIVES_TEST, n_ref=MIN_ACTIVES_REF):
+    """Like cluster_split_butina but also returns per-Butina-cluster partition audit."""
+    mols = []
+    fps = []
+    meta = []
+    for r in records:
+        m = Chem.MolFromSmiles(r["smiles"])
+        if m is None:
+            continue
+        mols.append(m)
+        fps.append(fp_morgan(m))
+        meta.append({**r, "murcko": murcko_scaffold_smiles(m), "generic": generic_scaffold_smiles(m)})
+    if len(meta) < n_test + 10:
+        ref = meta[:n_ref]
+        test = meta[n_ref : n_ref + n_test]
+        audit = [{"cluster_id": 0, "size": len(meta), "partition": "mixed_small_set"}]
+        return ref, test, audit
+
+    from rdkit.ML.Cluster import Butina
+
+    dists = []
+    nfps = len(fps)
+    for i in range(1, nfps):
+        sims = DataStructs.BulkTanimotoSimilarity(fps[i], fps[:i])
+        dists.extend([1 - x for x in sims])
+    clusters = Butina.ClusterData(dists, nfps, 0.4, isDistData=True)
+    cluster_records = []
+    for cl in clusters:
+        cluster_records.append([meta[i] for i in cl])
+    cluster_records.sort(key=lambda c: -len(c))
+
+    test, ref = [], []
+    test_murcko, test_generic = set(), set()
+    audit = []
+    for cid, cl in enumerate(cluster_records):
+        murckos = {x["murcko"] for x in cl if x["murcko"]}
+        generics = {x["generic"] for x in cl if x["generic"]}
+        to_test = (
+            len(test) < n_test
+            and not (murckos & test_murcko)
+            and not (generics & test_generic)
+        )
+        if to_test:
+            test.extend(cl)
+            test_murcko |= murckos
+            test_generic |= generics
+            audit.append({"cluster_id": cid, "size": len(cl), "partition": "test"})
+        else:
+            ref.extend(cl)
+            audit.append({"cluster_id": cid, "size": len(cl), "partition": "reference"})
+    test_smiles = {x["smiles"] for x in test}
+    ref = [x for x in ref if x["smiles"] not in test_smiles]
+    return ref[:n_ref], test[:n_test], audit
+
+
 def random_split_butina(records, n_test=MIN_ACTIVES_TEST, n_ref=MIN_ACTIVES_REF, seed=42):
     """Same Butina clusters as cluster_split_butina, but clusters assigned to test/ref at random."""
     random.seed(seed)
