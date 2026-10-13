@@ -1,0 +1,8 @@
+# Pinned for reproducible Vina/Meeko benchmarks (Python 3.12).
+# System packages (see README): autodock-vina 1.2.5, pdb2pqr 3.6.x, propka.
+rdkit==2024.9.5
+meeko==0.8.0
+gemmi==0.7.5
+spyrmsd==0.9.0
+numpy==1.26.4
+scipy==1.14.1

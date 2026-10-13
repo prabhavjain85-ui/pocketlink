@@ -1,0 +1,16 @@
+{
+  "engine": "AutoDock Vina 1.2.5",
+  "vina_binary": "vina",
+  "receptor_ph": 7.4,
+  "box_padding_angstrom": 8.0,
+  "box_min_size_angstrom": 18.0,
+  "box_max_size_angstrom": 28.0,
+  "exhaustiveness": 16,
+  "n_poses": 5,
+  "redock_seeds": [42, 43, 44, 45, 46, 47, 48, 49, 50, 51],
+  "redock_pass_rmsd_angstrom": 2.0,
+  "redock_pass_min_seeds": 8,
+  "ligand_embed_seed": 42,
+  "bootstrap_n": 800,
+  "bootstrap_seed": 42
+}
