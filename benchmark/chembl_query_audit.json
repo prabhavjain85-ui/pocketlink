@@ -1,0 +1,635 @@
+{
+  "pic50_min": 6.0,
+  "targets": [
+    {
+      "target_key": "egfr",
+      "chembl_target_id": "CHEMBL203",
+      "steps": [
+        {
+          "step": "no_filter",
+          "count": 58847,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL203&limit=1"
+        },
+        {
+          "step": "target_type_SINGLE PROTEIN",
+          "count": 58847,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL203&target_type=SINGLE PROTEIN&limit=1"
+        },
+        {
+          "step": "confidence_score_gte_7",
+          "count": 58847,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL203&confidence_score__gte=7&limit=1"
+        },
+        {
+          "step": "standard_type_IC50_Ki",
+          "count": 28772,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL203&standard_type__in=IC50,Ki&limit=1"
+        },
+        {
+          "step": "standard_units_nM",
+          "count": 26515,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL203&standard_units__iexact=nM&limit=1"
+        },
+        {
+          "step": "standard_relation_\"=\"",
+          "count": 20331,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL203&standard_relation==&limit=1"
+        },
+        {
+          "step": "pchembl_gte_6.0",
+          "count": 15750,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL203&pchembl_value__gte=6.0&limit=1"
+        }
+      ],
+      "final_count": 15750
+    },
+    {
+      "target_key": "abl1",
+      "chembl_target_id": "CHEMBL1862",
+      "steps": [
+        {
+          "step": "no_filter",
+          "count": 24904,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1862&limit=1"
+        },
+        {
+          "step": "target_type_SINGLE PROTEIN",
+          "count": 24904,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1862&target_type=SINGLE PROTEIN&limit=1"
+        },
+        {
+          "step": "confidence_score_gte_7",
+          "count": 24904,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1862&confidence_score__gte=7&limit=1"
+        },
+        {
+          "step": "standard_type_IC50_Ki",
+          "count": 7076,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1862&standard_type__in=IC50,Ki&limit=1"
+        },
+        {
+          "step": "standard_units_nM",
+          "count": 6937,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1862&standard_units__iexact=nM&limit=1"
+        },
+        {
+          "step": "standard_relation_\"=\"",
+          "count": 5328,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1862&standard_relation==&limit=1"
+        },
+        {
+          "step": "pchembl_gte_6.0",
+          "count": 4489,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1862&pchembl_value__gte=6.0&limit=1"
+        }
+      ],
+      "final_count": 4489
+    },
+    {
+      "target_key": "erbb2",
+      "chembl_target_id": "CHEMBL1824",
+      "steps": [
+        {
+          "step": "no_filter",
+          "count": 11069,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1824&limit=1"
+        },
+        {
+          "step": "target_type_SINGLE PROTEIN",
+          "count": 11069,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1824&target_type=SINGLE PROTEIN&limit=1"
+        },
+        {
+          "step": "confidence_score_gte_7",
+          "count": 11069,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1824&confidence_score__gte=7&limit=1"
+        },
+        {
+          "step": "standard_type_IC50_Ki",
+          "count": 6738,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1824&standard_type__in=IC50,Ki&limit=1"
+        },
+        {
+          "step": "standard_units_nM",
+          "count": 4912,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1824&standard_units__iexact=nM&limit=1"
+        },
+        {
+          "step": "standard_relation_\"=\"",
+          "count": 3455,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1824&standard_relation==&limit=1"
+        },
+        {
+          "step": "pchembl_gte_6.0",
+          "count": 2644,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1824&pchembl_value__gte=6.0&limit=1"
+        }
+      ],
+      "final_count": 2644
+    },
+    {
+      "target_key": "braf",
+      "chembl_target_id": "CHEMBL4005",
+      "steps": [
+        {
+          "step": "no_filter",
+          "count": 21489,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL4005&limit=1"
+        },
+        {
+          "step": "target_type_SINGLE PROTEIN",
+          "count": 21489,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL4005&target_type=SINGLE PROTEIN&limit=1"
+        },
+        {
+          "step": "confidence_score_gte_7",
+          "count": 21489,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL4005&confidence_score__gte=7&limit=1"
+        },
+        {
+          "step": "standard_type_IC50_Ki",
+          "count": 11590,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL4005&standard_type__in=IC50,Ki&limit=1"
+        },
+        {
+          "step": "standard_units_nM",
+          "count": 11411,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL4005&standard_units__iexact=nM&limit=1"
+        },
+        {
+          "step": "standard_relation_\"=\"",
+          "count": 9446,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL4005&standard_relation==&limit=1"
+        },
+        {
+          "step": "pchembl_gte_6.0",
+          "count": 7032,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL4005&pchembl_value__gte=6.0&limit=1"
+        }
+      ],
+      "final_count": 7032
+    },
+    {
+      "target_key": "ptgs2",
+      "chembl_target_id": "CHEMBL230",
+      "steps": [
+        {
+          "step": "no_filter",
+          "count": 15314,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL230&limit=1"
+        },
+        {
+          "step": "target_type_SINGLE PROTEIN",
+          "count": 15314,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL230&target_type=SINGLE PROTEIN&limit=1"
+        },
+        {
+          "step": "confidence_score_gte_7",
+          "count": 15314,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL230&confidence_score__gte=7&limit=1"
+        },
+        {
+          "step": "standard_type_IC50_Ki",
+          "count": 9404,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL230&standard_type__in=IC50,Ki&limit=1"
+        },
+        {
+          "step": "standard_units_nM",
+          "count": 7511,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL230&standard_units__iexact=nM&limit=1"
+        },
+        {
+          "step": "standard_relation_\"=\"",
+          "count": 6420,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL230&standard_relation==&limit=1"
+        },
+        {
+          "step": "pchembl_gte_6.0",
+          "count": 3792,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL230&pchembl_value__gte=6.0&limit=1"
+        }
+      ],
+      "final_count": 3792
+    },
+    {
+      "target_key": "hmgcr",
+      "chembl_target_id": "CHEMBL402",
+      "steps": [
+        {
+          "step": "no_filter",
+          "count": 2495,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL402&limit=1"
+        },
+        {
+          "step": "target_type_SINGLE PROTEIN",
+          "count": 2495,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL402&target_type=SINGLE PROTEIN&limit=1"
+        },
+        {
+          "step": "confidence_score_gte_7",
+          "count": 2495,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL402&confidence_score__gte=7&limit=1"
+        },
+        {
+          "step": "standard_type_IC50_Ki",
+          "count": 2068,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL402&standard_type__in=IC50,Ki&limit=1"
+        },
+        {
+          "step": "standard_units_nM",
+          "count": 329,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL402&standard_units__iexact=nM&limit=1"
+        },
+        {
+          "step": "standard_relation_\"=\"",
+          "count": 314,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL402&standard_relation==&limit=1"
+        },
+        {
+          "step": "pchembl_gte_6.0",
+          "count": 215,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL402&pchembl_value__gte=6.0&limit=1"
+        }
+      ],
+      "final_count": 215
+    },
+    {
+      "target_key": "pde5a",
+      "chembl_target_id": "CHEMBL1827",
+      "steps": [
+        {
+          "step": "no_filter",
+          "count": 5693,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1827&limit=1"
+        },
+        {
+          "step": "target_type_SINGLE PROTEIN",
+          "count": 5693,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1827&target_type=SINGLE PROTEIN&limit=1"
+        },
+        {
+          "step": "confidence_score_gte_7",
+          "count": 5693,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1827&confidence_score__gte=7&limit=1"
+        },
+        {
+          "step": "standard_type_IC50_Ki",
+          "count": 4625,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1827&standard_type__in=IC50,Ki&limit=1"
+        },
+        {
+          "step": "standard_units_nM",
+          "count": 2818,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1827&standard_units__iexact=nM&limit=1"
+        },
+        {
+          "step": "standard_relation_\"=\"",
+          "count": 2593,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1827&standard_relation==&limit=1"
+        },
+        {
+          "step": "pchembl_gte_6.0",
+          "count": 1904,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1827&pchembl_value__gte=6.0&limit=1"
+        }
+      ],
+      "final_count": 1904
+    },
+    {
+      "target_key": "esr1",
+      "chembl_target_id": "CHEMBL206",
+      "steps": [
+        {
+          "step": "no_filter",
+          "count": 26277,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL206&limit=1"
+        },
+        {
+          "step": "target_type_SINGLE PROTEIN",
+          "count": 26277,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL206&target_type=SINGLE PROTEIN&limit=1"
+        },
+        {
+          "step": "confidence_score_gte_7",
+          "count": 26277,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL206&confidence_score__gte=7&limit=1"
+        },
+        {
+          "step": "standard_type_IC50_Ki",
+          "count": 9438,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL206&standard_type__in=IC50,Ki&limit=1"
+        },
+        {
+          "step": "standard_units_nM",
+          "count": 7576,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL206&standard_units__iexact=nM&limit=1"
+        },
+        {
+          "step": "standard_relation_\"=\"",
+          "count": 6655,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL206&standard_relation==&limit=1"
+        },
+        {
+          "step": "pchembl_gte_6.0",
+          "count": 5419,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL206&pchembl_value__gte=6.0&limit=1"
+        }
+      ],
+      "final_count": 5419
+    },
+    {
+      "target_key": "dpp4",
+      "chembl_target_id": "CHEMBL284",
+      "steps": [
+        {
+          "step": "no_filter",
+          "count": 8397,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL284&limit=1"
+        },
+        {
+          "step": "target_type_SINGLE PROTEIN",
+          "count": 8397,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL284&target_type=SINGLE PROTEIN&limit=1"
+        },
+        {
+          "step": "confidence_score_gte_7",
+          "count": 8397,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL284&confidence_score__gte=7&limit=1"
+        },
+        {
+          "step": "standard_type_IC50_Ki",
+          "count": 6527,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL284&standard_type__in=IC50,Ki&limit=1"
+        },
+        {
+          "step": "standard_units_nM",
+          "count": 6390,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL284&standard_units__iexact=nM&limit=1"
+        },
+        {
+          "step": "standard_relation_\"=\"",
+          "count": 5560,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL284&standard_relation==&limit=1"
+        },
+        {
+          "step": "pchembl_gte_6.0",
+          "count": 4502,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL284&pchembl_value__gte=6.0&limit=1"
+        }
+      ],
+      "final_count": 4502
+    },
+    {
+      "target_key": "adrb2",
+      "chembl_target_id": "CHEMBL210",
+      "steps": [
+        {
+          "step": "no_filter",
+          "count": 13208,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL210&limit=1"
+        },
+        {
+          "step": "target_type_SINGLE PROTEIN",
+          "count": 13208,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL210&target_type=SINGLE PROTEIN&limit=1"
+        },
+        {
+          "step": "confidence_score_gte_7",
+          "count": 13208,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL210&confidence_score__gte=7&limit=1"
+        },
+        {
+          "step": "standard_type_IC50_Ki",
+          "count": 3527,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL210&standard_type__in=IC50,Ki&limit=1"
+        },
+        {
+          "step": "standard_units_nM",
+          "count": 1805,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL210&standard_units__iexact=nM&limit=1"
+        },
+        {
+          "step": "standard_relation_\"=\"",
+          "count": 1551,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL210&standard_relation==&limit=1"
+        },
+        {
+          "step": "pchembl_gte_6.0",
+          "count": 1006,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL210&pchembl_value__gte=6.0&limit=1"
+        }
+      ],
+      "final_count": 1006
+    },
+    {
+      "target_key": "hiv_pr",
+      "chembl_target_id": "CHEMBL244",
+      "steps": [
+        {
+          "step": "no_filter",
+          "count": 10321,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL244&limit=1"
+        },
+        {
+          "step": "target_type_SINGLE PROTEIN",
+          "count": 10321,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL244&target_type=SINGLE PROTEIN&limit=1"
+        },
+        {
+          "step": "confidence_score_gte_7",
+          "count": 10321,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL244&confidence_score__gte=7&limit=1"
+        },
+        {
+          "step": "standard_type_IC50_Ki",
+          "count": 8696,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL244&standard_type__in=IC50,Ki&limit=1"
+        },
+        {
+          "step": "standard_units_nM",
+          "count": 8586,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL244&standard_units__iexact=nM&limit=1"
+        },
+        {
+          "step": "standard_relation_\"=\"",
+          "count": 7580,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL244&standard_relation==&limit=1"
+        },
+        {
+          "step": "pchembl_gte_6.0",
+          "count": 5590,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL244&pchembl_value__gte=6.0&limit=1"
+        }
+      ],
+      "final_count": 5590
+    },
+    {
+      "target_key": "sars_mpro",
+      "chembl_target_id": "CHEMBL1075104",
+      "steps": [
+        {
+          "step": "no_filter",
+          "count": 18351,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1075104&limit=1"
+        },
+        {
+          "step": "target_type_SINGLE PROTEIN",
+          "count": 18351,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1075104&target_type=SINGLE PROTEIN&limit=1"
+        },
+        {
+          "step": "confidence_score_gte_7",
+          "count": 18351,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1075104&confidence_score__gte=7&limit=1"
+        },
+        {
+          "step": "standard_type_IC50_Ki",
+          "count": 7919,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1075104&standard_type__in=IC50,Ki&limit=1"
+        },
+        {
+          "step": "standard_units_nM",
+          "count": 7848,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1075104&standard_units__iexact=nM&limit=1"
+        },
+        {
+          "step": "standard_relation_\"=\"",
+          "count": 5474,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1075104&standard_relation==&limit=1"
+        },
+        {
+          "step": "pchembl_gte_6.0",
+          "count": 4949,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL1075104&pchembl_value__gte=6.0&limit=1"
+        }
+      ],
+      "final_count": 4949
+    },
+    {
+      "target_key": "hdac1",
+      "chembl_target_id": "CHEMBL325",
+      "steps": [
+        {
+          "step": "no_filter",
+          "count": 19200,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL325&limit=1"
+        },
+        {
+          "step": "target_type_SINGLE PROTEIN",
+          "count": 19200,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL325&target_type=SINGLE PROTEIN&limit=1"
+        },
+        {
+          "step": "confidence_score_gte_7",
+          "count": 19200,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL325&confidence_score__gte=7&limit=1"
+        },
+        {
+          "step": "standard_type_IC50_Ki",
+          "count": 12495,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL325&standard_type__in=IC50,Ki&limit=1"
+        },
+        {
+          "step": "standard_units_nM",
+          "count": 12252,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL325&standard_units__iexact=nM&limit=1"
+        },
+        {
+          "step": "standard_relation_\"=\"",
+          "count": 10589,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL325&standard_relation==&limit=1"
+        },
+        {
+          "step": "pchembl_gte_6.0",
+          "count": 7439,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL325&pchembl_value__gte=6.0&limit=1"
+        }
+      ],
+      "final_count": 7439
+    },
+    {
+      "target_key": "jak2",
+      "chembl_target_id": "CHEMBL2971",
+      "steps": [
+        {
+          "step": "no_filter",
+          "count": 56323,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL2971&limit=1"
+        },
+        {
+          "step": "target_type_SINGLE PROTEIN",
+          "count": 56323,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL2971&target_type=SINGLE PROTEIN&limit=1"
+        },
+        {
+          "step": "confidence_score_gte_7",
+          "count": 56323,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL2971&confidence_score__gte=7&limit=1"
+        },
+        {
+          "step": "standard_type_IC50_Ki",
+          "count": 23945,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL2971&standard_type__in=IC50,Ki&limit=1"
+        },
+        {
+          "step": "standard_units_nM",
+          "count": 23738,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL2971&standard_units__iexact=nM&limit=1"
+        },
+        {
+          "step": "standard_relation_\"=\"",
+          "count": 18413,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL2971&standard_relation==&limit=1"
+        },
+        {
+          "step": "pchembl_gte_6.0",
+          "count": 15224,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL2971&pchembl_value__gte=6.0&limit=1"
+        }
+      ],
+      "final_count": 15224
+    },
+    {
+      "target_key": "thrombin",
+      "chembl_target_id": "CHEMBL204",
+      "steps": [
+        {
+          "step": "no_filter",
+          "count": 14159,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL204&limit=1"
+        },
+        {
+          "step": "target_type_SINGLE PROTEIN",
+          "count": 14159,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL204&target_type=SINGLE PROTEIN&limit=1"
+        },
+        {
+          "step": "confidence_score_gte_7",
+          "count": 14159,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL204&confidence_score__gte=7&limit=1"
+        },
+        {
+          "step": "standard_type_IC50_Ki",
+          "count": 9327,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL204&standard_type__in=IC50,Ki&limit=1"
+        },
+        {
+          "step": "standard_units_nM",
+          "count": 9132,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL204&standard_units__iexact=nM&limit=1"
+        },
+        {
+          "step": "standard_relation_\"=\"",
+          "count": 6777,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL204&standard_relation==&limit=1"
+        },
+        {
+          "step": "pchembl_gte_6.0",
+          "count": 3948,
+          "query": "GET /chembl/api/data/activity.json?target_chembl_id=CHEMBL204&pchembl_value__gte=6.0&limit=1"
+        }
+      ],
+      "final_count": 3948
+    }
+  ]
+}

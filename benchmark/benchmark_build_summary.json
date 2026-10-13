@@ -1,0 +1,137 @@
+{
+  "targets": [
+    {
+      "id": "egfr",
+      "error": "dropped: MW/logP sanity failed",
+      "mw_roc_auc": 0.43333333333333335,
+      "logp_roc_auc": 0.2,
+      "decoys_per_active_mean": 0.1,
+      "decoy_source": "DUD-E decoys + ChEMBL actives (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback)"
+    },
+    {
+      "id": "abl1",
+      "error": "dropped: MW/logP sanity failed",
+      "mw_roc_auc": 0.4789473684210526,
+      "logp_roc_auc": 0.43207846003898637,
+      "decoys_per_active_mean": 45.6,
+      "decoy_source": "DUD-E decoys + ChEMBL actives"
+    },
+    {
+      "id": "erbb2",
+      "error": "dropped: MW/logP sanity failed",
+      "mw_roc_auc": 0.6792880258899676,
+      "logp_roc_auc": 0.37475728155339805,
+      "decoys_per_active_mean": 3.433333333333333,
+      "decoy_source": "chembl_property_matched (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback)"
+    },
+    {
+      "id": "braf",
+      "error": "dropped: MW/logP sanity failed",
+      "mw_roc_auc": 0.570060606060606,
+      "logp_roc_auc": 0.42954545454545456,
+      "decoys_per_active_mean": 36.666666666666664,
+      "decoy_source": "DUD-E decoys + ChEMBL actives"
+    },
+    {
+      "id": "ptgs2",
+      "error": "dropped: MW/logP sanity failed",
+      "mw_roc_auc": 0.6065292096219931,
+      "logp_roc_auc": 0.6642611683848797,
+      "decoys_per_active_mean": 9.7,
+      "decoy_source": "chembl_property_matched (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback)"
+    },
+    {
+      "id": "hmgcr",
+      "error": "dropped: MW/logP sanity failed",
+      "mw_roc_auc": 0.7333333333333333,
+      "logp_roc_auc": 0.23333333333333334,
+      "decoys_per_active_mean": 0.03333333333333333,
+      "decoy_source": "chembl_property_matched (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback)"
+    },
+    {
+      "id": "pde5a",
+      "error": "dropped: MW/logP sanity failed",
+      "mw_roc_auc": 0.8741176470588236,
+      "logp_roc_auc": 0.6705882352941176,
+      "decoys_per_active_mean": 11.333333333333334,
+      "decoy_source": "DUD-E decoys + ChEMBL actives"
+    },
+    {
+      "id": "esr1",
+      "error": "dropped: MW/logP sanity failed",
+      "mw_roc_auc": 0.6928571428571428,
+      "logp_roc_auc": 0.7785714285714286,
+      "decoys_per_active_mean": 4.2,
+      "decoy_source": "chembl_property_matched (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback)"
+    },
+    {
+      "id": "dpp4",
+      "error": "dropped: MW/logP sanity failed",
+      "mw_roc_auc": 0.8847494553376907,
+      "logp_roc_auc": 0.5550108932461874,
+      "decoys_per_active_mean": 10.2,
+      "decoy_source": "DUD-E decoys + ChEMBL actives"
+    },
+    {
+      "id": "adrb2",
+      "test_actives": 30,
+      "reference_actives": 40,
+      "decoys": 311,
+      "decoys_per_active_mean": 10.366666666666667,
+      "mw_roc_auc": 0.5495176848874598,
+      "logp_roc_auc": 0.4966773847802787,
+      "murcko_scaffold_overlap": 0,
+      "decoy_source": "DUD-E decoys + ChEMBL actives",
+      "decoys_per_active_requested": 50
+    },
+    {
+      "id": "hiv_pr",
+      "test_actives": 30,
+      "reference_actives": 40,
+      "decoys": 1147,
+      "decoys_per_active_mean": 38.233333333333334,
+      "mw_roc_auc": 0.5222028480092996,
+      "logp_roc_auc": 0.5150247021214763,
+      "murcko_scaffold_overlap": 0,
+      "decoy_source": "DUD-E decoys + ChEMBL actives",
+      "decoys_per_active_requested": 50
+    },
+    {
+      "id": "sars_mpro",
+      "test_actives": 30,
+      "reference_actives": 40,
+      "decoys": 301,
+      "decoys_per_active_mean": 10.033333333333333,
+      "mw_roc_auc": 0.5078626799557032,
+      "logp_roc_auc": 0.5224806201550387,
+      "murcko_scaffold_overlap": 0,
+      "decoy_source": "chembl_self (less trustworthy; no DUD-E/LIT-PCBA set)",
+      "decoys_per_active_requested": 50
+    },
+    {
+      "id": "hdac1",
+      "error": "dropped: MW/logP sanity failed",
+      "mw_roc_auc": 0.6765258215962441,
+      "logp_roc_auc": 0.6774647887323944,
+      "decoys_per_active_mean": 2.3666666666666667,
+      "decoy_source": "chembl_property_matched (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback)"
+    },
+    {
+      "id": "jak2",
+      "error": "dropped: MW/logP sanity failed",
+      "mw_roc_auc": 0.903921568627451,
+      "logp_roc_auc": 0.45326797385620915,
+      "decoys_per_active_mean": 3.4,
+      "decoy_source": "DUD-E decoys + ChEMBL actives (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback)"
+    },
+    {
+      "id": "thrombin",
+      "error": "dropped: MW/logP sanity failed",
+      "mw_roc_auc": 0.5259259259259259,
+      "logp_roc_auc": 0.6092592592592593,
+      "decoys_per_active_mean": 1.8,
+      "decoy_source": "chembl_property_matched (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback) (ChEMBL pool fallback)"
+    }
+  ],
+  "excluded_rule_smiles": 0
+}

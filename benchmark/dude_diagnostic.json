@@ -1,0 +1,2543 @@
+{
+  "per_target": {
+    "dpp4": {
+      "max_tanimoto_to_reference": {
+        "test_actives": {
+          "min": 0.08823529411764706,
+          "q1": 0.09900990099009901,
+          "median": 0.10869565217391304,
+          "q3": 0.11684782608695653,
+          "max": 0.11956521739130435,
+          "n": 30
+        },
+        "test_decoys": {
+          "min": 0.07777777777777778,
+          "q1": 0.1276595744680851,
+          "median": 0.14285714285714285,
+          "q3": 0.1642902813299233,
+          "max": 0.22784810126582278,
+          "n": 250
+        },
+        "reference_actives_loo": {
+          "min": 0.7083333333333334,
+          "q1": 0.8178571428571428,
+          "median": 0.855072463768116,
+          "q3": 1.0,
+          "max": 1.0,
+          "n": 40
+        }
+      },
+      "cluster_active_groups": [
+        {
+          "cluster_id": 0,
+          "size": 68,
+          "partition": "test"
+        },
+        {
+          "cluster_id": 1,
+          "size": 23,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 2,
+          "size": 17,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 3,
+          "size": 16,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 4,
+          "size": 15,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 5,
+          "size": 13,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 6,
+          "size": 13,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 7,
+          "size": 12,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 8,
+          "size": 12,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 9,
+          "size": 12,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 10,
+          "size": 12,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 11,
+          "size": 12,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 12,
+          "size": 12,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 13,
+          "size": 11,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 14,
+          "size": 11,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 15,
+          "size": 11,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 16,
+          "size": 10,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 17,
+          "size": 10,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 18,
+          "size": 9,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 19,
+          "size": 9,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 20,
+          "size": 9,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 21,
+          "size": 9,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 22,
+          "size": 9,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 23,
+          "size": 9,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 24,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 25,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 26,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 27,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 28,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 29,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 30,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 31,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 32,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 33,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 34,
+          "size": 7,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 35,
+          "size": 7,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 36,
+          "size": 7,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 37,
+          "size": 7,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 38,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 39,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 40,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 41,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 42,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 43,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 44,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 45,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 46,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 47,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 48,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 49,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 50,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 51,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 52,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 53,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 54,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 55,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 56,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 57,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 58,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 59,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 60,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 61,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 62,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 63,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 64,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 65,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 66,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 67,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 68,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 69,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 70,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 71,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 72,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 73,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 74,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 75,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 76,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 77,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 78,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 79,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 80,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 81,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 82,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 83,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 84,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 85,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 86,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 87,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 88,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 89,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 90,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 91,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 92,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 93,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 94,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 95,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 96,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 97,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 98,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 99,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 100,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 101,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 102,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 103,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 104,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 105,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 106,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 107,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 108,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 109,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 110,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 111,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 112,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 113,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 114,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 115,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 116,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 117,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 118,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 119,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 120,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 121,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 122,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 123,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 124,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 125,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 126,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 127,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 128,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 129,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 130,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 131,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 132,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 133,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 134,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 135,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 136,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 137,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 138,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 139,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 140,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 141,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 142,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 143,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 144,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 145,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 146,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 147,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 148,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 149,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 150,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 151,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 152,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 153,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 154,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 155,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 156,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 157,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 158,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 159,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 160,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 161,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 162,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 163,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 164,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 165,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 166,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 167,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 168,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 169,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 170,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 171,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 172,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 173,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 174,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 175,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 176,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 177,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 178,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 179,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 180,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 181,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 182,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 183,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 184,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 185,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 186,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 187,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 188,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 189,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 190,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 191,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 192,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 193,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 194,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 195,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 196,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 197,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 198,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 199,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 200,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 201,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 202,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 203,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 204,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 205,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 206,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 207,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 208,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 209,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 210,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 211,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 212,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 213,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 214,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 215,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 216,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 217,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 218,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 219,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 220,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 221,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 222,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 223,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 224,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 225,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 226,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 227,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 228,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 229,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 230,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 231,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 232,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 233,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 234,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 235,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 236,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 237,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 238,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 239,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 240,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 241,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 242,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 243,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 244,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 245,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 246,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 247,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 248,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 249,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 250,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 251,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 252,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 253,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 254,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 255,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 256,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 257,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 258,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 259,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 260,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 261,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 262,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 263,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 264,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 265,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 266,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 267,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 268,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 269,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 270,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 271,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 272,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 273,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 274,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 275,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 276,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 277,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 278,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 279,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 280,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 281,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 282,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 283,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 284,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 285,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 286,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 287,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 288,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 289,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 290,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 291,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 292,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 293,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 294,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 295,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 296,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 297,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 298,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 299,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 300,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 301,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 302,
+          "size": 1,
+          "partition": "reference"
+        }
+      ],
+      "n_reference_actives_kept": 40,
+      "n_test_actives": 30,
+      "n_test_decoys": 250
+    },
+    "adrb2": {
+      "max_tanimoto_to_reference": {
+        "test_actives": {
+          "min": 0.16129032258064516,
+          "q1": 0.19318181818181818,
+          "median": 0.21939610293023948,
+          "q3": 0.2714285714285714,
+          "max": 0.2876712328767123,
+          "n": 30
+        },
+        "test_decoys": {
+          "min": 0.06593406593406594,
+          "q1": 0.13170307845084409,
+          "median": 0.15604707792207792,
+          "q3": 0.18072289156626506,
+          "max": 0.25301204819277107,
+          "n": 546
+        },
+        "reference_actives_loo": {
+          "min": 0.6727272727272727,
+          "q1": 0.8396153846153845,
+          "median": 1.0,
+          "q3": 1.0,
+          "max": 1.0,
+          "n": 40
+        }
+      },
+      "cluster_active_groups": [
+        {
+          "cluster_id": 0,
+          "size": 18,
+          "partition": "test"
+        },
+        {
+          "cluster_id": 1,
+          "size": 16,
+          "partition": "test"
+        },
+        {
+          "cluster_id": 2,
+          "size": 16,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 3,
+          "size": 14,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 4,
+          "size": 12,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 5,
+          "size": 11,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 6,
+          "size": 11,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 7,
+          "size": 10,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 8,
+          "size": 9,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 9,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 10,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 11,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 12,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 13,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 14,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 15,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 16,
+          "size": 8,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 17,
+          "size": 7,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 18,
+          "size": 7,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 19,
+          "size": 7,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 20,
+          "size": 7,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 21,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 22,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 23,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 24,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 25,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 26,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 27,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 28,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 29,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 30,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 31,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 32,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 33,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 34,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 35,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 36,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 37,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 38,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 39,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 40,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 41,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 42,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 43,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 44,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 45,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 46,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 47,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 48,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 49,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 50,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 51,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 52,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 53,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 54,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 55,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 56,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 57,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 58,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 59,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 60,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 61,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 62,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 63,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 64,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 65,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 66,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 67,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 68,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 69,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 70,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 71,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 72,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 73,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 74,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 75,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 76,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 77,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 78,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 79,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 80,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 81,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 82,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 83,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 84,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 85,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 86,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 87,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 88,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 89,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 90,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 91,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 92,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 93,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 94,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 95,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 96,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 97,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 98,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 99,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 100,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 101,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 102,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 103,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 104,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 105,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 106,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 107,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 108,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 109,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 110,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 111,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 112,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 113,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 114,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 115,
+          "size": 1,
+          "partition": "reference"
+        }
+      ],
+      "n_reference_actives_kept": 40,
+      "n_test_actives": 30,
+      "n_test_decoys": 546
+    },
+    "jak2": {
+      "max_tanimoto_to_reference": {
+        "test_actives": {
+          "min": 0.25301204819277107,
+          "q1": 0.36857769423558895,
+          "median": 0.39263110307414106,
+          "q3": 0.4362331081081081,
+          "max": 0.6857142857142857,
+          "n": 30
+        },
+        "test_decoys": {
+          "min": 0.09090909090909091,
+          "q1": 0.13861386138613863,
+          "median": 0.15315315315315314,
+          "q3": 0.16860701231893865,
+          "max": 0.23529411764705882,
+          "n": 999
+        },
+        "reference_actives_loo": {
+          "min": 0.6,
+          "q1": 0.6875,
+          "median": 0.7688834154351396,
+          "q3": 0.8290398126463701,
+          "max": 1.0,
+          "n": 40
+        }
+      },
+      "cluster_active_groups": [
+        {
+          "cluster_id": 0,
+          "size": 13,
+          "partition": "test"
+        },
+        {
+          "cluster_id": 1,
+          "size": 9,
+          "partition": "test"
+        },
+        {
+          "cluster_id": 2,
+          "size": 8,
+          "partition": "test"
+        },
+        {
+          "cluster_id": 3,
+          "size": 7,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 4,
+          "size": 6,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 5,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 6,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 7,
+          "size": 5,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 8,
+          "size": 4,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 9,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 10,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 11,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 12,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 13,
+          "size": 3,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 14,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 15,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 16,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 17,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 18,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 19,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 20,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 21,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 22,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 23,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 24,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 25,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 26,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 27,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 28,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 29,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 30,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 31,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 32,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 33,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 34,
+          "size": 2,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 35,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 36,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 37,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 38,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 39,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 40,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 41,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 42,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 43,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 44,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 45,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 46,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 47,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 48,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 49,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 50,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 51,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 52,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 53,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 54,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 55,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 56,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 57,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 58,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 59,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 60,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 61,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 62,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 63,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 64,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 65,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 66,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 67,
+          "size": 1,
+          "partition": "reference"
+        },
+        {
+          "cluster_id": 68,
+          "size": 1,
+          "partition": "reference"
+        }
+      ],
+      "n_reference_actives_kept": 40,
+      "n_test_actives": 30,
+      "n_test_decoys": 999
+    }
+  }
+}

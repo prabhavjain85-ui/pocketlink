@@ -1,0 +1,54 @@
+{
+  "description": "ChEMBL test actives + property-matched decoys for Vina screening (validated targets)",
+  "targets": {},
+  "build_summary": [
+    {
+      "id": "abl1",
+      "error": "MW/logP sanity failed",
+      "mw_roc_auc": 0.47882553606237815,
+      "logp_roc_auc": 0.43396686159844056
+    },
+    {
+      "id": "erbb2",
+      "error": "MW/logP sanity failed",
+      "mw_roc_auc": 0.6873786407766991,
+      "logp_roc_auc": 0.3877022653721683
+    },
+    {
+      "id": "ptgs2",
+      "error": "MW/logP sanity failed",
+      "mw_roc_auc": 0.6109965635738832,
+      "logp_roc_auc": 0.6739977090492555
+    },
+    {
+      "id": "pde5a",
+      "error": "MW/logP sanity failed",
+      "mw_roc_auc": 0.8659824046920821,
+      "logp_roc_auc": 0.6538123167155425
+    },
+    {
+      "id": "esr1",
+      "error": "MW/logP sanity failed",
+      "mw_roc_auc": 0.7150793650793651,
+      "logp_roc_auc": 0.7642857142857142
+    },
+    {
+      "id": "dpp4",
+      "error": "MW/logP sanity failed",
+      "mw_roc_auc": 0.8881199538638985,
+      "logp_roc_auc": 0.549365628604383
+    },
+    {
+      "id": "jak2",
+      "error": "MW/logP sanity failed",
+      "mw_roc_auc": 0.933009708737864,
+      "logp_roc_auc": 0.4815533980582524
+    },
+    {
+      "id": "thrombin",
+      "error": "MW/logP sanity failed",
+      "mw_roc_auc": 0.5703703703703704,
+      "logp_roc_auc": 0.6641975308641975
+    }
+  ]
+}

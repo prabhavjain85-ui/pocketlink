@@ -1,0 +1,37 @@
+{
+  "selection_bias": "Retrospective Vina ROC-AUC on targets that passed BOTH multi-seed redocking (\u22658/10 seeds spyrmsd <2 \u00c5) AND DUD-E subset MW/logP gate. Highly optimistic.",
+  "dude_gated": [
+    "adrb2",
+    "dpp4",
+    "jak2"
+  ],
+  "multiseed_validated": [
+    "abl1",
+    "dpp4",
+    "erbb2",
+    "esr1",
+    "pde5a",
+    "ptgs2"
+  ],
+  "intersection": [
+    "dpp4"
+  ],
+  "subsample_seed_actives": 42,
+  "subsample_seed_decoys": 43,
+  "max_actives": 25,
+  "max_decoys": 100,
+  "rows": [
+    {
+      "target_id": "dpp4",
+      "n_scored": 125,
+      "dock_failures": 0,
+      "roc_auc": 0.3044,
+      "roc_auc_ci_95": [
+        0.1936813186813187,
+        0.43956270627062705
+      ],
+      "ef_at_1pct": 0.0,
+      "selection_bias_note": "Target in intersection: multi-seed redock pass AND DUD-E MW/logP gate pass."
+    }
+  ]
+}

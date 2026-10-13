@@ -1,0 +1,109 @@
+{
+  "targets": [
+    {
+      "target_id": "egfr",
+      "in_dude": true,
+      "dude_code": "egfr",
+      "n_actives": 832,
+      "n_decoys": 35442
+    },
+    {
+      "target_id": "abl1",
+      "in_dude": true,
+      "dude_code": "abl1",
+      "n_actives": 295,
+      "n_decoys": 10885
+    },
+    {
+      "target_id": "erbb2",
+      "name": "ERBB2",
+      "in_dude": false,
+      "dude_code": "erbb2",
+      "reason": "download_failed"
+    },
+    {
+      "target_id": "braf",
+      "in_dude": true,
+      "dude_code": "braf",
+      "n_actives": 251,
+      "n_decoys": 10098
+    },
+    {
+      "target_id": "ptgs2",
+      "in_dude": true,
+      "dude_code": "pgh2",
+      "n_actives": 531,
+      "n_decoys": 23405
+    },
+    {
+      "target_id": "hmgcr",
+      "name": "HMGCR",
+      "in_dude": false,
+      "dude_code": "hmgcr",
+      "reason": "download_failed"
+    },
+    {
+      "target_id": "pde5a",
+      "in_dude": true,
+      "dude_code": "pde5a",
+      "n_actives": 706,
+      "n_decoys": 27824
+    },
+    {
+      "target_id": "esr1",
+      "in_dude": true,
+      "dude_code": "esr1",
+      "n_actives": 627,
+      "n_decoys": 20818
+    },
+    {
+      "target_id": "dpp4",
+      "in_dude": true,
+      "dude_code": "dpp4",
+      "n_actives": 1079,
+      "n_decoys": 41372
+    },
+    {
+      "target_id": "adrb2",
+      "in_dude": true,
+      "dude_code": "adrb2",
+      "n_actives": 447,
+      "n_decoys": 15255
+    },
+    {
+      "target_id": "hiv_pr",
+      "in_dude": true,
+      "dude_code": "hivpr",
+      "n_actives": 1395,
+      "n_decoys": 36235
+    },
+    {
+      "target_id": "sars_mpro",
+      "name": "SARS-CoV-2 Mpro",
+      "in_dude": false,
+      "dude_code": null,
+      "reason": "no DUD-E mapping (not in DUDE_NAMES)"
+    },
+    {
+      "target_id": "hdac1",
+      "name": "HDAC1",
+      "in_dude": false,
+      "dude_code": "hdac1",
+      "reason": "download_failed"
+    },
+    {
+      "target_id": "jak2",
+      "in_dude": true,
+      "dude_code": "jak2",
+      "n_actives": 153,
+      "n_decoys": 6590
+    },
+    {
+      "target_id": "thrombin",
+      "in_dude": true,
+      "dude_code": "thrb",
+      "n_actives": 861,
+      "n_decoys": 27321
+    }
+  ]
+}

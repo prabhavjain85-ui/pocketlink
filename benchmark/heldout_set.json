@@ -1,0 +1,3166 @@
+{
+  "schema_version": 1,
+  "created": "2026-10-11",
+  "description": "Held-out actives and property-matched decoys NOT present in TargetForge TARGET_RULES / KINASE_INHIBITOR_RE / GPCR_LIGAND_RE name lists (see per-compound rule_audit).",
+  "provenance": [
+    "Actives: ChEMBL molecule records + published IC50/Ki ≤ 1 µM (or clinical labels) where cited in potency field.",
+    "Physicochemical properties: PubChem PUG REST (2026-10-11).",
+    "Decoys: approved/clinical drugs with no rule-list hit; property_match scored vs first active in panel."
+  ],
+  "targets": [
+    {
+      "id": "egfr",
+      "name": "EGFR",
+      "pdb_id": "1M17",
+      "protein": {
+        "id": "1M17",
+        "pdb_id": "1M17",
+        "queryName": "EGFR",
+        "title": "EGFR kinase domain in complex with erlotinib",
+        "ligands": [
+          {
+            "compId": "AQ4",
+            "name": "ERLOTINIB"
+          }
+        ],
+        "hasLigand": true
+      },
+      "compounds": [
+        {
+          "role": "active",
+          "name": "mobocertinib",
+          "chembl_id": "CHEMBL3989881",
+          "potency": "IC50 0.23 nM vs EGFR exon20 (Wu 2020)",
+          "source": "ChEMBL / FDA Exkivity label",
+          "drugClass": "",
+          "smiles": "CC(C)OC(=O)C1=CN=C(N=C1C2=CN(C3=CC=CC=C32)C)NC4=C(C=C(C(=C4)NC(=O)C=C)N(C)CCN(C)C)OC",
+          "pubchem_cid": "118607832",
+          "molecularWeight": 585.7,
+          "xlogp": 4.4,
+          "hbd": 2,
+          "hba": 9,
+          "rotatableBonds": 13,
+          "tpsa": 114,
+          "rule_audit": {
+            "name": "mobocertinib",
+            "drugClass": "",
+            "target_id": "egfr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "poziotinib",
+          "chembl_id": "CHEMBL3301562",
+          "potency": "IC50 3.2 nM EGFR (Kobayashi 2015)",
+          "source": "ChEMBL literature",
+          "drugClass": "",
+          "smiles": "COC1=C(C=C2C(=C1)N=CN=C2NC3=C(C(=C(C=C3)Cl)Cl)F)OC4CCN(CC4)C(=O)C=C",
+          "pubchem_cid": "25127713",
+          "molecularWeight": 491.3,
+          "xlogp": 5.4,
+          "hbd": 1,
+          "hba": 7,
+          "rotatableBonds": 6,
+          "tpsa": 76.6,
+          "rule_audit": {
+            "name": "poziotinib",
+            "drugClass": "",
+            "target_id": "egfr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "icotinib",
+          "chembl_id": "CHEMBL2105754",
+          "potency": "IC50 5 nM EGFR (Tan 2013)",
+          "source": "ChEMBL / Conmana",
+          "drugClass": "",
+          "smiles": "C#CC1=CC(=CC=C1)NC2=NC=NC3=CC4=C(C=C32)OCCOCCOCCO4",
+          "pubchem_cid": "22024915",
+          "molecularWeight": 391.4,
+          "xlogp": 3.1,
+          "hbd": 1,
+          "hba": 7,
+          "rotatableBonds": 3,
+          "tpsa": 74.7,
+          "rule_audit": {
+            "name": "icotinib",
+            "drugClass": "",
+            "target_id": "egfr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "canertinib",
+          "chembl_id": "CHEMBL319",
+          "potency": "IC50 2 nM EGFR (Rusnak 2001)",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "C=CC(=O)NC1=C(C=C2C(=C1)C(=NC=N2)NC3=CC(=C(C=C3)F)Cl)OCCCN4CCOCC4",
+          "pubchem_cid": "156414",
+          "molecularWeight": 485.9,
+          "xlogp": 3.9,
+          "hbd": 2,
+          "hba": 8,
+          "rotatableBonds": 9,
+          "tpsa": 88.6,
+          "rule_audit": {
+            "name": "canertinib",
+            "drugClass": "",
+            "target_id": "egfr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "rivaroxaban",
+          "decoy_note": "anticoagulant decoy; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "9875401",
+          "smiles": "C1COCC(=O)N1C2=CC=C(C=C2)N3CC(OC3=O)CNC(=O)C4=CC=C(S4)Cl",
+          "molecularWeight": 435.9,
+          "xlogp": 2.5,
+          "hbd": 1,
+          "hba": 6,
+          "rotatableBonds": 5,
+          "tpsa": 116,
+          "rule_audit": {
+            "name": "rivaroxaban",
+            "drugClass": "",
+            "target_id": "egfr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": false,
+            "score": 3
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "duloxetine",
+          "decoy_note": "SNRI decoy; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "60835",
+          "smiles": "CNCCC(C1=CC=CS1)OC2=CC=CC3=CC=CC=C32",
+          "molecularWeight": 297.4,
+          "xlogp": 4.3,
+          "hbd": 1,
+          "hba": 3,
+          "rotatableBonds": 6,
+          "tpsa": 49.5,
+          "rule_audit": {
+            "name": "duloxetine",
+            "drugClass": "",
+            "target_id": "egfr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": false,
+            "rotOk": false,
+            "score": 2
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "montelukast",
+          "decoy_note": "leukotriene antagonist; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "5281040",
+          "smiles": "CC(C)(C1=CC=CC=C1CCC(C2=CC=CC(=C2)C=CC3=NC4=C(C=CC(=C4)Cl)C=C3)SCC5(CC5)CC(=O)O)O",
+          "molecularWeight": 586.2,
+          "xlogp": 7.7,
+          "hbd": 2,
+          "hba": 5,
+          "rotatableBonds": 12,
+          "tpsa": 95.7,
+          "rule_audit": {
+            "name": "montelukast",
+            "drugClass": "",
+            "target_id": "egfr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 4
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "fenofibrate",
+          "decoy_note": "fibrate; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3339",
+          "smiles": "CC(C)OC(=O)C(C)(C)OC1=CC=C(C=C1)C(=O)C2=CC=C(C=C2)Cl",
+          "molecularWeight": 360.8,
+          "xlogp": 5.2,
+          "hbd": 0,
+          "hba": 4,
+          "rotatableBonds": 7,
+          "tpsa": 52.6,
+          "rule_audit": {
+            "name": "fenofibrate",
+            "drugClass": "",
+            "target_id": "egfr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": false,
+            "rotOk": false,
+            "score": 2
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "levothyroxine",
+          "decoy_note": "hormone; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "5819",
+          "smiles": "C1=C(C=C(C(=C1I)OC2=CC(=C(C(=C2)I)O)I)I)CC(C(=O)O)N",
+          "molecularWeight": 776.87,
+          "xlogp": 2.4,
+          "hbd": 3,
+          "hba": 5,
+          "rotatableBonds": 5,
+          "tpsa": 92.8,
+          "rule_audit": {
+            "name": "levothyroxine",
+            "drugClass": "",
+            "target_id": "egfr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": false,
+            "score": 3
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "pregabalin",
+          "decoy_note": "CNS; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "5486971",
+          "smiles": "CC(C)CC(CC(=O)O)CN",
+          "molecularWeight": 159.23,
+          "xlogp": -1.6,
+          "hbd": 2,
+          "hba": 3,
+          "rotatableBonds": 5,
+          "tpsa": 63.3,
+          "rule_audit": {
+            "name": "pregabalin",
+            "drugClass": "",
+            "target_id": "egfr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": false,
+            "rotOk": false,
+            "score": 1
+          }
+        }
+      ],
+      "property_medians": {
+        "mw": 488.57500000000005,
+        "xlogp": 4.2,
+        "hbd": 1.5,
+        "hba": 7.75,
+        "rot": 7.75
+      }
+    },
+    {
+      "id": "abl",
+      "name": "ABL1",
+      "pdb_id": "1IEP",
+      "protein": {
+        "id": "1IEP",
+        "pdb_id": "1IEP",
+        "queryName": "ABL1",
+        "title": "c-Abl in complex with imatinib",
+        "ligands": [
+          {
+            "compId": "STI",
+            "name": "IMATINIB"
+          }
+        ],
+        "hasLigand": true
+      },
+      "compounds": [
+        {
+          "role": "active",
+          "name": "radotinib",
+          "chembl_id": "CHEMBL2103850",
+          "potency": "IC50 34 nM ABL (Kim 2012)",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CC1=C(C=C(C=C1)C(=O)NC2=CC(=CC(=C2)C(F)(F)F)N3C=C(N=C3)C)NC4=NC=CC(=N4)C5=NC=CN=C5",
+          "pubchem_cid": "16063245",
+          "molecularWeight": 530.5,
+          "xlogp": 3.9,
+          "hbd": 2,
+          "hba": 10,
+          "rotatableBonds": 6,
+          "tpsa": 111,
+          "rule_audit": {
+            "name": "radotinib",
+            "drugClass": "",
+            "target_id": "abl",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "bafetinib",
+          "chembl_id": "CHEMBL1946170",
+          "potency": "IC50 5.8 nM BCR-ABL (O'Hare 2008)",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CC1=C(C=C(C=C1)NC(=O)C2=CC(=C(C=C2)CN3CCC(C3)N(C)C)C(F)(F)F)NC4=NC=CC(=N4)C5=CN=CN=C5",
+          "pubchem_cid": "11387605",
+          "molecularWeight": 576.6,
+          "xlogp": 4.2,
+          "hbd": 2,
+          "hba": 11,
+          "rotatableBonds": 8,
+          "tpsa": 99.2,
+          "rule_audit": {
+            "name": "bafetinib",
+            "drugClass": "",
+            "target_id": "abl",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "rebastinib",
+          "chembl_id": "CHEMBL3187775",
+          "potency": "IC50 20 nM ABL1 (Michaud 2016)",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CC(C)(C)C1=NN(C(=C1)NC(=O)NC2=C(C=C(C=C2)OC3=CC(=NC=C3)C(=O)NC)F)C4=CC5=C(C=C4)N=CC=C5",
+          "pubchem_cid": "25066467",
+          "molecularWeight": 553.6,
+          "xlogp": 4.9,
+          "hbd": 3,
+          "hba": 7,
+          "rotatableBonds": 7,
+          "tpsa": 123,
+          "rule_audit": {
+            "name": "rebastinib",
+            "drugClass": "",
+            "target_id": "abl",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "ezetimibe",
+          "decoy_note": "NPC1L1; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "150311",
+          "smiles": "C1=CC(=CC=C1C2C(C(=O)N2C3=CC=C(C=C3)F)CCC(C4=CC=C(C=C4)F)O)O",
+          "molecularWeight": 409.4,
+          "xlogp": 4,
+          "hbd": 2,
+          "hba": 5,
+          "rotatableBonds": 6,
+          "tpsa": 60.8,
+          "rule_audit": {
+            "name": "ezetimibe",
+            "drugClass": "",
+            "target_id": "abl",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": false,
+            "rotOk": true,
+            "score": 3
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "donepezil",
+          "decoy_note": "AChE; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3152",
+          "smiles": "COC1=C(C=C2C(=C1)CC(C2=O)CC3CCN(CC3)CC4=CC=CC=C4)OC",
+          "molecularWeight": 379.5,
+          "xlogp": 4.3,
+          "hbd": 0,
+          "hba": 4,
+          "rotatableBonds": 6,
+          "tpsa": 38.8,
+          "rule_audit": {
+            "name": "donepezil",
+            "drugClass": "",
+            "target_id": "abl",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": false,
+            "rotOk": true,
+            "score": 3
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "memantine",
+          "decoy_note": "NMDA; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "4054",
+          "smiles": "CC12CC3CC(C1)(CC(C3)(C2)N)C",
+          "molecularWeight": 179.3,
+          "xlogp": 3.3,
+          "hbd": 1,
+          "hba": 1,
+          "rotatableBonds": 0,
+          "tpsa": 26,
+          "rule_audit": {
+            "name": "memantine",
+            "drugClass": "",
+            "target_id": "abl",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": false,
+            "rotOk": false,
+            "score": 2
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "ciprofloxacin",
+          "decoy_note": "antibiotic; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "2764",
+          "smiles": "C1CC1N2C=C(C(=O)C3=CC(=C(C=C32)N4CCNCC4)F)C(=O)O",
+          "molecularWeight": 331.34,
+          "xlogp": -1.1,
+          "hbd": 2,
+          "hba": 7,
+          "rotatableBonds": 3,
+          "tpsa": 72.9,
+          "rule_audit": {
+            "name": "ciprofloxacin",
+            "drugClass": "",
+            "target_id": "abl",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 3
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "hydrochlorothiazide",
+          "decoy_note": "diuretic; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3639",
+          "smiles": "C1NC2=CC(=C(C=C2S(=O)(=O)N1)S(=O)(=O)N)Cl",
+          "molecularWeight": 297.7,
+          "xlogp": -0.1,
+          "hbd": 3,
+          "hba": 7,
+          "rotatableBonds": 1,
+          "tpsa": 135,
+          "rule_audit": {
+            "name": "hydrochlorothiazide",
+            "drugClass": "",
+            "target_id": "abl",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 3
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "spironolactone",
+          "decoy_note": "aldosterone antagonist; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "5833",
+          "smiles": "CC(=O)SC1CC2=CC(=O)CCC2(C3C1C4CCC5(C4(CC3)C)CCC(=O)O5)C",
+          "molecularWeight": 416.6,
+          "xlogp": 2.9,
+          "hbd": 0,
+          "hba": 5,
+          "rotatableBonds": 2,
+          "tpsa": 85.7,
+          "rule_audit": {
+            "name": "spironolactone",
+            "drugClass": "",
+            "target_id": "abl",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": false,
+            "rotOk": true,
+            "score": 4
+          }
+        }
+      ],
+      "property_medians": {
+        "mw": 553.5666666666666,
+        "xlogp": 4.333333333333333,
+        "hbd": 2.3333333333333335,
+        "hba": 9.333333333333334,
+        "rot": 7
+      }
+    },
+    {
+      "id": "her2",
+      "name": "ERBB2",
+      "pdb_id": "3PP0",
+      "protein": {
+        "id": "3PP0",
+        "pdb_id": "3PP0",
+        "queryName": "ERBB2",
+        "title": "HER2 kinase domain",
+        "ligands": [
+          {
+            "compId": "FMM",
+            "name": "LAPATINIB"
+          }
+        ],
+        "hasLigand": true
+      },
+      "compounds": [
+        {
+          "role": "active",
+          "name": "pyrotinib",
+          "chembl_id": "CHEMBL3989879",
+          "potency": "IC50 38 nM HER2 (Xie 2017)",
+          "source": "ChEMBL / NMPA",
+          "drugClass": "",
+          "smiles": "CCOC1=C(C=C2C(=C1)N=CC(=C2NC3=CC(=C(C=C3)OCC4=CC=CC=N4)Cl)C#N)NC(=O)C=CC5CCCN5C",
+          "pubchem_cid": "51039030",
+          "molecularWeight": 583.1,
+          "xlogp": 5.4,
+          "hbd": 2,
+          "hba": 8,
+          "rotatableBonds": 10,
+          "tpsa": 112,
+          "rule_audit": {
+            "name": "pyrotinib",
+            "drugClass": "",
+            "target_id": "her2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "poziotinib",
+          "chembl_id": "CHEMBL3301562",
+          "potency": "IC50 5.6 nM HER2 (Kobayashi 2015)",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "COC1=C(C=C2C(=C1)N=CN=C2NC3=C(C(=C(C=C3)Cl)Cl)F)OC4CCN(CC4)C(=O)C=C",
+          "pubchem_cid": "25127713",
+          "molecularWeight": 491.3,
+          "xlogp": 5.4,
+          "hbd": 1,
+          "hba": 7,
+          "rotatableBonds": 6,
+          "tpsa": 76.6,
+          "rule_audit": {
+            "name": "poziotinib",
+            "drugClass": "",
+            "target_id": "her2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "mubritinib",
+          "chembl_id": "CHEMBL319777",
+          "potency": "IC50 6 nM HER2 (Segalla 2007)",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "C1=CC(=CC=C1CCCCN2C=CN=N2)OCC3=COC(=N3)C=CC4=CC=C(C=C4)C(F)(F)F",
+          "pubchem_cid": "6444692",
+          "molecularWeight": 468.5,
+          "xlogp": 5.4,
+          "hbd": 0,
+          "hba": 8,
+          "rotatableBonds": 10,
+          "tpsa": 66,
+          "rule_audit": {
+            "name": "mubritinib",
+            "drugClass": "",
+            "target_id": "her2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "venlafaxine",
+          "decoy_note": "SNRI; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "5656",
+          "smiles": "CN(C)CC(C1=CC=C(C=C1)OC)C2(CCCCC2)O",
+          "molecularWeight": 277.4,
+          "xlogp": 2.9,
+          "hbd": 1,
+          "hba": 3,
+          "rotatableBonds": 5,
+          "tpsa": 32.7,
+          "rule_audit": {
+            "name": "venlafaxine",
+            "drugClass": "",
+            "target_id": "her2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": false,
+            "rotOk": true,
+            "score": 2
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "sertraline",
+          "decoy_note": "SSRI; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "68617",
+          "smiles": "CNC1CCC(C2=CC=CC=C12)C3=CC(=C(C=C3)Cl)Cl",
+          "molecularWeight": 306.2,
+          "xlogp": 4.8,
+          "hbd": 1,
+          "hba": 1,
+          "rotatableBonds": 2,
+          "tpsa": 12,
+          "rule_audit": {
+            "name": "sertraline",
+            "drugClass": "",
+            "target_id": "her2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": false,
+            "rotOk": false,
+            "score": 2
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "fluoxetine",
+          "decoy_note": "SSRI; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3386",
+          "smiles": "CNCCC(C1=CC=CC=C1)OC2=CC=C(C=C2)C(F)(F)F",
+          "molecularWeight": 309.33,
+          "xlogp": 4,
+          "hbd": 1,
+          "hba": 5,
+          "rotatableBonds": 6,
+          "tpsa": 21.3,
+          "rule_audit": {
+            "name": "fluoxetine",
+            "drugClass": "",
+            "target_id": "her2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 4
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "tramadol",
+          "decoy_note": "opioid; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "33741",
+          "smiles": "CN(C)CC1CCCCC1(C2=CC(=CC=C2)OC)O",
+          "molecularWeight": 263.37,
+          "xlogp": 2.6,
+          "hbd": 1,
+          "hba": 3,
+          "rotatableBonds": 4,
+          "tpsa": 32.7,
+          "rule_audit": {
+            "name": "tramadol",
+            "drugClass": "",
+            "target_id": "her2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": false,
+            "rotOk": false,
+            "score": 1
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "gabapentin",
+          "decoy_note": "CNS; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3446",
+          "smiles": "C1CCC(CC1)(CC(=O)O)CN",
+          "molecularWeight": 171.24,
+          "xlogp": -1.1,
+          "hbd": 2,
+          "hba": 3,
+          "rotatableBonds": 3,
+          "tpsa": 63.3,
+          "rule_audit": {
+            "name": "gabapentin",
+            "drugClass": "",
+            "target_id": "her2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": false,
+            "rotOk": false,
+            "score": 1
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "allopurinol",
+          "decoy_note": "xanthine oxidase; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "135401907",
+          "smiles": "C1=NNC2=C1C(=O)NC=N2",
+          "molecularWeight": 136.11,
+          "xlogp": -0.7,
+          "hbd": 2,
+          "hba": 3,
+          "rotatableBonds": 0,
+          "tpsa": 70.1,
+          "rule_audit": {
+            "name": "allopurinol",
+            "drugClass": "",
+            "target_id": "her2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": false,
+            "rotOk": false,
+            "score": 1
+          }
+        }
+      ],
+      "property_medians": {
+        "mw": 514.3000000000001,
+        "xlogp": 5.400000000000001,
+        "hbd": 1,
+        "hba": 7.666666666666667,
+        "rot": 8.666666666666666
+      }
+    },
+    {
+      "id": "braf",
+      "name": "BRAF",
+      "pdb_id": "4XV2",
+      "protein": {
+        "id": "4XV2",
+        "pdb_id": "4XV2",
+        "queryName": "BRAF",
+        "title": "BRAF kinase with dabrafenib",
+        "ligands": [
+          {
+            "compId": "11T",
+            "name": "DABRAFENIB"
+          }
+        ],
+        "hasLigand": true
+      },
+      "compounds": [
+        {
+          "role": "active",
+          "name": "lifirafenib",
+          "chembl_id": "CHEMBL3989871",
+          "potency": "IC50 3.3 nM BRAF V600E (Zhang 2018)",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "C1CC(=O)NC2=NC=CC(=C21)OC3=CC4=C(C=C3)OC5C4C5C6=NC7=C(N6)C=C(C=C7)C(F)(F)F",
+          "pubchem_cid": "89670174",
+          "molecularWeight": 478.4,
+          "xlogp": 3.7,
+          "hbd": 2,
+          "hba": 8,
+          "rotatableBonds": 3,
+          "tpsa": 89.1,
+          "rule_audit": {
+            "name": "lifirafenib",
+            "drugClass": "",
+            "target_id": "braf",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "tovorafenib",
+          "chembl_id": "CHEMBL4297867",
+          "potency": "IC50 11 nM BRAF V600E (phase 2)",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CC(C1=NC=C(S1)C(=O)NC2=NC=C(C(=C2)C(F)(F)F)Cl)NC(=O)C3=C(C(=NC=N3)N)Cl",
+          "pubchem_cid": "25161177",
+          "molecularWeight": 506.3,
+          "xlogp": 3,
+          "hbd": 3,
+          "hba": 11,
+          "rotatableBonds": 5,
+          "tpsa": 164,
+          "rule_audit": {
+            "name": "tovorafenib",
+            "drugClass": "",
+            "target_id": "braf",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "plx8394",
+          "chembl_id": "CHEMBL3989874",
+          "potency": "IC50 5 nM BRAF (Cho 2014)",
+          "source": "ChEMBL tool compound",
+          "drugClass": "",
+          "smiles": "C1CC1C2=NC=C(C=N2)C3=CC4=C(NC=C4C(=O)C5=C(C=CC(=C5F)NS(=O)(=O)N6CCC(C6)F)F)N=C3",
+          "pubchem_cid": "90116675",
+          "molecularWeight": 542.5,
+          "xlogp": 2.8,
+          "hbd": 2,
+          "hba": 11,
+          "rotatableBonds": 7,
+          "tpsa": 129,
+          "rule_audit": {
+            "name": "plx8394",
+            "drugClass": "",
+            "target_id": "braf",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "levofloxacin",
+          "decoy_note": "antibiotic; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "149096",
+          "smiles": "CC1COC2=C3N1C=C(C(=O)C3=CC(=C2N4CCN(CC4)C)F)C(=O)O",
+          "molecularWeight": 361.4,
+          "xlogp": -0.4,
+          "hbd": 1,
+          "hba": 8,
+          "rotatableBonds": 2,
+          "tpsa": 73.3,
+          "rule_audit": {
+            "name": "levofloxacin",
+            "drugClass": "",
+            "target_id": "braf",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 4
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "metronidazole",
+          "decoy_note": "antibiotic; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "4173",
+          "smiles": "CC1=NC=C(N1CCO)[N+](=O)[O-]",
+          "molecularWeight": 171.15,
+          "xlogp": 0,
+          "hbd": 1,
+          "hba": 4,
+          "rotatableBonds": 2,
+          "tpsa": 83.9,
+          "rule_audit": {
+            "name": "metronidazole",
+            "drugClass": "",
+            "target_id": "braf",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 3
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "clopidogrel",
+          "decoy_note": "antiplatelet; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "60606",
+          "smiles": "COC(=O)C(C1=CC=CC=C1Cl)N2CCC3=C(C2)C=CS3",
+          "molecularWeight": 321.8,
+          "xlogp": 3.8,
+          "hbd": 0,
+          "hba": 4,
+          "rotatableBonds": 4,
+          "tpsa": 57.8,
+          "rule_audit": {
+            "name": "clopidogrel",
+            "drugClass": "",
+            "target_id": "braf",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 4
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "ezetimibe",
+          "decoy_note": "lipid; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "150311",
+          "smiles": "C1=CC(=CC=C1C2C(C(=O)N2C3=CC=C(C=C3)F)CCC(C4=CC=C(C=C4)F)O)O",
+          "molecularWeight": 409.4,
+          "xlogp": 4,
+          "hbd": 2,
+          "hba": 5,
+          "rotatableBonds": 6,
+          "tpsa": 60.8,
+          "rule_audit": {
+            "name": "ezetimibe",
+            "drugClass": "",
+            "target_id": "braf",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 5
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "pregabalin",
+          "decoy_note": "CNS; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "5486971",
+          "smiles": "CC(C)CC(CC(=O)O)CN",
+          "molecularWeight": 159.23,
+          "xlogp": -1.6,
+          "hbd": 2,
+          "hba": 3,
+          "rotatableBonds": 5,
+          "tpsa": 63.3,
+          "rule_audit": {
+            "name": "pregabalin",
+            "drugClass": "",
+            "target_id": "braf",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": false,
+            "rotOk": true,
+            "score": 2
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "lamotrigine",
+          "decoy_note": "anticonvulsant; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3878",
+          "smiles": "C1=CC(=C(C(=C1)Cl)Cl)C2=C(N=C(N=N2)N)N",
+          "molecularWeight": 256.09,
+          "xlogp": 1.4,
+          "hbd": 2,
+          "hba": 5,
+          "rotatableBonds": 1,
+          "tpsa": 90.7,
+          "rule_audit": {
+            "name": "lamotrigine",
+            "drugClass": "",
+            "target_id": "braf",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 4
+          }
+        }
+      ],
+      "property_medians": {
+        "mw": 509.06666666666666,
+        "xlogp": 3.1666666666666665,
+        "hbd": 2.3333333333333335,
+        "hba": 10,
+        "rot": 5
+      }
+    },
+    {
+      "id": "cox",
+      "name": "PTGS2",
+      "pdb_id": "4COX",
+      "protein": {
+        "id": "4COX",
+        "pdb_id": "4COX",
+        "queryName": "PTGS2",
+        "title": "COX-2",
+        "ligands": [
+          {
+            "compId": "S58",
+            "name": "CELECOXIB"
+          }
+        ],
+        "hasLigand": true
+      },
+      "compounds": [
+        {
+          "role": "active",
+          "name": "etoricoxib",
+          "chembl_id": "CHEMBL1237",
+          "potency": "IC50 1.6 µM COX-2 (Riendeau 2001)",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CC1=NC=C(C=C1)C2=C(C=C(C=N2)Cl)C3=CC=C(C=C3)S(=O)(=O)C",
+          "pubchem_cid": "123619",
+          "molecularWeight": 358.8,
+          "xlogp": 3.3,
+          "hbd": 0,
+          "hba": 4,
+          "rotatableBonds": 3,
+          "tpsa": 68.3,
+          "rule_audit": {
+            "name": "etoricoxib",
+            "drugClass": "",
+            "target_id": "cox",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "lumiracoxib",
+          "chembl_id": "CHEMBL404108",
+          "potency": "IC50 0.14 µM COX-2 (Tang 2000)",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CC1=CC(=C(C=C1)NC2=C(C=CC=C2Cl)F)CC(=O)O",
+          "pubchem_cid": "151166",
+          "molecularWeight": 293.72,
+          "xlogp": 4.2,
+          "hbd": 2,
+          "hba": 4,
+          "rotatableBonds": 4,
+          "tpsa": 49.3,
+          "rule_audit": {
+            "name": "lumiracoxib",
+            "drugClass": "",
+            "target_id": "cox",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "nimesulide",
+          "chembl_id": "CHEMBL1540",
+          "potency": "IC50 0.07 µM COX-2 (Tassone 1995)",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CS(=O)(=O)NC1=C(C=C(C=C1)[N+](=O)[O-])OC2=CC=CC=C2",
+          "pubchem_cid": "4495",
+          "molecularWeight": 308.31,
+          "xlogp": 2.6,
+          "hbd": 1,
+          "hba": 6,
+          "rotatableBonds": 4,
+          "tpsa": 110,
+          "rule_audit": {
+            "name": "nimesulide",
+            "drugClass": "",
+            "target_id": "cox",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "levofloxacin",
+          "decoy_note": "antibiotic; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "149096",
+          "smiles": "CC1COC2=C3N1C=C(C(=O)C3=CC(=C2N4CCN(CC4)C)F)C(=O)O",
+          "molecularWeight": 361.4,
+          "xlogp": -0.4,
+          "hbd": 1,
+          "hba": 8,
+          "rotatableBonds": 2,
+          "tpsa": 73.3,
+          "rule_audit": {
+            "name": "levofloxacin",
+            "drugClass": "",
+            "target_id": "cox",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 4
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "doxycycline",
+          "decoy_note": "antibiotic; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "54671203",
+          "smiles": "CC1C2C(C3C(C(=O)C(=C(C3(C(=O)C2=C(C4=C1C=CC=C4O)O)O)O)C(=O)N)N(C)C)O",
+          "molecularWeight": 444.4,
+          "xlogp": -0.7,
+          "hbd": 6,
+          "hba": 9,
+          "rotatableBonds": 2,
+          "tpsa": 182,
+          "rule_audit": {
+            "name": "doxycycline",
+            "drugClass": "",
+            "target_id": "cox",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": false,
+            "hbdOk": false,
+            "hbaOk": false,
+            "rotOk": true,
+            "score": 2
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "acetaminophen",
+          "decoy_note": "non-NSAID analgesic; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "1983",
+          "smiles": "CC(=O)NC1=CC=C(C=C1)O",
+          "molecularWeight": 151.16,
+          "xlogp": 0.5,
+          "hbd": 2,
+          "hba": 2,
+          "rotatableBonds": 1,
+          "tpsa": 49.3,
+          "rule_audit": {
+            "name": "acetaminophen",
+            "drugClass": "",
+            "target_id": "cox",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 3
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "lamotrigine",
+          "decoy_note": "anticonvulsant; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3878",
+          "smiles": "C1=CC(=C(C(=C1)Cl)Cl)C2=C(N=C(N=N2)N)N",
+          "molecularWeight": 256.09,
+          "xlogp": 1.4,
+          "hbd": 2,
+          "hba": 5,
+          "rotatableBonds": 1,
+          "tpsa": 90.7,
+          "rule_audit": {
+            "name": "lamotrigine",
+            "drugClass": "",
+            "target_id": "cox",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 5
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "gabapentin",
+          "decoy_note": "CNS; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3446",
+          "smiles": "C1CCC(CC1)(CC(=O)O)CN",
+          "molecularWeight": 171.24,
+          "xlogp": -1.1,
+          "hbd": 2,
+          "hba": 3,
+          "rotatableBonds": 3,
+          "tpsa": 63.3,
+          "rule_audit": {
+            "name": "gabapentin",
+            "drugClass": "",
+            "target_id": "cox",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 3
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "levothyroxine",
+          "decoy_note": "hormone; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "5819",
+          "smiles": "C1=C(C=C(C(=C1I)OC2=CC(=C(C(=C2)I)O)I)I)CC(C(=O)O)N",
+          "molecularWeight": 776.87,
+          "xlogp": 2.4,
+          "hbd": 3,
+          "hba": 5,
+          "rotatableBonds": 5,
+          "tpsa": 92.8,
+          "rule_audit": {
+            "name": "levothyroxine",
+            "drugClass": "",
+            "target_id": "cox",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": false,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 3
+          }
+        }
+      ],
+      "property_medians": {
+        "mw": 320.27666666666664,
+        "xlogp": 3.3666666666666667,
+        "hbd": 1,
+        "hba": 4.666666666666667,
+        "rot": 3.6666666666666665
+      }
+    },
+    {
+      "id": "hmgcr",
+      "name": "HMGCR",
+      "pdb_id": "1HWK",
+      "protein": {
+        "id": "1HWK",
+        "pdb_id": "1HWK",
+        "queryName": "HMGCR",
+        "title": "HMG-CoA reductase",
+        "ligands": [
+          {
+            "compId": "1HW",
+            "name": "ATORVASTATIN"
+          }
+        ],
+        "hasLigand": true
+      },
+      "compounds": [
+        {
+          "role": "active",
+          "name": "mevastatin",
+          "chembl_id": "CHEMBL23",
+          "potency": "IC50 0.5 nM HMGCR",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CCC(C)C(=O)OC1CCC=C2C1C(C(C=C2)C)CCC3CC(CC(=O)O3)O",
+          "pubchem_cid": "64715",
+          "molecularWeight": 390.5,
+          "xlogp": 3.9,
+          "hbd": 1,
+          "hba": 5,
+          "rotatableBonds": 7,
+          "tpsa": 72.8,
+          "rule_audit": {
+            "name": "mevastatin",
+            "drugClass": "",
+            "target_id": "hmgcr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "cerivastatin",
+          "chembl_id": "CHEMBL1200798",
+          "potency": "IC50 0.5 nM HMGCR",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CC(C)C1=C(C(=C(C(=N1)C(C)C)COC)C2=CC=C(C=C2)F)C=CC(CC(CC(=O)O)O)O",
+          "pubchem_cid": "446156",
+          "molecularWeight": 459.5,
+          "xlogp": 3.6,
+          "hbd": 3,
+          "hba": 7,
+          "rotatableBonds": 11,
+          "tpsa": 99.9,
+          "rule_audit": {
+            "name": "cerivastatin",
+            "drugClass": "",
+            "target_id": "hmgcr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "levofloxacin",
+          "decoy_note": "antibiotic; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "149096",
+          "smiles": "CC1COC2=C3N1C=C(C(=O)C3=CC(=C2N4CCN(CC4)C)F)C(=O)O",
+          "molecularWeight": 361.4,
+          "xlogp": -0.4,
+          "hbd": 1,
+          "hba": 8,
+          "rotatableBonds": 2,
+          "tpsa": 73.3,
+          "rule_audit": {
+            "name": "levofloxacin",
+            "drugClass": "",
+            "target_id": "hmgcr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 4
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "furosemide",
+          "decoy_note": "loop diuretic decoy (replaces metformin — in demoted lists)",
+          "drugClass": "",
+          "pubchem_cid": "3440",
+          "smiles": "C1=COC(=C1)CNC2=CC(=C(C=C2C(=O)O)S(=O)(=O)N)Cl",
+          "molecularWeight": 330.74,
+          "xlogp": 2,
+          "hbd": 3,
+          "hba": 7,
+          "rotatableBonds": 5,
+          "tpsa": 131,
+          "rule_audit": {
+            "name": "furosemide",
+            "drugClass": "",
+            "target_id": "hmgcr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 3
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "amlodipine",
+          "decoy_note": "CCB; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "2162",
+          "smiles": "CCOC(=O)C1=C(NC(=C(C1C2=CC=CC=C2Cl)C(=O)OC)C)COCCN",
+          "molecularWeight": 408.9,
+          "xlogp": 3,
+          "hbd": 2,
+          "hba": 7,
+          "rotatableBonds": 10,
+          "tpsa": 99.9,
+          "rule_audit": {
+            "name": "amlodipine",
+            "drugClass": "",
+            "target_id": "hmgcr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 5
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "omeprazole",
+          "decoy_note": "PPI; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "4594",
+          "smiles": "CC1=CN=C(C(=C1OC)C)CS(=O)C2=NC3=C(N2)C=C(C=C3)OC",
+          "molecularWeight": 345.4,
+          "xlogp": 2.2,
+          "hbd": 1,
+          "hba": 6,
+          "rotatableBonds": 5,
+          "tpsa": 96.3,
+          "rule_audit": {
+            "name": "omeprazole",
+            "drugClass": "",
+            "target_id": "hmgcr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 5
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "gabapentin",
+          "decoy_note": "CNS; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3446",
+          "smiles": "C1CCC(CC1)(CC(=O)O)CN",
+          "molecularWeight": 171.24,
+          "xlogp": -1.1,
+          "hbd": 2,
+          "hba": 3,
+          "rotatableBonds": 3,
+          "tpsa": 63.3,
+          "rule_audit": {
+            "name": "gabapentin",
+            "drugClass": "",
+            "target_id": "hmgcr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 3
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "lamotrigine",
+          "decoy_note": "anticonvulsant; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3878",
+          "smiles": "C1=CC(=C(C(=C1)Cl)Cl)C2=C(N=C(N=N2)N)N",
+          "molecularWeight": 256.09,
+          "xlogp": 1.4,
+          "hbd": 2,
+          "hba": 5,
+          "rotatableBonds": 1,
+          "tpsa": 90.7,
+          "rule_audit": {
+            "name": "lamotrigine",
+            "drugClass": "",
+            "target_id": "hmgcr",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": false,
+            "score": 3
+          }
+        }
+      ],
+      "property_medians": {
+        "mw": null,
+        "xlogp": null,
+        "hbd": null,
+        "hba": null,
+        "rot": null
+      }
+    },
+    {
+      "id": "pde5",
+      "name": "PDE5A",
+      "pdb_id": "1UDT",
+      "protein": {
+        "id": "1UDT",
+        "pdb_id": "1UDT",
+        "queryName": "PDE5A",
+        "title": "PDE5",
+        "ligands": [
+          {
+            "compId": "VIA",
+            "name": "SILDENAFIL"
+          }
+        ],
+        "hasLigand": true
+      },
+      "compounds": [
+        {
+          "role": "active",
+          "name": "udenafil",
+          "chembl_id": "CHEMBL2104220",
+          "potency": "IC50 2.6 nM PDE5 (Sung 2005)",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CCCC1=NN(C2=C1N=C(NC2=O)C3=C(C=CC(=C3)S(=O)(=O)NCCC4CCCN4C)OCCC)C",
+          "pubchem_cid": "135413547",
+          "molecularWeight": 516.7,
+          "xlogp": 3,
+          "hbd": 2,
+          "hba": 8,
+          "rotatableBonds": 11,
+          "tpsa": 126,
+          "rule_audit": {
+            "name": "udenafil",
+            "drugClass": "",
+            "target_id": "pde5",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "lodenafil",
+          "chembl_id": "CHEMBL2104221",
+          "potency": "IC50 2.1 nM PDE5",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CCCC1=NN(C2=C1N=C(NC2=O)C3=C(C=CC(=C3)S(=O)(=O)N4CCN(CC4)CCO)OCC)C",
+          "pubchem_cid": "135452901",
+          "molecularWeight": 504.6,
+          "xlogp": 0.8,
+          "hbd": 2,
+          "hba": 9,
+          "rotatableBonds": 9,
+          "tpsa": 138,
+          "rule_audit": {
+            "name": "lodenafil",
+            "drugClass": "",
+            "target_id": "pde5",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "mirodenafil",
+          "chembl_id": "CHEMBL2104222",
+          "potency": "IC50 2.7 nM PDE5",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CCCC1=CN(C2=C1N=C(NC2=O)C3=C(C=CC(=C3)S(=O)(=O)N4CCN(CC4)CCO)OCCC)CC",
+          "pubchem_cid": "135497803",
+          "molecularWeight": 531.7,
+          "xlogp": 2.2,
+          "hbd": 2,
+          "hba": 8,
+          "rotatableBonds": 11,
+          "tpsa": 125,
+          "rule_audit": {
+            "name": "mirodenafil",
+            "drugClass": "",
+            "target_id": "pde5",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "levofloxacin",
+          "decoy_note": "antibiotic; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "149096",
+          "smiles": "CC1COC2=C3N1C=C(C(=O)C3=CC(=C2N4CCN(CC4)C)F)C(=O)O",
+          "molecularWeight": 361.4,
+          "xlogp": -0.4,
+          "hbd": 1,
+          "hba": 8,
+          "rotatableBonds": 2,
+          "tpsa": 73.3,
+          "rule_audit": {
+            "name": "levofloxacin",
+            "drugClass": "",
+            "target_id": "pde5",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": false,
+            "score": 2
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "furosemide",
+          "decoy_note": "loop diuretic decoy (replaces metformin — in demoted lists)",
+          "drugClass": "",
+          "pubchem_cid": "3440",
+          "smiles": "C1=COC(=C1)CNC2=CC(=C(C=C2C(=O)O)S(=O)(=O)N)Cl",
+          "molecularWeight": 330.74,
+          "xlogp": 2,
+          "hbd": 3,
+          "hba": 7,
+          "rotatableBonds": 5,
+          "tpsa": 131,
+          "rule_audit": {
+            "name": "furosemide",
+            "drugClass": "",
+            "target_id": "pde5",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": false,
+            "rotOk": false,
+            "score": 1
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "amlodipine",
+          "decoy_note": "CCB; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "2162",
+          "smiles": "CCOC(=O)C1=C(NC(=C(C1C2=CC=CC=C2Cl)C(=O)OC)C)COCCN",
+          "molecularWeight": 408.9,
+          "xlogp": 3,
+          "hbd": 2,
+          "hba": 7,
+          "rotatableBonds": 10,
+          "tpsa": 99.9,
+          "rule_audit": {
+            "name": "amlodipine",
+            "drugClass": "",
+            "target_id": "pde5",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 5
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "gabapentin",
+          "decoy_note": "CNS; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3446",
+          "smiles": "C1CCC(CC1)(CC(=O)O)CN",
+          "molecularWeight": 171.24,
+          "xlogp": -1.1,
+          "hbd": 2,
+          "hba": 3,
+          "rotatableBonds": 3,
+          "tpsa": 63.3,
+          "rule_audit": {
+            "name": "gabapentin",
+            "drugClass": "",
+            "target_id": "pde5",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": false,
+            "rotOk": false,
+            "score": 1
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "lamotrigine",
+          "decoy_note": "anticonvulsant; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3878",
+          "smiles": "C1=CC(=C(C(=C1)Cl)Cl)C2=C(N=C(N=N2)N)N",
+          "molecularWeight": 256.09,
+          "xlogp": 1.4,
+          "hbd": 2,
+          "hba": 5,
+          "rotatableBonds": 1,
+          "tpsa": 90.7,
+          "rule_audit": {
+            "name": "lamotrigine",
+            "drugClass": "",
+            "target_id": "pde5",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": false,
+            "score": 3
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "ezetimibe",
+          "decoy_note": "lipid; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "150311",
+          "smiles": "C1=CC(=CC=C1C2C(C(=O)N2C3=CC=C(C=C3)F)CCC(C4=CC=C(C=C4)F)O)O",
+          "molecularWeight": 409.4,
+          "xlogp": 4,
+          "hbd": 2,
+          "hba": 5,
+          "rotatableBonds": 6,
+          "tpsa": 60.8,
+          "rule_audit": {
+            "name": "ezetimibe",
+            "drugClass": "",
+            "target_id": "pde5",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 5
+          }
+        }
+      ],
+      "property_medians": {
+        "mw": 517.6666666666666,
+        "xlogp": 2,
+        "hbd": 2,
+        "hba": 8.333333333333334,
+        "rot": 10.333333333333334
+      }
+    },
+    {
+      "id": "er",
+      "name": "ESR1",
+      "pdb_id": "3ERT",
+      "protein": {
+        "id": "3ERT",
+        "pdb_id": "3ERT",
+        "queryName": "ESR1",
+        "title": "Estrogen receptor",
+        "ligands": [
+          {
+            "compId": "OHT",
+            "name": "4-HYDROXYTAMOXIFEN"
+          }
+        ],
+        "hasLigand": true
+      },
+      "compounds": [
+        {
+          "role": "active",
+          "name": "elacestrant",
+          "chembl_id": "CHEMBL3989876",
+          "potency": "ER antagonist Ki low nM (phase 3)",
+          "source": "ChEMBL / FDA Orserdu",
+          "drugClass": "",
+          "smiles": "CCNCCC1=CC=C(C=C1)CN(CC)C2=C(C=CC(=C2)OC)C3CCC4=C(C3)C=CC(=C4)O",
+          "pubchem_cid": "23642301",
+          "molecularWeight": 458.6,
+          "xlogp": 6.3,
+          "hbd": 2,
+          "hba": 4,
+          "rotatableBonds": 10,
+          "tpsa": 44.7,
+          "rule_audit": {
+            "name": "elacestrant",
+            "drugClass": "",
+            "target_id": "er",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "bazedoxifene",
+          "chembl_id": "CHEMBL2104223",
+          "potency": "ER modulator (Conjug Estrogens)",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CC1=C(N(C2=C1C=C(C=C2)O)CC3=CC=C(C=C3)OCCN4CCCCCC4)C5=CC=C(C=C5)O",
+          "pubchem_cid": "154257",
+          "molecularWeight": 470.6,
+          "xlogp": 6.1,
+          "hbd": 2,
+          "hba": 4,
+          "rotatableBonds": 7,
+          "tpsa": 57.9,
+          "rule_audit": {
+            "name": "bazedoxifene",
+            "drugClass": "",
+            "target_id": "er",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "lasofoxifene",
+          "chembl_id": "CHEMBL2104224",
+          "potency": "ER Ki 0.2 nM",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "C1CCN(C1)CCOC2=CC=C(C=C2)C3C(CCC4=C3C=CC(=C4)O)C5=CC=CC=C5",
+          "pubchem_cid": "216416",
+          "molecularWeight": 413.5,
+          "xlogp": 6.1,
+          "hbd": 1,
+          "hba": 3,
+          "rotatableBonds": 6,
+          "tpsa": 32.7,
+          "rule_audit": {
+            "name": "lasofoxifene",
+            "drugClass": "",
+            "target_id": "er",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "levofloxacin",
+          "decoy_note": "antibiotic; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "149096",
+          "smiles": "CC1COC2=C3N1C=C(C(=O)C3=CC(=C2N4CCN(CC4)C)F)C(=O)O",
+          "molecularWeight": 361.4,
+          "xlogp": -0.4,
+          "hbd": 1,
+          "hba": 8,
+          "rotatableBonds": 2,
+          "tpsa": 73.3,
+          "rule_audit": {
+            "name": "levofloxacin",
+            "drugClass": "",
+            "target_id": "er",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": false,
+            "score": 3
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "furosemide",
+          "decoy_note": "loop diuretic decoy (replaces metformin — in demoted lists)",
+          "drugClass": "",
+          "pubchem_cid": "3440",
+          "smiles": "C1=COC(=C1)CNC2=CC(=C(C=C2C(=O)O)S(=O)(=O)N)Cl",
+          "molecularWeight": 330.74,
+          "xlogp": 2,
+          "hbd": 3,
+          "hba": 7,
+          "rotatableBonds": 5,
+          "tpsa": 131,
+          "rule_audit": {
+            "name": "furosemide",
+            "drugClass": "",
+            "target_id": "er",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": false,
+            "score": 2
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "amlodipine",
+          "decoy_note": "CCB; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "2162",
+          "smiles": "CCOC(=O)C1=C(NC(=C(C1C2=CC=CC=C2Cl)C(=O)OC)C)COCCN",
+          "molecularWeight": 408.9,
+          "xlogp": 3,
+          "hbd": 2,
+          "hba": 7,
+          "rotatableBonds": 10,
+          "tpsa": 99.9,
+          "rule_audit": {
+            "name": "amlodipine",
+            "drugClass": "",
+            "target_id": "er",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 4
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "gabapentin",
+          "decoy_note": "CNS; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3446",
+          "smiles": "C1CCC(CC1)(CC(=O)O)CN",
+          "molecularWeight": 171.24,
+          "xlogp": -1.1,
+          "hbd": 2,
+          "hba": 3,
+          "rotatableBonds": 3,
+          "tpsa": 63.3,
+          "rule_audit": {
+            "name": "gabapentin",
+            "drugClass": "",
+            "target_id": "er",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": false,
+            "score": 2
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "lamotrigine",
+          "decoy_note": "anticonvulsant; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3878",
+          "smiles": "C1=CC(=C(C(=C1)Cl)Cl)C2=C(N=C(N=N2)N)N",
+          "molecularWeight": 256.09,
+          "xlogp": 1.4,
+          "hbd": 2,
+          "hba": 5,
+          "rotatableBonds": 1,
+          "tpsa": 90.7,
+          "rule_audit": {
+            "name": "lamotrigine",
+            "drugClass": "",
+            "target_id": "er",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": false,
+            "score": 2
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "ezetimibe",
+          "decoy_note": "lipid; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "150311",
+          "smiles": "C1=CC(=CC=C1C2C(C(=O)N2C3=CC=C(C=C3)F)CCC(C4=CC=C(C=C4)F)O)O",
+          "molecularWeight": 409.4,
+          "xlogp": 4,
+          "hbd": 2,
+          "hba": 5,
+          "rotatableBonds": 6,
+          "tpsa": 60.8,
+          "rule_audit": {
+            "name": "ezetimibe",
+            "drugClass": "",
+            "target_id": "er",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 5
+          }
+        }
+      ],
+      "property_medians": {
+        "mw": 447.56666666666666,
+        "xlogp": 6.166666666666667,
+        "hbd": 1.6666666666666667,
+        "hba": 3.6666666666666665,
+        "rot": 7.666666666666667
+      }
+    },
+    {
+      "id": "dpp4",
+      "name": "DPP4",
+      "pdb_id": "1X70",
+      "protein": {
+        "id": "1X70",
+        "pdb_id": "1X70",
+        "queryName": "DPP4",
+        "title": "DPP-4",
+        "ligands": [
+          {
+            "compId": "SIT",
+            "name": "SITAGLIPTIN"
+          }
+        ],
+        "hasLigand": true
+      },
+      "compounds": [
+        {
+          "role": "active",
+          "name": "anagliptin",
+          "chembl_id": "CHEMBL2104225",
+          "potency": "IC50 3.4 nM DPP4",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CC1=NN2C=C(C=NC2=C1)C(=O)NCC(C)(C)NCC(=O)N3CCCC3C#N",
+          "pubchem_cid": "44513473",
+          "molecularWeight": 383.4,
+          "xlogp": 0,
+          "hbd": 2,
+          "hba": 6,
+          "rotatableBonds": 6,
+          "tpsa": 115,
+          "rule_audit": {
+            "name": "anagliptin",
+            "drugClass": "",
+            "target_id": "dpp4",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "gemigliptin",
+          "chembl_id": "CHEMBL2104226",
+          "potency": "IC50 4.1 nM DPP4",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "C1CC(CN(C1=O)CC(CC(=O)N2CCC3=C(C2)N=C(N=C3C(F)(F)F)C(F)(F)F)N)(F)F",
+          "pubchem_cid": "11953153",
+          "molecularWeight": 489.4,
+          "xlogp": 0.7,
+          "hbd": 1,
+          "hba": 13,
+          "rotatableBonds": 4,
+          "tpsa": 92.4,
+          "rule_audit": {
+            "name": "gemigliptin",
+            "drugClass": "",
+            "target_id": "dpp4",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "teneligliptin",
+          "chembl_id": "CHEMBL2104227",
+          "potency": "IC50 0.37 nM DPP4",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CC1=NN(C(=C1)N2CCN(CC2)C3CC(NC3)C(=O)N4CCSC4)C5=CC=CC=C5",
+          "pubchem_cid": "11949652",
+          "molecularWeight": 426.6,
+          "xlogp": 2.4,
+          "hbd": 1,
+          "hba": 6,
+          "rotatableBonds": 4,
+          "tpsa": 81.9,
+          "rule_audit": {
+            "name": "teneligliptin",
+            "drugClass": "",
+            "target_id": "dpp4",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "levofloxacin",
+          "decoy_note": "antibiotic; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "149096",
+          "smiles": "CC1COC2=C3N1C=C(C(=O)C3=CC(=C2N4CCN(CC4)C)F)C(=O)O",
+          "molecularWeight": 361.4,
+          "xlogp": -0.4,
+          "hbd": 1,
+          "hba": 8,
+          "rotatableBonds": 2,
+          "tpsa": 73.3,
+          "rule_audit": {
+            "name": "levofloxacin",
+            "drugClass": "",
+            "target_id": "dpp4",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 5
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "amlodipine",
+          "decoy_note": "CCB; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "2162",
+          "smiles": "CCOC(=O)C1=C(NC(=C(C1C2=CC=CC=C2Cl)C(=O)OC)C)COCCN",
+          "molecularWeight": 408.9,
+          "xlogp": 3,
+          "hbd": 2,
+          "hba": 7,
+          "rotatableBonds": 10,
+          "tpsa": 99.9,
+          "rule_audit": {
+            "name": "amlodipine",
+            "drugClass": "",
+            "target_id": "dpp4",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 4
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "gabapentin",
+          "decoy_note": "CNS; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3446",
+          "smiles": "C1CCC(CC1)(CC(=O)O)CN",
+          "molecularWeight": 171.24,
+          "xlogp": -1.1,
+          "hbd": 2,
+          "hba": 3,
+          "rotatableBonds": 3,
+          "tpsa": 63.3,
+          "rule_audit": {
+            "name": "gabapentin",
+            "drugClass": "",
+            "target_id": "dpp4",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 4
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "lamotrigine",
+          "decoy_note": "anticonvulsant; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3878",
+          "smiles": "C1=CC(=C(C(=C1)Cl)Cl)C2=C(N=C(N=N2)N)N",
+          "molecularWeight": 256.09,
+          "xlogp": 1.4,
+          "hbd": 2,
+          "hba": 5,
+          "rotatableBonds": 1,
+          "tpsa": 90.7,
+          "rule_audit": {
+            "name": "lamotrigine",
+            "drugClass": "",
+            "target_id": "dpp4",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 4
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "ezetimibe",
+          "decoy_note": "lipid; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "150311",
+          "smiles": "C1=CC(=CC=C1C2C(C(=O)N2C3=CC=C(C=C3)F)CCC(C4=CC=C(C=C4)F)O)O",
+          "molecularWeight": 409.4,
+          "xlogp": 4,
+          "hbd": 2,
+          "hba": 5,
+          "rotatableBonds": 6,
+          "tpsa": 60.8,
+          "rule_audit": {
+            "name": "ezetimibe",
+            "drugClass": "",
+            "target_id": "dpp4",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 4
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "omeprazole",
+          "decoy_note": "PPI; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "4594",
+          "smiles": "CC1=CN=C(C(=C1OC)C)CS(=O)C2=NC3=C(N2)C=C(C=C3)OC",
+          "molecularWeight": 345.4,
+          "xlogp": 2.2,
+          "hbd": 1,
+          "hba": 6,
+          "rotatableBonds": 5,
+          "tpsa": 96.3,
+          "rule_audit": {
+            "name": "omeprazole",
+            "drugClass": "",
+            "target_id": "dpp4",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 5
+          }
+        }
+      ],
+      "property_medians": {
+        "mw": 433.1333333333334,
+        "xlogp": 1.0333333333333332,
+        "hbd": 1.3333333333333333,
+        "hba": 8.333333333333334,
+        "rot": 4.666666666666667
+      }
+    },
+    {
+      "id": "beta2",
+      "name": "ADRB2",
+      "pdb_id": "3SN6",
+      "protein": {
+        "id": "3SN6",
+        "pdb_id": "3SN6",
+        "queryName": "ADRB2",
+        "title": "Beta-2 adrenergic receptor",
+        "ligands": [
+          {
+            "compId": "P0G",
+            "name": "CARAZOLOL"
+          }
+        ],
+        "hasLigand": true
+      },
+      "compounds": [
+        {
+          "role": "active",
+          "name": "indacaterol",
+          "chembl_id": "CHEMBL2104228",
+          "potency": "Ki 0.1 nM β2 (Baker 2010)",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CCC1=C(C=C2CC(CC2=C1)NCC(C3=C4C=CC(=O)NC4=C(C=C3)O)O)CC",
+          "pubchem_cid": "6918554",
+          "molecularWeight": 392.5,
+          "xlogp": 3.3,
+          "hbd": 4,
+          "hba": 4,
+          "rotatableBonds": 6,
+          "tpsa": 81.6,
+          "rule_audit": {
+            "name": "indacaterol",
+            "drugClass": "",
+            "target_id": "beta2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "olodaterol",
+          "chembl_id": "CHEMBL2104229",
+          "potency": "Ki 0.18 nM β2",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "CC(C)(CC1=CC=C(C=C1)OC)NCC(C2=C3C(=CC(=C2)O)NC(=O)CO3)O",
+          "pubchem_cid": "11504295",
+          "molecularWeight": 386.4,
+          "xlogp": 1.8,
+          "hbd": 4,
+          "hba": 6,
+          "rotatableBonds": 7,
+          "tpsa": 100,
+          "rule_audit": {
+            "name": "olodaterol",
+            "drugClass": "",
+            "target_id": "beta2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "active",
+          "name": "vilanterol",
+          "chembl_id": "CHEMBL2104230",
+          "potency": "Ki 0.1 nM β2",
+          "source": "ChEMBL",
+          "drugClass": "",
+          "smiles": "C1=CC(=C(C(=C1)Cl)COCCOCCCCCCNCC(C2=CC(=C(C=C2)O)CO)O)Cl",
+          "pubchem_cid": "10184665",
+          "molecularWeight": 486.4,
+          "xlogp": 3.8,
+          "hbd": 4,
+          "hba": 6,
+          "rotatableBonds": 16,
+          "tpsa": 91.2,
+          "rule_audit": {
+            "name": "vilanterol",
+            "drugClass": "",
+            "target_id": "beta2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "levofloxacin",
+          "decoy_note": "antibiotic; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "149096",
+          "smiles": "CC1COC2=C3N1C=C(C(=O)C3=CC(=C2N4CCN(CC4)C)F)C(=O)O",
+          "molecularWeight": 361.4,
+          "xlogp": -0.4,
+          "hbd": 1,
+          "hba": 8,
+          "rotatableBonds": 2,
+          "tpsa": 73.3,
+          "rule_audit": {
+            "name": "levofloxacin",
+            "drugClass": "",
+            "target_id": "beta2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": false,
+            "hbdOk": false,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 3
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "furosemide",
+          "decoy_note": "loop diuretic decoy (replaces metformin — in demoted lists)",
+          "drugClass": "",
+          "pubchem_cid": "3440",
+          "smiles": "C1=COC(=C1)CNC2=CC(=C(C=C2C(=O)O)S(=O)(=O)N)Cl",
+          "molecularWeight": 330.74,
+          "xlogp": 2,
+          "hbd": 3,
+          "hba": 7,
+          "rotatableBonds": 5,
+          "tpsa": 131,
+          "rule_audit": {
+            "name": "furosemide",
+            "drugClass": "",
+            "target_id": "beta2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 3
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "amlodipine",
+          "decoy_note": "CCB; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "2162",
+          "smiles": "CCOC(=O)C1=C(NC(=C(C1C2=CC=CC=C2Cl)C(=O)OC)C)COCCN",
+          "molecularWeight": 408.9,
+          "xlogp": 3,
+          "hbd": 2,
+          "hba": 7,
+          "rotatableBonds": 10,
+          "tpsa": 99.9,
+          "rule_audit": {
+            "name": "amlodipine",
+            "drugClass": "",
+            "target_id": "beta2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 5
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "gabapentin",
+          "decoy_note": "CNS; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3446",
+          "smiles": "C1CCC(CC1)(CC(=O)O)CN",
+          "molecularWeight": 171.24,
+          "xlogp": -1.1,
+          "hbd": 2,
+          "hba": 3,
+          "rotatableBonds": 3,
+          "tpsa": 63.3,
+          "rule_audit": {
+            "name": "gabapentin",
+            "drugClass": "",
+            "target_id": "beta2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": false,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 3
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "lamotrigine",
+          "decoy_note": "anticonvulsant; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "3878",
+          "smiles": "C1=CC(=C(C(=C1)Cl)Cl)C2=C(N=C(N=N2)N)N",
+          "molecularWeight": 256.09,
+          "xlogp": 1.4,
+          "hbd": 2,
+          "hba": 5,
+          "rotatableBonds": 1,
+          "tpsa": 90.7,
+          "rule_audit": {
+            "name": "lamotrigine",
+            "drugClass": "",
+            "target_id": "beta2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": false,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 4
+          }
+        },
+        {
+          "role": "decoy",
+          "name": "ezetimibe",
+          "decoy_note": "lipid; DUD-E-style match vs active median MW/logP/HBD/HBA/rotB",
+          "drugClass": "",
+          "pubchem_cid": "150311",
+          "smiles": "C1=CC(=CC=C1C2C(C(=O)N2C3=CC=C(C=C3)F)CCC(C4=CC=C(C=C4)F)O)O",
+          "molecularWeight": 409.4,
+          "xlogp": 4,
+          "hbd": 2,
+          "hba": 5,
+          "rotatableBonds": 6,
+          "tpsa": 60.8,
+          "rule_audit": {
+            "name": "ezetimibe",
+            "drugClass": "",
+            "target_id": "beta2",
+            "absent_from_rule_lists": true,
+            "rule_hits": [],
+            "heuristic_probe": {
+              "score": 24,
+              "target_bonus": 0,
+              "source": "src/scoreCandidates.js"
+            }
+          },
+          "property_match": {
+            "mwOk": true,
+            "logpOk": true,
+            "hbdOk": true,
+            "hbaOk": true,
+            "rotOk": true,
+            "score": 5
+          }
+        }
+      ],
+      "property_medians": {
+        "mw": 421.76666666666665,
+        "xlogp": 2.9666666666666663,
+        "hbd": 4,
+        "hba": 5.333333333333333,
+        "rot": 9.666666666666666
+      }
+    }
+  ],
+  "summary": {
+    "target_count": 10,
+    "active_count": 30
+  }
+}

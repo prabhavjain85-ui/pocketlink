@@ -1,0 +1,20 @@
+{
+  "description": "Redocking validation structures (single ligand chain, cofactors as noted).",
+  "targets": [
+    { "target_id": "egfr", "pdb_id": "1M17", "ligand_resn": "AQ4", "ligand_chain": "A", "reference_smiles": "COCCOc1cc2c(cc1OCCOC)ncnc2Nc3cccc(c3)C#C", "ligand_name": "erlotinib" },
+    { "target_id": "abl1", "pdb_id": "1IEP", "ligand_resn": "STI", "ligand_chain": "A", "reference_smiles": "Cc1ccc(cc1Nc2nccc(n2)c3cccnc3)NC(=O)c4ccc(cc4)CN5CCN(CC5)C", "ligand_name": "imatinib" },
+    { "target_id": "erbb2", "pdb_id": "3PP0", "ligand_resn": "03Q", "ligand_chain": "A", "reference_smiles": "c1cc(cc(c1)Oc2c(cc(cn2)Nc3c4c(ccn4CCOCCO)ncn3)Cl)C(F)(F)F", "ligand_name": "lapatinib analog" },
+    { "target_id": "braf", "pdb_id": "4XV2", "ligand_resn": "P06", "ligand_chain": "A", "reference_smiles": "CC(C)(C)c1nc(c(s1)c2ccnc(n2)N)c3cccc(c3F)NS(=O)(=O)c4c(cccc4F)F", "ligand_name": "dabrafenib" },
+    { "target_id": "ptgs2", "pdb_id": "1CX2", "ligand_resn": "S58", "ligand_chain": "A", "keep_het_resnames": ["HEM"], "reference_smiles": "Cc1ccc(cc1)c2cc(nn2-c3ccc(cc3)S(=O)(=O)N)C(F)(F)F", "ligand_name": "SC-558" },
+    { "target_id": "hmgcr", "pdb_id": "1OJ9", "ligand_resn": "1PB", "ligand_chain": "A", "reference_smiles": "CCC(C)(C)C(=O)OC1CC(C=C2C1C(C(C=C2)C)CCC(CC(CC(=O)O)O)O)C", "ligand_name": "compactin (1PB)" },
+    { "target_id": "pde5a", "pdb_id": "1UDT", "ligand_resn": "VIA", "ligand_chain": "A", "reference_smiles": "CCCc1c2c(n(n1)C)C(=O)NC(=N2)c3cc(ccc3OCC)S(=O)(=O)N4CCN(CC4)C", "ligand_name": "sildenafil" },
+    { "target_id": "esr1", "pdb_id": "3ERT", "ligand_resn": "OHT", "ligand_chain": "A", "reference_smiles": "CC/C(=C(/CC)c1ccc(cc1)OCCN(C)C)c2ccc(cc2)O", "ligand_name": "4-hydroxytamoxifen (OHT)" },
+    { "target_id": "dpp4", "pdb_id": "4A5S", "ligand_resn": "N7F", "ligand_chain": "A", "reference_smiles": "Cc1ncc(n1CC2CC2)c3ccc(cc3F)C(=O)N4CCC(CC4)N", "ligand_name": "linagliptin" },
+    { "target_id": "adrb2", "pdb_id": "3SN6", "ligand_resn": "P0G", "ligand_chain": "A", "reference_smiles": "Cc1ccccc1CC(C)(C)NCC(c2ccc(c3c2OCC(=O)N3)O)O", "ligand_name": "carazolol" },
+    { "target_id": "hiv_pr", "pdb_id": "1HVR", "ligand_resn": "XK2", "ligand_chain": "A", "reference_smiles": "c1ccc(cc1)CC2C(C(C(N(C(=O)N2Cc3ccc4ccccc4c3)Cc5ccc6ccccc6c5)Cc7ccccc7)O)O", "ligand_name": "XK2 (1HVR co-crystal)" },
+    { "target_id": "sars_mpro", "pdb_id": "7BQY", "ligand_resn": "PJE", "ligand_chain": "C", "reference_smiles": "C1CNC(=O)C1CC(C=CC(=O)O)N", "ligand_name": "PJE (7BQY)" },
+    { "target_id": "hdac1", "pdb_id": "1T69", "ligand_resn": "SHH", "ligand_chain": "A", "reference_smiles": "c1ccc(cc1)NC(=O)CCCCCCC(=O)NO", "ligand_name": "suberoylanilide hydroxamic acid (SAHA)" },
+    { "target_id": "jak2", "pdb_id": "4JI9", "ligand_resn": "1M3", "ligand_chain": "A", "reference_smiles": "Cc1cnc(nc1Nc2cccc(c2)S(=O)(=O)NC(C)(C)C)Nc3ccc(cc3)N4CCN(CC4)C", "ligand_name": "ruxolitinib (1M3)" },
+    { "target_id": "thrombin", "pdb_id": "1PPB", "ligand_resn": "0G6", "ligand_chain": "H", "reference_smiles": "c1ccc(cc1)CC(C(=O)N2CCCC2C(=O)NC(CCCNC(=[NH2+])N)C(CCl)O)N", "ligand_name": "thrombin inhibitor 0G6 (1PPB)" }
+  ]
+}

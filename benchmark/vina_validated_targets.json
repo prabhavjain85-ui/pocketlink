@@ -1,0 +1,54 @@
+{
+  "description": "Server-side Vina allowlist from multi-seed redock gate.",
+  "validation_run_note": "Exhaustiveness **16** (fixed). Pass: spyrmsd < 2 \u00c5 in **\u22658/10** seeds (no alignment).",
+  "rmsd_gate_angstrom": 2.0,
+  "rmsd_metric": "spyrmsd no-alignment (symmrmsd minimize=False)",
+  "validated": [
+    {
+      "target_id": "abl1",
+      "display_name": "ABL1",
+      "pdb_id": "1IEP",
+      "ligand_resn": "STI",
+      "ligand_chain": "A"
+    },
+    {
+      "target_id": "erbb2",
+      "display_name": "ERBB2",
+      "pdb_id": "3PP0",
+      "ligand_resn": "03Q",
+      "ligand_chain": "A"
+    },
+    {
+      "target_id": "ptgs2",
+      "display_name": "PTGS2",
+      "pdb_id": "1CX2",
+      "ligand_resn": "S58",
+      "ligand_chain": "A",
+      "keep_het_resnames": [
+        "HEM"
+      ]
+    },
+    {
+      "target_id": "pde5a",
+      "display_name": "PDE5A",
+      "pdb_id": "1UDT",
+      "ligand_resn": "VIA",
+      "ligand_chain": "A"
+    },
+    {
+      "target_id": "esr1",
+      "display_name": "ESR1",
+      "pdb_id": "3ERT",
+      "ligand_resn": "OHT",
+      "ligand_chain": "A"
+    },
+    {
+      "target_id": "dpp4",
+      "display_name": "DPP4",
+      "pdb_id": "4A5S",
+      "ligand_resn": "N7F",
+      "ligand_chain": "A"
+    }
+  ],
+  "not_validated_message": "Docking not validated for this target. Server-side Vina is only enabled where multi-seed co-crystal redocking passes the spyrmsd gate."
+}
