@@ -7,7 +7,11 @@ import {
 } from "./dockingEngine";
 import DockingViewer from "./DockingViewer";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
-import { DOCKING_ENGINE_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
+import {
+  DOCKING_ENGINE_ENABLED,
+  DOCKING_UNAVAILABLE_NOTICE,
+  DOCKING_BENCHMARK_PAIRS_NOTICE,
+} from "./featureFlags";
 import ReportExportButtons from "./ReportExportButtons";
 import { buildDockingReportMarkdown, defaultReportFilename } from "./reportExport";
 
@@ -32,7 +36,7 @@ function DockingUnavailableView() {
       </div>
       <p style={{ marginTop: 16, fontSize: "14px", color: "var(--text-dim)", lineHeight: 1.5 }}>
         The in-browser docking engine is disabled while co-crystal redocking validation is in progress. No binding
-        scores or poses are shown. See the{" "}
+        scores or poses are shown. {DOCKING_BENCHMARK_PAIRS_NOTICE} See the{" "}
         <Link to="/methodology#validation-benchmark">Methodology validation section</Link> for current status.
       </p>
     </div>

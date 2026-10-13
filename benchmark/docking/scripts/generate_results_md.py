@@ -13,6 +13,8 @@ def main() -> None:
     drugs = json.loads((ROOT / "results" / "approved_25.json").read_text())
     enrich_path = ROOT / "results" / "enrichment.json"
     enrich = json.loads(enrich_path.read_text()) if enrich_path.exists() else {"targets": []}
+    sanity_path = ROOT / "results" / "pair_sanity_checks.json"
+    sanity = json.loads(sanity_path.read_text()) if sanity_path.exists() else None
 
     n_pass = redock.get("n_targets_pass", 0)
     n_total = redock.get("n_targets", len(redock.get("rows", [])))
@@ -49,12 +51,42 @@ def main() -> None:
             f"{'yes' if r.get('pass_rmsd_2A') else 'no'} | {r.get('failure_reason') or '—'} |"
         )
 
+    if sanity:
+        lines.extend(
+            [
+                "",
+                "## 25-drug pair sanity checks",
+                "",
+                f"Automated checks: co-crystal ligand present (PDB/chain), embeddable SMILES, "
+                f"Vina score in **{sanity['vina_score_band_kcal_mol'][0]} to {sanity['vina_score_band_kcal_mol'][1]} kcal/mol**, "
+                f"redock spyrmsd ≤ 2 Å. **Reliable: {sanity['n_reliable']}/{sanity['n_total']}**.",
+                "",
+                "| Drug | PDB/ligand | Ligand in PDB | Vina | RMSD (Å) | Reliable | Issues |",
+                "| --- | --- | --- | --- | --- | --- | --- |",
+            ]
+        )
+        by_id = {c["drug_id"]: c for c in sanity["checks"]}
+        for r in drugs["rows"]:
+            c = by_id.get(r["drug_id"], {})
+            issues = "; ".join(c.get("issues") or [])[:80] or "—"
+            lines.append(
+                f"| {r['name']} | {r['pdb_id']}/{c.get('ligand_resn','?')} | "
+                f"{c.get('ligand_atoms_in_pdb', 0)} atoms | {r['vina_score_kcal_mol']} | "
+                f"{r['redock_rmsd_angstrom']} | "
+                f"{'yes' if c.get('reliable_for_benchmark') else '**no**'} | {issues} |"
+            )
+        lines.append("")
+        lines.append(
+            "_Unreliable pairs must not be presented as validated binding modes (see app docking notice)._"
+        )
+
     lines.extend(
         [
             "",
             "## 25 approved drugs (co-crystal redock)",
             "",
-            f"Redock success (native ligand, best seed ≤ 2 Å): **{drugs['n_redock_pass_2A']}/{drugs['n_drugs']}**.",
+            f"Redock success (native ligand, best seed ≤ 2 Å): **{drugs['n_redock_pass_2A']}/{drugs['n_drugs']}** "
+            f"(includes pairs marked unreliable above).",
             "",
         ]
     )

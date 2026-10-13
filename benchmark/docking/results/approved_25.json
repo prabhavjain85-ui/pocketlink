@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-13T13:47:45.570100+00:00",
+  "generated_at": "2026-10-13T14:51:49.820908+00:00",
   "n_drugs": 25,
-  "n_redock_pass_2A": 12,
+  "n_redock_pass_2A": 15,
   "spearman_vina_vs_pchembl": {
-    "rho": -0.5454545454545454,
-    "ci_low": -0.790909090909091,
-    "ci_high": 0.24545454545454548
+    "rho": -0.2912087912087913,
+    "ci_low": -0.6813186813186813,
+    "ci_high": 0.478021978021978
   },
   "note": "Vina score sign inverted (-score) so more negative Vina affinity ranks higher.",
   "rows": [
@@ -146,12 +146,12 @@
       "name": "Losartan",
       "gene": "AGTR1",
       "class": "gpcr",
-      "pdb_id": "4ZUD",
-      "redock_rmsd_angstrom": null,
-      "vina_score_kcal_mol": null,
+      "pdb_id": "4YAY",
+      "redock_rmsd_angstrom": 0.2639294571401897,
+      "vina_score_kcal_mol": -11.794,
       "pchembl_median": 7.875,
-      "pass_redock_2A": false,
-      "failure": "No reference ligand for 4ZUD/ZLA"
+      "pass_redock_2A": true,
+      "failure": null
     },
     {
       "drug_id": "ritonavir",
@@ -171,11 +171,11 @@
       "gene": "HIVPR",
       "class": "protease",
       "pdb_id": "1HXB",
-      "redock_rmsd_angstrom": null,
-      "vina_score_kcal_mol": null,
+      "redock_rmsd_angstrom": 8.712546995379046,
+      "vina_score_kcal_mol": -8.197,
       "pchembl_median": null,
       "pass_redock_2A": false,
-      "failure": "No reference ligand for 1HXB/ROF"
+      "failure": null
     },
     {
       "drug_id": "atazanavir",
@@ -183,11 +183,11 @@
       "gene": "HIVPR",
       "class": "protease",
       "pdb_id": "2AQU",
-      "redock_rmsd_angstrom": null,
-      "vina_score_kcal_mol": null,
+      "redock_rmsd_angstrom": 8.363825552063245,
+      "vina_score_kcal_mol": -7.34,
       "pchembl_median": null,
       "pass_redock_2A": false,
-      "failure": "No reference ligand for 2AQU/478"
+      "failure": null
     },
     {
       "drug_id": "nirmatrelvir",
@@ -195,11 +195,11 @@
       "gene": "Mpro",
       "class": "protease",
       "pdb_id": "7VH8",
-      "redock_rmsd_angstrom": null,
-      "vina_score_kcal_mol": null,
+      "redock_rmsd_angstrom": 1.5678784503381131,
+      "vina_score_kcal_mol": -7.412,
       "pchembl_median": null,
-      "pass_redock_2A": false,
-      "failure": "No reference ligand for 7VH8/N3"
+      "pass_redock_2A": true,
+      "failure": null
     },
     {
       "drug_id": "vorinostat",
@@ -219,11 +219,11 @@
       "gene": "ESR1",
       "class": "nuclear_receptor",
       "pdb_id": "2G5O",
-      "redock_rmsd_angstrom": null,
-      "vina_score_kcal_mol": null,
+      "redock_rmsd_angstrom": 0.6385781992842886,
+      "vina_score_kcal_mol": -10.538,
       "pchembl_median": 8.74,
-      "pass_redock_2A": false,
-      "failure": "No reference ligand for 2G5O/RAL"
+      "pass_redock_2A": true,
+      "failure": null
     },
     {
       "drug_id": "progesterone",
@@ -279,11 +279,11 @@
       "gene": "HIVPR",
       "class": "protease",
       "pdb_id": "2BPV",
-      "redock_rmsd_angstrom": null,
-      "vina_score_kcal_mol": null,
+      "redock_rmsd_angstrom": 8.644641354269424,
+      "vina_score_kcal_mol": -6.908,
       "pchembl_median": null,
       "pass_redock_2A": false,
-      "failure": "No reference ligand for 2BPV/MK1"
+      "failure": null
     },
     {
       "drug_id": "dabrafenib",

@@ -127,9 +127,10 @@
       "name": "Losartan",
       "gene": "AGTR1",
       "chembl_molecule_id": "CHEMBL191",
-      "pdb_id": "4ZUD",
-      "ligand_resn": "ZLA",
+      "pdb_id": "4YAY",
+      "ligand_resn": "ZD7",
       "ligand_chain": "A",
+      "notes": "4ZUD/OLM is olmesartan, not losartan; 4YAY/ZD7 is AT1R–losartan (ZD7155) cryo-EM.",
       "smiles": "CCCCC1=NC(=C(N1CC2=CC=C(C=C2)C3=CC=CC=C3C4=NNN=N4)C)C(=O)O",
       "class": "gpcr"
     },
@@ -140,7 +141,7 @@
       "chembl_molecule_id": "CHEMBL729",
       "pdb_id": "1HXW",
       "ligand_resn": "RIT",
-      "ligand_chain": "A",
+      "ligand_chain": "B",
       "smiles": "CC(C)C1=NC(=CS1)CN(C)C(=O)NC(C(C)C)C(=O)NC(CC2=CC=CC=C2)C(=O)OCC3=CC=CC=C3",
       "class": "protease"
     },
@@ -150,7 +151,7 @@
       "gene": "HIVPR",
       "chembl_molecule_id": "CHEMBL107",
       "pdb_id": "1HXB",
-      "ligand_resn": "ROF",
+      "ligand_resn": "ROC",
       "ligand_chain": "A",
       "smiles": "C[C@H](C[C@H](C(=O)N[C@H](CC1=CC=CC=C1)C(=O)N2CCC[C@H]2C(=O)N[C@@H](CC(C)C)C(=O)N[C@H](CC3=CC=CC=C3)C(=O)O)NC(=O)C4=NC5=CC=CC=C5C=C4)O",
       "class": "protease"
@@ -161,8 +162,8 @@
       "gene": "HIVPR",
       "chembl_molecule_id": "CHEMBL131",
       "pdb_id": "2AQU",
-      "ligand_resn": "478",
-      "ligand_chain": "A",
+      "ligand_resn": "DR7",
+      "ligand_chain": "B",
       "smiles": "COC(=O)N[C@H](C(=O)N[C@H](C(=O)N1CCC[C@H]1C(=O)N[C@@H](CC2=CC=CC=C2)C(=O)O)C(C)(C)C)CC3=CC=CC=C3",
       "class": "protease"
     },
@@ -172,7 +173,7 @@
       "gene": "Mpro",
       "chembl_molecule_id": "CHEMBL4594689",
       "pdb_id": "7VH8",
-      "ligand_resn": "N3",
+      "ligand_resn": "4WI",
       "ligand_chain": "A",
       "smiles": "CC(C)C[C@H](NC(=O)OCc1ccccc1)C(=O)N[C@H](C(=O)N1CCC[C@H]1C(=O)NC(CC2=CC=CC=C2)C(=O)O)C(C)C",
       "class": "protease"
@@ -194,7 +195,7 @@
       "gene": "ESR1",
       "chembl_molecule_id": "CHEMBL81",
       "pdb_id": "2G5O",
-      "ligand_resn": "RAL",
+      "ligand_resn": "DRQ",
       "ligand_chain": "A",
       "smiles": "Oc1ccc(cc1)C(c2ccc(O)cc2)c3ccc(cc3)OCCN4CCCCC4",
       "class": "nuclear_receptor"
@@ -230,7 +231,9 @@
       "ligand_resn": "WAR",
       "ligand_chain": "A",
       "smiles": "CC(=O)CC(c1ccccc1)c2c(oc(=O)c3c2cccc3)C",
-      "class": "enzyme"
+      "class": "enzyme",
+      "benchmark_unreliable": true,
+      "unreliable_reason": "1QBG is human DT-diaphorase with FAD; no warfarin co-crystal ligand in PDB."
     },
     {
       "drug_id": "methotrexate",
@@ -249,8 +252,8 @@
       "gene": "HIVPR",
       "chembl_molecule_id": "CHEMBL108",
       "pdb_id": "2BPV",
-      "ligand_resn": "MK1",
-      "ligand_chain": "A",
+      "ligand_resn": "1IN",
+      "ligand_chain": "B",
       "smiles": "CC(C)(C)NC(=O)[C@@H]1CN(CC2=CN=CC=C2)CCN1C(=O)[C@H](CC3=CC=CC=C3)NC(=O)C4=NC5=CC=CC=C5C=C4",
       "class": "protease"
     },
