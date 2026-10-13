@@ -10,6 +10,9 @@
     "api/contact.js": {
       "maxDuration": 10
     },
+    "api/docking/health.js": {
+      "maxDuration": 10
+    },
     "api/docking/jobs.js": {
       "maxDuration": 30
     },

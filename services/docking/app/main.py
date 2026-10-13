@@ -11,7 +11,13 @@ from .jobs import get_job_store
 
 app = FastAPI(title="TargetForge Docking Service", version=config_version())
 
+RESPONSE_META: dict[str, Any] = {"prototype": True, "validationStatus": "unvalidated"}
+
 _hits: dict[str, list[float]] = defaultdict(list)
+
+
+def with_meta(payload: dict[str, Any]) -> dict[str, Any]:
+    return {**RESPONSE_META, **payload}
 
 
 def _check_api_key(x_api_key: Optional[str]) -> None:
@@ -39,11 +45,13 @@ class SubmitJobBody(BaseModel):
 
 @app.get("/health")
 def health() -> dict[str, Any]:
-    return {
-        "status": "ok",
-        "engineConfigVersion": config_version(),
-        "vinaVersion": load_engine_config().get("engine", {}).get("vinaVersion"),
-    }
+    return with_meta(
+        {
+            "status": "ok",
+            "engineConfigVersion": config_version(),
+            "vinaVersion": load_engine_config().get("engine", {}).get("vinaVersion"),
+        }
+    )
 
 
 @app.post("/v1/jobs")
@@ -62,13 +70,15 @@ def submit_job(
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-    return {
-        "jobId": record.job_id,
-        "status": record.status,
-        "progress": record.progress,
-        "message": record.message,
-        "cached": record.status == "completed" and record.message == "Returned from cache",
-    }
+    return with_meta(
+        {
+            "jobId": record.job_id,
+            "status": record.status,
+            "progress": record.progress,
+            "message": record.message,
+            "cached": record.status == "completed" and record.message == "Returned from cache",
+        }
+    )
 
 
 @app.get("/v1/jobs/{job_id}")
@@ -80,14 +90,16 @@ def job_status(
     record = get_job_store().get(job_id)
     if not record:
         raise HTTPException(status_code=404, detail="Job not found")
-    return {
-        "jobId": record.job_id,
-        "status": record.status,
-        "progress": record.progress,
-        "message": record.message,
-        "error": record.error,
-        "pdbId": record.pdb_id,
-    }
+    return with_meta(
+        {
+            "jobId": record.job_id,
+            "status": record.status,
+            "progress": record.progress,
+            "message": record.message,
+            "error": record.error,
+            "pdbId": record.pdb_id,
+        }
+    )
 
 
 @app.get("/v1/jobs/{job_id}/results")
@@ -101,4 +113,4 @@ def job_results(
         raise HTTPException(status_code=404, detail="Job not found")
     if record.status != "completed":
         raise HTTPException(status_code=409, detail=f"Job not complete (status={record.status})")
-    return {"jobId": record.job_id, "result": record.result}
+    return with_meta({"jobId": record.job_id, "result": record.result})

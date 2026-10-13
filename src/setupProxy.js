@@ -43,6 +43,9 @@ module.exports = function setupProxy(app) {
   const hypothesisHandler = require("../api/hypothesis-eval");
   app.use("/api/hypothesis-eval", vercelOnExpress(hypothesisHandler));
 
+  const dockingHealthHandler = require("../api/docking/health");
+  app.get("/api/docking/health", (req, res) => dockingHealthHandler(req, res));
+
   const dockingJobsHandler = require("../api/docking/jobs");
   const dockingStatusHandler = require("../api/docking/jobs/[jobId]");
   const dockingResultsHandler = require("../api/docking/jobs/[jobId]/results");

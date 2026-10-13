@@ -1,12 +1,21 @@
 const ALLOWED_ORIGIN = "*";
 
+const DOCKING_RESPONSE_META = {
+  prototype: true,
+  validationStatus: "unvalidated",
+};
+
+function withDockingMeta(body) {
+  return { ...DOCKING_RESPONSE_META, ...(body && typeof body === "object" ? body : {}) };
+}
+
 function json(res, status, body) {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json");
   res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.end(JSON.stringify(body));
+  res.end(JSON.stringify(withDockingMeta(body)));
 }
 
 function clean(value, max = 4000) {
@@ -36,14 +45,57 @@ async function readJson(response) {
 async function forward(method, path, body) {
   const base = serviceBaseUrl();
   if (!base) {
-    return { status: 503, body: { error: "Docking service is not configured (DOCKING_SERVICE_URL)." } };
+    return {
+      status: 503,
+      body: {
+        error: "Docking service is not configured (DOCKING_SERVICE_URL).",
+        serviceUnavailable: true,
+        serviceConfigured: false,
+        serviceReachable: false,
+      },
+    };
   }
   const url = `${base}${path}`;
   const init = { method, headers: serviceHeaders() };
   if (body !== undefined) init.body = JSON.stringify(body);
-  const response = await fetch(url, init);
-  const data = await readJson(response);
-  return { status: response.status, body: data };
+  try {
+    const response = await fetch(url, init);
+    const data = await readJson(response);
+    return { status: response.status, body: data };
+  } catch {
+    return {
+      status: 503,
+      body: {
+        error: "Docking service could not be reached.",
+        serviceUnavailable: true,
+        serviceConfigured: true,
+        serviceReachable: false,
+      },
+    };
+  }
+}
+
+async function handleHealth(req, res) {
+  const base = serviceBaseUrl();
+  if (!base) {
+    return json(res, 200, {
+      status: "unavailable",
+      serviceConfigured: false,
+      serviceReachable: false,
+      serviceUnavailable: true,
+      message: "Docking service is not configured (DOCKING_SERVICE_URL).",
+    });
+  }
+  const proxied = await forward("GET", "/health");
+  const reachable = proxied.status >= 200 && proxied.status < 300;
+  return json(res, reachable ? 200 : 503, {
+    status: reachable ? "ok" : "unavailable",
+    serviceConfigured: true,
+    serviceReachable: reachable,
+    serviceUnavailable: !reachable,
+    message: reachable ? "Docking service is reachable." : "Docking service could not be reached.",
+    upstream: proxied.body,
+  });
 }
 
 function parsePdbId(raw) {
@@ -84,9 +136,12 @@ async function handleResults(req, res, jobId) {
 
 module.exports = {
   json,
+  DOCKING_RESPONSE_META,
+  withDockingMeta,
   handleSubmit,
   handleStatus,
   handleResults,
+  handleHealth,
   forward,
   parsePdbId,
   parseSmiles,

@@ -13,6 +13,58 @@ import { buildDockingReportMarkdown, defaultReportFilename } from "./reportExpor
 
 const dockingUiEnabled = () => DOCKING_ENABLED || DOCKING_ENGINE_ENABLED;
 
+const PROTOTYPE_BANNER_TEXT = "Prototype: results are not yet validated";
+
+function DockingPrototypeBanner() {
+  return (
+    <div
+      role="status"
+      style={{
+        background: "var(--amber-bg, #FFFBEB)",
+        border: "2px solid var(--amber-border, #FDE68A)",
+        color: "var(--text)",
+        borderRadius: "var(--radius-lg)",
+        padding: "14px 18px",
+        marginBottom: "20px",
+        fontSize: "15px",
+        fontWeight: 700,
+        lineHeight: 1.5,
+        textAlign: "center",
+      }}
+    >
+      {PROTOTYPE_BANNER_TEXT}
+    </div>
+  );
+}
+
+function DockingServiceUnavailableView({ detail }) {
+  return (
+    <div className="docking-page-container" style={{ maxWidth: "720px", margin: "0 auto 48px" }}>
+      <h1 style={{ margin: "0 0 12px", fontSize: "26px", fontWeight: 700 }}>Molecular Docking</h1>
+      <DockingPrototypeBanner />
+      <div
+        role="status"
+        style={{
+          background: "var(--surface-muted)",
+          border: "1px solid var(--border)",
+          color: "var(--text)",
+          borderRadius: "var(--radius-lg)",
+          padding: "16px 20px",
+          fontSize: "15px",
+          fontWeight: 600,
+          lineHeight: 1.5,
+        }}
+      >
+        Docking service unavailable
+      </div>
+      <p style={{ marginTop: 16, fontSize: "14px", color: "var(--text-dim)", lineHeight: 1.5 }}>
+        {detail ||
+          "The AutoDock Vina backend is not reachable yet. This page will work once the Fly.io service is deployed and DOCKING_SERVICE_URL is set on Vercel. You can still use the rest of TargetForge in the meantime."}
+      </p>
+    </div>
+  );
+}
+
 function DockingUnavailableView() {
   return (
     <div className="docking-page-container" style={{ maxWidth: "720px", margin: "0 auto 48px" }}>
@@ -68,6 +120,10 @@ export default function DockingPage() {
   const [dockingResults, setDockingResults] = useState(null);
   const [activePose, setActivePose] = useState(null);
   const [copiedReport, setCopiedReport] = useState(false);
+  const [serviceCheck, setServiceCheck] = useState(
+    DOCKING_ENABLED ? "checking" : "ready"
+  );
+  const [serviceUnavailableMessage, setServiceUnavailableMessage] = useState("");
 
   // Active bench target & candidates
   const benchTarget = useMemo(() => {
@@ -137,7 +193,13 @@ export default function DockingPage() {
       setActivePose(res.bestPose);
       setTargetTitle(res.target.title || targetTitle);
     } catch (err) {
-      setError(err?.message || "An unexpected error occurred during molecular docking.");
+      if (err?.name === "DockingServiceUnavailableError" || err?.serviceUnavailable) {
+        setServiceCheck("unavailable");
+        setServiceUnavailableMessage(err.message);
+        setError(null);
+      } else {
+        setError(err?.message || "An unexpected error occurred during molecular docking.");
+      }
       setDockingResults(null);
       setActivePose(null);
     } finally {
@@ -145,9 +207,35 @@ export default function DockingPage() {
     }
   };
 
+  useEffect(() => {
+    if (!DOCKING_ENABLED) {
+      setServiceCheck("ready");
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { fetchDockingServiceHealth } = await import("./dockingApi");
+      const health = await fetchDockingServiceHealth();
+      if (cancelled) return;
+      if (health.serviceUnavailable || !health.serviceReachable) {
+        setServiceCheck("unavailable");
+        setServiceUnavailableMessage(
+          health.message ||
+            "The docking service is not configured or could not be reached. Deploy the Fly.io service and set DOCKING_SERVICE_URL on Vercel."
+        );
+      } else {
+        setServiceCheck("ready");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Run on first mount or when URL search parameters change (enabled engine only)
   useEffect(() => {
     if (!dockingUiEnabled()) return;
+    if (DOCKING_ENABLED && serviceCheck !== "ready") return;
     const urlPdb = searchParams.get("pdb");
     const urlSmiles = searchParams.get("smiles");
     const urlName = searchParams.get("name");
@@ -179,7 +267,7 @@ export default function DockingPage() {
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [serviceCheck]);
 
   // Preset Selection Handlers
   const handleSelectTargetPreset = (preset) => {
@@ -261,8 +349,22 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
     return <DockingUnavailableView />;
   }
 
+  if (DOCKING_ENABLED && serviceCheck === "checking") {
+    return (
+      <div className="docking-page-container" style={{ maxWidth: "720px", margin: "0 auto 48px" }}>
+        <h1 style={{ margin: "0 0 12px", fontSize: "26px", fontWeight: 700 }}>Molecular Docking</h1>
+        <p style={{ fontSize: "14px", color: "var(--text-dim)" }}>Checking docking service…</p>
+      </div>
+    );
+  }
+
+  if (DOCKING_ENABLED && serviceCheck === "unavailable") {
+    return <DockingServiceUnavailableView detail={serviceUnavailableMessage} />;
+  }
+
   return (
     <div className="docking-page-container" style={{ maxWidth: "1120px", margin: "0 auto 48px" }}>
+      <DockingPrototypeBanner />
       {/* Page Title & Mission */}
       <div style={{ marginBottom: "24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>

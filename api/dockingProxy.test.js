@@ -3,6 +3,7 @@ const {
   parseSmiles,
   handleSubmit,
   handleStatus,
+  handleHealth,
   forward,
   serviceBaseUrl,
 } = require("./lib/dockingProxy");
@@ -41,6 +42,9 @@ test("submit returns 503 without service URL", async () => {
   const res = mockRes();
   await handleSubmit({ method: "POST", body: { pdbId: "1IEP", smiles: "CCO" } }, res);
   expect(res.statusCode).toBe(503);
+  expect(res.body.prototype).toBe(true);
+  expect(res.body.validationStatus).toBe("unvalidated");
+  expect(res.body.serviceUnavailable).toBe(true);
 });
 
 test("forward attaches API key header", async () => {
@@ -59,6 +63,15 @@ test("forward attaches API key header", async () => {
     })
   );
   expect(serviceBaseUrl()).toBe("https://docking.example");
+});
+
+test("health reports unconfigured service", async () => {
+  const res = mockRes();
+  await handleHealth({}, res);
+  expect(res.statusCode).toBe(200);
+  expect(res.body.serviceUnavailable).toBe(true);
+  expect(res.body.prototype).toBe(true);
+  expect(res.body.validationStatus).toBe("unvalidated");
 });
 
 test("status proxies job id", async () => {

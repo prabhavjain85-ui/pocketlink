@@ -277,6 +277,8 @@ def _mock_pipeline(pdb_id: str, smiles: str) -> dict[str, Any]:
         ],
         "pocketAtoms": [],
         "disclaimer": "Computational binding scores are estimates only.",
+        "prototype": True,
+        "validationStatus": "unvalidated",
     }
 
 
@@ -354,4 +356,6 @@ def run_docking_pipeline(
         "pocketAtoms": pocket_atoms,
         "vinaLog": log_path.read_text(encoding="utf-8")[:4000],
         "disclaimer": "Computational binding scores are estimates only; not experimental affinities.",
+        "prototype": True,
+        "validationStatus": "unvalidated",
     }

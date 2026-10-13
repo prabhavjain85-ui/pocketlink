@@ -2,6 +2,22 @@ import { RT, formatKi } from "./dockingEngine";
 
 const API_BASE = "/api/docking";
 
+export class DockingServiceUnavailableError extends Error {
+  constructor(message = "Docking service unavailable") {
+    super(message);
+    this.name = "DockingServiceUnavailableError";
+    this.serviceUnavailable = true;
+  }
+}
+
+function isServiceUnavailablePayload(data, status) {
+  return (
+    status === 503 ||
+    data?.serviceUnavailable === true ||
+    (typeof data?.error === "string" && /not configured|could not be reached/i.test(data.error))
+  );
+}
+
 async function readJson(response) {
   let data = {};
   try {
@@ -10,10 +26,44 @@ async function readJson(response) {
     data = {};
   }
   if (!response.ok) {
+    if (isServiceUnavailablePayload(data, response.status)) {
+      throw new DockingServiceUnavailableError(
+        data.message || data.error || "Docking service is temporarily unavailable."
+      );
+    }
     const message = data.error || data.detail || `Docking API error (${response.status})`;
     throw new Error(typeof message === "string" ? message : JSON.stringify(message));
   }
   return data;
+}
+
+export async function fetchDockingServiceHealth() {
+  try {
+    const response = await fetch(`${API_BASE}/health`);
+    let data = {};
+    try {
+      data = await response.json();
+    } catch {
+      data = {};
+    }
+    return {
+      ok: response.ok,
+      serviceUnavailable: Boolean(data.serviceUnavailable),
+      serviceConfigured: data.serviceConfigured !== false,
+      serviceReachable: Boolean(data.serviceReachable),
+      message: data.message || data.error || "",
+      raw: data,
+    };
+  } catch {
+    return {
+      ok: false,
+      serviceUnavailable: true,
+      serviceConfigured: false,
+      serviceReachable: false,
+      message: "Could not reach the docking API.",
+      raw: {},
+    };
+  }
 }
 
 export async function submitDockingJob({ pdbId, smiles }) {
@@ -137,6 +187,8 @@ export function normalizeServiceDockingResult(servicePayload, { targetTitle, pdb
       type: "autodock_vina",
       configVersion: result.engineConfigVersion,
       disclaimer: result.disclaimer,
+      prototype: result.prototype ?? servicePayload?.prototype,
+      validationStatus: result.validationStatus ?? servicePayload?.validationStatus,
       pdbId,
       compoundName,
     },
