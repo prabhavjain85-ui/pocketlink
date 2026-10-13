@@ -22,8 +22,5 @@ __pycache__/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-<<<<<<< HEAD
 public/data/evolution/sa-fragment-scores.bin.gz
-=======
 .docking-demo-work/
->>>>>>> origin/main
