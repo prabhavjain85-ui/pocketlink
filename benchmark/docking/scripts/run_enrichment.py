@@ -27,8 +27,8 @@ ENRICHMENT_PANEL = [
     {"target_id": "pde5a", "gene": "PDE5A", "pdb_id": "1UDT", "ligand_resn": "VIA", "ligand_chain": "A", "reference_smiles": "CCCc1c2c(n(n1)C)C(=O)NC(=N2)c3cc(ccc3OCC)S(=O)(=O)N4CCN(CC4)C"},
 ]
 
-MAX_ACTIVES = 20
-MAX_DECOYS = 60
+MAX_ACTIVES = 15
+MAX_DECOYS = 40
 
 
 def _get_json(url: str) -> dict:
