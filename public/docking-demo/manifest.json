@@ -14,12 +14,8 @@
       "pdbId": "1IEP",
       "ligandCode": "STI",
       "smiles": "CC1=C(C=C(C=C1)NC(=O)C2=CC=C(C=C2)CN3CCN(CC3)C)NC4=NC=CC(=N4)C5=CN=CC=C5",
-      "notes": "Co-crystal STI-571 (Gleevec).",
-      "scoreKcalMol": -7.72,
-      "redockRmsdAngstrom": 24.06,
-      "redockPass2A": false,
-      "poseFile": "poses/imatinib-1iep.sdf",
-      "caseFile": "cases/imatinib-1iep.json"
+      "notes": "Co-crystal STI-571 (Gleevec). Re-validation in progress (redock RMSD > 2 Å on current prep).",
+      "comingSoon": true
     },
     {
       "id": "erlotinib-1m17",
@@ -42,12 +38,8 @@
       "pdbId": "4FFW",
       "ligandCode": "715",
       "smiles": "C1CN2C(=NN=C2C(F)(F)F)CN1C(=O)CC(CC3=CC(=C(C=C3F)F)F)N",
-      "notes": "1X70 is a different beta-amino acid inhibitor; 4FFW is sitagliptin (715).",
-      "scoreKcalMol": -3.06,
-      "redockRmsdAngstrom": 17.75,
-      "redockPass2A": false,
-      "poseFile": "poses/sitagliptin-4ffw.sdf",
-      "caseFile": "cases/sitagliptin-4ffw.json"
+      "notes": "1X70 is a different inhibitor; 4FFW is sitagliptin (715). Pose QC pending.",
+      "comingSoon": true
     },
     {
       "id": "ruxolitinib-6vgl",

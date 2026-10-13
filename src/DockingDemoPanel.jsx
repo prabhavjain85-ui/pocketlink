@@ -20,7 +20,9 @@ export default function DockingDemoPanel({ embedded = false, onClose = null }) {
         const data = await loadDockingDemoManifest();
         if (!cancelled) {
           setManifest(data);
-          if (data.cases?.length) setSelectedId(data.cases[0].id);
+          const firstReady = (data.cases || []).find((c) => !c.comingSoon);
+          if (firstReady) setSelectedId(firstReady.id);
+          else if (data.cases?.length) setSelectedId(data.cases[0].id);
         }
       } catch (e) {
         if (!cancelled) setError(e?.message || "Failed to load demo data.");
@@ -32,7 +34,13 @@ export default function DockingDemoPanel({ embedded = false, onClose = null }) {
   }, []);
 
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId || !manifest) return;
+    const row = manifest.cases.find((c) => c.id === selectedId);
+    if (row?.comingSoon) {
+      setCaseLoading(false);
+      setDemoView(null);
+      return;
+    }
     let cancelled = false;
     setCaseLoading(true);
     setDemoView(null);
@@ -49,7 +57,7 @@ export default function DockingDemoPanel({ embedded = false, onClose = null }) {
     return () => {
       cancelled = true;
     };
-  }, [selectedId]);
+  }, [selectedId, manifest]);
 
   if (error) {
     return (
@@ -121,17 +129,18 @@ export default function DockingDemoPanel({ embedded = false, onClose = null }) {
                 <td>{c.target}</td>
                 <td className="mono">{c.pdbId}</td>
                 <td className="mono">{c.ligandCode}</td>
-                <td className="mono">{c.scoreKcalMol}</td>
-                <td className="mono">{c.redockRmsdAngstrom}</td>
-                <td>{c.redockPass2A ? "Pass" : "Fail"}</td>
+                <td className="mono">{c.comingSoon ? "—" : c.scoreKcalMol}</td>
+                <td className="mono">{c.comingSoon ? "—" : c.redockRmsdAngstrom}</td>
+                <td>{c.comingSoon ? "Coming soon" : c.redockPass2A ? "Pass" : "Fail"}</td>
                 <td>
                   <button
                     type="button"
                     className={`chip ${c.id === selectedId ? "active" : ""}`}
                     onClick={() => setSelectedId(c.id)}
-                    style={{ fontSize: "11px" }}
+                    disabled={c.comingSoon}
+                    style={{ fontSize: "11px", opacity: c.comingSoon ? 0.5 : 1 }}
                   >
-                    View
+                    {c.comingSoon ? "Soon" : "View"}
                   </button>
                 </td>
               </tr>
@@ -144,9 +153,16 @@ export default function DockingDemoPanel({ embedded = false, onClose = null }) {
         <p style={{ margin: "0 0 12px", fontSize: "11px", color: "var(--text-muted)" }}>{activeCase.notes}</p>
       )}
 
+      {activeCase?.comingSoon && (
+        <p style={{ fontSize: "13px", color: "var(--text-dim)", marginBottom: 12 }}>
+          Precomputed pose for this pair is <strong>coming soon</strong> after ligand-prep QC. Other demo targets are
+          available now.
+        </p>
+      )}
+
       {caseLoading && <p style={{ fontSize: "13px", color: "var(--text-dim)" }}>Loading pose…</p>}
 
-      {!caseLoading && demoView?.bestPose && (
+      {!caseLoading && !activeCase?.comingSoon && demoView?.bestPose && (
         <>
           <p style={{ margin: "0 0 10px", fontSize: "12px", color: "var(--text-dim)" }}>
             Pose file:{" "}
