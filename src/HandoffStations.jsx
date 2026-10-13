@@ -5,7 +5,7 @@ import AdversarialCritique from "./AdversarialCritique";
 import QuantumInsight from "./QuantumInsight";
 import { CandidateScoreTable } from "./CandidateViews";
 import HistoricalTrialSuccessContext from "./HistoricalTrialSuccessContext";
-import { DOCKING_ENGINE_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
+import { DOCKING_ENGINE_ENABLED, DOCKING_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
 import ReportExportButtons from "./ReportExportButtons";
 import { buildBenchReportMarkdown, defaultReportFilename } from "./reportExport";
 
@@ -135,7 +135,7 @@ export default function HandoffStations({ b }) {
                 </div>
               )}
               <div className="handoff-actions">
-                {DOCKING_ENGINE_ENABLED ? (
+                {DOCKING_ENABLED || DOCKING_ENGINE_ENABLED ? (
                   <Link
                     to={`/docking?pdb=${encodeURIComponent(protein?.id || "")}&smiles=${encodeURIComponent(smiles || "")}&name=${encodeURIComponent(compound?.displayName || "")}&cid=${compound?.CID || ""}`}
                     className="btn btn-primary"
@@ -150,7 +150,7 @@ export default function HandoffStations({ b }) {
                 )}
                 <Link
                   to={`/adme?smiles=${encodeURIComponent(smiles || "")}&name=${encodeURIComponent(compound?.displayName || "")}&cid=${compound?.CID || ""}`}
-                  className={DOCKING_ENGINE_ENABLED ? "btn btn-secondary" : "btn btn-primary"}
+                  className={DOCKING_ENABLED || DOCKING_ENGINE_ENABLED ? "btn btn-secondary" : "btn btn-primary"}
                   style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
                 >
                   Predict Native ADME →

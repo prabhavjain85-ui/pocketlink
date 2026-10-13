@@ -1,6 +1,5 @@
 import React from "react";
 import { Link } from "react-router-dom";
-
 const WORKFLOW_LINKS = [
   { to: "/target-discovery", label: "Target identification" },
   { to: "/repurposing", label: "Drug repurposing" },

@@ -7,9 +7,63 @@ import {
 } from "./dockingEngine";
 import DockingViewer from "./DockingViewer";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
-import { DOCKING_ENGINE_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
+import { DOCKING_ENABLED, DOCKING_ENGINE_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
 import ReportExportButtons from "./ReportExportButtons";
 import { buildDockingReportMarkdown, defaultReportFilename } from "./reportExport";
+
+const dockingUiEnabled = () => DOCKING_ENABLED || DOCKING_ENGINE_ENABLED;
+
+const PROTOTYPE_BANNER_TEXT = "Prototype: results are not yet validated";
+
+function DockingPrototypeBanner() {
+  return (
+    <div
+      role="status"
+      style={{
+        background: "var(--amber-bg, #FFFBEB)",
+        border: "2px solid var(--amber-border, #FDE68A)",
+        color: "var(--text)",
+        borderRadius: "var(--radius-lg)",
+        padding: "14px 18px",
+        marginBottom: "20px",
+        fontSize: "15px",
+        fontWeight: 700,
+        lineHeight: 1.5,
+        textAlign: "center",
+      }}
+    >
+      {PROTOTYPE_BANNER_TEXT}
+    </div>
+  );
+}
+
+function DockingServiceUnavailableView({ detail }) {
+  return (
+    <div className="docking-page-container" style={{ maxWidth: "720px", margin: "0 auto 48px" }}>
+      <h1 style={{ margin: "0 0 12px", fontSize: "26px", fontWeight: 700 }}>Molecular Docking</h1>
+      <DockingPrototypeBanner />
+      <div
+        role="status"
+        style={{
+          background: "var(--surface-muted)",
+          border: "1px solid var(--border)",
+          color: "var(--text)",
+          borderRadius: "var(--radius-lg)",
+          padding: "16px 20px",
+          fontSize: "15px",
+          fontWeight: 600,
+          lineHeight: 1.5,
+        }}
+      >
+        Docking service unavailable
+      </div>
+      <p style={{ marginTop: 16, fontSize: "14px", color: "var(--text-dim)", lineHeight: 1.5 }}>
+        {detail ||
+          "The AutoDock Vina backend is not reachable yet. This page will work once the Fly.io service is deployed and DOCKING_SERVICE_URL is set on Vercel. You can still use the rest of TargetForge in the meantime."}
+      </p>
+    </div>
+  );
+}
 
 function DockingUnavailableView() {
   return (
@@ -31,7 +85,7 @@ function DockingUnavailableView() {
         {DOCKING_UNAVAILABLE_NOTICE}
       </div>
       <p style={{ marginTop: 16, fontSize: "14px", color: "var(--text-dim)", lineHeight: 1.5 }}>
-        The in-browser docking engine is disabled while co-crystal redocking validation is in progress. No binding
+        Production AutoDock Vina docking is disabled while co-crystal redocking validation is in progress. No binding
         scores or poses are shown. See the{" "}
         <Link to="/methodology#validation-benchmark">Methodology validation section</Link> for current status.
       </p>
@@ -66,6 +120,10 @@ export default function DockingPage() {
   const [dockingResults, setDockingResults] = useState(null);
   const [activePose, setActivePose] = useState(null);
   const [copiedReport, setCopiedReport] = useState(false);
+  const [serviceCheck, setServiceCheck] = useState(
+    DOCKING_ENABLED ? "checking" : "ready"
+  );
+  const [serviceUnavailableMessage, setServiceUnavailableMessage] = useState("");
 
   // Active bench target & candidates
   const benchTarget = useMemo(() => {
@@ -105,23 +163,43 @@ export default function DockingPage() {
     setProgressMsg(`Downloading crystallographic structure for ${targetPdb} from RCSB PDB...`);
 
     try {
-      const pdbText = await fetchPdbFromRcsb(targetPdb);
-
-      const res = await runMolecularDocking(pdbText, ligandSmiles, {
-        customCenter: centerOverride || customCenter,
-        boxSize,
-        searchExhaustiveness,
-        onProgress: (p) => {
-          setProgressPercent(p.percent);
-          setProgressMsg(p.message);
-        },
-      });
+      let res;
+      if (DOCKING_ENABLED) {
+        const { runRemoteDocking } = await import("./dockingApi");
+        res = await runRemoteDocking({
+          pdbId: targetPdb,
+          smiles: ligandSmiles,
+          targetTitle,
+          compoundName: name || compoundNameInput,
+          onProgress: (p) => {
+            setProgressPercent(Math.min(99, p.percent || 0));
+            setProgressMsg(p.message || "Running AutoDock Vina…");
+          },
+        });
+      } else {
+        const pdbText = await fetchPdbFromRcsb(targetPdb);
+        res = await runMolecularDocking(pdbText, ligandSmiles, {
+          customCenter: centerOverride || customCenter,
+          boxSize,
+          searchExhaustiveness,
+          onProgress: (p) => {
+            setProgressPercent(p.percent);
+            setProgressMsg(p.message);
+          },
+        });
+      }
 
       setDockingResults(res);
       setActivePose(res.bestPose);
       setTargetTitle(res.target.title || targetTitle);
     } catch (err) {
-      setError(err?.message || "An unexpected error occurred during molecular docking.");
+      if (err?.name === "DockingServiceUnavailableError" || err?.serviceUnavailable) {
+        setServiceCheck("unavailable");
+        setServiceUnavailableMessage(err.message);
+        setError(null);
+      } else {
+        setError(err?.message || "An unexpected error occurred during molecular docking.");
+      }
       setDockingResults(null);
       setActivePose(null);
     } finally {
@@ -129,9 +207,35 @@ export default function DockingPage() {
     }
   };
 
+  useEffect(() => {
+    if (!DOCKING_ENABLED) {
+      setServiceCheck("ready");
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { fetchDockingServiceHealth } = await import("./dockingApi");
+      const health = await fetchDockingServiceHealth();
+      if (cancelled) return;
+      if (health.serviceUnavailable || !health.serviceReachable) {
+        setServiceCheck("unavailable");
+        setServiceUnavailableMessage(
+          health.message ||
+            "The docking service is not configured or could not be reached. Deploy the Fly.io service and set DOCKING_SERVICE_URL on Vercel."
+        );
+      } else {
+        setServiceCheck("ready");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Run on first mount or when URL search parameters change (enabled engine only)
   useEffect(() => {
-    if (!DOCKING_ENGINE_ENABLED) return;
+    if (!dockingUiEnabled()) return;
+    if (DOCKING_ENABLED && serviceCheck !== "ready") return;
     const urlPdb = searchParams.get("pdb");
     const urlSmiles = searchParams.get("smiles");
     const urlName = searchParams.get("name");
@@ -163,7 +267,7 @@ export default function DockingPage() {
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [serviceCheck]);
 
   // Preset Selection Handlers
   const handleSelectTargetPreset = (preset) => {
@@ -241,12 +345,26 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
     }
   };
 
-  if (!DOCKING_ENGINE_ENABLED) {
+  if (!dockingUiEnabled()) {
     return <DockingUnavailableView />;
+  }
+
+  if (DOCKING_ENABLED && serviceCheck === "checking") {
+    return (
+      <div className="docking-page-container" style={{ maxWidth: "720px", margin: "0 auto 48px" }}>
+        <h1 style={{ margin: "0 0 12px", fontSize: "26px", fontWeight: 700 }}>Molecular Docking</h1>
+        <p style={{ fontSize: "14px", color: "var(--text-dim)" }}>Checking docking service…</p>
+      </div>
+    );
+  }
+
+  if (DOCKING_ENABLED && serviceCheck === "unavailable") {
+    return <DockingServiceUnavailableView detail={serviceUnavailableMessage} />;
   }
 
   return (
     <div className="docking-page-container" style={{ maxWidth: "1120px", margin: "0 auto 48px" }}>
+      <DockingPrototypeBanner />
       {/* Page Title & Mission */}
       <div style={{ marginBottom: "24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
@@ -263,10 +381,12 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
               letterSpacing: "0.5px",
             }}
           >
-            Native Molecular Docking
+            {DOCKING_ENABLED ? "AutoDock Vina Docking" : "Native Molecular Docking"}
           </span>
           <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-            In-Browser Empirical Force Field &amp; Pose Minimization
+            {DOCKING_ENABLED
+              ? "Remote Vina 1.2.x service (RDKit / Meeko prep)"
+              : "In-Browser Empirical Force Field & Pose Minimization"}
           </span>
         </div>
         <h1
@@ -290,9 +410,24 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
           }}
         >
           Compute binding free energy (ΔG_bind), estimate inhibition constants (Ki), and inspect 3D poses in
-          crystallographic binding pockets — simulated in-browser. Supports structure-based prioritization, not
-          experimental binding confirmation.
+          crystallographic binding pockets
+          {DOCKING_ENABLED ? " via the production Vina service" : " — simulated in-browser"}. Supports
+          structure-based prioritization, not experimental binding confirmation.
         </p>
+        {DOCKING_ENABLED && (
+          <p
+            style={{
+              margin: "10px 0 0",
+              fontSize: "13px",
+              color: "var(--amber)",
+              fontWeight: 600,
+              lineHeight: 1.5,
+            }}
+          >
+            Binding scores and poses are computational estimates only. They are not measured affinities and should not
+            be used as the sole basis for lead decisions.
+          </p>
+        )}
       </div>
 
       {/* Target & Ligand Configuration Panel */}
@@ -775,7 +910,7 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
                 >
                   {copiedReport ? "Report Copied ✓" : "Copy Docking Report"}
                 </button>
-                {DOCKING_ENGINE_ENABLED && (
+                {dockingUiEnabled() && (
                   <ReportExportButtons
                     compact
                     label="Export report"

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { DOCKING_ENGINE_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
+import { DOCKING_ENABLED, DOCKING_ENGINE_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
 
 /**
  * Quantum Insight — planned future feature on Station 4 handoff.
@@ -84,7 +84,7 @@ export default function QuantumInsight({ compound, smiles, protein = null }) {
             )}
 
             <div className="quantum-roadmap-actions">
-              {DOCKING_ENGINE_ENABLED ? (
+              {DOCKING_ENABLED || DOCKING_ENGINE_ENABLED ? (
                 <Link to={dockingHandoffUrl} className="btn btn-primary quantum-cta">
                   Run native docking →
                 </Link>
