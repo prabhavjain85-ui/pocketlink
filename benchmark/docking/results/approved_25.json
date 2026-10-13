@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-13T11:32:38.986843+00:00",
+  "generated_at": "2026-10-13T13:47:45.570100+00:00",
   "n_drugs": 25,
   "n_redock_pass_2A": 12,
   "spearman_vina_vs_pchembl": {
-    "rho": -0.6190476190476191,
-    "ci_low": -0.7857142857142858,
-    "ci_high": 0.19047619047619047
+    "rho": -0.5454545454545454,
+    "ci_low": -0.790909090909091,
+    "ci_high": 0.24545454545454548
   },
   "note": "Vina score sign inverted (-score) so more negative Vina affinity ranks higher.",
   "rows": [
@@ -29,7 +29,7 @@
       "pdb_id": "4I23",
       "redock_rmsd_angstrom": 0.5610946080486491,
       "vina_score_kcal_mol": -8.183,
-      "pchembl_median": null,
+      "pchembl_median": 7.64,
       "pass_redock_2A": true,
       "failure": null
     },
@@ -41,7 +41,7 @@
       "pdb_id": "1M17",
       "redock_rmsd_angstrom": 5.881488855753779,
       "vina_score_kcal_mol": -7.068,
-      "pchembl_median": null,
+      "pchembl_median": 7.52,
       "pass_redock_2A": false,
       "failure": null
     },
@@ -65,7 +65,7 @@
       "pdb_id": "3OG7",
       "redock_rmsd_angstrom": 0.6027878182754643,
       "vina_score_kcal_mol": -11.471,
-      "pchembl_median": 6.22,
+      "pchembl_median": 6.44,
       "pass_redock_2A": true,
       "failure": null
     },
@@ -305,7 +305,7 @@
       "pdb_id": "4ZAU",
       "redock_rmsd_angstrom": 8.7946971209959,
       "vina_score_kcal_mol": -7.837,
-      "pchembl_median": null,
+      "pchembl_median": 8.055,
       "pass_redock_2A": false,
       "failure": null
     }

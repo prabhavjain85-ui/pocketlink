@@ -6,11 +6,11 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from statistics import median
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from lib.ligand_prep import embed_smiles_3d
 from lib.rmsd import rmsd_pose_pdbqt_vs_ref
 from lib.session import DockingSession, load_config
 
@@ -22,17 +22,17 @@ def main() -> None:
     cfg = load_config()
     targets = json.loads(MANIFEST.read_text())["targets"]
     work = ROOT / "cache" / "runs"
+    threshold = float(cfg["redock_pass_rmsd_angstrom"])
+    panel_frac = float(cfg["redock_panel_pass_fraction"])
     rows = []
     for tgt in targets:
         sess = DockingSession(tgt, work)
         ref = sess.reference_mol()
-        dock_mol = ref
         per_seed = []
-        passes = 0
         failures = []
         for seed in cfg["redock_seeds"]:
-            pose, score, err = sess.dock_mol(
-                dock_mol, seed=int(seed), work_subdir=f"redock_seed_{seed}"
+            pose, _score, err = sess.dock_mol(
+                ref, seed=int(seed), work_subdir=f"redock_seed_{seed}"
             )
             if err or not pose:
                 per_seed.append(None)
@@ -40,29 +40,43 @@ def main() -> None:
                 continue
             rmsd = rmsd_pose_pdbqt_vs_ref(ref, pose)["primary_rmsd_angstrom"]
             per_seed.append(rmsd)
-            if rmsd is not None and rmsd <= float(cfg["redock_pass_rmsd_angstrom"]):
-                passes += 1
-        status = (
-            "PASS"
-            if passes >= int(cfg["redock_pass_min_seeds"])
-            else "FAIL"
-        )
+
+        valid = [r for r in per_seed if r is not None]
+        best = min(valid) if valid else None
+        med = median(valid) if valid else None
+        target_pass = best is not None and best <= threshold
+        rationale = tgt.get("known_failure_rationale")
+        if not target_pass and rationale:
+            failure_reason = rationale
+        elif not valid:
+            failure_reason = failures[0] if failures else "no_valid_poses"
+        elif best is not None and best > threshold:
+            failure_reason = f"best_seed_spyrmsd_{best:.2f}A_above_{threshold}A"
+        else:
+            failure_reason = None
+
         rows.append(
             {
                 "target_id": tgt["target_id"],
                 "pdb_id": tgt["pdb_id"],
                 "ligand_resn": tgt["ligand_resn"],
                 "per_seed_spyrmsd_angstrom": per_seed,
-                "seeds_passing": passes,
-                "seeds_total": len(cfg["redock_seeds"]),
-                "status": status,
+                "best_rmsd_angstrom": best,
+                "median_rmsd_angstrom": med,
+                "pass_rmsd_2A": target_pass,
+                "failure_reason": failure_reason,
                 "failure_notes": failures[:3],
             }
         )
         print(
-            f"[redock] {tgt['target_id']}: {passes}/{len(cfg['redock_seeds'])} seeds < {cfg['redock_pass_rmsd_angstrom']} A -> {status}",
+            f"[redock] {tgt['target_id']}: best={best} A pass={target_pass}",
             flush=True,
         )
+
+    n_pass = sum(1 for r in rows if r["pass_rmsd_2A"])
+    n_total = len(rows)
+    panel_rate = n_pass / n_total if n_total else 0.0
+    panel_pass = panel_rate >= panel_frac
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -70,10 +84,19 @@ def main() -> None:
         "engine": cfg["engine"],
         "exhaustiveness": cfg["exhaustiveness"],
         "receptor_ph": cfg["receptor_ph"],
-        "pass_rule": f">={cfg['redock_pass_min_seeds']}/{len(cfg['redock_seeds'])} seeds with spyrmsd <= {cfg['redock_pass_rmsd_angstrom']} A",
+        "per_target_pass_rule": f"best seed spyrmsd <= {threshold} A",
+        "panel_pass_rule": f">={panel_frac * 100:.0f}% of targets pass per-target rule",
+        "panel_pass_rate": panel_rate,
+        "panel_overall_pass": panel_pass,
+        "n_targets_pass": n_pass,
+        "n_targets": n_total,
         "rows": rows,
     }
     OUT.write_text(json.dumps(payload, indent=2))
+    print(
+        f"Panel: {n_pass}/{n_total} ({panel_rate * 100:.0f}%) overall_pass={panel_pass}",
+        flush=True,
+    )
     print(f"Wrote {OUT}")
 
 

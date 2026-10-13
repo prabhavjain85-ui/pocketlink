@@ -1,26 +1,26 @@
 {
-  "description": "Co-crystal redocking panel (native ligand, multi-seed). EGFR/BRAF use structures that redock reliably under this prep (see RESULTS.md).",
+  "description": "Co-crystal redocking panel (native ligand, multi-seed). No per-target PDB swaps; failures recorded honestly.",
   "targets": [
     {
       "target_id": "egfr",
       "gene": "EGFR",
-      "pdb_id": "4I23",
-      "ligand_resn": "1C9",
+      "pdb_id": "1M17",
+      "ligand_resn": "AQ4",
       "ligand_chain": "A",
-      "ligand_name": "gefitinib",
-      "reference_smiles": "COc1cc2ncnc(Nc3ccc(F)cc3Cl)c2cc1OCCCN1CCOCC1",
-      "notes": "1M17/erlotinib and 1XKK/FMM failed the multiseed gate; 4I23/1C9 passes under this prep."
+      "ligand_name": "erlotinib",
+      "reference_smiles": "COCCOc1cc2c(cc1OCCOC)ncnc2Nc3cccc(c3)C#C",
+      "known_failure_rationale": "DFG-out/inactive kinase pose; high seed-to-seed variance with Vina+Meeko."
     },
     {
       "target_id": "braf",
       "gene": "BRAF",
-      "pdb_id": "3OG7",
-      "ligand_resn": "032",
+      "pdb_id": "4XV2",
+      "ligand_resn": "P06",
       "ligand_chain": "A",
-      "ligand_name": "vemurafenib (PLX4032)",
-      "reference_smiles": "CCCS(=O)(=O)Nc1ccc(F)c(c1F)c2cnc(Nc3ccc(Br)cc3F)nc2N5CCN(CC5)C",
+      "ligand_name": "dabrafenib",
+      "reference_smiles": "CC(C)(C)c1nc(c(s1)c2ccnc(n2)N)c3cccc(c3F)NS(=O)(=O)c4c(cccc4F)F",
       "protein_chains": ["A"],
-      "notes": "Single chain A, renumbered; switched from 4XV2/dabrafenib (bimodal Vina poses)."
+      "known_failure_rationale": "DFG-out pocket; alternate global minima ~8–9 A in-place RMSD on several seeds."
     },
     {
       "target_id": "abl1",
@@ -48,8 +48,7 @@
       "ligand_chain": "A",
       "ligand_name": "SC-558",
       "keep_het_resnames": [],
-      "reference_smiles": "Cc1ccc(cc1)c2cc(nn2-c3ccc(cc3)S(=O)(=O)N)C(F)(F)F",
-      "notes": "Heme omitted from receptor (not scored by Vina)."
+      "reference_smiles": "Cc1ccc(cc1)c2cc(nn2-c3ccc(cc3)S(=O)(=O)N)C(F)(F)F"
     },
     {
       "target_id": "pde5a",
@@ -81,33 +80,31 @@
     {
       "target_id": "adrb2",
       "gene": "ADRB2",
-      "pdb_id": "3P0G",
+      "pdb_id": "3SN6",
       "ligand_resn": "P0G",
       "ligand_chain": "A",
       "ligand_name": "carazolol",
       "reference_smiles": "Cc1ccccc1CC(C)(C)NCC(c2ccc(c3c2OCC(=O)N3)O)O",
-      "notes": "3SN6 fusion construct replaced with 3P0G (β2AR–T4 lysozyme, orthosteric CAU)."
+      "known_failure_rationale": "GPCR fusion construct; pocket definition sensitive to chain/strip choices."
     },
     {
       "target_id": "jak2",
       "gene": "JAK2",
-      "pdb_id": "4IVB",
-      "ligand_resn": "1J5",
+      "pdb_id": "4JI9",
+      "ligand_resn": "1M3",
       "ligand_chain": "A",
-      "ligand_name": "ruxolitinib analog (1J5)",
-      "reference_smiles": "Cc1cnc(nc1Nc2cccc(c2)S(=O)(=O)NC(C)(C)C)Nc3ccc(cc3)N4CCN(CC4)C",
-      "notes": "4JI9/1M3 failed multiseed gate (7/10); 4IVB/1J5 passes."
+      "ligand_name": "ruxolitinib",
+      "reference_smiles": "Cc1cnc(nc1Nc2cccc(c2)S(=O)(=O)NC(C)(C)C)Nc3ccc(cc3)N4CCN(CC4)C"
     },
     {
       "target_id": "thrombin",
       "gene": "F2",
-      "pdb_id": "2ZGB",
-      "ligand_resn": "21U",
+      "pdb_id": "1PPB",
+      "ligand_resn": "0G6",
       "ligand_chain": "H",
       "protein_chains": ["H"],
-      "ligand_name": "thrombin inhibitor 21U",
-      "reference_smiles": "CC(C)CC(C(=O)N1CCCC1C(=O)NCc2cccc(c2)Cl)N",
-      "notes": "1PPB/0G6 failed multiseed gate; 2ZGB/21U passes under this prep."
+      "ligand_name": "thrombin inhibitor",
+      "reference_smiles": "c1ccc(cc1)CC(C(=O)N2CCCC2C(=O)NC(CCCNC(=[NH2+])N)C(CCl)O)N"
     }
   ]
 }

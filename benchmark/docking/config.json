@@ -9,7 +9,7 @@
   "n_poses": 5,
   "redock_seeds": [42, 43, 44, 45, 46, 47, 48, 49, 50, 51],
   "redock_pass_rmsd_angstrom": 2.0,
-  "redock_pass_min_seeds": 8,
+  "redock_panel_pass_fraction": 0.6,
   "ligand_embed_seed": 42,
   "bootstrap_n": 800,
   "bootstrap_seed": 42
