@@ -13,21 +13,23 @@ def _get_json(url: str) -> dict | list:
 
 
 def chembl_id_for_target(gene_symbol: str) -> str | None:
-    q = urllib.parse.urlencode(
-        {
-            "target_components__accession__icontains": gene_symbol,
-            "target_type": "SINGLE PROTEIN",
-            "limit": 5,
-        }
-    )
-    url = f"https://www.ebi.ac.uk/chembl/api/data/target.json?{q}"
-    data = _get_json(url)
-    targets = data.get("targets") or []
-    for t in targets:
-        pref = (t.get("pref_name") or "").upper()
-        if gene_symbol.upper() in pref or gene_symbol.upper() in str(t.get("target_chembl_id", "")):
-            return t.get("target_chembl_id")
-    return targets[0].get("target_chembl_id") if targets else None
+    gene = gene_symbol.upper()
+    queries = [
+        {"target_synonym__iexact": gene, "limit": 10},
+        {"pref_name__icontains": gene, "target_type": "SINGLE PROTEIN", "limit": 15},
+    ]
+    for params in queries:
+        q = urllib.parse.urlencode(params)
+        url = f"https://www.ebi.ac.uk/chembl/api/data/target.json?{q}"
+        data = _get_json(url)
+        targets = data.get("targets") or []
+        for t in targets:
+            pref = (t.get("pref_name") or "").upper()
+            if gene in pref.split() or gene in pref:
+                return t.get("target_chembl_id")
+        if targets:
+            return targets[0].get("target_chembl_id")
+    return None
 
 
 def activity_pchembl_for_molecule(chembl_molecule_id: str, target_chembl_id: str) -> list[float]:

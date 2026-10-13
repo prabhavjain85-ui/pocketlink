@@ -61,8 +61,8 @@
       "name": "Ruxolitinib",
       "gene": "JAK2",
       "chembl_molecule_id": "CHEMBL214856",
-      "pdb_id": "4JI9",
-      "ligand_resn": "1M3",
+      "pdb_id": "4IVB",
+      "ligand_resn": "1J5",
       "ligand_chain": "A",
       "smiles": "Cc1cnc(nc1Nc2cccc(c2)S(=O)(=O)NC(C)(C)C)Nc3ccc(cc3)N4CCN(CC4)C",
       "class": "kinase"

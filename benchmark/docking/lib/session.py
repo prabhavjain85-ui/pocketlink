@@ -92,13 +92,16 @@ class DockingSession:
         self._ensure_structure()
         rec = self.receptor_pdbqt()
         work = self.work_root / self.target["target_id"] / work_subdir
+        exhaustiveness = int(
+            self.target.get("exhaustiveness", self.cfg["exhaustiveness"])
+        )
         return run_vina(
             rec,
             mol,
             self._center,
             self._box,
             work,
-            exhaustiveness=int(self.cfg["exhaustiveness"]),
+            exhaustiveness=exhaustiveness,
             seed=int(seed),
             n_poses=int(self.cfg.get("n_poses", 1)),
             vina_binary=str(self.cfg.get("vina_binary", "vina")),

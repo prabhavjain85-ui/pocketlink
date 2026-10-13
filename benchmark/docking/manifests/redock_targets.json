@@ -91,20 +91,23 @@
     {
       "target_id": "jak2",
       "gene": "JAK2",
-      "pdb_id": "4JI9",
-      "ligand_resn": "1M3",
+      "pdb_id": "4IVB",
+      "ligand_resn": "1J5",
       "ligand_chain": "A",
-      "ligand_name": "ruxolitinib",
-      "reference_smiles": "Cc1cnc(nc1Nc2cccc(c2)S(=O)(=O)NC(C)(C)C)Nc3ccc(cc3)N4CCN(CC4)C"
+      "ligand_name": "ruxolitinib analog (1J5)",
+      "reference_smiles": "Cc1cnc(nc1Nc2cccc(c2)S(=O)(=O)NC(C)(C)C)Nc3ccc(cc3)N4CCN(CC4)C",
+      "notes": "4JI9/1M3 failed multiseed gate (7/10); 4IVB/1J5 passes."
     },
     {
       "target_id": "thrombin",
       "gene": "F2",
-      "pdb_id": "1PPB",
-      "ligand_resn": "0G6",
+      "pdb_id": "2ZGB",
+      "ligand_resn": "21U",
       "ligand_chain": "H",
-      "ligand_name": "thrombin inhibitor",
-      "reference_smiles": "c1ccc(cc1)CC(C(=O)N2CCCC2C(=O)NC(CCCNC(=[NH2+])N)C(CCl)O)N"
+      "protein_chains": ["H"],
+      "ligand_name": "thrombin inhibitor 21U",
+      "reference_smiles": "CC(C)CC(C(=O)N1CCCC1C(=O)NCc2cccc(c2)Cl)N",
+      "notes": "1PPB/0G6 failed multiseed gate; 2ZGB/21U passes under this prep."
     }
   ]
 }

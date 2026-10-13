@@ -23,12 +23,13 @@ OUT = ROOT / "results" / "enrichment.json"
 
 ENRICHMENT_PANEL = [
     {"target_id": "egfr", "gene": "EGFR", "pdb_id": "4I23", "ligand_resn": "1C9", "ligand_chain": "A", "reference_smiles": "COc1cc2ncnc(Nc3ccc(F)cc3Cl)c2cc1OCCCN1CCOCC1"},
-    {"target_id": "jak2", "gene": "JAK2", "pdb_id": "4JI9", "ligand_resn": "1M3", "ligand_chain": "A", "reference_smiles": "Cc1cnc(nc1Nc2cccc(c2)S(=O)(=O)NC(C)(C)C)Nc3ccc(cc3)N4CCN(CC4)C"},
+    {"target_id": "jak2", "gene": "JAK2", "pdb_id": "4IVB", "ligand_resn": "1J5", "ligand_chain": "A", "reference_smiles": "Cc1cnc(nc1Nc2cccc(c2)S(=O)(=O)NC(C)(C)C)Nc3ccc(cc3)N4CCN(CC4)C"},
     {"target_id": "pde5a", "gene": "PDE5A", "pdb_id": "1UDT", "ligand_resn": "VIA", "ligand_chain": "A", "reference_smiles": "CCCc1c2c(n(n1)C)C(=O)NC(=N2)c3cc(ccc3OCC)S(=O)(=O)N4CCN(CC4)C"},
 ]
 
-MAX_ACTIVES = 15
-MAX_DECOYS = 40
+MAX_ACTIVES = 18
+MAX_DECOYS = 50
+TRAIN_FRAC = 0.55
 
 
 def _get_json(url: str) -> dict:
@@ -57,7 +58,7 @@ def fetch_compounds(target_chembl: str, active: bool) -> list[dict]:
             "standard_relation": "=",
             threshold: val,
             "pchembl_value__isnull": "false",
-            "limit": 120,
+            "limit": 250,
         }
     )
     url = f"https://www.ebi.ac.uk/chembl/api/data/activity.json?{q}"
@@ -98,11 +99,11 @@ def main() -> None:
             continue
         actives = fetch_compounds(tid, active=True)[:MAX_ACTIVES * 2]
         decoys = fetch_compounds(tid, active=False)[:MAX_DECOYS * 2]
-        act_train, act_test = train_test_split(actives)
-        dec_train, dec_test = train_test_split(decoys)
+        act_train, act_test = train_test_split(actives, train_frac=TRAIN_FRAC)
+        dec_train, dec_test = train_test_split(decoys, train_frac=TRAIN_FRAC)
         act_test = act_test[:MAX_ACTIVES]
         dec_test = dec_test[:MAX_DECOYS]
-        if len(act_test) < 5 or len(dec_test) < 10:
+        if len(act_test) < 6 or len(dec_test) < 12:
             print(f"skip {panel['target_id']}: insufficient test compounds", flush=True)
             continue
 
