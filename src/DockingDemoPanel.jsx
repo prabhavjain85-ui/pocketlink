@@ -5,6 +5,13 @@ import {
   loadDockingDemoCase,
   loadDockingDemoManifest,
 } from "./dockingDemo";
+import {
+  demoCaseRedockPassLabel,
+  demoCasePassesBenchmarkSanity,
+  formatDemoRedockRmsdLabel,
+  getBenchmarkSanityForDemoCase,
+} from "./dockingBenchmarkPairs";
+import { DOCKING_BENCHMARK_PAIRS_NOTICE } from "./featureFlags";
 
 export default function DockingDemoPanel({ embedded = false, onClose = null }) {
   const [manifest, setManifest] = useState(null);
@@ -20,7 +27,9 @@ export default function DockingDemoPanel({ embedded = false, onClose = null }) {
         const data = await loadDockingDemoManifest();
         if (!cancelled) {
           setManifest(data);
-          const firstReady = (data.cases || []).find((c) => !c.comingSoon);
+          const ready = (data.cases || []).filter((c) => !c.comingSoon);
+          const firstReady =
+            ready.find((c) => demoCasePassesBenchmarkSanity(c)) || ready[0];
           if (firstReady) setSelectedId(firstReady.id);
           else if (data.cases?.length) setSelectedId(data.cases[0].id);
         }
@@ -100,6 +109,9 @@ export default function DockingDemoPanel({ embedded = false, onClose = null }) {
             AutoDock Vina {manifest.engine?.version} (seed {manifest.engine?.seed}), box from co-crystal ligand.
             Generated {manifest.generatedAt?.slice(0, 10) || "offline"} — no live service required.
           </p>
+          <p style={{ margin: "8px 0 0", fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>
+            {DOCKING_BENCHMARK_PAIRS_NOTICE}
+          </p>
         </div>
         {onClose && (
           <button type="button" className="btn btn-secondary" onClick={onClose} style={{ fontSize: "12px" }}>
@@ -130,8 +142,8 @@ export default function DockingDemoPanel({ embedded = false, onClose = null }) {
                 <td className="mono">{c.pdbId}</td>
                 <td className="mono">{c.ligandCode}</td>
                 <td className="mono">{c.comingSoon ? "—" : c.scoreKcalMol}</td>
-                <td className="mono">{c.comingSoon ? "—" : c.redockRmsdAngstrom}</td>
-                <td>{c.comingSoon ? "Coming soon" : c.redockPass2A ? "Pass" : "Fail"}</td>
+                <td className="mono">{c.comingSoon ? "—" : formatDemoRedockRmsdLabel(c)}</td>
+                <td>{demoCaseRedockPassLabel(c)}</td>
                 <td>
                   <button
                     type="button"
@@ -151,6 +163,33 @@ export default function DockingDemoPanel({ embedded = false, onClose = null }) {
 
       {activeCase?.notes && (
         <p style={{ margin: "0 0 12px", fontSize: "11px", color: "var(--text-muted)" }}>{activeCase.notes}</p>
+      )}
+
+      {activeCase && !activeCase.comingSoon && !demoCasePassesBenchmarkSanity(activeCase) && (
+        <div
+          role="alert"
+          style={{
+            margin: "0 0 12px",
+            padding: "10px 12px",
+            fontSize: "12px",
+            lineHeight: 1.5,
+            color: "var(--amber)",
+            background: "var(--amber-bg, #FFFBEB)",
+            border: "1px solid var(--amber-border, #FDE68A)",
+            borderRadius: "var(--radius)",
+          }}
+        >
+          This demo pair is flagged <strong>unreliable</strong> in the offline 25-drug benchmark (
+          {getBenchmarkSanityForDemoCase(activeCase)?.pdbId || activeCase.pdbId}). Do not treat the pose or demo RMSD
+          as validation.
+          {activeCase.benchmarkRedockRmsdAngstrom != null && activeCase.redockRmsdAngstrom != null && (
+            <>
+              {" "}
+              Benchmark redock RMSD: <span className="mono">{activeCase.benchmarkRedockRmsdAngstrom}</span> Å vs demo
+              pose RMSD: <span className="mono">{activeCase.redockRmsdAngstrom}</span> Å.
+            </>
+          )}
+        </div>
       )}
 
       {activeCase?.comingSoon && (

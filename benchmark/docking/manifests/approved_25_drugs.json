@@ -1,0 +1,283 @@
+{
+  "description": "25 FDA-approved drugs with co-crystal PDB structures and ChEMBL potency annotations (see sources in README).",
+  "drugs": [
+    {
+      "drug_id": "imatinib",
+      "name": "Imatinib",
+      "gene": "ABL1",
+      "chembl_molecule_id": "CHEMBL941",
+      "pdb_id": "1IEP",
+      "ligand_resn": "STI",
+      "ligand_chain": "A",
+      "smiles": "Cc1ccc(cc1Nc2nccc(n2)c3cccnc3)NC(=O)c4ccc(cc4)CN5CCN(CC5)C",
+      "class": "kinase"
+    },
+    {
+      "drug_id": "gefitinib",
+      "name": "Gefitinib",
+      "gene": "EGFR",
+      "chembl_molecule_id": "CHEMBL939",
+      "pdb_id": "4I23",
+      "ligand_resn": "1C9",
+      "ligand_chain": "A",
+      "smiles": "COc1cc2ncnc(Nc3ccc(F)cc3Cl)c2cc1OCCCN1CCOCC1",
+      "class": "kinase"
+    },
+    {
+      "drug_id": "erlotinib",
+      "name": "Erlotinib",
+      "gene": "EGFR",
+      "chembl_molecule_id": "CHEMBL553",
+      "pdb_id": "1M17",
+      "ligand_resn": "AQ4",
+      "ligand_chain": "A",
+      "smiles": "COCCOc1cc2c(cc1OCCOC)ncnc2Nc3cccc(c3)C#C",
+      "class": "kinase"
+    },
+    {
+      "drug_id": "lapatinib",
+      "name": "Lapatinib",
+      "gene": "ERBB2",
+      "chembl_molecule_id": "CHEMBL554",
+      "pdb_id": "3PP0",
+      "ligand_resn": "03Q",
+      "ligand_chain": "A",
+      "smiles": "c1cc(cc(c1)Oc2c(cc(cn2)Nc3c4c(ccn4CCOCCO)ncn3)Cl)C(F)(F)F",
+      "class": "kinase"
+    },
+    {
+      "drug_id": "vemurafenib",
+      "name": "Vemurafenib",
+      "gene": "BRAF",
+      "chembl_molecule_id": "CHEMBL1229517",
+      "pdb_id": "3OG7",
+      "ligand_resn": "032",
+      "ligand_chain": "A",
+      "smiles": "CCCS(=O)(=O)Nc1ccc(F)c(c1F)c2cnc(Nc3ccc(Br)cc3F)nc2N5CCN(CC5)C",
+      "class": "kinase"
+    },
+    {
+      "drug_id": "ruxolitinib",
+      "name": "Ruxolitinib",
+      "gene": "JAK2",
+      "chembl_molecule_id": "CHEMBL214856",
+      "pdb_id": "4IVB",
+      "ligand_resn": "1J5",
+      "ligand_chain": "A",
+      "smiles": "Cc1cnc(nc1Nc2cccc(c2)S(=O)(=O)NC(C)(C)C)Nc3ccc(cc3)N4CCN(CC4)C",
+      "class": "kinase"
+    },
+    {
+      "drug_id": "sildenafil",
+      "name": "Sildenafil",
+      "gene": "PDE5A",
+      "chembl_molecule_id": "CHEMBL192",
+      "pdb_id": "1UDT",
+      "ligand_resn": "VIA",
+      "ligand_chain": "A",
+      "smiles": "CCCc1c2c(n(n1)C)C(=O)NC(=N2)c3cc(ccc3OCC)S(=O)(=O)N4CCN(CC4)C",
+      "class": "enzyme"
+    },
+    {
+      "drug_id": "celecoxib",
+      "name": "Celecoxib",
+      "gene": "PTGS2",
+      "chembl_molecule_id": "CHEMBL118",
+      "pdb_id": "1CX2",
+      "ligand_resn": "S58",
+      "ligand_chain": "A",
+      "smiles": "Cc1ccc(cc1)c2cc(nn2-c3ccc(cc3)S(=O)(=O)N)C(F)(F)F",
+      "class": "enzyme"
+    },
+    {
+      "drug_id": "tamoxifen",
+      "name": "Tamoxifen (4-OH metabolite)",
+      "gene": "ESR1",
+      "chembl_molecule_id": "CHEMBL83",
+      "pdb_id": "3ERT",
+      "ligand_resn": "OHT",
+      "ligand_chain": "A",
+      "smiles": "CC/C(=C(/CC)c1ccc(cc1)OCCN(C)C)c2ccc(cc2)O",
+      "class": "nuclear_receptor"
+    },
+    {
+      "drug_id": "linagliptin",
+      "name": "Linagliptin",
+      "gene": "DPP4",
+      "chembl_molecule_id": "CHEMBL2106664",
+      "pdb_id": "4A5S",
+      "ligand_resn": "N7F",
+      "ligand_chain": "A",
+      "smiles": "Cc1ncc(n1CC2CC2)c3ccc(cc3F)C(=O)N4CCC(CC4)N",
+      "class": "protease"
+    },
+    {
+      "drug_id": "carazolol",
+      "name": "Carazolol",
+      "gene": "ADRB2",
+      "chembl_molecule_id": "CHEMBL23",
+      "pdb_id": "3P0G",
+      "ligand_resn": "P0G",
+      "ligand_chain": "A",
+      "smiles": "Cc1ccccc1CC(C)(C)NCC(c2ccc(c3c2OCC(=O)N3)O)O",
+      "class": "gpcr"
+    },
+    {
+      "drug_id": "losartan",
+      "name": "Losartan",
+      "gene": "AGTR1",
+      "chembl_molecule_id": "CHEMBL191",
+      "pdb_id": "4YAY",
+      "ligand_resn": "ZD7",
+      "ligand_chain": "A",
+      "notes": "4ZUD/OLM is olmesartan, not losartan; 4YAY/ZD7 is AT1R–losartan (ZD7155) cryo-EM.",
+      "smiles": "CCCCC1=NC(=C(N1CC2=CC=C(C=C2)C3=CC=CC=C3C4=NNN=N4)C)C(=O)O",
+      "class": "gpcr"
+    },
+    {
+      "drug_id": "ritonavir",
+      "name": "Ritonavir",
+      "gene": "HIVPR",
+      "chembl_molecule_id": "CHEMBL729",
+      "pdb_id": "1HXW",
+      "ligand_resn": "RIT",
+      "ligand_chain": "B",
+      "smiles": "CC(C)C1=NC(=CS1)CN(C)C(=O)NC(C(C)C)C(=O)NC(CC2=CC=CC=C2)C(=O)OCC3=CC=CC=C3",
+      "class": "protease"
+    },
+    {
+      "drug_id": "saquinavir",
+      "name": "Saquinavir",
+      "gene": "HIVPR",
+      "chembl_molecule_id": "CHEMBL107",
+      "pdb_id": "1HXB",
+      "ligand_resn": "ROC",
+      "ligand_chain": "A",
+      "smiles": "C[C@H](C[C@H](C(=O)N[C@H](CC1=CC=CC=C1)C(=O)N2CCC[C@H]2C(=O)N[C@@H](CC(C)C)C(=O)N[C@H](CC3=CC=CC=C3)C(=O)O)NC(=O)C4=NC5=CC=CC=C5C=C4)O",
+      "class": "protease"
+    },
+    {
+      "drug_id": "atazanavir",
+      "name": "Atazanavir",
+      "gene": "HIVPR",
+      "chembl_molecule_id": "CHEMBL131",
+      "pdb_id": "2AQU",
+      "ligand_resn": "DR7",
+      "ligand_chain": "B",
+      "smiles": "COC(=O)N[C@H](C(=O)N[C@H](C(=O)N1CCC[C@H]1C(=O)N[C@@H](CC2=CC=CC=C2)C(=O)O)C(C)(C)C)CC3=CC=CC=C3",
+      "class": "protease"
+    },
+    {
+      "drug_id": "nirmatrelvir",
+      "name": "Nirmatrelvir",
+      "gene": "Mpro",
+      "chembl_molecule_id": "CHEMBL4594689",
+      "pdb_id": "7VH8",
+      "ligand_resn": "4WI",
+      "ligand_chain": "A",
+      "smiles": "CC(C)C[C@H](NC(=O)OCc1ccccc1)C(=O)N[C@H](C(=O)N1CCC[C@H]1C(=O)NC(CC2=CC=CC=C2)C(=O)O)C(C)C",
+      "class": "protease"
+    },
+    {
+      "drug_id": "vorinostat",
+      "name": "Vorinostat (SAHA)",
+      "gene": "HDAC1",
+      "chembl_molecule_id": "CHEMBL98",
+      "pdb_id": "1T69",
+      "ligand_resn": "SHH",
+      "ligand_chain": "A",
+      "smiles": "c1ccc(cc1)NC(=O)CCCCCCC(=O)NO",
+      "class": "epigenetic"
+    },
+    {
+      "drug_id": "raloxifene",
+      "name": "Raloxifene",
+      "gene": "ESR1",
+      "chembl_molecule_id": "CHEMBL81",
+      "pdb_id": "2G5O",
+      "ligand_resn": "DRQ",
+      "ligand_chain": "A",
+      "smiles": "Oc1ccc(cc1)C(c2ccc(O)cc2)c3ccc(cc3)OCCN4CCCCC4",
+      "class": "nuclear_receptor"
+    },
+    {
+      "drug_id": "progesterone",
+      "name": "Progesterone",
+      "gene": "PGR",
+      "chembl_molecule_id": "CHEMBL67",
+      "pdb_id": "1A28",
+      "ligand_resn": "STR",
+      "ligand_chain": "A",
+      "smiles": "CC(=O)[C@H]1CC[C@@H]2[C@@]1(C)CC[C@]3([C@H]2CCC4=CC(=O)CC[C@]34C)C",
+      "class": "nuclear_receptor"
+    },
+    {
+      "drug_id": "dexamethasone",
+      "name": "Dexamethasone",
+      "gene": "NR3C1",
+      "chembl_molecule_id": "CHEMBL384",
+      "pdb_id": "1M2Z",
+      "ligand_resn": "DEX",
+      "ligand_chain": "A",
+      "smiles": "C[C@@H]1CC[C@H]2[C@@H]([C@]3(C)C=CC(=O)[C@@]3(C)[C@H]2[C@H](O)C1)C(=O)CO",
+      "class": "nuclear_receptor"
+    },
+    {
+      "drug_id": "warfarin",
+      "name": "Warfarin",
+      "gene": "VKORC1",
+      "chembl_molecule_id": "CHEMBL1467",
+      "pdb_id": "1QBG",
+      "ligand_resn": "WAR",
+      "ligand_chain": "A",
+      "smiles": "CC(=O)CC(c1ccccc1)c2c(oc(=O)c3c2cccc3)C",
+      "class": "enzyme",
+      "benchmark_unreliable": true,
+      "unreliable_reason": "1QBG is human DT-diaphorase with FAD; no warfarin co-crystal ligand in PDB."
+    },
+    {
+      "drug_id": "methotrexate",
+      "name": "Methotrexate",
+      "gene": "DHFR",
+      "chembl_molecule_id": "CHEMBL34259",
+      "pdb_id": "1U72",
+      "ligand_resn": "MTX",
+      "ligand_chain": "A",
+      "smiles": "CN(CC1=CN=C2C(=N1)C(=NC(=N2)N)N)C3=CC=C(C=C3)C(=O)N[C@@H](CCC(=O)O)C(=O)O",
+      "class": "enzyme"
+    },
+    {
+      "drug_id": "indinavir",
+      "name": "Indinavir",
+      "gene": "HIVPR",
+      "chembl_molecule_id": "CHEMBL108",
+      "pdb_id": "2BPV",
+      "ligand_resn": "1IN",
+      "ligand_chain": "B",
+      "smiles": "CC(C)(C)NC(=O)[C@@H]1CN(CC2=CN=CC=C2)CCN1C(=O)[C@H](CC3=CC=CC=C3)NC(=O)C4=NC5=CC=CC=C5C=C4",
+      "class": "protease"
+    },
+    {
+      "drug_id": "dabrafenib",
+      "name": "Dabrafenib",
+      "gene": "BRAF",
+      "chembl_molecule_id": "CHEMBL2028663",
+      "pdb_id": "4XV2",
+      "ligand_resn": "P06",
+      "ligand_chain": "A",
+      "smiles": "CC(C)(C)c1nc(c(s1)c2ccnc(n2)N)c3cccc(c3F)NS(=O)(=O)c4c(cccc4F)F",
+      "class": "kinase"
+    },
+    {
+      "drug_id": "osimertinib",
+      "name": "Osimertinib",
+      "gene": "EGFR",
+      "chembl_molecule_id": "CHEMBL3353410",
+      "pdb_id": "4ZAU",
+      "ligand_resn": "YY3",
+      "ligand_chain": "A",
+      "smiles": "COC1=C(C=C2C(=C1)N=CN=C2NC3=CC(=C(C=C3)F)Cl)N(C)CCN(C)C",
+      "class": "kinase"
+    }
+  ]
+}

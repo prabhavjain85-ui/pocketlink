@@ -78,6 +78,8 @@ export function demoCaseToDockingResults(caseJson) {
       pdbId: caseJson.pdbId,
       ligandCode: caseJson.ligandCode,
       redockRmsdAngstrom: caseJson.redockRmsdAngstrom,
+      benchmarkRedockRmsdAngstrom: caseJson.benchmarkRedockRmsdAngstrom,
+      benchmarkReliable: caseJson.benchmarkReliable,
       redockPass2A: caseJson.redockPass2A,
       poseFile: caseJson.poseFile,
     },

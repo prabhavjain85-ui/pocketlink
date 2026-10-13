@@ -1,0 +1,110 @@
+{
+  "description": "Co-crystal redocking panel (native ligand, multi-seed). No per-target PDB swaps; failures recorded honestly.",
+  "targets": [
+    {
+      "target_id": "egfr",
+      "gene": "EGFR",
+      "pdb_id": "1M17",
+      "ligand_resn": "AQ4",
+      "ligand_chain": "A",
+      "ligand_name": "erlotinib",
+      "reference_smiles": "COCCOc1cc2c(cc1OCCOC)ncnc2Nc3cccc(c3)C#C",
+      "known_failure_rationale": "DFG-out/inactive kinase pose; high seed-to-seed variance with Vina+Meeko."
+    },
+    {
+      "target_id": "braf",
+      "gene": "BRAF",
+      "pdb_id": "4XV2",
+      "ligand_resn": "P06",
+      "ligand_chain": "A",
+      "ligand_name": "dabrafenib",
+      "reference_smiles": "CC(C)(C)c1nc(c(s1)c2ccnc(n2)N)c3cccc(c3F)NS(=O)(=O)c4c(cccc4F)F",
+      "protein_chains": ["A"],
+      "known_failure_rationale": "DFG-out pocket; alternate global minima ~8–9 A in-place RMSD on several seeds."
+    },
+    {
+      "target_id": "abl1",
+      "gene": "ABL1",
+      "pdb_id": "1IEP",
+      "ligand_resn": "STI",
+      "ligand_chain": "A",
+      "ligand_name": "imatinib",
+      "reference_smiles": "Cc1ccc(cc1Nc2nccc(n2)c3cccnc3)NC(=O)c4ccc(cc4)CN5CCN(CC5)C"
+    },
+    {
+      "target_id": "erbb2",
+      "gene": "ERBB2",
+      "pdb_id": "3PP0",
+      "ligand_resn": "03Q",
+      "ligand_chain": "A",
+      "ligand_name": "lapatinib analog",
+      "reference_smiles": "c1cc(cc(c1)Oc2c(cc(cn2)Nc3c4c(ccn4CCOCCO)ncn3)Cl)C(F)(F)F"
+    },
+    {
+      "target_id": "ptgs2",
+      "gene": "PTGS2",
+      "pdb_id": "1CX2",
+      "ligand_resn": "S58",
+      "ligand_chain": "A",
+      "ligand_name": "SC-558",
+      "keep_het_resnames": [],
+      "reference_smiles": "Cc1ccc(cc1)c2cc(nn2-c3ccc(cc3)S(=O)(=O)N)C(F)(F)F"
+    },
+    {
+      "target_id": "pde5a",
+      "gene": "PDE5A",
+      "pdb_id": "1UDT",
+      "ligand_resn": "VIA",
+      "ligand_chain": "A",
+      "ligand_name": "sildenafil",
+      "reference_smiles": "CCCc1c2c(n(n1)C)C(=O)NC(=N2)c3cc(ccc3OCC)S(=O)(=O)N4CCN(CC4)C"
+    },
+    {
+      "target_id": "esr1",
+      "gene": "ESR1",
+      "pdb_id": "3ERT",
+      "ligand_resn": "OHT",
+      "ligand_chain": "A",
+      "ligand_name": "4-hydroxytamoxifen",
+      "reference_smiles": "CC/C(=C(/CC)c1ccc(cc1)OCCN(C)C)c2ccc(cc2)O"
+    },
+    {
+      "target_id": "dpp4",
+      "gene": "DPP4",
+      "pdb_id": "4A5S",
+      "ligand_resn": "N7F",
+      "ligand_chain": "A",
+      "ligand_name": "linagliptin",
+      "reference_smiles": "Cc1ncc(n1CC2CC2)c3ccc(cc3F)C(=O)N4CCC(CC4)N"
+    },
+    {
+      "target_id": "adrb2",
+      "gene": "ADRB2",
+      "pdb_id": "3SN6",
+      "ligand_resn": "P0G",
+      "ligand_chain": "A",
+      "ligand_name": "carazolol",
+      "reference_smiles": "Cc1ccccc1CC(C)(C)NCC(c2ccc(c3c2OCC(=O)N3)O)O",
+      "known_failure_rationale": "GPCR fusion construct; pocket definition sensitive to chain/strip choices."
+    },
+    {
+      "target_id": "jak2",
+      "gene": "JAK2",
+      "pdb_id": "4JI9",
+      "ligand_resn": "1M3",
+      "ligand_chain": "A",
+      "ligand_name": "ruxolitinib",
+      "reference_smiles": "Cc1cnc(nc1Nc2cccc(c2)S(=O)(=O)NC(C)(C)C)Nc3ccc(cc3)N4CCN(CC4)C"
+    },
+    {
+      "target_id": "thrombin",
+      "gene": "F2",
+      "pdb_id": "1PPB",
+      "ligand_resn": "0G6",
+      "ligand_chain": "H",
+      "protein_chains": ["H"],
+      "ligand_name": "thrombin inhibitor",
+      "reference_smiles": "c1ccc(cc1)CC(C(=O)N2CCCC2C(=O)NC(CCCNC(=[NH2+])N)C(CCl)O)N"
+    }
+  ]
+}

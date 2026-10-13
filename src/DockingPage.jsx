@@ -7,7 +7,12 @@ import {
 } from "./dockingEngine";
 import DockingViewer from "./DockingViewer";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
-import { DOCKING_ENABLED, DOCKING_ENGINE_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
+import {
+  DOCKING_ENABLED,
+  DOCKING_ENGINE_ENABLED,
+  DOCKING_UNAVAILABLE_NOTICE,
+  DOCKING_BENCHMARK_PAIRS_NOTICE,
+} from "./featureFlags";
 import ReportExportButtons from "./ReportExportButtons";
 import { buildDockingReportMarkdown, defaultReportFilename } from "./reportExport";
 
@@ -44,6 +49,17 @@ function DockingServiceUnavailableView({ detail }) {
     <div className="docking-page-container" style={{ maxWidth: "1120px", margin: "0 auto 48px" }}>
       <h1 style={{ margin: "0 0 12px", fontSize: "26px", fontWeight: 700 }}>Molecular Docking</h1>
       <DockingPrototypeBanner />
+      <p
+        role="note"
+        style={{
+          margin: "0 0 16px",
+          fontSize: "13px",
+          color: "var(--text-dim)",
+          lineHeight: 1.5,
+        }}
+      >
+        {DOCKING_BENCHMARK_PAIRS_NOTICE}
+      </p>
       <div
         role="status"
         style={{
@@ -91,7 +107,7 @@ function DockingUnavailableView() {
       </div>
       <p style={{ marginTop: 16, fontSize: "14px", color: "var(--text-dim)", lineHeight: 1.5 }}>
         Production AutoDock Vina docking is disabled while co-crystal redocking validation is in progress. No binding
-        scores or poses are shown. See the{" "}
+        scores or poses are shown. {DOCKING_BENCHMARK_PAIRS_NOTICE} See the{" "}
         <Link to="/methodology#validation-benchmark">Methodology validation section</Link> for current status.
       </p>
     </div>
@@ -371,6 +387,21 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
   return (
     <div className="docking-page-container" style={{ maxWidth: "1120px", margin: "0 auto 48px" }}>
       <DockingPrototypeBanner />
+      <p
+        role="note"
+        style={{
+          margin: "0 0 16px",
+          fontSize: "13px",
+          color: "var(--text-dim)",
+          lineHeight: 1.5,
+          padding: "12px 14px",
+          background: "var(--surface-muted)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius)",
+        }}
+      >
+        {DOCKING_BENCHMARK_PAIRS_NOTICE}
+      </p>
       <div style={{ marginBottom: "16px", display: "flex", justifyContent: "flex-end" }}>
         <button
           type="button"
