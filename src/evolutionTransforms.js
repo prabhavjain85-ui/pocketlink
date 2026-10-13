@@ -3,7 +3,9 @@
  * Generation is RDKit-only — no model-invented SMILES.
  */
 
-export const EVOLUTION_TRANSFORMS = [
+import { TRANSFORM_MANIFEST } from "./evolution/transformManifest";
+
+const LEGACY_TRANSFORMS = [
   { id: "acid_to_tetrazole", label: "Carboxylic acid → tetrazole", smarts: "[C:1](=[O:2])[OH]>>[C:1]1=NNN=N1" },
   { id: "tetrazole_to_acid", label: "Tetrazole → carboxylic acid", smarts: "[C:1]1=NNN=N1>>[C:1](=[O])O" },
   { id: "amide_to_sulfonamide", label: "Amide → sulfonamide (N-side)", smarts: "[C:1](=[O:2])[N:3]>>[S:1](=[O:2])(=[O])[N:3]" },
@@ -21,6 +23,98 @@ export const EVOLUTION_TRANSFORMS = [
   { id: "piperazine_nme_to_nh", label: "N-methyl piperazine → NH", smarts: "[N:1][CH3]>>[NH:1]" },
   { id: "amine_nh_to_nme", label: "Secondary amine → N-methyl", smarts: "[NH:1]>>[N:1]C" },
 ];
+
+export const EVOLUTION_TRANSFORMS = [
+  ...LEGACY_TRANSFORMS,
+  ...TRANSFORM_MANIFEST.filter((t) => !LEGACY_TRANSFORMS.some((e) => e.id === t.id)),
+];
+
+function pickTransform() {
+  const pool = TRANSFORM_MANIFEST.length ? TRANSFORM_MANIFEST : EVOLUTION_TRANSFORMS;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/** Graph-style crossover: apply a random transform from parent B onto parent A. */
+export function crossoverVariants(RDKit, parentA, parentB, { seen, limit = 4 } = {}) {
+  const discarded = { parseFail: 0, duplicate: 0 };
+  const variants = [];
+  const a = canonicalizeSmiles(RDKit, parentA);
+  const b = canonicalizeSmiles(RDKit, parentB);
+  if (!a || !b) return { variants, discarded };
+  const hybridSmarts = [
+    { id: "xover_aryl_swap", label: "Crossover: aryl substituent swap", smarts: "[c:1][F]>>[c:1]Cl" },
+    { id: "xover_n_cap", label: "Crossover: N-cap from partner", smarts: "[NH:1]>>[N:1]C" },
+  ];
+  const transforms = [...hybridSmarts, pickTransform()];
+  for (const transform of transforms) {
+    const products = productsFromReaction(RDKit, a, transform.smarts);
+    for (const raw of products.slice(0, 8)) {
+      const canon = canonicalizeSmiles(RDKit, raw);
+      if (!canon) {
+        discarded.parseFail += 1;
+        continue;
+      }
+      if (seen.has(canon) || canon === a || canon === b) {
+        discarded.duplicate += 1;
+        continue;
+      }
+      seen.add(canon);
+      variants.push({
+        smiles: canon,
+        parentSmiles: a,
+        parentSmilesB: b,
+        editId: transform.id,
+        editLabel: transform.label,
+        operator: "crossover",
+      });
+      if (variants.length >= limit) break;
+    }
+    if (variants.length >= limit) break;
+  }
+  return { variants, discarded };
+}
+
+export function generateOffspring(RDKit, parents, { seen, limit, bucketMap } = {}) {
+  const variants = [];
+  const discarded = { parseFail: 0, duplicate: 0 };
+  const mutationTarget = Math.ceil(limit * 0.6);
+  const crossoverTarget = Math.ceil(limit * 0.3);
+  let mCount = 0;
+  let xCount = 0;
+
+  for (const parent of parents) {
+    if (mCount >= mutationTarget) break;
+    const produced = generateValidatedVariants(RDKit, parent.smiles, {
+      seen,
+      limit: Math.min(8, mutationTarget - mCount),
+    });
+    discarded.parseFail += produced.discarded.parseFail;
+    discarded.duplicate += produced.discarded.duplicate;
+    for (const v of produced.variants) {
+      variants.push({ ...v, operator: "mutation", parentIds: [parent.smiles] });
+      mCount += 1;
+    }
+  }
+
+  while (xCount < crossoverTarget && parents.length >= 2) {
+    const a = parents[Math.floor(Math.random() * parents.length)];
+    let b = parents[Math.floor(Math.random() * parents.length)];
+    if (bucketMap && Math.random() < 0.7) {
+      const otherBucket = parents.filter((p) => (p.bucket || "") !== (a.bucket || ""));
+      if (otherBucket.length) b = otherBucket[Math.floor(Math.random() * otherBucket.length)];
+    }
+    const xo = crossoverVariants(RDKit, a.smiles, b.smiles, { seen, limit: 2 });
+    discarded.parseFail += xo.discarded.parseFail;
+    discarded.duplicate += xo.discarded.duplicate;
+    for (const v of xo.variants) {
+      variants.push({ ...v, operator: "crossover", parentIds: [a.smiles, b.smiles] });
+      xCount += 1;
+    }
+    if (!xo.variants.length) break;
+  }
+
+  return { variants: variants.slice(0, limit), discarded };
+}
 
 export function detectReactionSupport(RDKit) {
   if (!RDKit) return { reactions: false, reason: "RDKit WASM not loaded" };
@@ -179,7 +273,10 @@ export function generateValidatedVariants(RDKit, parentSmiles, { seen = new Set(
     return { parent, variants, discarded, reactionSupport: support };
   }
   const bag = [];
-  for (const transform of EVOLUTION_TRANSFORMS) {
+  const pool = EVOLUTION_TRANSFORMS;
+  const sampleSize = Math.min(pool.length, 48);
+  const transforms = pool.slice().sort(() => Math.random() - 0.5).slice(0, sampleSize);
+  for (const transform of transforms) {
     const products = productsFromReaction(RDKit, parent, transform.smarts);
     for (const raw of products) {
       const canon = canonicalizeSmiles(RDKit, raw);
