@@ -16,6 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from lib.chembl import chembl_id_for_target
 from lib.metrics import bootstrap_auc_ci, enrichment_factor, roc_auc
 from lib.session import DockingSession, load_config
 
@@ -35,17 +36,6 @@ TRAIN_FRAC = 0.55
 def _get_json(url: str) -> dict:
     with urllib.request.urlopen(url, timeout=120) as resp:
         return json.loads(resp.read().decode())
-
-
-def target_chembl_id(gene: str) -> str | None:
-    q = urllib.parse.urlencode({"pref_name__icontains": gene, "limit": 10})
-    url = f"https://www.ebi.ac.uk/chembl/api/data/target.json?{q}"
-    data = _get_json(url)
-    for t in data.get("targets") or []:
-        if gene.upper() in (t.get("pref_name") or "").upper():
-            return t.get("target_chembl_id")
-    targets = data.get("targets") or []
-    return targets[0].get("target_chembl_id") if targets else None
 
 
 def fetch_compounds(target_chembl: str, active: bool) -> list[dict]:
@@ -93,7 +83,7 @@ def main() -> None:
     work = ROOT / "cache" / "runs"
     results = []
     for panel in ENRICHMENT_PANEL:
-        tid = target_chembl_id(panel["gene"])
+        tid = chembl_id_for_target(panel["gene"])
         if not tid:
             print(f"skip {panel['target_id']}: no ChEMBL target", flush=True)
             continue

@@ -12,8 +12,24 @@ def _get_json(url: str) -> dict | list:
         return json.loads(resp.read().decode())
 
 
+GENE_TO_CHEMBL_TARGET = {
+    "EGFR": "CHEMBL203",
+    "PDE5A": "CHEMBL1827",
+    "JAK2": "CHEMBL2971",
+    "ABL1": "CHEMBL1862",
+    "BRAF": "CHEMBL279",
+    "ESR1": "CHEMBL206",
+    "PTGS2": "CHEMBL230",
+    "DPP4": "CHEMBL284",
+    "ADRB2": "CHEMBL210",
+    "F2": "CHEMBL204",
+}
+
+
 def chembl_id_for_target(gene_symbol: str) -> str | None:
     gene = gene_symbol.upper()
+    if gene in GENE_TO_CHEMBL_TARGET:
+        return GENE_TO_CHEMBL_TARGET[gene]
     queries = [
         {"target_synonym__iexact": gene, "limit": 10},
         {"pref_name__icontains": gene, "target_type": "SINGLE PROTEIN", "limit": 15},

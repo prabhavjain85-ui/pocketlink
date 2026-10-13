@@ -1,0 +1,50 @@
+{
+  "generated_at": "2026-10-13T12:40:51.841662+00:00",
+  "targets": [
+    {
+      "target_id": "egfr",
+      "gene": "EGFR",
+      "chembl_target": "CHEMBL203",
+      "n_test_actives": 15,
+      "n_test_decoys": 50,
+      "n_train_actives": 21,
+      "n_train_decoys": 48,
+      "roc_auc": 0.636,
+      "roc_auc_ci_95": [
+        0.45938375350140054,
+        0.7906666666666666
+      ],
+      "ef1pct": 0.0
+    },
+    {
+      "target_id": "jak2",
+      "gene": "JAK2",
+      "chembl_target": "CHEMBL2971",
+      "n_test_actives": 16,
+      "n_test_decoys": 40,
+      "n_train_actives": 20,
+      "n_train_decoys": 57,
+      "roc_auc": 0.74375,
+      "roc_auc_ci_95": [
+        0.5890625,
+        0.8702865761689291
+      ],
+      "ef1pct": 3.5
+    },
+    {
+      "target_id": "pde5a",
+      "gene": "PDE5A",
+      "chembl_target": "CHEMBL1827",
+      "n_test_actives": 18,
+      "n_test_decoys": 38,
+      "n_train_actives": 18,
+      "n_train_decoys": 56,
+      "roc_auc": 0.7997076023391813,
+      "roc_auc_ci_95": [
+        0.6681749622926093,
+        0.9108187134502924
+      ],
+      "ef1pct": 0.0
+    }
+  ]
+}
