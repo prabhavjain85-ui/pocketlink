@@ -88,3 +88,10 @@ Spearman ρ (inverted Vina score vs ChEMBL pChEMBL median): **-0.545** (95% boot
 - Panel and per-drug metrics use the same Vina prep; failures are not tuned away by swapping PDB entries.
 - Vina scores are not calibrated affinities; Spearman uses sparse ChEMBL pairings across heterogeneous targets.
 - Enrichment decoys are ChEMBL weak binders (train/test split by molecule ID); not DUD-E matched decoys.
+
+## TODO (not blocking merge)
+
+- [ ] Fix co-crystal **ligand resnames** in `approved_25_drugs.json` where PDB extraction failed (losartan, HIV PR set, nirmatrelvir, raloxifene, warfarin, indinavir).
+- [ ] Report **multi-seed** redock stats on the 25-drug panel (currently single seed per drug).
+- [ ] Re-run enrichment with **property-matched decoys** (e.g. DUD-E) and additional targets beyond EGFR/JAK2/PDE5A.
+- [ ] Document EGFR **1M17** seed variance explicitly in the redock table footnote (best ≤2 Å but median ~5.9 Å).
