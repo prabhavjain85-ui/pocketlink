@@ -2,6 +2,8 @@
 
 Retrospective validation of **heuristic-v2** (`rankCandidatesLocal` in `src/scoreCandidates.js`) — the same deterministic engine that powers Staging Bench numeric scores and repurposing batch ranks.
 
+**Docking in the app:** molecular docking is **unvalidated** and **disabled** in production (`DOCKING_ENGINE_ENABLED = false` in `src/featureFlags.js`). Scripts here may run optional docking baselines or redock diagnostics locally; those results do not reflect what end users see in the UI.
+
 ## Files
 
 | File | Purpose |

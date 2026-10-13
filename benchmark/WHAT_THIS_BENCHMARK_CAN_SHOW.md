@@ -1,5 +1,7 @@
 # What this benchmark can and cannot show
 
+**App docking:** in-product molecular docking is **unvalidated** and **turned off** (`DOCKING_ENGINE_ENABLED = false`). This document describes offline ranking benchmarks only; any redock/Vina numbers in the repo are diagnostic and separate from the shipped app.
+
 ## What it can show
 
 - **Cluster-held-out screening performance** on three DUD-E targets (DPP4, ADRB2, JAK2) when test actives are Murcko-scaffold disjoint from reference actives, with property-matched decoys assigned independently per test active (nearest-50 from the DUD-E pool; repeats allowed).

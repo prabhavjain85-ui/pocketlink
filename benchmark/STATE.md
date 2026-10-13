@@ -2,6 +2,8 @@
 
 This branch carries **benchmark tooling and committed summary results only** — no docking UI, Vina service, or scoring changes in `src/`.
 
+**Shipped app:** molecular docking is **unvalidated** and **disabled** for users (`DOCKING_ENGINE_ENABLED = false` in `src/featureFlags.js`). Do not interpret redock or Vina screening summaries here as product-ready docking.
+
 ## What was decided
 
 1. **Honest reporting split**
