@@ -1,5 +1,6 @@
 import { clampSettings, DEFAULT_EVOLUTION_SETTINGS } from "./evolutionEngine";
 import { EVOLUTION_TRANSFORMS } from "./evolutionTransforms";
+import { manifestStats } from "./evolution/transformManifest";
 import { evolutionCacheKey } from "./evolutionScore";
 
 test("default settings stay in the documented band", () => {
@@ -12,6 +13,7 @@ test("default settings stay in the documented band", () => {
 });
 
 test("transform catalog is curated SMARTS, not model text", () => {
+  expect(manifestStats().total).toBeGreaterThanOrEqual(250);
   expect(EVOLUTION_TRANSFORMS.length).toBeGreaterThan(8);
   for (const row of EVOLUTION_TRANSFORMS) {
     expect(row.smarts).toContain(">>");

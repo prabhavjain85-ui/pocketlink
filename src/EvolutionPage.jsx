@@ -23,6 +23,30 @@ const IMATINIB =
 const HYPOTHESIS_NOTE =
   "These are computationally generated hypotheses scored by heuristic models. They have not been synthesized or tested, may be difficult or impossible to make, and the scores are for prioritizing ideas, not evidence of activity.";
 
+function ProvenanceBadge({ text }) {
+  return <span className="history-type-badge badge-pdb" title={text}>{text}</span>;
+}
+
+function ScoreBreakdown({ fitness, saScore, qed, provenance }) {
+  if (!fitness) return null;
+  return (
+    <div className="evo-breakdown">
+      <div className="hint">
+        <ProvenanceBadge text={provenance || "Heuristic"} /> · {fitness.formula}
+      </div>
+      <ul className="methodology-bullet-list">
+        {fitness.contributions?.map((c) => (
+          <li key={c.key}>
+            {c.key}: d={Number(c.d).toFixed(2)} (w={c.w}) · log contrib {Number(c.logContribution).toFixed(3)}
+            {c.raw != null ? ` · raw ${Number(c.raw).toFixed(3)}` : ""}
+          </li>
+        ))}
+      </ul>
+      <div className="hint">SA {saScore ?? "n/a"} · QED {qed != null ? Number(qed).toFixed(2) : "n/a"} · composite {fitness.displayScore}/100</div>
+    </div>
+  );
+}
+
 function ScoreChart({ history }) {
   const points = history || [];
   if (!points.length) return null;
@@ -82,6 +106,8 @@ export default function EvolutionPage() {
   const [runtimeLog, setRuntimeLog] = useState([]);
   const [reactionSupport, setReactionSupport] = useState(null);
   const [saSupport, setSaSupport] = useState(null);
+  const [runMetrics, setRunMetrics] = useState([]);
+  const [targetFree, setTargetFree] = useState(true);
   const [svgs, setSvgs] = useState({});
   const abortRef = useRef(0);
 
@@ -136,8 +162,10 @@ export default function EvolutionPage() {
     setError("");
     setHistory([]);
     setFinals([]);
-    setRuntimeLog([]);
-    setProgress("Seeding parent…");
+      setRuntimeLog([]);
+      setRunMetrics([]);
+      setTargetFree(!protein?.id);
+      setProgress("Seeding parent…");
     try {
       const seeded = await seedParent({ smiles, protein, name });
       if (my !== abortRef.current) return;
@@ -148,7 +176,9 @@ export default function EvolutionPage() {
       setSeed(seeded.parent);
       await renderSvgs([seeded.parent]);
       const seen = new Set([seeded.parent.smiles]);
+      const archiveSmiles = [seeded.parent.smiles];
       let parents = [seeded.parent];
+      let rescueNext = false;
       const hist = [{ generation: 0, best: seeded.parent.score, average: seeded.parent.score, valid: 1, discarded: 0 }];
       setHistory(hist);
       let lastSupport = reactionSupport;
@@ -159,10 +189,12 @@ export default function EvolutionPage() {
           parents,
           protein,
           referenceSmiles: seeded.parent.smiles,
+          archiveSmiles,
           seen,
           variantsPerGeneration: cfg.variantsPerGeneration,
           survivors: cfg.survivors,
           generationIndex: g,
+          rescueBoost: rescueNext,
         });
         if (my !== abortRef.current) return;
         if (!result.ok) {
@@ -173,9 +205,12 @@ export default function EvolutionPage() {
         setReactionSupport(lastSupport);
         hist.push(result.historyPoint);
         setHistory([...hist]);
+        for (const s of result.survivors || []) archiveSmiles.push(s.smiles);
+        setRunMetrics((prev) => [...prev, { generation: g, ...(result.metrics || {}), rescue: result.rescue }]);
+        rescueNext = Boolean(result.rescue);
         setRuntimeLog((prev) => [
           ...prev,
-          `Generation ${g}: ${result.valid} valid, ${result.discardedTotal} discarded, ${result.ms} ms`,
+          `Generation ${g}: ${result.valid} valid, ${result.discardedTotal} discarded, diversity ${result.metrics?.diversity ?? "n/a"}, scaffolds ${result.metrics?.distinctScaffolds ?? "n/a"}${result.rescue ? " · diversity rescue next" : ""}, ${result.ms} ms`,
         ]);
         setProgress(
           `Generation ${g} of ${cfg.generations}: ${result.valid} valid variants scored (${result.discardedTotal} discarded, ${result.ms} ms)`
@@ -231,8 +266,12 @@ export default function EvolutionPage() {
       <div className="limitation-callout" style={{ marginBottom: 20 }}>
         <div className="limitation-header">
           <span className="limitation-badge">Honest labeling</span>
+          {targetFree && <span className="history-type-badge badge-discovery" style={{ marginLeft: 8 }}>Property optimization only — no target staged</span>}
         </div>
-        <p className="limitation-body">{HYPOTHESIS_NOTE}</p>
+        <p className="limitation-body">
+          {HYPOTHESIS_NOTE} Docking and affinity predictions are experimental when enabled elsewhere; this run uses{" "}
+          <strong>{targetFree ? "heuristic multi-objective scoring without target affinity" : "heuristic scoring with target context (no validated docking in-loop)"}</strong>.
+        </p>
       </div>
 
       <div className="evo-grid">
@@ -271,8 +310,9 @@ export default function EvolutionPage() {
           <div className="hint">
             RDKit reactions: {reactionSupport ? (reactionSupport.reactions ? "available" : `unavailable (${reactionSupport.reason})`) : "checking…"}
             {" · "}
-            SA score: {saSupport ? (saSupport.saScore ? "available" : "not in this WASM build — skipped") : "checking…"}
+            SA score: {saSupport ? (saSupport.saScore ? saSupport.reason : "unavailable") : "checking…"}
           </div>
+          {seed?.fitness && <ScoreBreakdown fitness={seed.fitness} saScore={seed.saScore} qed={seed.qed} provenance={seed.provenance} />}
         </Panel>
       </div>
 
@@ -285,6 +325,24 @@ export default function EvolutionPage() {
             ))}
           </ul>
           {runtimeLog.length > 0 && <pre className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap" }}>{runtimeLog.join("\n")}</pre>}
+          {runMetrics.length > 0 && (
+            <table className="score-table" style={{ marginTop: 12 }}>
+              <thead>
+                <tr><th>Gen</th><th>Diversity</th><th>Scaffolds</th><th>Max bucket</th><th>Rescue</th></tr>
+              </thead>
+              <tbody>
+                {runMetrics.map((m) => (
+                  <tr key={m.generation}>
+                    <td>{m.generation}</td>
+                    <td>{m.diversity}</td>
+                    <td>{m.distinctScaffolds}</td>
+                    <td>{m.maxBucketShare}</td>
+                    <td>{m.rescue ? "yes" : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </Panel>
       )}
 
@@ -333,7 +391,11 @@ export default function EvolutionPage() {
                       <div className="mono">{row.smiles}</div>
                       <div className="hint">{row.editLabel}</div>
                     </td>
-                    <td className="mono">{row.score}/100</td>
+                    <td className="mono">
+                      <ProvenanceBadge text={row.provenance || "Heuristic"} />
+                      {row.score}/100
+                      <ScoreBreakdown fitness={row.fitness} saScore={row.saScore} qed={row.qed} provenance={row.provenance} />
+                    </td>
                     <td>
                       Lipinski {row.admeFlags?.lipinskiPass ? "pass" : "flag"} · Veber {row.admeFlags?.veberPass ? "pass" : "flag"}
                       {row.organFlags?.length ? ` · organ: ${row.organFlags.join(", ")}` : " · no organ flags"}
@@ -360,7 +422,7 @@ export default function EvolutionPage() {
           <ul className="methodology-bullet-list">
             {finals.map((row) => (
               <li key={`lin-${row.smiles}`}>
-                <span className="mono">{row.smiles}</span> from {row.parentSmiles || "seed"} via {row.editLabel} ({row.delta >= 0 ? "+" : ""}{Number(row.delta || 0).toFixed(1)})
+                <span className="mono">{row.smiles}</span> ← {row.lineage?.operator || "mutation"} ({row.lineage?.label || row.editLabel}) parent(s): {(row.lineage?.parents || [row.parentSmiles]).join(" + ")} Δ {row.delta >= 0 ? "+" : ""}{Number(row.delta || 0).toFixed(1)}
               </li>
             ))}
           </ul>

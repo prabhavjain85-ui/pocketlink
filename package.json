@@ -8,6 +8,7 @@
     "@rdkit/rdkit": "^2025.3.4-1.0.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "openchemlib": "^9.25.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-helmet-async": "^3.0.0",
@@ -17,7 +18,8 @@
   "scripts": {
     "dev": "PORT=3000 HOST=0.0.0.0 BROWSER=none react-scripts start",
     "start": "PORT=3000 HOST=0.0.0.0 BROWSER=none react-scripts start",
-    "build": "BUILD_PATH=dist react-scripts build && node scripts/inject-seo-html.mjs",
+    "build:sa-assets": "node scripts/build-sa-folded-remap.mjs && node scripts/build-sa-calibration.mjs",
+    "build": "npm run build:sa-assets && BUILD_PATH=dist react-scripts build && node scripts/inject-seo-html.mjs",
     "lint": "eslint src --ext .js,.jsx --max-warnings=10",
     "test": "react-scripts test",
     "build:trial-rates": "node scripts/build-trial-success-rates.mjs",
