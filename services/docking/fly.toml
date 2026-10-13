@@ -3,7 +3,7 @@
 # Deploy from repo root: fly deploy --config services/docking/fly.toml
 
 app = "targetforge-docking"
-primary_region = "iad"
+primary_region = "bom"
 
 # Deploy from repository root: fly deploy . --config services/docking/fly.toml
 [build]

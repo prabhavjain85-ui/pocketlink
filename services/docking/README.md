@@ -61,7 +61,7 @@ Prerequisites: [Fly CLI](https://fly.io/docs/hands-on/install-flyctl/), billing 
 fly apps create targetforge-docking
 
 # 2. Create persistent volume for job/cache data (once, in primary region)
-fly volumes create docking_data --region iad --size 10
+fly volumes create docking_data --region bom --size 10
 
 # 3. Set secrets
 fly secrets set \
