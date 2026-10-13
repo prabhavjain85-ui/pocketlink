@@ -7,9 +7,11 @@ import {
 } from "./dockingEngine";
 import DockingViewer from "./DockingViewer";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
-import { DOCKING_ENGINE_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
+import { DOCKING_ENABLED, DOCKING_ENGINE_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
 import ReportExportButtons from "./ReportExportButtons";
 import { buildDockingReportMarkdown, defaultReportFilename } from "./reportExport";
+
+const dockingUiEnabled = () => DOCKING_ENABLED || DOCKING_ENGINE_ENABLED;
 
 function DockingUnavailableView() {
   return (
@@ -31,7 +33,7 @@ function DockingUnavailableView() {
         {DOCKING_UNAVAILABLE_NOTICE}
       </div>
       <p style={{ marginTop: 16, fontSize: "14px", color: "var(--text-dim)", lineHeight: 1.5 }}>
-        The in-browser docking engine is disabled while co-crystal redocking validation is in progress. No binding
+        Production AutoDock Vina docking is disabled while co-crystal redocking validation is in progress. No binding
         scores or poses are shown. See the{" "}
         <Link to="/methodology#validation-benchmark">Methodology validation section</Link> for current status.
       </p>
@@ -105,17 +107,31 @@ export default function DockingPage() {
     setProgressMsg(`Downloading crystallographic structure for ${targetPdb} from RCSB PDB...`);
 
     try {
-      const pdbText = await fetchPdbFromRcsb(targetPdb);
-
-      const res = await runMolecularDocking(pdbText, ligandSmiles, {
-        customCenter: centerOverride || customCenter,
-        boxSize,
-        searchExhaustiveness,
-        onProgress: (p) => {
-          setProgressPercent(p.percent);
-          setProgressMsg(p.message);
-        },
-      });
+      let res;
+      if (DOCKING_ENABLED) {
+        const { runRemoteDocking } = await import("./dockingApi");
+        res = await runRemoteDocking({
+          pdbId: targetPdb,
+          smiles: ligandSmiles,
+          targetTitle,
+          compoundName: name || compoundNameInput,
+          onProgress: (p) => {
+            setProgressPercent(Math.min(99, p.percent || 0));
+            setProgressMsg(p.message || "Running AutoDock Vina…");
+          },
+        });
+      } else {
+        const pdbText = await fetchPdbFromRcsb(targetPdb);
+        res = await runMolecularDocking(pdbText, ligandSmiles, {
+          customCenter: centerOverride || customCenter,
+          boxSize,
+          searchExhaustiveness,
+          onProgress: (p) => {
+            setProgressPercent(p.percent);
+            setProgressMsg(p.message);
+          },
+        });
+      }
 
       setDockingResults(res);
       setActivePose(res.bestPose);
@@ -131,7 +147,7 @@ export default function DockingPage() {
 
   // Run on first mount or when URL search parameters change (enabled engine only)
   useEffect(() => {
-    if (!DOCKING_ENGINE_ENABLED) return;
+    if (!dockingUiEnabled()) return;
     const urlPdb = searchParams.get("pdb");
     const urlSmiles = searchParams.get("smiles");
     const urlName = searchParams.get("name");
@@ -241,7 +257,7 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
     }
   };
 
-  if (!DOCKING_ENGINE_ENABLED) {
+  if (!dockingUiEnabled()) {
     return <DockingUnavailableView />;
   }
 
@@ -263,10 +279,12 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
               letterSpacing: "0.5px",
             }}
           >
-            Native Molecular Docking
+            {DOCKING_ENABLED ? "AutoDock Vina Docking" : "Native Molecular Docking"}
           </span>
           <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-            In-Browser Empirical Force Field &amp; Pose Minimization
+            {DOCKING_ENABLED
+              ? "Remote Vina 1.2.x service (RDKit / Meeko prep)"
+              : "In-Browser Empirical Force Field & Pose Minimization"}
           </span>
         </div>
         <h1
@@ -290,9 +308,24 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
           }}
         >
           Compute binding free energy (ΔG_bind), estimate inhibition constants (Ki), and inspect 3D poses in
-          crystallographic binding pockets — simulated in-browser. Supports structure-based prioritization, not
-          experimental binding confirmation.
+          crystallographic binding pockets
+          {DOCKING_ENABLED ? " via the production Vina service" : " — simulated in-browser"}. Supports
+          structure-based prioritization, not experimental binding confirmation.
         </p>
+        {DOCKING_ENABLED && (
+          <p
+            style={{
+              margin: "10px 0 0",
+              fontSize: "13px",
+              color: "var(--amber)",
+              fontWeight: 600,
+              lineHeight: 1.5,
+            }}
+          >
+            Binding scores and poses are computational estimates only. They are not measured affinities and should not
+            be used as the sole basis for lead decisions.
+          </p>
+        )}
       </div>
 
       {/* Target & Ligand Configuration Panel */}
@@ -775,7 +808,7 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
                 >
                   {copiedReport ? "Report Copied ✓" : "Copy Docking Report"}
                 </button>
-                {DOCKING_ENGINE_ENABLED && (
+                {dockingUiEnabled() && (
                   <ReportExportButtons
                     compact
                     label="Export report"
