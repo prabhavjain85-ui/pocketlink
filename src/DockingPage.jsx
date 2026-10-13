@@ -37,9 +37,11 @@ function DockingPrototypeBanner() {
   );
 }
 
+const DockingDemoPanel = React.lazy(() => import("./DockingDemoPanel"));
+
 function DockingServiceUnavailableView({ detail }) {
   return (
-    <div className="docking-page-container" style={{ maxWidth: "720px", margin: "0 auto 48px" }}>
+    <div className="docking-page-container" style={{ maxWidth: "1120px", margin: "0 auto 48px" }}>
       <h1 style={{ margin: "0 0 12px", fontSize: "26px", fontWeight: 700 }}>Molecular Docking</h1>
       <DockingPrototypeBanner />
       <div
@@ -59,8 +61,11 @@ function DockingServiceUnavailableView({ detail }) {
       </div>
       <p style={{ marginTop: 16, fontSize: "14px", color: "var(--text-dim)", lineHeight: 1.5 }}>
         {detail ||
-          "The AutoDock Vina backend is not reachable yet. This page will work once the Fly.io service is deployed and DOCKING_SERVICE_URL is set on Vercel. You can still use the rest of TargetForge in the meantime."}
+          "The AutoDock Vina backend is not reachable yet. This page will work once the Fly.io service is deployed and DOCKING_SERVICE_URL is set on Vercel. You can still explore precomputed demo poses below."}
       </p>
+      <React.Suspense fallback={<p style={{ fontSize: "13px", color: "var(--text-dim)" }}>Loading demo…</p>}>
+        <DockingDemoPanel embedded />
+      </React.Suspense>
     </div>
   );
 }
@@ -124,6 +129,7 @@ export default function DockingPage() {
     DOCKING_ENABLED ? "checking" : "ready"
   );
   const [serviceUnavailableMessage, setServiceUnavailableMessage] = useState("");
+  const [showDemo, setShowDemo] = useState(false);
 
   // Active bench target & candidates
   const benchTarget = useMemo(() => {
@@ -365,6 +371,21 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
   return (
     <div className="docking-page-container" style={{ maxWidth: "1120px", margin: "0 auto 48px" }}>
       <DockingPrototypeBanner />
+      <div style={{ marginBottom: "16px", display: "flex", justifyContent: "flex-end" }}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ fontSize: "12px" }}
+          onClick={() => setShowDemo((v) => !v)}
+        >
+          {showDemo ? "Hide demo" : "Try demo"}
+        </button>
+      </div>
+      {showDemo && (
+        <React.Suspense fallback={<p style={{ fontSize: "13px", color: "var(--text-dim)" }}>Loading demo…</p>}>
+          <DockingDemoPanel onClose={() => setShowDemo(false)} />
+        </React.Suspense>
+      )}
       {/* Page Title & Mission */}
       <div style={{ marginBottom: "24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>

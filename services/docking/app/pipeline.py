@@ -48,9 +48,11 @@ def fetch_pdb_text(pdb_id: str) -> str:
     return text
 
 
-def _parse_ligand_atoms(pdb_text: str) -> tuple[list[dict[str, float]], Optional[str]]:
+def _parse_ligand_atoms(
+    pdb_text: str, ligand_resname: Optional[str] = None
+) -> tuple[list[dict[str, float]], Optional[str]]:
     atoms: list[dict[str, float]] = []
-    resname: Optional[str] = None
+    resname: Optional[str] = ligand_resname.strip().upper() if ligand_resname else None
     for line in pdb_text.splitlines():
         if not line.startswith("HETATM"):
             continue
@@ -105,7 +107,10 @@ def _protonate_receptor_pdb(receptor_pdb: Path, ph: float) -> Path:
     """Protonate receptor at target pH using reduce (Richardson lab)."""
     out = receptor_pdb.with_suffix(".h.pdb")
     cmd = ["reduce", "-Quiet", "-FLIP", f"-DB{ph:.1f}", str(receptor_pdb)]
-    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    except FileNotFoundError:
+        return receptor_pdb
     if proc.returncode != 0 or not proc.stdout.strip():
         # Fall back to unprepared receptor if reduce is unavailable.
         return receptor_pdb
@@ -123,24 +128,33 @@ def _prepare_receptor_pdbqt(receptor_pdb: Path) -> Path:
 
 
 def _prepare_ligand_pdbqt(smiles: str, work_dir: Path) -> Path:
-    from meeko import MoleculePreparation, PDBQTWriterLegacy
-    from rdkit import Chem
-    from rdkit.Chem import AllChem
-
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        raise ValueError("RDKit could not parse SMILES.")
-    mol = Chem.AddHs(mol)
-    AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
-    AllChem.MMFFOptimizeMolecule(mol)
-
-    preparer = MoleculePreparation()
-    prep = preparer.prepare(mol)
-    writer = PDBQTWriterLegacy()
-    pdbqt = writer.write_string(prep)
     out = work_dir / "ligand.pdbqt"
-    out.write_text(pdbqt, encoding="utf-8")
-    return out
+    try:
+        from meeko import MoleculePreparation, PDBQTWriterLegacy
+        from rdkit import Chem
+        from rdkit.Chem import AllChem
+
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            raise ValueError("RDKit could not parse SMILES.")
+        mol = Chem.AddHs(mol)
+        AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
+        AllChem.MMFFOptimizeMolecule(mol)
+
+        preparer = MoleculePreparation()
+        prep = preparer.prepare(mol)
+        writer = PDBQTWriterLegacy()
+        pdbqt = writer.write_string(prep)
+        out.write_text(pdbqt, encoding="utf-8")
+        return out
+    except Exception:
+        smi_path = work_dir / "ligand.smi"
+        smi_path.write_text(smiles.strip() + "\n", encoding="utf-8")
+        cmd = ["obabel", str(smi_path), "-O", str(out), "--gen3d", "-h", "--partialcharge", "gasteiger"]
+        proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        if proc.returncode != 0 or not out.is_file():
+            raise RuntimeError(f"Open Babel ligand prep failed: {proc.stderr or proc.stdout}")
+        return out
 
 
 def _run_vina(
@@ -151,8 +165,9 @@ def _run_vina(
     log_path: Path,
 ) -> list[dict[str, Any]]:
     eng = _engine()
+    vina_bin = __import__("os").environ.get("VINA_BINARY") or eng.get("vinaBinary", "vina")
     cmd = [
-        eng.get("vinaBinary", "vina"),
+        vina_bin,
         "--receptor",
         str(receptor_pdbqt),
         "--ligand",
@@ -288,6 +303,7 @@ def run_docking_pipeline(
     work_dir: Path,
     on_progress: Optional[ProgressFn] = None,
     deadline: Optional[float] = None,
+    ligand_resname: Optional[str] = None,
 ) -> dict[str, Any]:
     if SKIP_VINA:
         if on_progress:
@@ -304,7 +320,7 @@ def run_docking_pipeline(
     pdb_text = fetch_pdb_text(pdb_id)
 
     tick(15.0, "Deriving search box from co-crystal ligand")
-    lig_atoms, lig_name = _parse_ligand_atoms(pdb_text)
+    lig_atoms, lig_name = _parse_ligand_atoms(pdb_text, ligand_resname=ligand_resname)
     box = _box_from_ligand(lig_atoms)
 
     tick(25.0, "Preparing receptor at pH 7.4")
