@@ -1,0 +1,16 @@
+name: base
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - rdkit=2024.03.5
+  - openbabel=3.1.1
+  - autodock-vina=1.2.5
+  - reduce
+  - pip
+  - pip:
+      - meeko==0.5.0
+      - fastapi==0.115.6
+      - uvicorn[standard]==0.32.1
+      - httpx==0.28.1
+      - pydantic==2.10.3

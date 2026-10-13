@@ -1,0 +1,37 @@
+# Fly.io app config for TargetForge docking service.
+# Create the app once: fly apps create targetforge-docking
+# Deploy from repo root: fly deploy --config services/docking/fly.toml
+
+app = "targetforge-docking"
+primary_region = "bom"
+
+# Deploy from repository root: fly deploy . --config services/docking/fly.toml
+[build]
+  dockerfile = "services/docking/Dockerfile"
+
+[env]
+  ENGINE_CONFIG_PATH = "/app/benchmark/docking/engine.config.json"
+  DOCKING_WORK_DIR = "/data/jobs"
+  DOCKING_CACHE_DIR = "/data/cache"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 4
+    soft_limit = 2
+
+[[vm]]
+  memory = "2gb"
+  cpu_kind = "shared"
+  cpus = 2
+
+[mounts]
+  source = "docking_data"
+  destination = "/data"

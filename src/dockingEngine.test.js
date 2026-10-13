@@ -1,8 +1,3 @@
-jest.mock("./featureFlags", () => ({
-  DOCKING_ENGINE_ENABLED: true,
-  DOCKING_UNAVAILABLE_NOTICE: "Docking is under validation and currently unavailable.",
-}));
-
 import {
   parsePdbStructure,
   extractPocketAtoms,
@@ -14,6 +9,11 @@ import {
   runMolecularDocking,
   DOCKING_REFERENCE_TARGETS,
 } from "./dockingEngine";
+
+jest.mock("./featureFlags", () => ({
+  DOCKING_ENGINE_ENABLED: true,
+  DOCKING_UNAVAILABLE_NOTICE: "Docking is under validation and currently unavailable.",
+}));
 
 describe("Molecular Docking Engine", () => {
   const SAMPLE_PDB = `HEADER    KINASE                                  09-MAY-01   1IEP

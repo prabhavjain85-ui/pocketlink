@@ -16,7 +16,7 @@ import AdversarialCritique from "./AdversarialCritique";
 import ReportExportButtons from "./ReportExportButtons";
 import { buildRepurposingReportMarkdown, defaultReportFilename } from "./reportExport";
 import HistoricalTrialSuccessContext from "./HistoricalTrialSuccessContext";
-import { DOCKING_ENGINE_ENABLED } from "./featureFlags";
+import { DOCKING_ENABLED, DOCKING_ENGINE_ENABLED } from "./featureFlags";
 import {
   ACTIVE_STATE_KEYS,
   getActiveState,
@@ -133,7 +133,7 @@ function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page
                         >
                           ADME →
                         </Link>
-                        {DOCKING_ENGINE_ENABLED && (
+                        {(DOCKING_ENABLED || DOCKING_ENGINE_ENABLED) && (
                           <Link
                             to={`/docking?pdb=${encodeURIComponent(target?.id || "1IEP")}&smiles=${encodeURIComponent(r.canonicalSmiles || r.smiles || "")}&name=${encodeURIComponent(r.name || "")}&cid=${r.cid}`}
                             style={{

@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0.0",
+  "description": "Canonical AutoDock Vina docking engine settings for TargetForge. Consumed by benchmark/docking pipelines and services/docking.",
+  "engine": {
+    "name": "autodock_vina",
+    "vinaVersion": "1.2.5",
+    "vinaBinary": "vina",
+    "seed": 42,
+    "exhaustiveness": 8,
+    "numModes": 9,
+    "energyRange": 3.0
+  },
+  "chemistry": {
+    "rdkitVersion": "2024.03.5",
+    "meekoVersion": "0.5.0",
+    "openBabelVersion": "3.1.1",
+    "receptorPh": 7.4,
+    "ligandPrep": "meeko",
+    "receptorPrep": "meeko_reduce_ph"
+  },
+  "box": {
+    "source": "cocrystal_ligand",
+    "paddingAngstrom": 0.0,
+    "defaultSizeAngstrom": 20.0
+  },
+  "allowedPdbIds": [
+    "1IEP",
+    "1M17",
+    "3SN6",
+    "7BQY",
+    "4COX"
+  ],
+  "referenceComplexes": [
+    {
+      "pdbId": "1IEP",
+      "name": "Abl Tyrosine Kinase",
+      "referenceSmiles": "Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1",
+      "referenceLigandResname": "STI"
+    },
+    {
+      "pdbId": "1M17",
+      "name": "EGFR Kinase Domain",
+      "referenceSmiles": "COCCOC1=C(C=C2C(=C1)C(=NC=N2)NC3=CC=CC(=C3)C#C)OCCOC",
+      "referenceLigandResname": "AQ4"
+    },
+    {
+      "pdbId": "3SN6",
+      "name": "Beta-2 Adrenergic Receptor",
+      "referenceSmiles": "CC(C)NCC(O)COc1cccc2[nH]c3ccccc3c12",
+      "referenceLigandResname": "P0G"
+    },
+    {
+      "pdbId": "7BQY",
+      "name": "SARS-CoV-2 Main Protease",
+      "referenceSmiles": "CC(C)CC(NC(=O)OCc1ccccc1)C(=O)NC(C)C(=O)N",
+      "referenceLigandResname": "N3"
+    },
+    {
+      "pdbId": "4COX",
+      "name": "Cyclooxygenase-2",
+      "referenceSmiles": "Cc1ccc(-c2cc(C(F)(F)F)nn2-c2ccc(S(N)(=O)=O)cc2)cc1",
+      "referenceLigandResname": "SC5"
+    }
+  ],
+  "limits": {
+    "maxSmilesLength": 2000,
+    "maxConcurrentJobs": 2,
+    "jobTimeoutSeconds": 600,
+    "queueMaxPending": 32,
+    "rateLimitPerIpPerMinute": 12,
+    "cacheTtlSeconds": 86400
+  },
+  "smokeTest": {
+    "pdbId": "1IEP",
+    "smiles": "Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1",
+    "maxScoreKcalMol": -5.0
+  }
+}

@@ -1,6 +1,10 @@
 # TargetForge molecular docking benchmark (offline)
 
-Reproducible **AutoDock Vina 1.2.5** validation for pocketlink. Not wired to the web app (docking feature flag stays off).
+Reproducible **AutoDock Vina 1.2.5** validation for pocketlink. Production docking UI and the Fly.io service are controlled separately via `src/featureFlags.js`; this folder holds offline benchmarks and shared engine config.
+
+## Engine config (shared with production)
+
+`engine.config.json` is the **single versioned source of truth** for AutoDock Vina settings (pinned tool versions, fixed seed, pH 7.4 receptor prep, co-crystal box, allowed PDB IDs, and limits). The production service (`services/docking/`) and Vercel proxy read the same JSON at deploy time. Update it in place when redocking benchmarks pass.
 
 ## System dependencies
 
@@ -36,9 +40,10 @@ python benchmark/docking/scripts/run_redock_multiseed.py
 python benchmark/docking/scripts/run_25_drug_benchmark.py
 python benchmark/docking/scripts/run_enrichment.py   # slow; needs network
 python benchmark/docking/scripts/generate_results_md.py
+python benchmark/docking/scripts/validate_25_pairs.py
 ```
 
-Summary tables: `RESULTS.md`. Machine-readable summaries: `results/*.json`.
+Summary tables: `RESULTS.md`. Machine-readable summaries: `results/*.json` (including `pair_sanity_checks.json` for UI notices).
 
 ## Configuration
 

@@ -9,6 +9,18 @@
     },
     "api/contact.js": {
       "maxDuration": 10
+    },
+    "api/docking/health.js": {
+      "maxDuration": 10
+    },
+    "api/docking/jobs.js": {
+      "maxDuration": 30
+    },
+    "api/docking/jobs/[jobId].js": {
+      "maxDuration": 15
+    },
+    "api/docking/jobs/[jobId]/results.js": {
+      "maxDuration": 30
     }
   },
   "headers": [
