@@ -11,7 +11,10 @@ export function mulberry32(seed) {
   };
 }
 
-export function fisherYates(arr, rng = Math.random) {
+export function fisherYates(arr, rng) {
+  if (typeof rng !== "function") {
+    throw new Error("fisherYates requires a seeded rng function");
+  }
   const out = arr.slice();
   for (let i = out.length - 1; i > 0; i -= 1) {
     const j = Math.floor(rng() * (i + 1));

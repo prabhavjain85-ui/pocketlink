@@ -91,7 +91,10 @@ export function assignRanks(items, objectiveVectors) {
   }));
 }
 
-export function tournamentSelect(population, k = 3, rng = Math.random) {
+export function tournamentSelect(population, k = 3, rng) {
+  if (typeof rng !== "function") {
+    throw new Error("tournamentSelect requires a seeded rng function");
+  }
   const pick = () => population[Math.floor(rng() * population.length)];
   let best = pick();
   for (let i = 1; i < k; i += 1) {

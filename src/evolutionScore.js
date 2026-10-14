@@ -1,3 +1,4 @@
+import { getRDKit } from "./rdkitLoader";
 import { calculateAdmeProperties } from "./admeCalculator";
 import { pdbIdOf } from "./rankingCache";
 import { desirabilityBundle, computeNovelty } from "./evolution/evolutionDesirability";
@@ -5,12 +6,13 @@ import { calculateSaScore, preloadSaAssets, probeSaScoreSupport, detectSaScoreSu
 import { structuralAlerts, passesHardGates, elementSymbolsFromSmiles } from "./evolution/evolutionGates";
 import { checkPainsFast } from "./painsCheck";
 import { noveltyDistances } from "./evolution/evolutionFingerprint";
-import { computeQEDFromSmiles } from "./evolution/qedFromRdkit";
+import { computeQEDFromSmilesAsync, preloadQedAlerts } from "./evolution/qedFromRdkit";
+import { countBrenkAlerts } from "./evolution/brenkAlerts";
 import { loadApprovedDrugs } from "./approvedDrugs";
 import {
   getCachedAffinity,
   ligandEfficiency,
-  lle,
+  affinityLogPAdjusted,
 } from "./evolution/evolutionDocking";
 import { OnlineSurrogate, featurizeRow } from "./evolution/evolutionSurrogate";
 import { morganUint8 } from "./evolution/evolutionFingerprint";
@@ -128,6 +130,7 @@ export async function scoreEvolvedMolecule({
   editLabel,
   editId,
   affinityRow = null,
+  seedSimilarityFloor = 0.3,
 }) {
   const canon = String(smiles || "").trim();
   if (!canon) return { ok: false, error: "Empty SMILES" };
@@ -153,7 +156,11 @@ export async function scoreEvolvedMolecule({
     RotatableBondCount: props.rotb,
     TPSA: props.tpsa,
   };
-  const alerts = structuralAlerts(canon, candidate);
+  const brenkRdkit = RDKit ? await countBrenkAlerts(RDKit, canon) : { count: 0, hits: [] };
+  const alerts = structuralAlerts(canon, candidate, {
+    brenkExtra: brenkRdkit.count,
+    brenkNamesExtra: brenkRdkit.hits.map((h) => h.name),
+  });
   const heavyAtoms = Number(props.heavyAtoms ?? props.numHeavyAtoms ?? 0);
   const elements = elementSymbolsFromSmiles(canon, RDKit);
   const gate = passesHardGates({
@@ -176,15 +183,30 @@ export async function scoreEvolvedMolecule({
     : { maxTanSeed: 0, maxTanPopulation: 0 };
   const novelty = computeNovelty({ maxTanSeed, maxTanPopulation });
 
-  const alertCount = alerts.pains + alerts.brenk;
+  if (
+    targetFree &&
+    seedRef &&
+    canon !== String(seedRef).trim() &&
+    maxTanSeed < seedSimilarityFloor
+  ) {
+    return {
+      ok: false,
+      gated: true,
+      error: `Seed similarity ${maxTanSeed.toFixed(2)} below floor ${seedSimilarityFloor}`,
+    };
+  }
+
+  await preloadQedAlerts();
   const qed =
-    computeQEDFromSmiles(RDKit, adme.canonicalSmiles || canon, { alertCount }) ??
+    (await computeQEDFromSmilesAsync(RDKit, adme.canonicalSmiles || canon)) ??
     props.qed ??
     0.5;
 
   let deltaG = null;
-  let le = null;
-  let lleScore = null;
+  let leMeasured = null;
+  let lePredicted = null;
+  let leIsPredicted = false;
+  let affinityLogPAdj = null;
   let affinityProvenance = targetFree ? "n/a" : "surrogate";
   let docked = false;
 
@@ -192,8 +214,8 @@ export async function scoreEvolvedMolecule({
   const aff = affinityRow || cachedAff;
   if (!targetFree && aff?.ok && Number.isFinite(aff.deltaG)) {
     deltaG = aff.deltaG;
-    le = ligandEfficiency(deltaG, heavyAtoms);
-    lleScore = lle(deltaG, props.logp);
+    leMeasured = ligandEfficiency(deltaG, heavyAtoms);
+    affinityLogPAdj = affinityLogPAdjusted(deltaG, props.logp);
     docked = Boolean(aff.docked);
     affinityProvenance = docked ? "Vina 1.2.5 (unvalidated)" : "surrogate";
   } else if (!targetFree) {
@@ -210,7 +232,10 @@ export async function scoreEvolvedMolecule({
       morganBits: morganBitIndices(RDKit, canon),
     });
     const pred = surrogate.predict(features);
-    le = pred.yhat;
+    if (pred.trained && pred.yhat != null && Number.isFinite(pred.yhat)) {
+      lePredicted = pred.yhat;
+      leIsPredicted = true;
+    }
     affinityProvenance = pred.trained ? "Surrogate (unvalidated)" : "Surrogate cold-start";
   }
 
@@ -227,9 +252,11 @@ export async function scoreEvolvedMolecule({
       fsp3: props.fractionCsp3 ?? props.fsp3 ?? props.fractionCSP3,
       painsCount: alerts.pains,
       brenkCount: alerts.brenk,
-      le,
+      leMeasured,
+      lePredicted,
+      leIsPredicted,
     },
-    { targetFree }
+    { targetFree, seedSimilarityFloor }
   );
 
   const payload = {
@@ -261,8 +288,11 @@ export async function scoreEvolvedMolecule({
     maxTanSeed,
     maxTanPopulation,
     deltaG,
-    le,
-    lle: lleScore,
+    le: leMeasured ?? lePredicted,
+    leMeasured,
+    lePredicted,
+    leIsPredicted,
+    affinityLogPAdj,
     docked,
     heavyAtoms,
     mw: props.mw,
@@ -280,7 +310,7 @@ export async function scoreEvolvedMolecule({
     editLabel: editLabel || "",
     targetFree,
     gated: false,
-    surrogateYhat: le,
+    surrogateYhat: lePredicted,
     surrogateSigma: targetFree ? 0 : getSurrogateForTarget(pdb).predict(
       featurizeRow({
         mw: props.mw,
@@ -299,6 +329,17 @@ export async function scoreEvolvedMolecule({
   MEMORY.set(key, payload);
   persist();
   return { ok: true, cached: false, ...payload };
+}
+
+/** Same batch scoring path used by the evolution web worker. */
+export async function scoreEvolutionBatch(variants, ctx = {}) {
+  const RDKit = ctx.RDKit || (await getRDKit());
+  const results = [];
+  for (const variant of variants) {
+    const scored = await scoreEvolvedMolecule({ ...variant, ...ctx, RDKit });
+    results.push(scored);
+  }
+  return results;
 }
 
 export function trainSurrogateFromDocked(pdbId, rows) {

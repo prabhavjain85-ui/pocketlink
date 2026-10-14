@@ -29,7 +29,7 @@ export function elementSymbolsFromSmiles(smiles, RDKit) {
   }
 }
 
-export function structuralAlerts(smiles, candidateForPains) {
+export function structuralAlerts(smiles, candidateForPains, { brenkExtra = 0, brenkNamesExtra = [] } = {}) {
   const pains = checkPainsFast(candidateForPains || { IsomericSMILES: smiles });
   const painsHits = (pains?.hits || pains?.alerts || []).filter(
     (h) => h.catalog === "PAINS" || h.family === "pains"
@@ -37,12 +37,14 @@ export function structuralAlerts(smiles, candidateForPains) {
   const brenkHits = (pains?.hits || pains?.alerts || []).filter(
     (h) => /brenk/i.test(h.catalog || "") || h.id === "brenk" || h.family === "brenk"
   );
+  const brenk = Math.max(brenkHits.length, Number(brenkExtra) || 0);
+  const brenkNames = [...brenkHits.map((h) => h.name), ...(brenkNamesExtra || [])];
   return {
     pains: painsHits.length,
-    brenk: brenkHits.length,
+    brenk,
     painsNames: painsHits.map((h) => h.name),
-    brenkNames: brenkHits.map((h) => h.name),
-    blocked: painsHits.length > 0 || brenkHits.length > 1,
+    brenkNames,
+    blocked: painsHits.length > 0 || brenk > 1,
   };
 }
 

@@ -20,6 +20,7 @@ export const DEFAULT_EVOLUTION_SETTINGS = {
   survivors: 5,
   rngSeed: 42,
   dockingBudgetPerGen: 8,
+  seedSimilarityFloor: 0.3,
 };
 
 function clampInt(raw, fallback, min, max) {
@@ -34,18 +35,23 @@ export function clampSettings(raw = {}) {
   const survivors = clampInt(raw.survivors, 5, 1, 10);
   const rngSeed = clampInt(raw.rngSeed, 42, 1, 2147483646);
   const dockingBudgetPerGen = clampInt(raw.dockingBudgetPerGen, 8, 0, 24);
-  return { generations, variantsPerGeneration, survivors, rngSeed, dockingBudgetPerGen };
+  const seedSimilarityFloor = Number.isFinite(Number(raw.seedSimilarityFloor))
+    ? Math.max(0, Math.min(1, Number(raw.seedSimilarityFloor)))
+    : 0.3;
+  return { generations, variantsPerGeneration, survivors, rngSeed, dockingBudgetPerGen, seedSimilarityFloor };
 }
 
-function objectiveVector(row, targetFree) {
+function objectiveVector(row, targetFree, seedSimilarityFloor = 0.3) {
   const qed = row.qed ?? 0;
   const sa = row.saScore ?? 5;
   const nov = row.novelty ?? 0;
   const alerts = (row.fitness?.desirabilities?.d_alerts ?? 1) < 0.5 ? 2 : 0;
+  const tanSeed = row.maxTanSeed ?? 0;
   if (targetFree) {
-    return [-qed, sa, alerts, -nov];
+    const seedPenalty = tanSeed < seedSimilarityFloor ? 1 : 0;
+    return [-qed, sa, alerts, -nov, -tanSeed, seedPenalty];
   }
-  const le = row.le;
+  const le = row.leMeasured ?? row.le;
   if (le == null || !Number.isFinite(le)) {
     return [-qed, sa, alerts, -nov];
   }
@@ -126,6 +132,7 @@ export async function runEvolutionGeneration({
   rescueBoost = false,
   rngSeed = 42,
   dockingBudgetPerGen = 8,
+  seedSimilarityFloor = 0.3,
 }) {
   const started = typeof performance !== "undefined" ? performance.now() : Date.now();
   const RDKit = await getRDKit();
@@ -149,6 +156,7 @@ export async function runEvolutionGeneration({
     populationSmiles: popSmiles,
     archiveSmiles,
     RDKit,
+    seedSimilarityFloor,
   };
 
   const scoredRows = await scoreOffspring(produced.variants, scoreCtx);
@@ -231,10 +239,17 @@ export async function runEvolutionGeneration({
   }
 
   const combined = [...parents, ...pool];
-  const objectives = combined.map((row) => objectiveVector(row, targetFree));
+  const objectives = combined.map((row) => objectiveVector(row, targetFree, seedSimilarityFloor));
   let ranked = selectSurvivorsMuPlusLambda(combined, objectives, combined.length);
   ranked = applyScaffoldQuota(ranked, survivors, 0.25);
-  ranked = mergeElites(ranked, parents, survivors);
+  const globalBest = combined.reduce(
+    (best, row) => ((row.displayScore ?? row.score ?? 0) > (best?.displayScore ?? best?.score ?? -1) ? row : best),
+    null
+  );
+  ranked = mergeElites(ranked, parents, survivors, {
+    seedSmiles: seedSmiles || referenceSmiles,
+    globalBestSmiles: globalBest?.smiles ? [globalBest.smiles] : [],
+  });
 
   const metrics = collapseMetrics({
     population: ranked,

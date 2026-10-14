@@ -41,8 +41,11 @@ export function maxTanimotoToSet(RDKit, smiles, others = []) {
 }
 
 export function noveltyDistances(RDKit, smiles, { seedSmiles, populationSmiles = [] }) {
-  const maxSeed =
-    seedSmiles && seedSmiles !== smiles ? maxTanimotoToSet(RDKit, smiles, [seedSmiles]) : 0;
+  const maxSeed = !seedSmiles
+    ? 0
+    : seedSmiles === smiles
+      ? 1
+      : maxTanimotoToSet(RDKit, smiles, [seedSmiles]);
   const pop = populationSmiles.filter((s) => s && s !== smiles);
   const maxPop = pop.length ? maxTanimotoToSet(RDKit, smiles, pop) : 0;
   return { maxTanSeed: maxSeed, maxTanPopulation: maxPop };

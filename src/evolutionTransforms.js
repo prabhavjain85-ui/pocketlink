@@ -4,7 +4,19 @@
  */
 
 import { TRANSFORM_MANIFEST } from "./evolution/transformManifest";
-import { fisherYates, mulberry32 } from "./evolution/evolutionRng";
+import { fisherYates } from "./evolution/evolutionRng";
+
+function dedupeTransformsBySmarts(rows) {
+  const seen = new Set();
+  const out = [];
+  for (const row of rows) {
+    const key = row.smarts;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(row);
+  }
+  return out;
+}
 
 const LEGACY_TRANSFORMS = [
   { id: "acid_to_tetrazole", label: "Carboxylic acid → tetrazole", smarts: "[C:1](=[O:2])[OH]>>[C:1]1=NNN=N1" },
@@ -25,13 +37,21 @@ const LEGACY_TRANSFORMS = [
   { id: "amine_nh_to_nme", label: "Secondary amine → N-methyl", smarts: "[NH:1]>>[N:1]C" },
 ];
 
-export const EVOLUTION_TRANSFORMS = [
+export const EVOLUTION_TRANSFORMS = dedupeTransformsBySmarts([
   ...LEGACY_TRANSFORMS,
   ...TRANSFORM_MANIFEST.filter((t) => !LEGACY_TRANSFORMS.some((e) => e.id === t.id)),
-];
+]);
+
+export function evolutionTransformStats() {
+  const distinct = new Set(EVOLUTION_TRANSFORMS.map((t) => t.smarts));
+  return { total: EVOLUTION_TRANSFORMS.length, distinctSmarts: distinct.size };
+}
 
 /** BRICS-style crossover: shared transform applied to both parents; keep A-scaffold products that diverge from B. */
-export function crossoverVariants(RDKit, parentA, parentB, { seen, limit = 4, rng = Math.random } = {}) {
+export function crossoverVariants(RDKit, parentA, parentB, { seen, limit = 4, rng } = {}) {
+  if (typeof rng !== "function") {
+    throw new Error("crossoverVariants requires a seeded rng function");
+  }
   const discarded = { parseFail: 0, duplicate: 0 };
   const variants = [];
   const a = canonicalizeSmiles(RDKit, parentA);
@@ -75,7 +95,10 @@ export function crossoverVariants(RDKit, parentA, parentB, { seen, limit = 4, rn
 }
 
 export function generateOffspring(RDKit, parents, { seen, limit, bucketMap, rng } = {}) {
-  const random = rng || mulberry32(42);
+  if (typeof rng !== "function") {
+    throw new Error("generateOffspring requires a seeded rng function");
+  }
+  const random = rng;
   const variants = [];
   const discarded = { parseFail: 0, duplicate: 0 };
   const mutationTarget = Math.ceil(limit * 0.6);
@@ -263,7 +286,10 @@ function productsFromReaction(RDKit, smiles, smarts) {
 }
 
 export function generateValidatedVariants(RDKit, parentSmiles, { seen = new Set(), limit = 20, rng } = {}) {
-  const random = rng || mulberry32(42);
+  if (typeof rng !== "function") {
+    throw new Error("generateValidatedVariants requires a seeded rng function");
+  }
+  const random = rng;
   const parent = canonicalizeSmiles(RDKit, parentSmiles);
   const discarded = { parseFail: 0, duplicate: 0 };
   const variants = [];

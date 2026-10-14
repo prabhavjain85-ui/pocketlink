@@ -27,7 +27,7 @@ function ProvenanceBadge({ text }) {
   return <span className="history-type-badge badge-pdb" title={text}>{text}</span>;
 }
 
-function ScoreBreakdown({ fitness, saScore, qed, provenance }) {
+function ScoreBreakdown({ fitness, saScore, qed, provenance, leMeasured, lePredicted, leIsPredicted }) {
   if (!fitness) return null;
   return (
     <div className="evo-breakdown">
@@ -42,7 +42,12 @@ function ScoreBreakdown({ fitness, saScore, qed, provenance }) {
           </li>
         ))}
       </ul>
-      <div className="hint">SA {saScore ?? "n/a"} · QED {qed != null ? Number(qed).toFixed(2) : "n/a"} · composite {fitness.displayScore}/100</div>
+      <div className="hint">
+        SA {saScore ?? "n/a"} · QED {qed != null ? Number(qed).toFixed(2) : "n/a"}
+        {leMeasured != null && Number.isFinite(leMeasured) ? ` · LE ${Number(leMeasured).toFixed(3)} (docked)` : ""}
+        {leIsPredicted && lePredicted != null ? ` · LE ~${Number(lePredicted).toFixed(3)} (surrogate)` : ""}
+        {" · "}composite {fitness.displayScore}/100
+      </div>
     </div>
   );
 }
@@ -200,6 +205,7 @@ export default function EvolutionPage() {
           rescueBoost: rescueNext,
           rngSeed: cfg.rngSeed ?? rngSeed,
           dockingBudgetPerGen: protein?.id ? 8 : 0,
+          seedSimilarityFloor: cfg.seedSimilarityFloor ?? 0.3,
         });
         if (my !== abortRef.current) return;
         if (!result.ok) {
@@ -309,6 +315,18 @@ export default function EvolutionPage() {
             <label>Variants / generation<input type="number" min={4} max={40} value={settings.variantsPerGeneration} onChange={(e) => setSettings((s) => ({ ...s, variantsPerGeneration: e.target.value }))} /></label>
             <label>Survivors<input type="number" min={1} max={10} value={settings.survivors} onChange={(e) => setSettings((s) => ({ ...s, survivors: e.target.value }))} /></label>
             <label>RNG seed<input type="number" min={1} max={999999} value={rngSeed} onChange={(e) => setRngSeed(Number(e.target.value) || 42)} /></label>
+            <label title="Minimum Tanimoto similarity to the starting structure in target-free mode">
+              Stay close to seed
+              <input
+                type="range"
+                min={0}
+                max={0.8}
+                step={0.05}
+                value={settings.seedSimilarityFloor ?? 0.3}
+                onChange={(e) => setSettings((s) => ({ ...s, seedSimilarityFloor: Number(e.target.value) }))}
+              />
+              <span className="mono">{(settings.seedSimilarityFloor ?? 0.3).toFixed(2)}</span>
+            </label>
           </div>
           <button type="button" className="btn btn-primary" disabled={running || !smiles.trim()} onClick={run}>
             {running ? "Evolving…" : "Run evolution"}
@@ -320,7 +338,17 @@ export default function EvolutionPage() {
             {" · "}
             SA score: {saSupport ? (saSupport.saScore ? saSupport.reason : "unavailable") : "checking…"}
           </div>
-          {seed?.fitness && <ScoreBreakdown fitness={seed.fitness} saScore={seed.saScore} qed={seed.qed} provenance={seed.provenance} />}
+          {seed?.fitness && (
+            <ScoreBreakdown
+              fitness={seed.fitness}
+              saScore={seed.saScore}
+              qed={seed.qed}
+              provenance={seed.provenance}
+              leMeasured={seed.leMeasured}
+              lePredicted={seed.lePredicted}
+              leIsPredicted={seed.leIsPredicted}
+            />
+          )}
         </Panel>
       </div>
 
@@ -402,7 +430,15 @@ export default function EvolutionPage() {
                     <td className="mono">
                       <ProvenanceBadge text={row.provenance || "Heuristic"} />
                       Pareto rank {row.rank ?? "—"} · {row.score}/100 (secondary)
-                      <ScoreBreakdown fitness={row.fitness} saScore={row.saScore} qed={row.qed} provenance={row.provenance} />
+                      <ScoreBreakdown
+                        fitness={row.fitness}
+                        saScore={row.saScore}
+                        qed={row.qed}
+                        provenance={row.provenance}
+                        leMeasured={row.leMeasured}
+                        lePredicted={row.lePredicted}
+                        leIsPredicted={row.leIsPredicted}
+                      />
                     </td>
                     <td>
                       Lipinski {row.admeFlags?.lipinskiPass ? "pass" : "flag"} · Veber {row.admeFlags?.veberPass ? "pass" : "flag"}

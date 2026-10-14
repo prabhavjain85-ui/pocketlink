@@ -54,7 +54,8 @@ export function ligandEfficiency(deltaG, heavyAtoms) {
   return (-deltaG) / ha;
 }
 
-export function lle(deltaG, logp) {
+/** Heuristic only: Vina ΔG (kcal/mol) minus logP — not true LLE. */
+export function affinityLogPAdjusted(deltaG, logp) {
   if (!Number.isFinite(deltaG) || !Number.isFinite(logp)) return null;
   return -deltaG - logp;
 }
@@ -62,7 +63,10 @@ export function lle(deltaG, logp) {
 /**
  * Select candidates to dock: exploitation, uncertainty, diversity, elite re-dock.
  */
-export function selectDockingCandidates(rows, { budget = 24, rng = Math.random, dockedSmiles = new Set() }) {
+export function selectDockingCandidates(rows, { budget = 24, rng, dockedSmiles = new Set() }) {
+  if (typeof rng !== "function") {
+    throw new Error("selectDockingCandidates requires a seeded rng function");
+  }
   const undocked = rows.filter((r) => r.smiles && !dockedSmiles.has(r.smiles));
   if (!undocked.length) return [];
 

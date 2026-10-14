@@ -110,27 +110,67 @@ export function applyScaffoldQuota(ranked, survivorCount, maxShare = 0.25) {
     );
 }
 
-export function mergeElites(survivors, parents, survivorCount) {
-  const elites = parents.slice(0, Math.min(2, parents.length));
-  const out = survivors.slice();
-  const have = new Set(out.map((s) => s.smiles));
-  for (const e of elites) {
-    if (!have.has(e.smiles)) out.push(e);
-  }
-  out.sort(
-    (a, b) => (a.rank ?? 99) - (b.rank ?? 99) || (b.crowding ?? 0) - (a.crowding ?? 0) || (b.displayScore ?? 0) - (a.displayScore ?? 0)
+function compareSurvivors(a, b) {
+  return (
+    (a.rank ?? 99) - (b.rank ?? 99) ||
+    (b.crowding ?? 0) - (a.crowding ?? 0) ||
+    (b.displayScore ?? 0) - (a.displayScore ?? 0)
   );
-  if (out.length <= survivorCount) return out.slice(0, survivorCount);
-  const kept = out.slice(0, survivorCount);
-  for (const e of elites) {
-    if (!kept.find((k) => k.smiles === e.smiles)) {
-      kept.pop();
-      kept.push(e);
-    }
+}
+
+/**
+ * Preserve seed, global best, and top parents without evicting better-ranked survivors.
+ */
+export function mergeElites(survivors, parents, survivorCount, { seedSmiles, globalBestSmiles = [] } = {}) {
+  const mandatory = new Set();
+  const seed = String(seedSmiles || "").trim();
+  if (seed) mandatory.add(seed);
+  for (const s of globalBestSmiles) {
+    const c = String(s || "").trim();
+    if (c) mandatory.add(c);
   }
-  return kept
-    .sort(
-      (a, b) => (a.rank ?? 99) - (b.rank ?? 99) || (b.crowding ?? 0) - (a.crowding ?? 0) || (b.displayScore ?? 0) - (a.displayScore ?? 0)
-    )
+  for (const p of parents.slice(0, 2)) {
+    if (p?.smiles) mandatory.add(p.smiles);
+  }
+
+  const pool = [...survivors, ...parents];
+  const bySmiles = new Map();
+  for (const row of pool) {
+    if (!row?.smiles) continue;
+    const prev = bySmiles.get(row.smiles);
+    if (!prev || compareSurvivors(row, prev) < 0) bySmiles.set(row.smiles, row);
+  }
+
+  let kept = survivors
+    .slice()
+    .sort(compareSurvivors)
     .slice(0, survivorCount);
+  const keptSet = new Set(kept.map((k) => k.smiles));
+
+  for (const sm of mandatory) {
+    const elite = bySmiles.get(sm);
+    if (!elite || keptSet.has(sm)) continue;
+
+    if (kept.length < survivorCount) {
+      kept.push(elite);
+      keptSet.add(sm);
+      continue;
+    }
+
+    let replaceIdx = -1;
+    let replaceRow = null;
+    for (let i = kept.length - 1; i >= 0; i -= 1) {
+      if (mandatory.has(kept[i].smiles)) continue;
+      replaceIdx = i;
+      replaceRow = kept[i];
+      break;
+    }
+    if (replaceIdx < 0 || !replaceRow) continue;
+    if (!mandatory.has(sm) && compareSurvivors(elite, replaceRow) >= 0) continue;
+    kept[replaceIdx] = elite;
+    keptSet.delete(replaceRow.smiles);
+    keptSet.add(sm);
+  }
+
+  return kept.sort(compareSurvivors).slice(0, survivorCount);
 }

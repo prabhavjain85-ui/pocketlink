@@ -8,10 +8,12 @@ function dot(a, b) {
   return s;
 }
 
+const MORGAN_HASH_BITS = 1024;
+
 export function featurizeRow({ mw = 0, logp = 0, tpsa = 0, hbd = 0, hba = 0, rotb = 0, fsp3 = 0, heavyAtoms = 0, morganBits = [] }) {
   const base = [1, mw / 500, logp / 5, tpsa / 140, hbd / 5, hba / 10, rotb / 12, fsp3, heavyAtoms / 45];
-  const bits = new Array(64).fill(0);
-  for (const b of morganBits.slice(0, 64)) bits[b % 64] += 1;
+  const bits = new Array(MORGAN_HASH_BITS).fill(0);
+  for (const b of morganBits) bits[b % MORGAN_HASH_BITS] += 1;
   return base.concat(bits);
 }
 
@@ -60,7 +62,7 @@ export class OnlineSurrogate {
 
   predict(features) {
     if (!this.weights) {
-      return { yhat: 0.25, sigma: 0.35, trained: false };
+      return { yhat: null, sigma: 0.55, trained: false };
     }
     const yhat = dot(this.weights, features) + this.bias;
     const sigma = Math.sqrt(Math.max(this.residualMse, 0.02));

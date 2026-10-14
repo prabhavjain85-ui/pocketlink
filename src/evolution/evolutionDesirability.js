@@ -55,6 +55,7 @@ export const TARGET_FREE_WEIGHTS = {
   size: 3.5,
   lipo: 2.0,
   leadMw: 3.0,
+  seed: 2.5,
   admet: 0,
 };
 
@@ -70,7 +71,7 @@ export function computeNovelty({ maxTanSeed = 0, maxTanPopulation = 0 }) {
   return 0.55 * dSeed + 0.45 * dPop;
 }
 
-export function desirabilityBundle(raw, { targetFree } = {}) {
+export function desirabilityBundle(raw, { targetFree, seedSimilarityFloor = 0.3 } = {}) {
   const qed = raw.qed ?? computeQED(raw);
   const sa = raw.sa ?? 5;
   const novRaw = raw.novelty ?? computeNovelty({
@@ -103,16 +104,29 @@ export function desirabilityBundle(raw, { targetFree } = {}) {
   const dLeadMw = dHi(mw, 280, 420, 1.2);
 
   let dAff = null;
-  if (!targetFree && raw.le != null && Number.isFinite(raw.le)) {
-    dAff = dHi(raw.le, 0.2, 0.45, 1.5);
+  const leForAff = raw.leMeasured ?? (raw.leIsPredicted ? raw.lePredicted : raw.le);
+  if (!targetFree && leForAff != null && Number.isFinite(leForAff)) {
+    dAff = dHi(leForAff, 0.2, 0.45, 1.5);
   }
+
+  const maxTanSeed = raw.maxTanSeed ?? 0;
+  const dSeed = targetFree ? dHi(maxTanSeed, seedSimilarityFloor, 0.85, 1.2) : null;
 
   const weights = targetFree ? { ...TARGET_FREE_WEIGHTS } : { ...DEFAULT_WEIGHTS };
   if (targetFree) weights.aff = 0;
 
   const terms = [];
   if (!targetFree && dAff != null) {
-    terms.push({ key: "d_aff", w: weights.aff, d: dAff, raw: raw.le });
+    const affW = raw.leIsPredicted ? weights.aff * 0.25 : weights.aff;
+    terms.push({
+      key: raw.leIsPredicted ? "d_aff_pred" : "d_aff",
+      w: affW,
+      d: dAff,
+      raw: leForAff,
+    });
+  }
+  if (targetFree && dSeed != null) {
+    terms.push({ key: "d_seed", w: weights.seed ?? 2.5, d: dSeed, raw: maxTanSeed });
   }
   terms.push({ key: "d_qed", w: weights.qed, d: dQed, raw: qed });
   terms.push({ key: "d_sa", w: weights.sa, d: dSa, raw: sa });
@@ -155,6 +169,7 @@ export function desirabilityBundle(raw, { targetFree } = {}) {
       d_size: dSize,
       d_lipo: dLipo,
       d_lead_mw: targetFree ? dLeadMw : null,
+      d_seed: targetFree ? dSeed : null,
       d_alerts: dAlerts,
     },
     targetFree,
