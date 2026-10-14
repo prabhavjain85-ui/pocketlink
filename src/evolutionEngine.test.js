@@ -10,6 +10,11 @@ test("default settings stay in the documented band", () => {
     survivors: 5,
     rngSeed: 42,
     dockingBudgetPerGen: 8,
+    seedSimilarityFloor: 0.4,
+    independentRuns: 5,
+    diversityMethod: "maxmin",
+    protectedSmarts: "",
+    protectedAtomIndices: [],
   });
   expect(clampSettings({ generations: 99, variantsPerGeneration: 1, survivors: 0 })).toEqual({
     generations: 8,
@@ -17,6 +22,11 @@ test("default settings stay in the documented band", () => {
     survivors: 1,
     rngSeed: 42,
     dockingBudgetPerGen: 8,
+    seedSimilarityFloor: 0.4,
+    independentRuns: 5,
+    diversityMethod: "maxmin",
+    protectedSmarts: "",
+    protectedAtomIndices: [],
   });
 });
 
