@@ -4,6 +4,7 @@
  */
 
 import { TRANSFORM_MANIFEST } from "./evolution/transformManifest";
+import { fisherYates, mulberry32 } from "./evolution/evolutionRng";
 
 const LEGACY_TRANSFORMS = [
   { id: "acid_to_tetrazole", label: "Carboxylic acid → tetrazole", smarts: "[C:1](=[O:2])[OH]>>[C:1]1=NNN=N1" },
@@ -29,26 +30,23 @@ export const EVOLUTION_TRANSFORMS = [
   ...TRANSFORM_MANIFEST.filter((t) => !LEGACY_TRANSFORMS.some((e) => e.id === t.id)),
 ];
 
-function pickTransform() {
-  const pool = TRANSFORM_MANIFEST.length ? TRANSFORM_MANIFEST : EVOLUTION_TRANSFORMS;
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-
-/** Graph-style crossover: apply a random transform from parent B onto parent A. */
-export function crossoverVariants(RDKit, parentA, parentB, { seen, limit = 4 } = {}) {
+/** BRICS-style crossover: shared transform applied to both parents; keep A-scaffold products that diverge from B. */
+export function crossoverVariants(RDKit, parentA, parentB, { seen, limit = 4, rng = Math.random } = {}) {
   const discarded = { parseFail: 0, duplicate: 0 };
   const variants = [];
   const a = canonicalizeSmiles(RDKit, parentA);
   const b = canonicalizeSmiles(RDKit, parentB);
-  if (!a || !b) return { variants, discarded };
-  const hybridSmarts = [
-    { id: "xover_aryl_swap", label: "Crossover: aryl substituent swap", smarts: "[c:1][F]>>[c:1]Cl" },
-    { id: "xover_n_cap", label: "Crossover: N-cap from partner", smarts: "[NH:1]>>[N:1]C" },
-  ];
-  const transforms = [...hybridSmarts, pickTransform()];
+  if (!a || !b || a === b) return { variants, discarded };
+
+  const bricsPool = TRANSFORM_MANIFEST.filter((t) => t.kind === "brics" || t.kind === "mmp");
+  const transforms = fisherYates(bricsPool.length ? bricsPool : TRANSFORM_MANIFEST, rng).slice(0, 12);
+
   for (const transform of transforms) {
-    const products = productsFromReaction(RDKit, a, transform.smarts);
-    for (const raw of products.slice(0, 8)) {
+    const prodA = productsFromReaction(RDKit, a, transform.smarts);
+    const prodB = productsFromReaction(RDKit, b, transform.smarts);
+    if (!prodA.length || !prodB.length) continue;
+    const canonBset = new Set(prodB.map((p) => canonicalizeSmiles(RDKit, p)).filter(Boolean));
+    for (const raw of prodA.slice(0, 8)) {
       const canon = canonicalizeSmiles(RDKit, raw);
       if (!canon) {
         discarded.parseFail += 1;
@@ -58,23 +56,26 @@ export function crossoverVariants(RDKit, parentA, parentB, { seen, limit = 4 } =
         discarded.duplicate += 1;
         continue;
       }
-      seen.add(canon);
-      variants.push({
-        smiles: canon,
-        parentSmiles: a,
-        parentSmilesB: b,
-        editId: transform.id,
-        editLabel: transform.label,
-        operator: "crossover",
-      });
-      if (variants.length >= limit) break;
+      if (!canonBset.has(canon)) {
+        seen.add(canon);
+        variants.push({
+          smiles: canon,
+          parentSmiles: a,
+          parentSmilesB: b,
+          editId: `xover_${transform.id}`,
+          editLabel: `Crossover: ${transform.label}`,
+          operator: "crossover",
+        });
+        if (variants.length >= limit) break;
+      }
     }
     if (variants.length >= limit) break;
   }
   return { variants, discarded };
 }
 
-export function generateOffspring(RDKit, parents, { seen, limit, bucketMap } = {}) {
+export function generateOffspring(RDKit, parents, { seen, limit, bucketMap, rng } = {}) {
+  const random = rng || mulberry32(42);
   const variants = [];
   const discarded = { parseFail: 0, duplicate: 0 };
   const mutationTarget = Math.ceil(limit * 0.6);
@@ -87,6 +88,7 @@ export function generateOffspring(RDKit, parents, { seen, limit, bucketMap } = {
     const produced = generateValidatedVariants(RDKit, parent.smiles, {
       seen,
       limit: Math.min(8, mutationTarget - mCount),
+      rng: random,
     });
     discarded.parseFail += produced.discarded.parseFail;
     discarded.duplicate += produced.discarded.duplicate;
@@ -97,13 +99,13 @@ export function generateOffspring(RDKit, parents, { seen, limit, bucketMap } = {
   }
 
   while (xCount < crossoverTarget && parents.length >= 2) {
-    const a = parents[Math.floor(Math.random() * parents.length)];
-    let b = parents[Math.floor(Math.random() * parents.length)];
-    if (bucketMap && Math.random() < 0.7) {
+    const a = parents[Math.floor(random() * parents.length)];
+    let b = parents[Math.floor(random() * parents.length)];
+    if (bucketMap && random() < 0.7) {
       const otherBucket = parents.filter((p) => (p.bucket || "") !== (a.bucket || ""));
-      if (otherBucket.length) b = otherBucket[Math.floor(Math.random() * otherBucket.length)];
+      if (otherBucket.length) b = otherBucket[Math.floor(random() * otherBucket.length)];
     }
-    const xo = crossoverVariants(RDKit, a.smiles, b.smiles, { seen, limit: 2 });
+    const xo = crossoverVariants(RDKit, a.smiles, b.smiles, { seen, limit: 2, rng: random });
     discarded.parseFail += xo.discarded.parseFail;
     discarded.duplicate += xo.discarded.duplicate;
     for (const v of xo.variants) {
@@ -260,7 +262,8 @@ function productsFromReaction(RDKit, smiles, smarts) {
   return products;
 }
 
-export function generateValidatedVariants(RDKit, parentSmiles, { seen = new Set(), limit = 20 } = {}) {
+export function generateValidatedVariants(RDKit, parentSmiles, { seen = new Set(), limit = 20, rng } = {}) {
+  const random = rng || mulberry32(42);
   const parent = canonicalizeSmiles(RDKit, parentSmiles);
   const discarded = { parseFail: 0, duplicate: 0 };
   const variants = [];
@@ -275,7 +278,7 @@ export function generateValidatedVariants(RDKit, parentSmiles, { seen = new Set(
   const bag = [];
   const pool = EVOLUTION_TRANSFORMS;
   const sampleSize = Math.min(pool.length, 48);
-  const transforms = pool.slice().sort(() => Math.random() - 0.5).slice(0, sampleSize);
+  const transforms = fisherYates(pool, random).slice(0, sampleSize);
   for (const transform of transforms) {
     const products = productsFromReaction(RDKit, parent, transform.smarts);
     for (const raw of products) {

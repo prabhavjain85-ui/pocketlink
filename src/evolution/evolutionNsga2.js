@@ -21,9 +21,7 @@ export function fastNonDominatedSort(objectives) {
       if (dominates(objectives[p], objectives[q])) S[p].push(q);
       else if (dominates(objectives[q], objectives[p])) nDom[p] += 1;
     }
-    if (nDom[p] === 0) {
-      fronts[0].push(p);
-    }
+    if (nDom[p] === 0) fronts[0].push(p);
   }
 
   let i = 0;
@@ -44,25 +42,32 @@ export function fastNonDominatedSort(objectives) {
 export function crowdingDistance(front, objectives) {
   const m = objectives[0]?.length || 0;
   const dist = new Array(front.length).fill(0);
-  if (front.length <= 2) return Object.fromEntries(front.map((idx, i) => [idx, Infinity]));
+  if (front.length <= 2) {
+    const out = {};
+    for (const idx of front) out[idx] = Infinity;
+    return out;
+  }
+
+  const pos = new Map();
+  front.forEach((idx, i) => pos.set(idx, i));
 
   for (let k = 0; k < m; k += 1) {
     const order = front.slice().sort((a, b) => objectives[a][k] - objectives[b][k]);
-    dist[front.indexOf(order[0])] = Infinity;
-    dist[front.indexOf(order[order.length - 1])] = Infinity;
+    dist[pos.get(order[0])] = Infinity;
+    dist[pos.get(order[order.length - 1])] = Infinity;
     const min = objectives[order[0]][k];
     const max = objectives[order[order.length - 1]][k];
     const span = max - min || 1;
     for (let i = 1; i < order.length - 1; i += 1) {
       const prev = objectives[order[i - 1]][k];
       const next = objectives[order[i + 1]][k];
-      const pos = front.indexOf(order[i]);
-      dist[pos] += (next - prev) / span;
+      const p = pos.get(order[i]);
+      dist[p] += (next - prev) / span;
     }
   }
   const out = {};
-  front.forEach((idx, i) => {
-    out[idx] = dist[i];
+  front.forEach((idx) => {
+    out[idx] = dist[pos.get(idx)] ?? 0;
   });
   return out;
 }
@@ -82,17 +87,22 @@ export function assignRanks(items, objectiveVectors) {
     ...item,
     rank: rank[i] ?? fronts.length + 1,
     crowding: crowding[i] ?? 0,
+    paretoFront: rank[i] === 1,
   }));
 }
 
-export function tournamentSelect(population, k = 3) {
-  const pick = () => population[Math.floor(Math.random() * population.length)];
+export function tournamentSelect(population, k = 3, rng = Math.random) {
+  const pick = () => population[Math.floor(rng() * population.length)];
   let best = pick();
   for (let i = 1; i < k; i += 1) {
     const cand = pick();
     if (cand.rank < best.rank) best = cand;
     else if (cand.rank === best.rank && cand.crowding > best.crowding) best = cand;
-    else if (cand.rank === best.rank && cand.crowding === best.crowding && (cand.displayScore ?? 0) > (best.displayScore ?? 0)) {
+    else if (
+      cand.rank === best.rank &&
+      cand.crowding === best.crowding &&
+      (cand.displayScore ?? 0) > (best.displayScore ?? 0)
+    ) {
       best = cand;
     }
   }
@@ -101,6 +111,8 @@ export function tournamentSelect(population, k = 3) {
 
 export function selectSurvivorsMuPlusLambda(combined, objectiveVectors, survivors) {
   const ranked = assignRanks(combined, objectiveVectors);
-  ranked.sort((a, b) => a.rank - b.rank || b.crowding - a.crowding || (b.displayScore ?? 0) - (a.displayScore ?? 0));
+  ranked.sort(
+    (a, b) => a.rank - b.rank || b.crowding - a.crowding || (b.displayScore ?? 0) - (a.displayScore ?? 0)
+  );
   return ranked.slice(0, survivors);
 }

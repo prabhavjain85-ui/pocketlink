@@ -1,29 +1,39 @@
-/** Derringer–Suich style desirability + geometric composite (Phase 1). */
+/** Derringer–Suich style desirability + geometric composite. */
 
-/** Monotone increasing desirability with a soft floor below `lo` (avoids score cliffs). */
+import { bickertonQED } from "./bickertonQED";
+
+/** Monotone increasing: soft floor below `lo`, reaches 1 at `hi` (continuous in x). */
 export function dHi(x, lo, hi, p = 1) {
-  const floor = 0.04;
+  const eps = 1e-6;
+  if (hi <= lo) return eps;
   if (x >= hi) return 1;
-  if (x > lo) return Math.pow((x - lo) / (hi - lo), p);
-  if (x <= 0) return floor * 0.25;
-  return floor + (1 - floor) * Math.pow(Math.min(x / lo, 1), Math.max(p, 0.5)) * 0.45;
+  if (x <= 0) return eps;
+  if (x < lo) {
+    const t = x / lo;
+    return eps + (0.12 - eps) * Math.pow(Math.min(t, 1), Math.max(p, 0.5));
+  }
+  const t = (x - lo) / (hi - lo);
+  return eps + (1 - eps) * Math.pow(Math.min(Math.max(t, 0), 1), p);
 }
 
-/** Monotone decreasing desirability with a soft tail above `hi`. */
+/** Monotone decreasing: 1 at or below `lo`, soft tail above `hi`. */
 export function dLo(x, lo, hi, p = 1) {
-  const floor = 0.04;
+  const eps = 1e-6;
+  if (hi <= lo) return eps;
   if (x <= lo) return 1;
-  if (x < hi) return Math.pow((hi - x) / (hi - lo), p);
-  if (x >= hi * 1.35) return floor * 0.25;
-  const t = (x - hi) / (hi - lo);
-  return floor + (1 - floor) * Math.pow(Math.max(1 - t, 0), Math.max(p, 0.5)) * 0.45;
+  if (x >= hi) {
+    const over = (x - hi) / (hi - lo + eps);
+    return eps + (0.12 - eps) * Math.pow(1 / (1 + over), Math.max(p, 0.5));
+  }
+  const t = (hi - x) / (hi - lo);
+  return eps + (1 - eps) * Math.pow(Math.min(Math.max(t, 0), 1), p);
 }
 
 export function dWin(x, t, lo, hi) {
   const s = (hi - lo) / 4;
-  if (s <= 0) return 0;
+  if (s <= 0) return 1e-6;
   const z = (x - t) / s;
-  return Math.exp(-(z * z));
+  return Math.max(1e-6, Math.exp(-(z * z)));
 }
 
 export const DEFAULT_WEIGHTS = {
@@ -32,46 +42,42 @@ export const DEFAULT_WEIGHTS = {
   sa: 2.0,
   nov: 1.0,
   props: 1.0,
+  size: 1.2,
+  lipo: 1.0,
   admet: 0,
 };
 
 export const TARGET_FREE_WEIGHTS = {
-  qed: 2.5,
+  qed: 1.5,
   sa: 3.0,
   nov: 2.0,
-  props: 2.5,
+  props: 2.0,
+  size: 3.5,
+  lipo: 2.0,
+  leadMw: 3.0,
   admet: 0,
 };
 
+/** Published Bickerton QED from physchem + alert count (use qedFromRdkit for full HBA/AROM). */
 export function computeQED(props) {
-  const mw = props.mw ?? 0;
-  const alogp = props.logp ?? 0;
-  const hba = props.hba ?? 0;
-  const hbd = props.hbd ?? 0;
-  const psa = props.tpsa ?? 0;
-  const rotb = props.rotb ?? 0;
-  const arom = props.aromaticRings ?? 0;
-  const alerts = props.structuralAlerts ?? 0;
-
-  const dMw = dHi(mw, 200, 500, 1);
-  const dAlogp = dWin(alogp, 2.2, -0.5, 5.5);
-  const dHba = dLo(hba, 10, 0, 1);
-  const dHbd = dLo(hbd, 5, 0, 1);
-  const dPsa = dWin(psa, 70, 20, 130);
-  const dRotb = dLo(rotb, 8, 0, 1);
-  const dArom = dLo(arom, 2, 0, 1);
-  const dAlert = alerts <= 0 ? 1 : alerts === 1 ? 0.8 : 0.2;
-  const terms = [dMw, dAlogp, dHba, dHbd, dPsa, dRotb, dArom, dAlert];
-  const prod = terms.reduce((p, t) => p * Math.max(t, 1e-6), 1);
-  return Math.pow(prod, 1 / terms.length);
+  return bickertonQED(props);
 }
 
-export function desirabilityBundle(raw, { targetFree, maxTanimoto = 0 }) {
+/** Novelty: distance from seed and from current population (internal diversity). */
+export function computeNovelty({ maxTanSeed = 0, maxTanPopulation = 0 }) {
+  const dSeed = 1 - maxTanSeed;
+  const dPop = 1 - maxTanPopulation;
+  return 0.55 * dSeed + 0.45 * dPop;
+}
+
+export function desirabilityBundle(raw, { targetFree } = {}) {
   const qed = raw.qed ?? computeQED(raw);
   const sa = raw.sa ?? 5;
-  const novRaw = raw.novelty ?? 0;
-  let dNov = dHi(novRaw, 0.1, 0.45, 1);
-  if (maxTanimoto < 0.25 && (raw.dAff ?? 0) <= 0.6) dNov = Math.min(dNov, 0.6);
+  const novRaw = raw.novelty ?? computeNovelty({
+    maxTanSeed: raw.maxTanSeed ?? 0,
+    maxTanPopulation: raw.maxTanPopulation ?? 0,
+  });
+  const dNov = dHi(novRaw, 0.1, 0.45, 1);
 
   const dQed = dHi(qed, 0.3, 0.8, 1);
   const dSa = dLo(sa, 2.0, 6.0, 1.5);
@@ -81,8 +87,10 @@ export function desirabilityBundle(raw, { targetFree, maxTanimoto = 0 }) {
   if (brenk === 1) dAlerts = 0.5;
   if (brenk >= 2) dAlerts = 0;
 
-  const dMw = dWin(raw.mw ?? 0, 380, 180, 550);
-  const dLogp = dWin(raw.logp ?? 0, 2.8, -0.5, 5.0);
+  const mw = raw.mw ?? 0;
+  const logp = raw.logp ?? 0;
+  const dMw = dWin(mw, 380, 180, 550);
+  const dLogp = dWin(logp, 2.8, -0.5, 5.0);
   const dTpsa = dWin(raw.tpsa ?? 0, 80, 20, 140);
   const dFsp3 = dHi(raw.fsp3 ?? 0, 0.15, 0.45, 1);
   const dProps = Math.pow(
@@ -90,8 +98,12 @@ export function desirabilityBundle(raw, { targetFree, maxTanimoto = 0 }) {
     0.25
   );
 
+  const dSize = dWin(mw, 380, 220, 520);
+  const dLipo = dWin(logp, 2.5, 0.5, 4.5);
+  const dLeadMw = dHi(mw, 280, 420, 1.2);
+
   let dAff = null;
-  if (!targetFree && raw.le != null) {
+  if (!targetFree && raw.le != null && Number.isFinite(raw.le)) {
     dAff = dHi(raw.le, 0.2, 0.45, 1.5);
   }
 
@@ -99,11 +111,16 @@ export function desirabilityBundle(raw, { targetFree, maxTanimoto = 0 }) {
   if (targetFree) weights.aff = 0;
 
   const terms = [];
-  if (!targetFree && dAff != null) terms.push({ key: "d_aff", w: weights.aff, d: dAff, raw: raw.le });
+  if (!targetFree && dAff != null) {
+    terms.push({ key: "d_aff", w: weights.aff, d: dAff, raw: raw.le });
+  }
   terms.push({ key: "d_qed", w: weights.qed, d: dQed, raw: qed });
   terms.push({ key: "d_sa", w: weights.sa, d: dSa, raw: sa });
   terms.push({ key: "d_nov", w: weights.nov, d: dNov, raw: novRaw });
   terms.push({ key: "d_props", w: weights.props, d: dProps, raw: null });
+  terms.push({ key: "d_size", w: weights.size, d: dSize, raw: mw });
+  terms.push({ key: "d_lipo", w: weights.lipo, d: dLipo, raw: logp });
+  if (targetFree) terms.push({ key: "d_lead_mw", w: weights.leadMw ?? 3, d: dLeadMw, raw: mw });
   terms.push({ key: "d_alerts", w: 0.5, d: dAlerts, raw: brenk });
 
   const wSum = terms.reduce((s, t) => s + t.w, 0);
@@ -135,11 +152,15 @@ export function desirabilityBundle(raw, { targetFree, maxTanimoto = 0 }) {
       d_sa: dSa,
       d_nov: dNov,
       d_props: dProps,
+      d_size: dSize,
+      d_lipo: dLipo,
+      d_lead_mw: targetFree ? dLeadMw : null,
       d_alerts: dAlerts,
     },
     targetFree,
+    paretoRank: raw.paretoRank ?? null,
     formula: targetFree
-      ? "Score = 100 × G × (d_qed^w2 · d_sa^w3 · d_nov^w4 · d_props^w5)^(1/Σw) — no affinity term (no target staged)"
-      : "Score = 100 × G × (d_aff^w1 · d_qed^w2 · d_sa^w3 · d_nov^w4 · d_props^w5)^(1/Σw)",
+      ? "Chemistry-quality filter (not potency): Pareto rank on (−QED, SA, −novelty, props); display score is secondary."
+      : "Target-aware score: affinity (LE) dominates; display score is secondary to Pareto rank.",
   };
 }

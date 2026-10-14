@@ -39,3 +39,11 @@ export function maxTanimotoToSet(RDKit, smiles, others = []) {
     if (mol) mol.delete();
   }
 }
+
+export function noveltyDistances(RDKit, smiles, { seedSmiles, populationSmiles = [] }) {
+  const maxSeed =
+    seedSmiles && seedSmiles !== smiles ? maxTanimotoToSet(RDKit, smiles, [seedSmiles]) : 0;
+  const pop = populationSmiles.filter((s) => s && s !== smiles);
+  const maxPop = pop.length ? maxTanimotoToSet(RDKit, smiles, pop) : 0;
+  return { maxTanSeed: maxSeed, maxTanPopulation: maxPop };
+}
