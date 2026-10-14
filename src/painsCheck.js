@@ -89,6 +89,38 @@ export const LOCAL_PAINS_PATTERNS = [
     explanation: "Hydrazones can hydrolyze or chelate metals.",
     match: (s) => /C=NN/i.test(s),
   },
+  {
+    id: "brenk_alkyl_halide",
+    name: "Brenk: alkyl halide",
+    family: "brenk",
+    catalog: "Brenk",
+    explanation: "Reactive alkyl halides (Brenk filter).",
+    match: (s) => /(?:^|[^a-z0-9])(?:C|CC)(?:Cl|Br|I)(?:$|[^a-z0-9])/i.test(s) && !/c(?:Cl|Br|I)/.test(s),
+  },
+  {
+    id: "brenk_nitro",
+    name: "Brenk: aliphatic nitro",
+    family: "brenk",
+    catalog: "Brenk",
+    explanation: "Aliphatic nitro groups (Brenk filter).",
+    match: (s) => /C\[N+\]\(=O\)\[O-\]|C\[N+\]\(=O\)O/i.test(s) || /\[N\+\]\(=O\)\[O-\]/i.test(s),
+  },
+  {
+    id: "brenk_peroxide",
+    name: "Brenk: peroxide",
+    family: "brenk",
+    catalog: "Brenk",
+    explanation: "Peroxides are unstable and reactive (Brenk filter).",
+    match: (s) => /OO/i.test(s),
+  },
+  {
+    id: "brenk_azide",
+    name: "Brenk: azide",
+    family: "brenk",
+    catalog: "Brenk",
+    explanation: "Azides are energetic / reactive (Brenk filter).",
+    match: (s) => /N=N=N|\[N-\]=\[N\+\]=\[N-\]/i.test(s),
+  },
 ];
 
 export function compoundSmiles(compound) {

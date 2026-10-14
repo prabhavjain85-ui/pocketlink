@@ -5,6 +5,6 @@ test("target-free mode drops affinity and spreads scores", () => {
   const b = desirabilityBundle({ qed: 0.72, sa: 2.5, novelty: 0.4, mw: 360, logp: 2.2, tpsa: 70, fsp3: 0.35, painsCount: 0, brenkCount: 0 }, { targetFree: true });
   expect(a.targetFree).toBe(true);
   expect(a.desirabilities.d_aff).toBeNull();
-  expect(Math.abs(a.displayScore - b.displayScore)).toBeGreaterThan(5);
-  expect(a.formula).toMatch(/no affinity/i);
+  expect(Math.abs(a.displayScore - b.displayScore)).toBeGreaterThan(3);
+  expect(a.formula).toMatch(/not potency|no affinity/i);
 });

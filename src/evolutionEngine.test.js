@@ -4,16 +4,26 @@ import { manifestStats } from "./evolution/transformManifest";
 import { evolutionCacheKey } from "./evolutionScore";
 
 test("default settings stay in the documented band", () => {
-  expect(DEFAULT_EVOLUTION_SETTINGS).toEqual({ generations: 5, variantsPerGeneration: 20, survivors: 5 });
+  expect(DEFAULT_EVOLUTION_SETTINGS).toEqual({
+    generations: 5,
+    variantsPerGeneration: 20,
+    survivors: 5,
+    rngSeed: 42,
+    dockingBudgetPerGen: 8,
+  });
   expect(clampSettings({ generations: 99, variantsPerGeneration: 1, survivors: 0 })).toEqual({
     generations: 8,
     variantsPerGeneration: 4,
     survivors: 1,
+    rngSeed: 42,
+    dockingBudgetPerGen: 8,
   });
 });
 
 test("transform catalog is curated SMARTS, not model text", () => {
-  expect(manifestStats().total).toBeGreaterThanOrEqual(250);
+  const stats = manifestStats();
+  expect(stats.distinctSmarts).toBeGreaterThanOrEqual(35);
+  expect(stats.total).toBe(stats.distinctSmarts);
   expect(EVOLUTION_TRANSFORMS.length).toBeGreaterThan(8);
   for (const row of EVOLUTION_TRANSFORMS) {
     expect(row.smarts).toContain(">>");

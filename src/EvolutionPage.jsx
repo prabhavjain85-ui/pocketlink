@@ -11,7 +11,7 @@ import {
   runEvolutionGeneration,
   seedParent,
 } from "./evolutionEngine";
-import { detectSaScoreSupport, lookupPubChemExact, noveltyBadge } from "./evolutionScore";
+import { probeSaScoreSupport, lookupPubChemExact, noveltyBadge } from "./evolutionScore";
 import { getHistory, saveHistoryEntry } from "./historyService";
 import { ensureApprovedDrugsLoaded, loadApprovedDrugs } from "./approvedDrugs";
 import { targetDisplayName } from "./targetContext";
@@ -108,6 +108,7 @@ export default function EvolutionPage() {
   const [saSupport, setSaSupport] = useState(null);
   const [runMetrics, setRunMetrics] = useState([]);
   const [targetFree, setTargetFree] = useState(true);
+  const [rngSeed, setRngSeed] = useState(42);
   const [svgs, setSvgs] = useState({});
   const abortRef = useRef(0);
 
@@ -140,7 +141,7 @@ export default function EvolutionPage() {
       const RDKit = await getRDKit();
       if (cancelled || !RDKit) return;
       setReactionSupport(detectReactionSupport(RDKit));
-      setSaSupport(detectSaScoreSupport(RDKit));
+      setSaSupport(await probeSaScoreSupport());
     })();
     return () => {
       cancelled = true;
@@ -156,7 +157,7 @@ export default function EvolutionPage() {
   };
 
   const run = async () => {
-    const cfg = clampSettings(settings);
+    const cfg = clampSettings({ ...settings, rngSeed });
     const my = ++abortRef.current;
     setRunning(true);
     setError("");
@@ -189,12 +190,16 @@ export default function EvolutionPage() {
           parents,
           protein,
           referenceSmiles: seeded.parent.smiles,
+          seedSmiles: seeded.parent.smiles,
+          populationSmiles: parents.map((p) => p.smiles),
           archiveSmiles,
           seen,
           variantsPerGeneration: cfg.variantsPerGeneration,
           survivors: cfg.survivors,
           generationIndex: g,
           rescueBoost: rescueNext,
+          rngSeed: cfg.rngSeed ?? rngSeed,
+          dockingBudgetPerGen: protein?.id ? 8 : 0,
         });
         if (my !== abortRef.current) return;
         if (!result.ok) {
@@ -223,7 +228,9 @@ export default function EvolutionPage() {
         await renderSvgs(result.survivors);
       }
 
-      const last = parents.slice().sort((a, b) => (b.score || 0) - (a.score || 0));
+      const last = parents.slice().sort(
+        (a, b) => (a.rank ?? 99) - (b.rank ?? 99) || (b.displayScore || b.score || 0) - (a.displayScore || a.score || 0)
+      );
       const withNovelty = [];
       for (const row of last) {
         const pubchem = await lookupPubChemExact(row.smiles);
@@ -301,6 +308,7 @@ export default function EvolutionPage() {
             <label>Generations<input type="number" min={1} max={8} value={settings.generations} onChange={(e) => setSettings((s) => ({ ...s, generations: e.target.value }))} /></label>
             <label>Variants / generation<input type="number" min={4} max={40} value={settings.variantsPerGeneration} onChange={(e) => setSettings((s) => ({ ...s, variantsPerGeneration: e.target.value }))} /></label>
             <label>Survivors<input type="number" min={1} max={10} value={settings.survivors} onChange={(e) => setSettings((s) => ({ ...s, survivors: e.target.value }))} /></label>
+            <label>RNG seed<input type="number" min={1} max={999999} value={rngSeed} onChange={(e) => setRngSeed(Number(e.target.value) || 42)} /></label>
           </div>
           <button type="button" className="btn btn-primary" disabled={running || !smiles.trim()} onClick={run}>
             {running ? "Evolving…" : "Run evolution"}
@@ -393,7 +401,7 @@ export default function EvolutionPage() {
                     </td>
                     <td className="mono">
                       <ProvenanceBadge text={row.provenance || "Heuristic"} />
-                      {row.score}/100
+                      Pareto rank {row.rank ?? "—"} · {row.score}/100 (secondary)
                       <ScoreBreakdown fitness={row.fitness} saScore={row.saScore} qed={row.qed} provenance={row.provenance} />
                     </td>
                     <td>

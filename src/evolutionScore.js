@@ -1,15 +1,31 @@
 import { calculateAdmeProperties } from "./admeCalculator";
 import { pdbIdOf } from "./rankingCache";
-import { desirabilityBundle, computeQED } from "./evolution/evolutionDesirability";
-import { calculateSaScore, preloadSaAssets } from "./evolution/saScorer";
-import { structuralAlerts, passesHardGates } from "./evolution/evolutionGates";
+import { desirabilityBundle, computeNovelty } from "./evolution/evolutionDesirability";
+import { calculateSaScore, preloadSaAssets, probeSaScoreSupport, detectSaScoreSupport as detectSaSupportSync } from "./evolution/saScorer";
+import { structuralAlerts, passesHardGates, elementSymbolsFromSmiles } from "./evolution/evolutionGates";
 import { checkPainsFast } from "./painsCheck";
-import { maxTanimotoToSet } from "./evolution/evolutionFingerprint";
+import { noveltyDistances } from "./evolution/evolutionFingerprint";
+import { computeQEDFromSmiles } from "./evolution/qedFromRdkit";
 import { loadApprovedDrugs } from "./approvedDrugs";
+import {
+  getCachedAffinity,
+  ligandEfficiency,
+  lle,
+} from "./evolution/evolutionDocking";
+import { OnlineSurrogate, featurizeRow } from "./evolution/evolutionSurrogate";
+import { morganUint8 } from "./evolution/evolutionFingerprint";
 
 const MEMORY = new Map();
-const STORAGE_KEY = "pocketlink-evo-score-v4";
+const STORAGE_KEY = "pocketlink-evo-score-v5";
 let sessionLoaded = false;
+
+const surrogateByTarget = new Map();
+
+export function getSurrogateForTarget(pdbId) {
+  const key = String(pdbId || "NONE").toUpperCase();
+  if (!surrogateByTarget.has(key)) surrogateByTarget.set(key, new OnlineSurrogate());
+  return surrogateByTarget.get(key);
+}
 
 export function knownInApprovedLibrary(canonicalSmiles) {
   const target = String(canonicalSmiles || "").trim();
@@ -76,8 +92,26 @@ function persist() {
   }
 }
 
+export { probeSaScoreSupport };
+
 export function detectSaScoreSupport() {
-  return { saScore: true, reason: "Ported sascorer (folded Morgan + fragment remap), lazy-loaded asset" };
+  return detectSaSupportSync();
+}
+
+function morganBitIndices(RDKit, smiles) {
+  const mol = RDKit.get_mol(smiles);
+  if (!mol) return [];
+  try {
+    const fp = morganUint8(mol);
+    if (!fp) return [];
+    const bits = [];
+    for (let i = 0; i < fp.length; i += 1) {
+      if (fp[i]) bits.push(i);
+    }
+    return bits;
+  } finally {
+    mol.delete();
+  }
 }
 
 export async function scoreEvolvedMolecule({
@@ -85,12 +119,15 @@ export async function scoreEvolvedMolecule({
   parentSmiles,
   parentSmilesB,
   referenceSmiles,
+  seedSmiles,
+  populationSmiles = [],
   archiveSmiles = [],
   protein,
   RDKit,
   operator,
   editLabel,
   editId,
+  affinityRow = null,
 }) {
   const canon = String(smiles || "").trim();
   if (!canon) return { ok: false, error: "Empty SMILES" };
@@ -98,7 +135,7 @@ export async function scoreEvolvedMolecule({
   const targetFree = !protein?.id;
   const key = evolutionCacheKey(pdb, canon);
   ensureLoaded();
-  if (MEMORY.has(key)) {
+  if (MEMORY.has(key) && !affinityRow) {
     return { ok: true, cached: true, ...MEMORY.get(key) };
   }
 
@@ -118,48 +155,81 @@ export async function scoreEvolvedMolecule({
   };
   const alerts = structuralAlerts(canon, candidate);
   const heavyAtoms = Number(props.heavyAtoms ?? props.numHeavyAtoms ?? 0);
+  const elements = elementSymbolsFromSmiles(canon, RDKit);
   const gate = passesHardGates({
     adme,
     alerts,
-    heavyAtoms: heavyAtoms || 20,
+    heavyAtoms,
     rotb: props.rotb ?? 0,
-    elements: ["C", "N", "O"],
+    elements,
   });
   if (!gate.ok) return { ok: false, error: gate.reason, gated: true };
 
   const saRes = await calculateSaScore(RDKit, canon);
   const saScore = saRes.ok ? saRes.saScore : null;
+  if (!saRes.ok) return { ok: false, error: saRes.error || "SA score unavailable" };
 
-  const refSet = [...new Set([referenceSmiles, parentSmiles, parentSmilesB, ...archiveSmiles].filter(Boolean))];
-  const maxTan = RDKit ? maxTanimotoToSet(RDKit, canon, refSet) : 0;
-  const novelty = 1 - maxTan;
+  const seedRef = seedSmiles || referenceSmiles || parentSmiles;
+  const popRefs = [...new Set([...populationSmiles, ...archiveSmiles, parentSmiles, parentSmilesB].filter(Boolean))];
+  const { maxTanSeed, maxTanPopulation } = RDKit
+    ? noveltyDistances(RDKit, canon, { seedSmiles: seedRef, populationSmiles: popRefs })
+    : { maxTanSeed: 0, maxTanPopulation: 0 };
+  const novelty = computeNovelty({ maxTanSeed, maxTanPopulation });
 
-  const qed = computeQED({
-    mw: props.mw,
-    logp: props.logp,
-    hba: props.hba,
-    hbd: props.hbd,
-    tpsa: props.tpsa,
-    rotb: props.rotb,
-    aromaticRings: props.aromaticRings,
-    structuralAlerts: alerts.pains + alerts.brenk,
-  });
+  const alertCount = alerts.pains + alerts.brenk;
+  const qed =
+    computeQEDFromSmiles(RDKit, adme.canonicalSmiles || canon, { alertCount }) ??
+    props.qed ??
+    0.5;
+
+  let deltaG = null;
+  let le = null;
+  let lleScore = null;
+  let affinityProvenance = targetFree ? "n/a" : "surrogate";
+  let docked = false;
+
+  const cachedAff = !targetFree ? getCachedAffinity(pdb, adme.canonicalSmiles || canon) : null;
+  const aff = affinityRow || cachedAff;
+  if (!targetFree && aff?.ok && Number.isFinite(aff.deltaG)) {
+    deltaG = aff.deltaG;
+    le = ligandEfficiency(deltaG, heavyAtoms);
+    lleScore = lle(deltaG, props.logp);
+    docked = Boolean(aff.docked);
+    affinityProvenance = docked ? "Vina 1.2.5 (unvalidated)" : "surrogate";
+  } else if (!targetFree) {
+    const surrogate = getSurrogateForTarget(pdb);
+    const features = featurizeRow({
+      mw: props.mw,
+      logp: props.logp,
+      tpsa: props.tpsa,
+      hbd: props.hbd,
+      hba: props.hba,
+      rotb: props.rotb,
+      fsp3: props.fractionCsp3 ?? 0,
+      heavyAtoms,
+      morganBits: morganBitIndices(RDKit, canon),
+    });
+    const pred = surrogate.predict(features);
+    le = pred.yhat;
+    affinityProvenance = pred.trained ? "Surrogate (unvalidated)" : "Surrogate cold-start";
+  }
 
   const fitness = desirabilityBundle(
     {
       qed,
-      sa: saScore ?? 5.5,
+      sa: saScore,
       novelty,
+      maxTanSeed,
+      maxTanPopulation,
       mw: props.mw,
       logp: props.logp,
       tpsa: props.tpsa,
       fsp3: props.fractionCsp3 ?? props.fsp3 ?? props.fractionCSP3,
       painsCount: alerts.pains,
       brenkCount: alerts.brenk,
-      le: null,
-      dAff: 0,
+      le,
     },
-    { targetFree, maxTanimoto: maxTan }
+    { targetFree }
   );
 
   const payload = {
@@ -169,9 +239,11 @@ export async function scoreEvolvedMolecule({
     fitness,
     reasoning: [],
     strengths: [],
-    concerns: gate.ok ? [] : [gate.reason],
-    source: targetFree ? "heuristic-target-free" : "heuristic-v3-desirability",
-    provenance: targetFree ? "Heuristic (no target affinity)" : "Heuristic (target context; no docking)",
+    concerns: [],
+    source: targetFree ? "chemistry-quality-filter" : "target-aware-v4",
+    provenance: targetFree
+      ? "Chemistry-quality filter (not potency)"
+      : affinityProvenance,
     lipinski: adme.druglikeness?.lipinski || null,
     veber: adme.druglikeness?.veber || null,
     admeFlags: {
@@ -182,10 +254,24 @@ export async function scoreEvolvedMolecule({
     organFlags: [],
     pains: checkPainsFast(candidate),
     saScore,
-    saSupport: detectSaScoreSupport(),
+    saSupport: await probeSaScoreSupport(),
     qed,
     novelty,
-    maxTanimoto: maxTan,
+    maxTanimoto: Math.max(maxTanSeed, maxTanPopulation),
+    maxTanSeed,
+    maxTanPopulation,
+    deltaG,
+    le,
+    lle: lleScore,
+    docked,
+    heavyAtoms,
+    mw: props.mw,
+    logp: props.logp,
+    tpsa: props.tpsa,
+    hbd: props.hbd,
+    hba: props.hba,
+    rotb: props.rotb,
+    fsp3: props.fractionCsp3 ?? props.fsp3 ?? 0,
     referenceSmiles: referenceSmiles || parentSmiles || canon,
     parentSmiles: parentSmiles || null,
     parentSmilesB: parentSmilesB || null,
@@ -194,9 +280,42 @@ export async function scoreEvolvedMolecule({
     editLabel: editLabel || "",
     targetFree,
     gated: false,
+    surrogateYhat: le,
+    surrogateSigma: targetFree ? 0 : getSurrogateForTarget(pdb).predict(
+      featurizeRow({
+        mw: props.mw,
+        logp: props.logp,
+        tpsa: props.tpsa,
+        hbd: props.hbd,
+        hba: props.hba,
+        rotb: props.rotb,
+        fsp3: props.fractionCsp3 ?? 0,
+        heavyAtoms,
+        morganBits: morganBitIndices(RDKit, canon),
+      })
+    ).sigma,
   };
 
   MEMORY.set(key, payload);
   persist();
   return { ok: true, cached: false, ...payload };
+}
+
+export function trainSurrogateFromDocked(pdbId, rows) {
+  const surrogate = getSurrogateForTarget(pdbId);
+  for (const row of rows) {
+    if (!Number.isFinite(row.le)) continue;
+    const features = featurizeRow({
+      mw: row.mw,
+      logp: row.logp,
+      tpsa: row.tpsa,
+      hbd: row.hbd,
+      hba: row.hba,
+      rotb: row.rotb,
+      fsp3: row.fsp3 ?? 0,
+      heavyAtoms: row.heavyAtoms,
+      morganBits: row.morganBits || [],
+    });
+    surrogate.addSample(features, row.le);
+  }
 }
