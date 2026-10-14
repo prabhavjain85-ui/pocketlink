@@ -123,6 +123,18 @@ export function desirabilityBundle(raw, { targetFree } = {}) {
   if (targetFree) terms.push({ key: "d_lead_mw", w: weights.leadMw ?? 3, d: dLeadMw, raw: mw });
   terms.push({ key: "d_alerts", w: 0.5, d: dAlerts, raw: brenk });
 
+  let dLigandHypothesis = null;
+  if (raw.ligandHypothesisMaxTan != null && Number.isFinite(raw.ligandHypothesisMaxTan)) {
+    dLigandHypothesis = dHi(raw.ligandHypothesisMaxTan, 0.35, 0.65, 1);
+    terms.push({
+      key: "d_ligand_hypothesis",
+      w: 2.0,
+      d: dLigandHypothesis,
+      raw: raw.ligandHypothesisMaxTan,
+      label: "ligand-based hypothesis",
+    });
+  }
+
   const wSum = terms.reduce((s, t) => s + t.w, 0);
   let logSum = 0;
   for (const t of terms) {
@@ -156,6 +168,7 @@ export function desirabilityBundle(raw, { targetFree } = {}) {
       d_lipo: dLipo,
       d_lead_mw: targetFree ? dLeadMw : null,
       d_alerts: dAlerts,
+      d_ligand_hypothesis: dLigandHypothesis,
     },
     targetFree,
     paretoRank: raw.paretoRank ?? null,

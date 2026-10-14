@@ -4,7 +4,7 @@ import { desirabilityBundle, computeNovelty } from "./evolution/evolutionDesirab
 import { calculateSaScore, preloadSaAssets, probeSaScoreSupport, detectSaScoreSupport as detectSaSupportSync } from "./evolution/saScorer";
 import { structuralAlerts, passesHardGates, elementSymbolsFromSmiles } from "./evolution/evolutionGates";
 import { checkPainsFast } from "./painsCheck";
-import { noveltyDistances, seedTanimoto } from "./evolution/evolutionFingerprint";
+import { maxTanimotoToSet, noveltyDistances, seedTanimoto } from "./evolution/evolutionFingerprint";
 import { preservesProtectedSubstructure } from "./evolution/evolutionProtected";
 import { computeQEDFromSmiles } from "./evolution/qedFromRdkit";
 import { loadApprovedDrugs } from "./approvedDrugs";
@@ -131,6 +131,7 @@ export async function scoreEvolvedMolecule({
   affinityRow = null,
   seedSimilarityFloor = 0.4,
   protectedQuery = null,
+  referenceActiveSmiles = null,
 }) {
   const canon = String(smiles || "").trim();
   if (!canon) return { ok: false, error: "Empty SMILES" };
@@ -181,6 +182,14 @@ export async function scoreEvolvedMolecule({
     ? seedTanimoto(RDKit, adme.canonicalSmiles || canon, seedRef)
     : 1;
   const novelty = computeNovelty({ maxTanSeed, maxTanPopulation });
+
+  const refActives = Array.isArray(referenceActiveSmiles)
+    ? [...new Set(referenceActiveSmiles.map((s) => String(s || "").trim()).filter(Boolean))]
+    : [];
+  const ligandHypothesisMaxTan =
+    refActives.length && RDKit
+      ? maxTanimotoToSet(RDKit, adme.canonicalSmiles || canon, refActives)
+      : null;
 
   if (
     seedRef &&
@@ -253,6 +262,7 @@ export async function scoreEvolvedMolecule({
       painsCount: alerts.pains,
       brenkCount: alerts.brenk,
       le,
+      ligandHypothesisMaxTan: refActives.length ? ligandHypothesisMaxTan : null,
     },
     { targetFree }
   );
@@ -327,6 +337,18 @@ export async function scoreEvolvedMolecule({
   MEMORY.set(key, payload);
   persist();
   return { ok: true, cached: false, ...payload };
+}
+
+/** Release in-memory score cache (for long offline benchmarks). */
+export function clearEvolutionScoreCache() {
+  MEMORY.clear();
+  if (typeof sessionStorage !== "undefined") {
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }
 }
 
 export function trainSurrogateFromDocked(pdbId, rows) {
