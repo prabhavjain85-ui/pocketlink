@@ -1,4 +1,4 @@
-import { tanimotoFromUint8, morganUint8 } from "./evolutionFingerprint";
+import { tanimotoFromUint8, morganUint8, seedTanimoto } from "./evolutionFingerprint";
 
 export function meanPairwiseTanimotoDistance(RDKit, smilesList) {
   const fps = [];
@@ -18,7 +18,7 @@ export function meanPairwiseTanimotoDistance(RDKit, smilesList) {
   return n ? sum / n : 0;
 }
 
-export function collapseMetrics({ population, buckets, seedSmiles, RDKit }) {
+export function collapseMetrics({ population, buckets, seedSmiles, RDKit, globalScaffoldArchive }) {
   const smiles = population.map((p) => p.smiles);
   const diversity = meanPairwiseTanimotoDistance(RDKit, smiles.slice(0, 40));
   const bucketCounts = {};
@@ -27,24 +27,32 @@ export function collapseMetrics({ population, buckets, seedSmiles, RDKit }) {
   const maxBucketShare = population.length
     ? Math.max(...Object.values(bucketCounts)) / population.length
     : 0;
-  let seedSim = 0;
-  if (seedSmiles && population.length) {
-    const mol = RDKit.get_mol(seedSmiles);
-    const sfp = morganUint8(mol);
-    mol.delete();
+  let meanSeedSimilarity = 0;
+  let painsAlerts = 0;
+  if (population.length) {
     let acc = 0;
-    for (const row of population.slice(0, 10)) {
-      const m = RDKit.get_mol(row.smiles);
-      acc += tanimotoFromUint8(sfp, morganUint8(m));
-      m.delete();
+    for (const row of population) {
+      const tan =
+        row.seedSimilarity != null
+          ? row.seedSimilarity
+          : seedTanimoto(RDKit, row.smiles, seedSmiles);
+      acc += tan;
+      const painsHits = (row.pains?.hits || row.pains?.alerts || []).filter(
+        (h) => h.catalog === "PAINS" || h.family === "pains"
+      );
+      painsAlerts += painsHits.length || Number(row.fitness?.desirabilities?.painsCount ?? 0);
     }
-    seedSim = acc / Math.min(10, population.length);
+    meanSeedSimilarity = acc / population.length;
   }
+  const uniqueScaffoldsArchive = globalScaffoldArchive ? globalScaffoldArchive.size : distinctScaffolds;
   return {
     diversity: Number(diversity.toFixed(3)),
     distinctScaffolds,
+    uniqueScaffoldsArchive,
     maxBucketShare: Number(maxBucketShare.toFixed(3)),
-    seedSimilarityTop10: Number(seedSim.toFixed(3)),
+    meanSeedSimilarity: Number(meanSeedSimilarity.toFixed(3)),
+    painsAlerts,
+    seedSimilarityTop10: Number(meanSeedSimilarity.toFixed(3)),
   };
 }
 

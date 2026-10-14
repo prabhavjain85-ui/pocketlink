@@ -20,6 +20,25 @@ export function tanimotoFromUint8(a, b) {
   return union ? inter / union : 0;
 }
 
+export function seedTanimoto(RDKit, smiles, seedSmiles) {
+  const a = String(smiles || "").trim();
+  const b = String(seedSmiles || "").trim();
+  if (!a || !b || !RDKit) return a === b ? 1 : 0;
+  if (a === b) return 1;
+  let molA = null;
+  let molB = null;
+  try {
+    molA = RDKit.get_mol(a);
+    molB = RDKit.get_mol(b);
+    const fpA = morganUint8(molA);
+    const fpB = morganUint8(molB);
+    return tanimotoFromUint8(fpA, fpB);
+  } finally {
+    molA?.delete?.();
+    molB?.delete?.();
+  }
+}
+
 export function maxTanimotoToSet(RDKit, smiles, others = []) {
   let mol = null;
   try {

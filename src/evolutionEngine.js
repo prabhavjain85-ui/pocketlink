@@ -13,6 +13,8 @@ import {
 } from "./evolution/evolutionDocking";
 import { pdbIdOf } from "./rankingCache";
 import { morganUint8 } from "./evolution/evolutionFingerprint";
+import { pickDiverseSurvivors } from "./evolution/evolutionDiversity";
+import { resolveProtectedQuery } from "./evolution/evolutionProtected";
 
 export const DEFAULT_EVOLUTION_SETTINGS = {
   generations: 5,
@@ -20,6 +22,11 @@ export const DEFAULT_EVOLUTION_SETTINGS = {
   survivors: 5,
   rngSeed: 42,
   dockingBudgetPerGen: 8,
+  seedSimilarityFloor: 0.4,
+  independentRuns: 5,
+  diversityMethod: "maxmin",
+  protectedSmarts: "",
+  protectedAtomIndices: [],
 };
 
 function clampInt(raw, fallback, min, max) {
@@ -34,7 +41,27 @@ export function clampSettings(raw = {}) {
   const survivors = clampInt(raw.survivors, 5, 1, 10);
   const rngSeed = clampInt(raw.rngSeed, 42, 1, 2147483646);
   const dockingBudgetPerGen = clampInt(raw.dockingBudgetPerGen, 8, 0, 24);
-  return { generations, variantsPerGeneration, survivors, rngSeed, dockingBudgetPerGen };
+  const seedSimilarityFloor = Number.isFinite(Number(raw.seedSimilarityFloor))
+    ? Math.max(0, Math.min(1, Number(raw.seedSimilarityFloor)))
+    : 0.4;
+  const independentRuns = clampInt(raw.independentRuns, 5, 1, 12);
+  const diversityMethod = raw.diversityMethod === "butina" ? "butina" : "maxmin";
+  const protectedSmarts = String(raw.protectedSmarts || "").trim();
+  const protectedAtomIndices = Array.isArray(raw.protectedAtomIndices)
+    ? raw.protectedAtomIndices.map((n) => Number(n)).filter((n) => Number.isFinite(n))
+    : [];
+  return {
+    generations,
+    variantsPerGeneration,
+    survivors,
+    rngSeed,
+    dockingBudgetPerGen,
+    seedSimilarityFloor,
+    independentRuns,
+    diversityMethod,
+    protectedSmarts,
+    protectedAtomIndices,
+  };
 }
 
 function objectiveVector(row, targetFree) {
@@ -126,6 +153,10 @@ export async function runEvolutionGeneration({
   rescueBoost = false,
   rngSeed = 42,
   dockingBudgetPerGen = 8,
+  seedSimilarityFloor = 0.4,
+  protectedQuery = null,
+  diversityMethod = "maxmin",
+  globalScaffoldArchive = null,
 }) {
   const started = typeof performance !== "undefined" ? performance.now() : Date.now();
   const RDKit = await getRDKit();
@@ -149,6 +180,8 @@ export async function runEvolutionGeneration({
     populationSmiles: popSmiles,
     archiveSmiles,
     RDKit,
+    seedSimilarityFloor,
+    protectedQuery,
   };
 
   const scoredRows = await scoreOffspring(produced.variants, scoreCtx);
@@ -222,6 +255,8 @@ export async function runEvolutionGeneration({
         editId: row.editId,
         editLabel: row.editLabel,
         affinityRow: aff,
+        seedSimilarityFloor,
+        protectedQuery,
       });
       const idx = pool.findIndex((p) => p.smiles === row.smiles);
       if (idx >= 0 && rescored.ok) pool[idx] = { ...pool[idx], ...rescored };
@@ -233,14 +268,26 @@ export async function runEvolutionGeneration({
   const combined = [...parents, ...pool];
   const objectives = combined.map((row) => objectiveVector(row, targetFree));
   let ranked = selectSurvivorsMuPlusLambda(combined, objectives, combined.length);
-  ranked = applyScaffoldQuota(ranked, survivors, 0.25);
+  ranked = applyScaffoldQuota(ranked, Math.max(survivors * 3, survivors), 0.25);
+  ranked = pickDiverseSurvivors(RDKit, ranked, survivors, {
+    method: diversityMethod,
+    rng,
+    seedSmiles: seedSmiles || referenceSmiles,
+  });
   ranked = mergeElites(ranked, parents, survivors);
+
+  if (globalScaffoldArchive) {
+    for (const row of ranked) {
+      if (row.bucket) globalScaffoldArchive.add(row.bucket);
+    }
+  }
 
   const metrics = collapseMetrics({
     population: ranked,
     buckets: ranked.map((r) => r.bucket),
     seedSmiles: seedSmiles || referenceSmiles,
     RDKit,
+    globalScaffoldArchive,
   });
   const rescue = needsDiversityRescue(metrics);
 
@@ -270,12 +317,22 @@ export async function runEvolutionGeneration({
       discarded: discarded.parseFail + discarded.duplicate + discarded.gated,
       diversity: metrics.diversity,
       scaffolds: metrics.distinctScaffolds,
+      meanSeedSimilarity: metrics.meanSeedSimilarity,
+      uniqueScaffoldsArchive: metrics.uniqueScaffoldsArchive,
+      painsAlerts: metrics.painsAlerts,
     },
     ms: Math.round(ended - started),
   };
 }
 
-export async function seedParent({ smiles, protein, name, rngSeed = 42 }) {
+export async function seedParent({
+  smiles,
+  protein,
+  name,
+  rngSeed = 42,
+  seedSimilarityFloor = 0.4,
+  protectedQuery = null,
+}) {
   const RDKit = await getRDKit();
   const canon = canonicalizeSmiles(RDKit, smiles);
   if (!canon) return { ok: false, error: "Starting SMILES is not valid in RDKit." };
@@ -290,6 +347,8 @@ export async function seedParent({ smiles, protein, name, rngSeed = 42 }) {
     operator: "seed",
     editLabel: "Starting structure",
     editId: "seed",
+    seedSimilarityFloor,
+    protectedQuery,
   });
   if (!scored.ok) return scored;
   const keys = murckoKeys(RDKit, canon);
@@ -313,3 +372,153 @@ export async function seedParent({ smiles, protein, name, rngSeed = 42 }) {
 }
 
 export { tournamentSelect } from "./evolution/evolutionNsga2";
+
+export function summarizeMultiRunRepeats(runSummaries) {
+  const smilesRuns = new Map();
+  for (const run of runSummaries || []) {
+    for (const row of run.finals || []) {
+      const smi = row.smiles;
+      if (!smilesRuns.has(smi)) smilesRuns.set(smi, []);
+      smilesRuns.get(smi).push({
+        runIndex: run.runIndex,
+        score: row.displayScore ?? row.score,
+        seedSimilarity: row.seedSimilarity,
+      });
+    }
+  }
+  const recurring = [...smilesRuns.entries()]
+    .filter(([, hits]) => hits.length > 1)
+    .map(([smiles, hits]) => ({
+      smiles,
+      runCount: hits.length,
+      runs: hits.map((h) => h.runIndex),
+      scoreMean: hits.reduce((s, h) => s + Number(h.score || 0), 0) / hits.length,
+      scoreMin: Math.min(...hits.map((h) => Number(h.score || 0))),
+      scoreMax: Math.max(...hits.map((h) => Number(h.score || 0))),
+    }))
+    .sort((a, b) => b.runCount - a.runCount);
+
+  const scoreSpread = (runSummaries || []).map((run) => {
+    const scores = (run.finals || []).map((r) => Number(r.displayScore ?? r.score ?? 0));
+    const mean = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+    const variance = scores.length
+      ? scores.reduce((s, v) => s + (v - mean) ** 2, 0) / scores.length
+      : 0;
+    return {
+      runIndex: run.runIndex,
+      rngSeed: run.rngSeed,
+      best: scores.length ? Math.max(...scores) : 0,
+      mean,
+      stdev: Math.sqrt(variance),
+    };
+  });
+
+  return { recurring, scoreSpread };
+}
+
+export async function runEvolutionCampaign({
+  smiles,
+  name,
+  protein,
+  settings: rawSettings,
+  onProgress = () => {},
+}) {
+  const cfg = clampSettings(rawSettings || {});
+  const RDKit = await getRDKit();
+  if (!RDKit) return { ok: false, error: "RDKit WASM did not load." };
+
+  const protectedQuery = resolveProtectedQuery(RDKit, canonicalizeSmiles(RDKit, smiles) || smiles, {
+    protectedSmarts: cfg.protectedSmarts,
+    protectedAtomIndices: cfg.protectedAtomIndices,
+  });
+  if (!protectedQuery.ok) return { ok: false, error: protectedQuery.error || "Protected substructure invalid" };
+
+  const runSummaries = [];
+  for (let run = 0; run < cfg.independentRuns; run += 1) {
+    const runSeed = cfg.rngSeed + run * 9973;
+    onProgress({ phase: "seed", run, runs: cfg.independentRuns });
+    const seeded = await seedParent({
+      smiles,
+      protein,
+      name,
+      rngSeed: runSeed,
+      seedSimilarityFloor: cfg.seedSimilarityFloor,
+      protectedQuery,
+    });
+    if (!seeded.ok) return seeded;
+
+    const seen = new Set([seeded.parent.smiles]);
+    const archiveSmiles = [seeded.parent.smiles];
+    const globalScaffoldArchive = new Set([seeded.parent.bucket].filter(Boolean));
+    let parents = [seeded.parent];
+    const history = [
+      {
+        generation: 0,
+        best: seeded.parent.displayScore ?? seeded.parent.score,
+        average: seeded.parent.displayScore ?? seeded.parent.score,
+        meanSeedSimilarity: 1,
+        uniqueScaffoldsArchive: globalScaffoldArchive.size,
+        painsAlerts: 0,
+        valid: 1,
+        discarded: 0,
+      },
+    ];
+    let rescueNext = false;
+
+    for (let g = 1; g <= cfg.generations; g += 1) {
+      onProgress({ phase: "generation", run, runs: cfg.independentRuns, generation: g });
+      const result = await runEvolutionGeneration({
+        parents,
+        protein,
+        referenceSmiles: seeded.parent.smiles,
+        seedSmiles: seeded.parent.smiles,
+        populationSmiles: parents.map((p) => p.smiles),
+        archiveSmiles,
+        seen,
+        variantsPerGeneration: cfg.variantsPerGeneration,
+        survivors: cfg.survivors,
+        generationIndex: g,
+        rescueBoost: rescueNext,
+        rngSeed: runSeed,
+        dockingBudgetPerGen: protein?.id ? cfg.dockingBudgetPerGen : 0,
+        seedSimilarityFloor: cfg.seedSimilarityFloor,
+        protectedQuery,
+        diversityMethod: cfg.diversityMethod,
+        globalScaffoldArchive,
+      });
+      if (!result.ok) return result;
+      history.push(result.historyPoint);
+      for (const s of result.survivors || []) archiveSmiles.push(s.smiles);
+      rescueNext = Boolean(result.rescue);
+      if (!result.survivors.length) break;
+      parents = result.survivors;
+    }
+
+    const finals = parents
+      .slice()
+      .sort(
+        (a, b) =>
+          (a.rank ?? 99) - (b.rank ?? 99) ||
+          (b.displayScore ?? b.score ?? 0) - (a.displayScore ?? a.score ?? 0)
+      );
+
+    runSummaries.push({
+      runIndex: run,
+      rngSeed: runSeed,
+      seed: seeded.parent,
+      history,
+      finals,
+      protectedQuery,
+    });
+  }
+
+  const repeats = summarizeMultiRunRepeats(runSummaries);
+  return {
+    ok: true,
+    settings: cfg,
+    protectedQuery,
+    runs: runSummaries,
+    repeats,
+    primaryRun: runSummaries[0],
+  };
+}

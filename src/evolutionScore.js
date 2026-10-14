@@ -4,7 +4,8 @@ import { desirabilityBundle, computeNovelty } from "./evolution/evolutionDesirab
 import { calculateSaScore, preloadSaAssets, probeSaScoreSupport, detectSaScoreSupport as detectSaSupportSync } from "./evolution/saScorer";
 import { structuralAlerts, passesHardGates, elementSymbolsFromSmiles } from "./evolution/evolutionGates";
 import { checkPainsFast } from "./painsCheck";
-import { noveltyDistances } from "./evolution/evolutionFingerprint";
+import { noveltyDistances, seedTanimoto } from "./evolution/evolutionFingerprint";
+import { preservesProtectedSubstructure } from "./evolution/evolutionProtected";
 import { computeQEDFromSmiles } from "./evolution/qedFromRdkit";
 import { loadApprovedDrugs } from "./approvedDrugs";
 import {
@@ -128,6 +129,8 @@ export async function scoreEvolvedMolecule({
   editLabel,
   editId,
   affinityRow = null,
+  seedSimilarityFloor = 0.4,
+  protectedQuery = null,
 }) {
   const canon = String(smiles || "").trim();
   if (!canon) return { ok: false, error: "Empty SMILES" };
@@ -174,7 +177,29 @@ export async function scoreEvolvedMolecule({
   const { maxTanSeed, maxTanPopulation } = RDKit
     ? noveltyDistances(RDKit, canon, { seedSmiles: seedRef, populationSmiles: popRefs })
     : { maxTanSeed: 0, maxTanPopulation: 0 };
+  const seedSimilarity = RDKit && seedRef
+    ? seedTanimoto(RDKit, adme.canonicalSmiles || canon, seedRef)
+    : 1;
   const novelty = computeNovelty({ maxTanSeed, maxTanPopulation });
+
+  if (
+    seedRef &&
+    String(adme.canonicalSmiles || canon).trim() !== String(seedRef).trim() &&
+    seedSimilarity < seedSimilarityFloor
+  ) {
+    return {
+      ok: false,
+      gated: true,
+      error: `Seed similarity ${seedSimilarity.toFixed(3)} below floor ${seedSimilarityFloor}`,
+    };
+  }
+
+  if (protectedQuery?.smarts) {
+    const prot = preservesProtectedSubstructure(RDKit, adme.canonicalSmiles || canon, protectedQuery);
+    if (!prot.ok) {
+      return { ok: false, gated: true, error: prot.error || "Protected substructure broken" };
+    }
+  }
 
   const alertCount = alerts.pains + alerts.brenk;
   const qed =
@@ -260,6 +285,9 @@ export async function scoreEvolvedMolecule({
     maxTanimoto: Math.max(maxTanSeed, maxTanPopulation),
     maxTanSeed,
     maxTanPopulation,
+    seedSimilarity,
+    seedSimilarityFloor,
+    protectedSource: protectedQuery?.source || null,
     deltaG,
     le,
     lle: lleScore,

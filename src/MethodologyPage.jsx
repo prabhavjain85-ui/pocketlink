@@ -16,6 +16,7 @@ export default function MethodologyPage() {
         "validation-benchmark",
         "adme-profiling",
         "research-agent",
+        "molecule-local-search",
         "clinical-disclaimer",
       ];
 
@@ -138,11 +139,19 @@ export default function MethodologyPage() {
               </button>
               <button
                 type="button"
+                id="toc-link-molecule-local-search"
+                className={`sidebar-link ${activeSection === "molecule-local-search" ? "active" : ""}`}
+                onClick={() => scrollToSection("molecule-local-search")}
+              >
+                <span className="sidebar-num">10</span> Local molecular search
+              </button>
+              <button
+                type="button"
                 id="toc-link-disclaimer"
                 className={`sidebar-link ${activeSection === "clinical-disclaimer" ? "active" : ""}`}
                 onClick={() => scrollToSection("clinical-disclaimer")}
               >
-                <span className="sidebar-num">10</span> Clinical Disclaimer
+                <span className="sidebar-num">11</span> Clinical Disclaimer
               </button>
             </nav>
 
@@ -755,6 +764,43 @@ export default function MethodologyPage() {
                 wet-lab validation, synthetic accessibility synthesis planning, or customized multi-target pharmacokinetic optimization.
               </p>
             </div>
+          </section>
+
+          {/* Section: Local molecular search */}
+          <section className="methodology-section" id="molecule-local-search">
+            <div className="section-eyebrow">Tools</div>
+            <h2 className="section-title">Local search around a seed (drug-likeness &amp; synthesizability heuristics)</h2>
+            <p>
+              This workflow mutates a user-provided seed with a curated library of RDKit reaction SMARTS (no generative SMILES from language
+              models). Survivors are chosen by multi-objective ranking plus fingerprint diversity picking. It is explicitly{" "}
+              <strong>not</strong> target binding optimization: there is no docking or affinity term in the objective when no target is staged.
+            </p>
+            <ul className="methodology-bullet-list">
+              <li>
+                <strong>Similarity floor:</strong> Variants whose Morgan fingerprint (radius 2, 2048 bits) Tanimoto similarity to the seed falls
+                below a configurable floor (default 0.4) are rejected before ranking.
+              </li>
+              <li>
+                <strong>Protected substructure:</strong> By default the seed&apos;s Murcko scaffold (extracted with the same ring/linker rules as
+                RDKit&apos;s Murcko framework) must remain intact; users may override with a custom SMARTS query.
+              </li>
+              <li>
+                <strong>SA score:</strong> Ertl &amp; Schuffenhauer (2009) fragment-frequency synthetic accessibility on a hydrogen-stripped,
+                canonicalized structure. It is a coarse complexity prior — not retrosynthesis, not purchasability.
+              </li>
+              <li>
+                <strong>Diversity &amp; scaffolds:</strong> Survivors are selected with MaxMin or Butina-style leader picking to avoid near-duplicate
+                fingerprints; unique Murcko bucket keys are tracked across generations for collapse monitoring.
+              </li>
+              <li>
+                <strong>Goodhart chart:</strong> Each generation plots the best heuristic score together with mean seed similarity and PAINS alert
+                counts so score gains that track falling similarity are visible.
+              </li>
+              <li>
+                <strong>Repeat runs:</strong> Multiple independent RNG seeds report recurring survivors and run-to-run score spread. Offline
+                retrosynthesis screening (e.g. AiZynthFinder) on the final top hits is a plausible follow-up but is not run in the browser.
+              </li>
+            </ul>
           </section>
 
           {/* Section 10: General Disclaimer */}

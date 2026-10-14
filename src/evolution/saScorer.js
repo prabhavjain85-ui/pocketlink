@@ -141,14 +141,43 @@ function rescaleSa(raw) {
   return sascore;
 }
 
-export async function calculateSaScore(RDKit, smilesOrMol) {
-  if (!RDKit) return { ok: false, error: "RDKit not loaded" };
+export function normalizeMolForSa(RDKit, smilesOrMol) {
+  if (!RDKit) return null;
   let mol = smilesOrMol;
   let owned = false;
   if (typeof smilesOrMol === "string") {
     mol = RDKit.get_mol(smilesOrMol);
     owned = true;
+  } else if (mol && typeof mol.copy === "function") {
+    mol = mol.copy();
+    owned = true;
   }
+  if (!mol) return null;
+  try {
+    if (typeof mol.is_valid === "function" && !mol.is_valid()) {
+      if (owned) mol.delete();
+      return null;
+    }
+    if (typeof mol.remove_hs_in_place === "function") mol.remove_hs_in_place();
+    const canon = String(mol.get_smiles() || "").trim();
+    if (owned) mol.delete();
+    if (!canon) return null;
+    const normalized = RDKit.get_mol(canon);
+    if (!normalized || (typeof normalized.is_valid === "function" && !normalized.is_valid())) {
+      normalized?.delete?.();
+      return null;
+    }
+    return normalized;
+  } catch {
+    if (owned && mol) mol.delete();
+    return null;
+  }
+}
+
+export async function calculateSaScore(RDKit, smilesOrMol) {
+  if (!RDKit) return { ok: false, error: "RDKit not loaded" };
+  const mol = normalizeMolForSa(RDKit, smilesOrMol);
+  const owned = true;
   if (!mol) return { ok: false, error: "Invalid molecule" };
   try {
     const remap = await loadRemap();

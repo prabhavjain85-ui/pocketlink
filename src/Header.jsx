@@ -8,7 +8,7 @@ const TOOL_LINKS = [
   { to: "/repurposing", label: "Repurposing" },
   { to: "/adme", label: "ADME" },
   { to: "/docking", label: "Docking" },
-  { to: "/evolution", label: "Molecule Evolution" },
+  { to: "/evolution", label: "Local mol. search" },
   { to: "/agent", label: "Research Agent" },
 ];
 

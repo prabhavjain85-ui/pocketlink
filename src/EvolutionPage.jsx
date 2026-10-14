@@ -8,8 +8,7 @@ import { molSvg, detectReactionSupport } from "./evolutionTransforms";
 import {
   DEFAULT_EVOLUTION_SETTINGS,
   clampSettings,
-  runEvolutionGeneration,
-  seedParent,
+  runEvolutionCampaign,
 } from "./evolutionEngine";
 import { probeSaScoreSupport, lookupPubChemExact, noveltyBadge } from "./evolutionScore";
 import { getHistory, saveHistoryEntry } from "./historyService";
@@ -20,8 +19,10 @@ import "./evolution.css";
 const IMATINIB =
   "Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1";
 
+const FEATURE_TITLE = "Local search around a seed under drug-likeness and synthesizability heuristics";
+
 const HYPOTHESIS_NOTE =
-  "These are computationally generated hypotheses scored by heuristic models. They have not been synthesized or tested, may be difficult or impossible to make, and the scores are for prioritizing ideas, not evidence of activity.";
+  "Untested computational hypotheses only. There is no binding or potency term in this score. The SA score is Ertl & Schuffenhauer’s 2009 fragment-frequency estimate — it does not check retrosynthesis, purchasability, or route feasibility. Chemistry is limited to the curated edit library. Outputs are ideas for follow-up, not validated leads.";
 
 function ProvenanceBadge({ text }) {
   return <span className="history-type-badge badge-pdb" title={text}>{text}</span>;
@@ -51,19 +52,31 @@ function ScoreChart({ history }) {
   const points = history || [];
   if (!points.length) return null;
   const w = 640;
-  const h = 180;
-  const pad = 28;
-  const maxY = Math.max(100, ...points.map((p) => Math.max(p.best || 0, p.average || 0)));
+  const h = 200;
+  const pad = 32;
+  const maxY = Math.max(
+    100,
+    ...points.map((p) => Math.max(p.best || 0, p.average || 0)),
+    ...points.map((p) => (p.meanSeedSimilarity ?? 0) * 100),
+    ...points.map((p) => (p.painsAlerts ?? 0) * 10)
+  );
   const minY = 0;
   const xs = (i) => pad + (i / Math.max(1, points.length - 1)) * (w - pad * 2);
   const ys = (v) => h - pad - ((v - minY) / (maxY - minY || 1)) * (h - pad * 2);
   const bestPath = points.map((p, i) => `${i === 0 ? "M" : "L"}${xs(i)},${ys(p.best)}`).join(" ");
-  const avgPath = points.map((p, i) => `${i === 0 ? "M" : "L"}${xs(i)},${ys(p.average)}`).join(" ");
+  const simPath = points
+    .map((p, i) => `${i === 0 ? "M" : "L"}${xs(i)},${ys((p.meanSeedSimilarity ?? 0) * 100)}`)
+    .join(" ");
+  const painsPath = points
+    .map((p, i) => `${i === 0 ? "M" : "L"}${xs(i)},${ys((p.painsAlerts ?? 0) * 10)}`)
+    .join(" ");
   return (
-    <svg className="evo-chart" viewBox={`0 0 ${w} ${h}`} role="img" aria-label="Score over generations">
-      <text x={pad} y={16} fontSize="11" fill="currentColor">Best vs average score</text>
+    <svg className="evo-chart" viewBox={`0 0 ${w} ${h}`} role="img" aria-label="Goodhart check: score, seed similarity, PAINS">
+      <text x={pad} y={16} fontSize="11" fill="currentColor">Goodhart check (same axis scale)</text>
+      <text x={pad} y={30} fontSize="10" fill="#64748b">Blue: best heuristic score · Orange: mean seed Tanimoto×100 · Red: PAINS count×10</text>
       <path d={bestPath} fill="none" stroke="#2563eb" strokeWidth="2" />
-      <path d={avgPath} fill="none" stroke="#64748b" strokeWidth="1.5" strokeDasharray="4 3" />
+      <path d={simPath} fill="none" stroke="#ea580c" strokeWidth="1.8" strokeDasharray="5 3" />
+      <path d={painsPath} fill="none" stroke="#dc2626" strokeWidth="1.5" />
       {points.map((p, i) => (
         <g key={p.generation}>
           <circle cx={xs(i)} cy={ys(p.best)} r="3.5" fill="#2563eb" />
@@ -107,6 +120,8 @@ export default function EvolutionPage() {
   const [reactionSupport, setReactionSupport] = useState(null);
   const [saSupport, setSaSupport] = useState(null);
   const [runMetrics, setRunMetrics] = useState([]);
+  const [repeatSummary, setRepeatSummary] = useState(null);
+  const [protectedInfo, setProtectedInfo] = useState(null);
   const [targetFree, setTargetFree] = useState(true);
   const [rngSeed, setRngSeed] = useState(42);
   const [svgs, setSvgs] = useState({});
@@ -163,89 +178,78 @@ export default function EvolutionPage() {
     setError("");
     setHistory([]);
     setFinals([]);
-      setRuntimeLog([]);
-      setRunMetrics([]);
-      setTargetFree(!protein?.id);
-      setProgress("Seeding parent…");
+    setRuntimeLog([]);
+    setRunMetrics([]);
+    setRepeatSummary(null);
+    setProtectedInfo(null);
+    setTargetFree(!protein?.id);
+    setProgress("Seeding parent…");
     try {
-      const seeded = await seedParent({ smiles, protein, name });
+      const campaign = await runEvolutionCampaign({
+        smiles,
+        name,
+        protein,
+        settings: cfg,
+        onProgress: (p) => {
+          if (my !== abortRef.current) return;
+          if (p.phase === "seed") {
+            setProgress(`Run ${p.run + 1} of ${p.runs}: seeding…`);
+          } else {
+            setProgress(`Run ${p.run + 1}/${p.runs} · generation ${p.generation}/${cfg.generations}`);
+          }
+        },
+      });
       if (my !== abortRef.current) return;
-      if (!seeded.ok) {
-        setError(seeded.error || "Could not seed starting molecule.");
+      if (!campaign.ok) {
+        setError(campaign.error || "Could not run local search.");
         return;
       }
-      setSeed(seeded.parent);
-      await renderSvgs([seeded.parent]);
-      const seen = new Set([seeded.parent.smiles]);
-      const archiveSmiles = [seeded.parent.smiles];
-      let parents = [seeded.parent];
-      let rescueNext = false;
-      const hist = [{ generation: 0, best: seeded.parent.score, average: seeded.parent.score, valid: 1, discarded: 0 }];
-      setHistory(hist);
-      let lastSupport = reactionSupport;
 
-      for (let g = 1; g <= cfg.generations; g += 1) {
-        setProgress(`Generation ${g} of ${cfg.generations}: generating variants…`);
-        const result = await runEvolutionGeneration({
-          parents,
-          protein,
-          referenceSmiles: seeded.parent.smiles,
-          seedSmiles: seeded.parent.smiles,
-          populationSmiles: parents.map((p) => p.smiles),
-          archiveSmiles,
-          seen,
-          variantsPerGeneration: cfg.variantsPerGeneration,
-          survivors: cfg.survivors,
-          generationIndex: g,
-          rescueBoost: rescueNext,
-          rngSeed: cfg.rngSeed ?? rngSeed,
-          dockingBudgetPerGen: protein?.id ? 8 : 0,
-        });
-        if (my !== abortRef.current) return;
-        if (!result.ok) {
-          setError(result.error);
-          break;
-        }
-        lastSupport = result.reactionSupport || lastSupport;
-        setReactionSupport(lastSupport);
-        hist.push(result.historyPoint);
-        setHistory([...hist]);
-        for (const s of result.survivors || []) archiveSmiles.push(s.smiles);
-        setRunMetrics((prev) => [...prev, { generation: g, ...(result.metrics || {}), rescue: result.rescue }]);
-        rescueNext = Boolean(result.rescue);
-        setRuntimeLog((prev) => [
-          ...prev,
-          `Generation ${g}: ${result.valid} valid, ${result.discardedTotal} discarded, diversity ${result.metrics?.diversity ?? "n/a"}, scaffolds ${result.metrics?.distinctScaffolds ?? "n/a"}${result.rescue ? " · diversity rescue next" : ""}, ${result.ms} ms`,
-        ]);
-        setProgress(
-          `Generation ${g} of ${cfg.generations}: ${result.valid} valid variants scored (${result.discardedTotal} discarded, ${result.ms} ms)`
-        );
-        if (!result.survivors.length) {
-          setError("No valid novel variants this generation. Stopping.");
-          break;
-        }
-        parents = result.survivors;
-        await renderSvgs(result.survivors);
-      }
-
-      const last = parents.slice().sort(
-        (a, b) => (a.rank ?? 99) - (b.rank ?? 99) || (b.displayScore || b.score || 0) - (a.displayScore || a.score || 0)
+      const primary = campaign.primaryRun;
+      setSeed(primary.seed);
+      setProtectedInfo(campaign.protectedQuery);
+      setHistory(primary.history);
+      setRepeatSummary(campaign.repeats);
+      setRunMetrics(
+        primary.history
+          .filter((h) => h.generation > 0)
+          .map((h) => ({
+            generation: h.generation,
+            meanSeedSimilarity: h.meanSeedSimilarity,
+            uniqueScaffoldsArchive: h.uniqueScaffoldsArchive,
+            painsAlerts: h.painsAlerts,
+            diversity: h.diversity,
+          }))
       );
+      setRuntimeLog(
+        primary.history.map(
+          (h) =>
+            `Gen ${h.generation}: best ${h.best} · mean seed sim ${h.meanSeedSimilarity ?? "n/a"} · unique scaffolds (archive) ${h.uniqueScaffoldsArchive ?? "n/a"} · PAINS alerts ${h.painsAlerts ?? 0}`
+        )
+      );
+
+      const last = primary.finals;
       const withNovelty = [];
       for (const row of last) {
         const pubchem = await lookupPubChemExact(row.smiles);
         withNovelty.push({ ...row, novelty: noveltyBadge({ smiles: row.smiles, pubchem }) });
       }
       setFinals(withNovelty);
-      await renderSvgs(withNovelty);
+      await renderSvgs([primary.seed, ...withNovelty]);
 
       const targetLabel = protein ? targetDisplayName(protein) || protein.id : "unspecified target";
       saveHistoryEntry({
         type: "evolution-run",
-        title: `Molecule Evolution: ${name || "seed"} × ${targetLabel}`,
-        summary: `Best ${withNovelty[0]?.score ?? "n/a"}/100 after ${cfg.generations} generations`,
-        inputs: { smiles: seeded.parent.smiles, pdbId: protein?.id, settings: cfg },
-        snapshot: { protein, seed: seeded.parent, history: hist, finals: withNovelty.slice(0, 10) },
+        title: `${FEATURE_TITLE}: ${name || "seed"} × ${targetLabel}`,
+        summary: `Best ${withNovelty[0]?.score ?? "n/a"}/100 after ${cfg.generations} generations (${cfg.independentRuns} independent runs)`,
+        inputs: { smiles: primary.seed.smiles, pdbId: protein?.id, settings: cfg },
+        snapshot: {
+          protein,
+          seed: primary.seed,
+          history: primary.history,
+          finals: withNovelty.slice(0, 10),
+          repeats: campaign.repeats,
+        },
       });
     } catch (err) {
       setError(err?.message || "Evolution failed.");
@@ -262,11 +266,12 @@ export default function EvolutionPage() {
   return (
     <div className="evo-page">
       <div className="hero">
-        <div className="hero-eyebrow">TargetForge · molecule evolution</div>
-        <h1>Molecule Evolution</h1>
+        <div className="hero-eyebrow">TargetForge · local molecular search</div>
+        <h1>{FEATURE_TITLE}</h1>
         <p>
-          Start from a valid seed, apply curated medicinal-chemistry SMARTS edits in RDKit, and re-score cheap
-          heuristic filters each generation. Structures are never invented by a language model.
+          Start from a valid seed, apply curated medicinal-chemistry SMARTS edits in RDKit, and re-score drug-likeness
+          and synthesizability heuristics each generation. Structures are never invented by a language model. This is not
+          docking, binding optimization, or validated potency prediction.
         </p>
       </div>
 
@@ -276,8 +281,10 @@ export default function EvolutionPage() {
           {targetFree && <span className="history-type-badge badge-discovery" style={{ marginLeft: 8 }}>Property optimization only — no target staged</span>}
         </div>
         <p className="limitation-body">
-          {HYPOTHESIS_NOTE} Docking and affinity predictions are experimental when enabled elsewhere; this run uses{" "}
-          <strong>{targetFree ? "heuristic multi-objective scoring without target affinity" : "heuristic scoring with target context (no validated docking in-loop)"}</strong>.
+          {HYPOTHESIS_NOTE}{" "}
+          Variants below the Morgan (radius 2, 2048-bit) Tanimoto similarity floor are rejected, and edits must preserve
+          the protected substructure (default: RDKit Murcko scaffold of the seed). An offline retrosynthesis check (e.g.
+          AiZynthFinder) on the final top 5 is a possible later step but is too heavy for the live app.
         </p>
       </div>
 
@@ -308,8 +315,27 @@ export default function EvolutionPage() {
             <label>Generations<input type="number" min={1} max={8} value={settings.generations} onChange={(e) => setSettings((s) => ({ ...s, generations: e.target.value }))} /></label>
             <label>Variants / generation<input type="number" min={4} max={40} value={settings.variantsPerGeneration} onChange={(e) => setSettings((s) => ({ ...s, variantsPerGeneration: e.target.value }))} /></label>
             <label>Survivors<input type="number" min={1} max={10} value={settings.survivors} onChange={(e) => setSettings((s) => ({ ...s, survivors: e.target.value }))} /></label>
+            <label>Independent runs<input type="number" min={1} max={12} value={settings.independentRuns ?? 5} onChange={(e) => setSettings((s) => ({ ...s, independentRuns: e.target.value }))} /></label>
             <label>RNG seed<input type="number" min={1} max={999999} value={rngSeed} onChange={(e) => setRngSeed(Number(e.target.value) || 42)} /></label>
+            <label>Seed similarity floor<input type="number" min={0} max={1} step={0.05} value={settings.seedSimilarityFloor ?? 0.4} onChange={(e) => setSettings((s) => ({ ...s, seedSimilarityFloor: e.target.value }))} /></label>
+            <label>Diversity pick
+              <select value={settings.diversityMethod || "maxmin"} onChange={(e) => setSettings((s) => ({ ...s, diversityMethod: e.target.value }))}>
+                <option value="maxmin">MaxMin</option>
+                <option value="butina">Butina leaders</option>
+              </select>
+            </label>
           </div>
+          <label className="hint" htmlFor="evo-protected-smarts">Protected substructure (SMARTS; leave blank for Murcko scaffold)</label>
+          <input
+            id="evo-protected-smarts"
+            className="evo-smiles"
+            value={settings.protectedSmarts || ""}
+            onChange={(e) => setSettings((s) => ({ ...s, protectedSmarts: e.target.value }))}
+            placeholder="Optional SMARTS query"
+          />
+          {protectedInfo?.smarts && (
+            <div className="hint">Active protection ({protectedInfo.source}): <span className="mono">{protectedInfo.smarts}</span></div>
+          )}
           <button type="button" className="btn btn-primary" disabled={running || !smiles.trim()} onClick={run}>
             {running ? "Evolving…" : "Run evolution"}
           </button>
@@ -325,27 +351,29 @@ export default function EvolutionPage() {
       </div>
 
       {history.length > 0 && (
-        <Panel eyebrow="Trajectory" title="Score over generations" kind="target">
+        <Panel eyebrow="Trajectory" title="Goodhart check & generation metrics" kind="target">
           <ScoreChart history={history} />
           <ul className="methodology-bullet-list">
             {history.map((p) => (
-              <li key={p.generation}>Gen {p.generation}: best {p.best} · avg {p.average} · valid {p.valid} · discarded {p.discarded}</li>
+              <li key={p.generation}>
+                Gen {p.generation}: best {p.best} · avg {p.average} · mean seed sim {p.meanSeedSimilarity ?? "—"} · unique scaffolds {p.uniqueScaffoldsArchive ?? "—"} · PAINS {p.painsAlerts ?? 0}
+              </li>
             ))}
           </ul>
           {runtimeLog.length > 0 && <pre className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap" }}>{runtimeLog.join("\n")}</pre>}
           {runMetrics.length > 0 && (
             <table className="score-table" style={{ marginTop: 12 }}>
               <thead>
-                <tr><th>Gen</th><th>Diversity</th><th>Scaffolds</th><th>Max bucket</th><th>Rescue</th></tr>
+                <tr><th>Gen</th><th>Mean seed sim</th><th>Unique scaffolds</th><th>PAINS</th><th>Diversity</th></tr>
               </thead>
               <tbody>
                 {runMetrics.map((m) => (
                   <tr key={m.generation}>
                     <td>{m.generation}</td>
-                    <td>{m.diversity}</td>
-                    <td>{m.distinctScaffolds}</td>
-                    <td>{m.maxBucketShare}</td>
-                    <td>{m.rescue ? "yes" : "—"}</td>
+                    <td>{m.meanSeedSimilarity}</td>
+                    <td>{m.uniqueScaffoldsArchive}</td>
+                    <td>{m.painsAlerts}</td>
+                    <td>{m.diversity ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -377,6 +405,35 @@ export default function EvolutionPage() {
         </Panel>
       )}
 
+      {repeatSummary && (repeatSummary.recurring?.length || repeatSummary.scoreSpread?.length > 1) && (
+        <Panel eyebrow="Repeat runs" title="Cross-run stability" kind="target">
+          {repeatSummary.scoreSpread?.length > 1 && (
+            <>
+              <div className="hint">Run-to-run variability of survivor heuristic scores (per independent RNG seed):</div>
+              <ul className="methodology-bullet-list">
+                {repeatSummary.scoreSpread.map((row) => (
+                  <li key={row.runIndex}>
+                    Run {row.runIndex + 1} (seed {row.rngSeed}): best {Number(row.best).toFixed(1)} · mean {Number(row.mean).toFixed(1)} · stdev {Number(row.stdev).toFixed(2)}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {repeatSummary.recurring?.length > 0 && (
+            <>
+              <div className="hint">Variants that appeared as survivors in more than one run:</div>
+              <ul className="methodology-bullet-list">
+                {repeatSummary.recurring.slice(0, 8).map((row) => (
+                  <li key={row.smiles}>
+                    <span className="mono">{row.smiles}</span> · {row.runCount} runs ({row.runs.map((r) => r + 1).join(", ")}) · score {Number(row.scoreMin).toFixed(1)}–{Number(row.scoreMax).toFixed(1)} (mean {Number(row.scoreMean).toFixed(1)})
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </Panel>
+      )}
+
       {finals.length > 0 && (
         <Panel eyebrow="Final survivors" title="Candidates" kind="candidate">
           <p className="hint">{HYPOTHESIS_NOTE}</p>
@@ -385,7 +442,7 @@ export default function EvolutionPage() {
               <thead>
                 <tr>
                   <th>Structure / SMILES</th>
-                  <th>Score</th>
+                  <th>Score / seed sim</th>
                   <th>ADME / tox</th>
                   <th>PAINS</th>
                   <th>Novelty</th>
@@ -401,7 +458,7 @@ export default function EvolutionPage() {
                     </td>
                     <td className="mono">
                       <ProvenanceBadge text={row.provenance || "Heuristic"} />
-                      Pareto rank {row.rank ?? "—"} · {row.score}/100 (secondary)
+                      Pareto rank {row.rank ?? "—"} · {row.score}/100 · seed Tanimoto {row.seedSimilarity != null ? Number(row.seedSimilarity).toFixed(3) : "—"}
                       <ScoreBreakdown fitness={row.fitness} saScore={row.saScore} qed={row.qed} provenance={row.provenance} />
                     </td>
                     <td>
@@ -434,7 +491,7 @@ export default function EvolutionPage() {
               </li>
             ))}
           </ul>
-          <Link to="/methodology">Methodology for this feature</Link>
+          <Link to="/methodology#molecule-local-search">Methodology for this feature</Link>
         </Panel>
       )}
     </div>
