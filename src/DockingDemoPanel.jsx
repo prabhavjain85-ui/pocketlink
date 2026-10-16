@@ -3,8 +3,10 @@ import DockingViewer from "./DockingViewer";
 import {
   demoCaseToDockingResults,
   loadDockingDemoCase,
+  loadDockingDemoInteractions,
   loadDockingDemoManifest,
 } from "./dockingDemo";
+import DockingInteractionsPanel from "./DockingInteractionsPanel";
 import {
   demoCaseRedockPassLabel,
   demoCasePassesBenchmarkSanity,
@@ -56,7 +58,8 @@ export default function DockingDemoPanel({ embedded = false, onClose = null }) {
     (async () => {
       try {
         const caseJson = await loadDockingDemoCase(selectedId);
-        if (!cancelled) setDemoView(demoCaseToDockingResults(caseJson));
+        const precomputed = await loadDockingDemoInteractions(selectedId);
+        if (!cancelled) setDemoView(demoCaseToDockingResults(caseJson, precomputed));
       } catch (e) {
         if (!cancelled) setError(e?.message || "Failed to load demo case.");
       } finally {
@@ -215,6 +218,15 @@ export default function DockingDemoPanel({ embedded = false, onClose = null }) {
             pocketAtoms={demoView.pocketAtoms}
             activePose={demoView.bestPose}
             rankedPoses={demoView.rankedPoses}
+            interactionBundle={demoView.bestPose?.interactions}
+            hideAffinityOverlay
+          />
+          <DockingInteractionsPanel
+            interactionBundle={demoView.bestPose?.interactions}
+            poseRmsdAngstrom={activeCase?.redockRmsdAngstrom}
+            unreliablePose={
+              !demoCasePassesBenchmarkSanity(activeCase) || (activeCase?.redockRmsdAngstrom ?? 0) > 2
+            }
           />
         </>
       )}

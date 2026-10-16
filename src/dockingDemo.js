@@ -1,4 +1,5 @@
 import { formatKi, RT } from "./dockingEngine";
+import { analyzePoseInteractions } from "./dockingInteractions";
 
 const DEMO_BASE = "/docking-demo";
 
@@ -14,8 +15,14 @@ export async function loadDockingDemoCase(caseId) {
   return res.json();
 }
 
+export async function loadDockingDemoInteractions(caseId) {
+  const res = await fetch(`${DEMO_BASE}/interactions/${caseId}.json`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
 /** Map static demo case JSON into DockingViewer-friendly results. */
-export function demoCaseToDockingResults(caseJson) {
+export function demoCaseToDockingResults(caseJson, precomputedInteractions = null) {
   const score = Number(caseJson.scoreKcalMol);
   const kiMolar = Math.exp(Math.max(-18, Math.min(12, score)) / RT);
   const atoms = (caseJson.poseAtoms || []).map((a, i) => ({
@@ -53,12 +60,20 @@ export function demoCaseToDockingResults(caseJson) {
     atomName: a.atomName,
     resName: a.resName,
     resSeq: a.resSeq,
+    chainId: a.chainId || "A",
     x: a.x,
     y: a.y,
     z: a.z,
     element: a.element,
     isBackbone: Boolean(a.isBackbone),
   }));
+
+  const interactions =
+    precomputedInteractions ||
+    analyzePoseInteractions(pocketAtoms, atoms);
+
+  pose.interactions = interactions;
+  pose.interactionLines = interactions.interactions;
 
   return {
     target: {

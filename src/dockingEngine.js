@@ -1,4 +1,5 @@
 import { getRDKit } from "./rdkitLoader";
+import { analyzePoseInteractions } from "./dockingInteractions";
 import { DOCKING_ENGINE_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
 
 /**
@@ -790,22 +791,26 @@ export async function runMolecularDocking(targetPdbText, ligandSmiles, options =
   }
 
   const topPoseAtoms = distinctPoses[0]?.atoms || [];
-  const rankedPoses = distinctPoses.map((p, idx) => ({
-    rank: idx + 1,
-    deltaG: p.score.deltaG,
-    kiMolar: p.score.kiMolar,
-    kiFormatted: p.score.kiFormatted,
-    rmsd: idx === 0 ? 0.0 : calculatePoseRmsd(p.atoms, topPoseAtoms),
-    hbondCount: p.score.hbondInteractions.length,
-    saltBridgeCount: p.score.saltBridges.length,
-    hydrophobicCount: p.score.hydrophobicContacts.length,
-    components: p.score.components,
-    hbondInteractions: p.score.hbondInteractions,
-    saltBridges: p.score.saltBridges,
-    residueBreakdown: p.score.residueBreakdown,
-    atoms: p.atoms,
-    center: p.translation,
-  }));
+  const rankedPoses = distinctPoses.map((p, idx) => {
+    const interactions = analyzePoseInteractions(pocketAtoms, p.atoms);
+    return {
+      rank: idx + 1,
+      deltaG: p.score.deltaG,
+      kiMolar: p.score.kiMolar,
+      kiFormatted: p.score.kiFormatted,
+      rmsd: idx === 0 ? 0.0 : calculatePoseRmsd(p.atoms, topPoseAtoms),
+      hbondCount: interactions.interactions.filter((r) => r.type === "hydrogen_bond").length,
+      saltBridgeCount: interactions.interactions.filter((r) => r.type === "salt_bridge").length,
+      hydrophobicCount: interactions.interactions.filter((r) => r.type === "hydrophobic").length,
+      components: p.score.components,
+      hbondInteractions: p.score.hbondInteractions,
+      saltBridges: p.score.saltBridges,
+      residueBreakdown: p.score.residueBreakdown,
+      interactions,
+      atoms: p.atoms,
+      center: p.translation,
+    };
+  });
 
   if (onProgress) onProgress({ step: "completed", percent: 100, message: "Docking simulation completed successfully." });
 

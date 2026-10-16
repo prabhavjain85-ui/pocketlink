@@ -1,4 +1,9 @@
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
+import {
+  INTERACTION_COLORS,
+  interactionsToViewerLines,
+  normalizeElement,
+} from "./dockingInteractions";
 
 // Element standard colors
 const ELEMENT_COLORS = {
@@ -23,18 +28,34 @@ export default function DockingViewer({
   activePose = null,
   rankedPoses = [],
   onSelectPose = null,
+  interactionBundle = null,
+  hideAffinityOverlay = false,
 }) {
   const canvasRef = useRef(null);
   const [rotation, setRotation] = useState({ x: 0.35, y: -0.45 });
   const [zoom, setZoom] = useState(1.0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [showHbonds, setShowHbonds] = useState(true);
+  const [showContacts, setShowContacts] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
-  const [showPocketBackbone, setShowPocketBackbone] = useState(true);
+  const [showBindingSite, setShowBindingSite] = useState(true);
 
-  // Compute pocket center
   const center = activePose?.center || FALLBACK_CENTER;
+
+  const bindingSiteKeys = useMemo(() => {
+    const rows = interactionBundle?.bindingSiteResidues45Angstrom || [];
+    return new Set(rows.map((r) => `${r.resName}-${r.resSeq}-${r.chainId || "A"}`));
+  }, [interactionBundle]);
+
+  const displayPocketAtoms = useMemo(() => {
+    if (!bindingSiteKeys.size) return pocketAtoms;
+    return pocketAtoms.filter((a) => bindingSiteKeys.has(`${a.resName}-${a.resSeq}-${a.chainId || "A"}`));
+  }, [pocketAtoms, bindingSiteKeys]);
+
+  const contactLines = useMemo(() => {
+    if (!interactionBundle?.interactions?.length || !activePose?.atoms) return [];
+    return interactionsToViewerLines(interactionBundle.interactions, pocketAtoms, activePose.atoms);
+  }, [interactionBundle, pocketAtoms, activePose]);
 
   // Render loop
   const drawScene = useCallback(() => {
@@ -103,22 +124,18 @@ export default function DockingViewer({
     ctx.setLineDash([]);
 
     // 1. Draw pocket atoms & wireframe
-    if (showPocketBackbone && pocketAtoms.length > 0) {
-      // Group atoms by residue
+    if (showBindingSite && displayPocketAtoms.length > 0) {
       const resGroups = new Map();
-      for (const a of pocketAtoms) {
+      for (const a of displayPocketAtoms) {
         const key = `${a.resName}-${a.resSeq}`;
         if (!resGroups.has(key)) resGroups.set(key, []);
         resGroups.get(key).push(a);
       }
 
-      // Draw subtle residue sidechain bonds
-      ctx.lineWidth = 1.2;
-      resGroups.forEach((atoms, resName) => {
+      ctx.lineWidth = 2;
+      resGroups.forEach((atoms, resKey) => {
         const projected = atoms.map((a) => ({ ...a, p: project(a.x, a.y, a.z) }));
-
-        // Connect atoms within 1.8 Å
-        ctx.strokeStyle = "rgba(148, 163, 184, 0.25)";
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.55)";
         for (let i = 0; i < projected.length; i++) {
           for (let j = i + 1; j < projected.length; j++) {
             const dist = Math.hypot(
@@ -135,56 +152,29 @@ export default function DockingViewer({
           }
         }
 
-        // Draw residue nodes
         const ca = atoms.find((a) => a.atomName === "CA") || atoms[0];
         const pCA = project(ca.x, ca.y, ca.z);
-
-        ctx.fillStyle = "rgba(148, 163, 184, 0.4)";
-        ctx.beginPath();
-        ctx.arc(pCA.sx, pCA.sy, 2.5 * zoom, 0, Math.PI * 2);
-        ctx.fill();
-
         if (showLabels) {
-          ctx.fillStyle = "rgba(203, 213, 225, 0.65)";
-          ctx.font = "10px IBM Plex Mono, monospace";
+          const label = `${ca.resName}${ca.resSeq}`;
+          ctx.fillStyle = "rgba(248, 250, 252, 0.9)";
+          ctx.font = "bold 10px IBM Plex Mono, monospace";
           ctx.textAlign = "center";
-          ctx.fillText(resName, pCA.sx, pCA.sy - 6 * zoom);
+          ctx.fillText(label, pCA.sx, pCA.sy - 8 * zoom);
         }
       });
     }
 
-    // 2. Draw Hydrogen Bond Interaction Lines
-    if (showHbonds && activePose?.hbondInteractions?.length > 0 && activePose?.atoms) {
-      ctx.lineWidth = 1.6;
-      ctx.setLineDash([4, 3]);
-      ctx.strokeStyle = "#10B981"; // Emerald green for H-bonds
-
-      for (const hb of activePose.hbondInteractions) {
-        // Find corresponding residue atom
-        const resMatch = pocketAtoms.find(
-          (pa) => `${pa.resName}-${pa.resSeq}` === hb.residue && pa.atomName === hb.proteinAtom
-        );
-        // Ligand atom
-        const ligIdx = parseInt(hb.ligandAtom.split("-")[1], 10) - 1;
-        const ligAtom = activePose.atoms[ligIdx] || activePose.atoms[0];
-
-        if (resMatch && ligAtom) {
-          const pRes = project(resMatch.x, resMatch.y, resMatch.z);
-          const pLig = project(ligAtom.x, ligAtom.y, ligAtom.z);
-
-          ctx.beginPath();
-          ctx.moveTo(pLig.sx, pLig.sy);
-          ctx.lineTo(pRes.sx, pRes.sy);
-          ctx.stroke();
-
-          // Distance label in Å
-          const mx = (pLig.sx + pRes.sx) / 2;
-          const my = (pLig.sy + pRes.sy) / 2;
-          ctx.fillStyle = "#34D399";
-          ctx.font = "bold 9px IBM Plex Mono, monospace";
-          ctx.textAlign = "center";
-          ctx.fillText(`${hb.distance} Å`, mx, my - 4);
-        }
+    if (showContacts && contactLines.length > 0) {
+      for (const line of contactLines) {
+        const pRes = project(line.protein.x, line.protein.y, line.protein.z);
+        const pLig = project(line.ligand.x, line.ligand.y, line.ligand.z);
+        ctx.lineWidth = line.type === "hydrogen_bond" ? 1.8 : 1.4;
+        ctx.setLineDash(line.dashed ? [5, 4] : [2, 3]);
+        ctx.strokeStyle = line.color || INTERACTION_COLORS[line.type];
+        ctx.beginPath();
+        ctx.moveTo(pLig.sx, pLig.sy);
+        ctx.lineTo(pRes.sx, pRes.sy);
+        ctx.stroke();
       }
       ctx.setLineDash([]);
     }
@@ -223,7 +213,8 @@ export default function DockingViewer({
       // Draw Ligand Atom Spheres
       for (const a of atomsWithProj) {
         const radius = Math.max(2.5, 4.5 * zoom);
-        const col = ELEMENT_COLORS[a.symbol] || ELEMENT_COLORS.DEFAULT;
+        const sym = normalizeElement(a.symbol || a.element);
+        const col = ELEMENT_COLORS[sym] || ELEMENT_COLORS.DEFAULT;
 
         // Radial shine for 3D look
         const grad = ctx.createRadialGradient(
@@ -250,13 +241,14 @@ export default function DockingViewer({
     }
   }, [
     center,
-    pocketAtoms,
+    displayPocketAtoms,
+    contactLines,
     activePose,
     rotation,
     zoom,
-    showHbonds,
+    showContacts,
     showLabels,
-    showPocketBackbone,
+    showBindingSite,
   ]);
 
   // Redraw when state updates
@@ -414,12 +406,17 @@ export default function DockingViewer({
             {targetName}
           </div>
           <div style={{ color: "#94A3B8" }}>Ligand: {ligandName}</div>
-          {activePose && (
+          {activePose && !hideAffinityOverlay && (
             <div style={{ marginTop: "4px" }}>
               <span style={{ color: "#34D399", fontWeight: 700 }}>
                 Pose {activePose.rank}: {activePose.deltaG} kcal/mol
               </span>{" "}
               · Ki ≈ {activePose.kiFormatted}
+            </div>
+          )}
+          {activePose && hideAffinityOverlay && interactionBundle?.interactions && (
+            <div style={{ marginTop: "4px", color: "#A5B4FC" }}>
+              {interactionBundle.interactions.length} predicted contacts (pose {activePose.rank})
             </div>
           )}
         </div>
@@ -459,11 +456,11 @@ export default function DockingViewer({
           <label style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
             <input
               type="checkbox"
-              checked={showHbonds}
-              onChange={(e) => setShowHbonds(e.target.checked)}
+              checked={showContacts}
+              onChange={(e) => setShowContacts(e.target.checked)}
               style={{ cursor: "pointer" }}
             />
-            H-Bonds
+            Contacts
           </label>
           <label style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
             <input
@@ -477,11 +474,11 @@ export default function DockingViewer({
           <label style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
             <input
               type="checkbox"
-              checked={showPocketBackbone}
-              onChange={(e) => setShowPocketBackbone(e.target.checked)}
+              checked={showBindingSite}
+              onChange={(e) => setShowBindingSite(e.target.checked)}
               style={{ cursor: "pointer" }}
             />
-            Pocket
+            Binding site
           </label>
         </div>
       </div>
@@ -548,17 +545,19 @@ export default function DockingViewer({
           />
           <span>Sulfur</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-          <span
-            style={{
-              width: "14px",
-              height: "2px",
-              borderTop: "2px dashed #10B981",
-              display: "inline-block",
-            }}
-          />
-          <span>H-Bond (≤ 3.2 Å)</span>
-        </div>
+        {Object.entries(INTERACTION_COLORS).map(([type, color]) => (
+          <div key={type} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+            <span
+              style={{
+                width: "14px",
+                height: "2px",
+                borderTop: `2px dashed ${color}`,
+                display: "inline-block",
+              }}
+            />
+            <span>{type.replace(/_/g, " ")}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
