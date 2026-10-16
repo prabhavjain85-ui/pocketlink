@@ -145,6 +145,8 @@ def evaluate_binding_site_sanity(
         "poseSiteResidueCount": len(pose_keys),
         "overlapResidueCount": len(recovered),
         "crystalSiteRecoveryFraction": round(fraction, 3) if fraction is not None else None,
+        "recoveredResidueCount": len(recovered),
+        "missingCrystalSiteResidueCount": len(crystal_keys) - len(recovered),
         "poseNotInKnownBindingSite": off_site,
         "unreliableInteractions": off_site,
         "message": "Pose not in the known binding site; interactions unreliable." if off_site else None,

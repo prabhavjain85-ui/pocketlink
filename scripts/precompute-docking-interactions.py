@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "services" / "docking"))
 
 from app.interactions import analyze_pose_interactions, evaluate_binding_site_sanity  # noqa: E402
+from app.pdb_ligand import select_cocrystal_ligand_instance  # noqa: E402
 from app.pipeline import (  # noqa: E402
     _parse_crystal_ligand_atoms,
     _parse_protein_atoms,
@@ -31,10 +32,28 @@ def main() -> None:
 
         pdb_text = fetch_pdb_text(case["pdbId"])
         full_protein = _parse_protein_atoms(pdb_text)
-        crystal_ligand = _parse_crystal_ligand_atoms(pdb_text, case["ligandCode"])
+        pose_centroid = None
+        heavy = [
+            a
+            for a in ligand
+            if str(a.get("element", "C")).upper() not in {"H", "HD"}
+        ]
+        if heavy:
+            pose_centroid = {
+                "x": sum(a["x"] for a in heavy) / len(heavy),
+                "y": sum(a["y"] for a in heavy) / len(heavy),
+                "z": sum(a["z"] for a in heavy) / len(heavy),
+            }
+        ligand_pick = select_cocrystal_ligand_instance(
+            pdb_text, case["ligandCode"], full_protein, pose_centroid=pose_centroid
+        )
+        crystal_ligand = ligand_pick.get("atoms") or []
         sanity = evaluate_binding_site_sanity(
             full_protein, crystal_ligand, ligand, pdb_id=case["pdbId"]
         )
+        sanity["cocrystalLigand"] = ligand_pick.get("instance")
+        sanity["cocrystalLigandSelectionReason"] = ligand_pick.get("selectionReason")
+        sanity["cocrystalLigandInstanceCount"] = ligand_pick.get("instanceCount")
 
         analysis = analyze_pose_interactions(
             protein_pocket,

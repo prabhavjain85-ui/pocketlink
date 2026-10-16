@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import DockingViewer from "./DockingViewer";
 import {
   demoCaseToDockingResults,
@@ -15,12 +15,15 @@ import {
 } from "./dockingBenchmarkPairs";
 import { DOCKING_BENCHMARK_PAIRS_NOTICE } from "./featureFlags";
 
+const ExperimentalCocrystalPanel = React.lazy(() => import("./ExperimentalCocrystalPanel"));
+
 export default function DockingDemoPanel({ embedded = false, onClose = null }) {
   const [manifest, setManifest] = useState(null);
   const [error, setError] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [caseLoading, setCaseLoading] = useState(false);
   const [demoView, setDemoView] = useState(null);
+  const [activeCaseJson, setActiveCaseJson] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,7 +62,10 @@ export default function DockingDemoPanel({ embedded = false, onClose = null }) {
       try {
         const caseJson = await loadDockingDemoCase(selectedId);
         const precomputed = await loadDockingDemoInteractions(selectedId);
-        if (!cancelled) setDemoView(demoCaseToDockingResults(caseJson, precomputed));
+        if (!cancelled) {
+          setActiveCaseJson(caseJson);
+          setDemoView(demoCaseToDockingResults(caseJson, precomputed));
+        }
       } catch (e) {
         if (!cancelled) setError(e?.message || "Failed to load demo case.");
       } finally {
@@ -230,6 +236,20 @@ export default function DockingDemoPanel({ embedded = false, onClose = null }) {
               (activeCase?.redockRmsdAngstrom ?? 0) > 2
             }
           />
+          {activeCaseJson && (
+            <Suspense
+              fallback={
+                <p style={{ fontSize: "12px", color: "var(--text-dim)", marginTop: 16 }}>
+                  Loading experimental co-crystal viewer…
+                </p>
+              }
+            >
+              <ExperimentalCocrystalPanel
+                caseJson={activeCaseJson}
+                precomputedPoseBundle={demoView.bestPose?.interactions}
+              />
+            </Suspense>
+          )}
         </>
       )}
     </div>

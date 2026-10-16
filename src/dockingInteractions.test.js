@@ -80,17 +80,26 @@ describe("dockingInteractions classifier", () => {
     expect(leu764Hydrophobic).toBeUndefined();
   });
 
-  test("precomputed demo binding-site sanity flags off-site imatinib and sitagliptin", () => {
+  test("precomputed demo binding-site sanity uses single co-crystal ligand copy", () => {
     const imatinib = loadInteractions("imatinib-1iep");
     const sita = loadInteractions("sitagliptin-4ffw");
     const erl = loadInteractions("erlotinib-1m17");
+    const caraz = loadInteractions("carazolol-3p0g");
     expect(imatinib.bindingSiteSanity.poseNotInKnownBindingSite).toBe(true);
     expect(imatinib.bindingSiteSanity.crystalSiteRecoveryFraction).toBe(0);
+    expect(imatinib.bindingSiteSanity.crystalSiteResidueCount).toBe(25);
+    expect(imatinib.bindingSiteSanity.cocrystalLigand).toMatchObject({
+      ligandCode: "STI",
+      chainId: "A",
+      resSeq: 201,
+    });
     expect(sita.bindingSiteSanity.poseNotInKnownBindingSite).toBe(true);
     expect(sita.bindingSiteSanity.crystalSiteRecoveryFraction).toBe(0);
+    expect(sita.bindingSiteSanity.crystalSiteResidueCount).toBe(18);
     expect(sita.bindingSiteSanity.pdbLiteratureResidueNote).toMatch(/GLU204/);
     expect(erl.bindingSiteSanity.poseNotInKnownBindingSite).toBe(false);
     expect(erl.bindingSiteSanity.crystalSiteRecoveryFraction).toBe(1);
+    expect(caraz.bindingSiteSanity.crystalSiteRecoveryFraction).toBeCloseTo(17 / 24, 3);
   });
 
   test("sitagliptin precomputed interactions contain no halogen bonds to fluorine", () => {

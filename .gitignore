@@ -24,3 +24,4 @@ yarn-debug.log*
 yarn-error.log*
 public/data/evolution/sa-fragment-scores.bin.gz
 .docking-demo-work/
+public/vendor/molstar/
