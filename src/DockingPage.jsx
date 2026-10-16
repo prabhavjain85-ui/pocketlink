@@ -44,6 +44,7 @@ function DockingPrototypeBanner() {
 }
 
 const DockingDemoPanel = React.lazy(() => import("./DockingDemoPanel"));
+const CocrystalSearchSection = React.lazy(() => import("./CocrystalSearchSection"));
 
 function DockingServiceUnavailableView({ detail }) {
   return (
@@ -83,6 +84,9 @@ function DockingServiceUnavailableView({ detail }) {
       <React.Suspense fallback={<p style={{ fontSize: "13px", color: "var(--text-dim)" }}>Loading demo…</p>}>
         <DockingDemoPanel embedded />
       </React.Suspense>
+      <React.Suspense fallback={null}>
+        <CocrystalSearchSection />
+      </React.Suspense>
     </div>
   );
 }
@@ -111,6 +115,9 @@ function DockingUnavailableView() {
         scores or poses are shown. {DOCKING_BENCHMARK_PAIRS_NOTICE} See the{" "}
         <Link to="/methodology#validation-benchmark">Methodology validation section</Link> for current status.
       </p>
+      <React.Suspense fallback={null}>
+        <CocrystalSearchSection />
+      </React.Suspense>
     </div>
   );
 }
@@ -418,6 +425,9 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
           <DockingDemoPanel onClose={() => setShowDemo(false)} />
         </React.Suspense>
       )}
+      <React.Suspense fallback={null}>
+        <CocrystalSearchSection />
+      </React.Suspense>
       {/* Page Title & Mission */}
       <div style={{ marginBottom: "24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>

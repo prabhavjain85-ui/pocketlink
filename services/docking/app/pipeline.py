@@ -50,68 +50,35 @@ def fetch_pdb_text(pdb_id: str) -> str:
 
 
 def _parse_crystal_ligand_atoms(
-    pdb_text: str, ligand_resname: Optional[str] = None
+    pdb_text: str,
+    ligand_resname: Optional[str] = None,
+    protein_atoms: Optional[list[dict[str, Any]]] = None,
+    pose_ligand_atoms: Optional[list[dict[str, Any]]] = None,
+    preferred_chain_id: Optional[str] = None,
 ) -> list[dict[str, Any]]:
-    """HETATM records for co-crystal ligand (heavy atoms + element)."""
-    resname: Optional[str] = ligand_resname.strip().upper() if ligand_resname else None
-    atoms: list[dict[str, Any]] = []
-    idx = 0
-    for line in pdb_text.splitlines():
-        if not line.startswith("HETATM"):
-            continue
-        name = line[17:20].strip()
-        if name in WATER_AND_IONS:
-            continue
-        if resname is None:
-            resname = name
-        if name != resname:
-            continue
-        try:
-            atom_name = line[12:16].strip()
-            x = float(line[30:38])
-            y = float(line[38:46])
-            z = float(line[46:54])
-            element = (line[76:78].strip() or atom_name[0]).upper()
-        except (ValueError, IndexError):
-            continue
-        if element == "H":
-            continue
-        atoms.append(
-            {
-                "index": idx,
-                "atomName": atom_name,
-                "x": x,
-                "y": y,
-                "z": z,
-                "element": element,
-            }
-        )
-        idx += 1
-    return atoms
+    """HETATM records for the bound co-crystal ligand copy (chain + author resSeq)."""
+    from .pdb_ligand import parse_crystal_ligand_atoms
+
+    return parse_crystal_ligand_atoms(
+        pdb_text,
+        ligand_resname=ligand_resname,
+        protein_atoms=protein_atoms,
+        pose_ligand_atoms=pose_ligand_atoms,
+        preferred_chain_id=preferred_chain_id,
+    )
 
 
 def _parse_ligand_atoms(
     pdb_text: str, ligand_resname: Optional[str] = None
 ) -> tuple[list[dict[str, float]], Optional[str]]:
-    atoms: list[dict[str, float]] = []
+    from .pdb_ligand import select_cocrystal_ligand_instance
+
     resname: Optional[str] = ligand_resname.strip().upper() if ligand_resname else None
-    for line in pdb_text.splitlines():
-        if not line.startswith("HETATM"):
-            continue
-        name = line[17:20].strip()
-        if name in WATER_AND_IONS:
-            continue
-        if resname is None:
-            resname = name
-        if name != resname:
-            continue
-        try:
-            x = float(line[30:38])
-            y = float(line[38:46])
-            z = float(line[46:54])
-        except ValueError:
-            continue
-        atoms.append({"x": x, "y": y, "z": z})
+    if not resname:
+        return [], None
+    protein_atoms = _parse_protein_atoms(pdb_text)
+    picked = select_cocrystal_ligand_instance(pdb_text, resname, protein_atoms)
+    atoms = [{"x": a["x"], "y": a["y"], "z": a["z"]} for a in picked.get("atoms") or []]
     return atoms, resname
 
 
@@ -422,7 +389,12 @@ def run_docking_pipeline(
     pose_models = _parse_pdbqt_poses(out_pdbqt.read_text(encoding="utf-8"))
     poses = []
     protein_atoms = _parse_protein_atoms(pdb_text)
-    crystal_ligand_atoms = _parse_crystal_ligand_atoms(pdb_text, ligand_resname=lig_name)
+    crystal_ligand_atoms = _parse_crystal_ligand_atoms(
+        pdb_text,
+        ligand_resname=lig_name,
+        protein_atoms=protein_atoms,
+        pose_ligand_atoms=pose_models[0] if pose_models else None,
+    )
 
     for idx, atoms in enumerate(pose_models):
         score_row = scores[idx] if idx < len(scores) else scores[0] if scores else {}

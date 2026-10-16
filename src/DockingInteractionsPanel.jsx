@@ -23,6 +23,8 @@ export default function DockingInteractionsPanel({
   poseRmsdAngstrom = null,
   unreliablePose = false,
   showMethodology = true,
+  title = "Predicted pose interactions",
+  experimental = false,
 }) {
   const sanity = interactionBundle?.bindingSiteSanity;
   const offSite = sanity?.poseNotInKnownBindingSite;
@@ -58,15 +60,30 @@ export default function DockingInteractionsPanel({
         }}
       >
         <div>
-          <h3 style={{ margin: "0 0 4px", fontSize: "15px", fontWeight: 700 }}>Predicted pose interactions</h3>
+          <h3 style={{ margin: "0 0 4px", fontSize: "15px", fontWeight: 700 }}>{title}</h3>
           <p style={{ margin: 0, fontSize: "11px", color: "var(--text-muted)", lineHeight: 1.5 }}>
             {interactionBundle.disclaimer ||
-              "Contacts inferred from the docked pose; not experimentally confirmed."}
+              (experimental
+                ? "Contacts measured from the experimental co-crystal structure in the PDB entry."
+                : "Contacts inferred from the docked pose; not experimentally confirmed.")}
           </p>
+          {experimental && interactionBundle.pdbId && (
+            <p style={{ margin: "6px 0 0", fontSize: "11px", color: "var(--text-dim)" }}>
+              Data source: experimental X-ray co-crystal (PDB{" "}
+              <a
+                href={`https://www.rcsb.org/structure/${String(interactionBundle.pdbId).toUpperCase()}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {String(interactionBundle.pdbId).toUpperCase()}
+              </a>
+              ).
+            </p>
+          )}
         </div>
       </div>
 
-      {offSite && (
+      {offSite && !experimental && (
         <div
           role="alert"
           style={{

@@ -303,6 +303,7 @@ export function evaluateBindingSiteSanity(proteinAtoms, crystalLigandAtoms, pose
     crystalSiteResidueCount: crystalKeys.size,
     poseSiteResidueCount: poseKeys.size,
     overlapResidueCount: recovered.length,
+    recoveredResidueCount: recovered.length,
     crystalSiteRecoveryFraction: fraction != null ? parseFloat(fraction.toFixed(3)) : null,
     recoveredResidueKeys: recovered,
     recoveredResidueLabels: recovered.map(keyToLabel),
@@ -315,6 +316,9 @@ export function evaluateBindingSiteSanity(proteinAtoms, crystalLigandAtoms, pose
     crystalSiteResidues45Angstrom: crystalSite,
     poseSiteResidues45Angstrom: poseSite,
     pdbLiteratureResidueNote: options.pdbId ? PDB_LITERATURE_RESIDUE_NOTES[options.pdbId]?.note : null,
+    cocrystalLigand: options.cocrystalLigand || null,
+    cocrystalLigandSelectionReason: options.cocrystalLigandSelectionReason || null,
+    cocrystalLigandInstanceCount: options.cocrystalLigandInstanceCount ?? null,
   };
 }
 
