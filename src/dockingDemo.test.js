@@ -28,4 +28,5 @@ test("demoCaseToDockingResults maps static case for viewer", () => {
   expect(view.bestPose.deltaG).toBe(-7.5);
   expect(view.engine.demo).toBe(true);
   expect(view.pocketAtoms).toHaveLength(1);
+  expect(view.bestPose.interactions).toBeDefined();
 });

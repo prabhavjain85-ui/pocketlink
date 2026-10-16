@@ -6,6 +6,7 @@ import {
   runMolecularDocking,
 } from "./dockingEngine";
 import DockingViewer from "./DockingViewer";
+import DockingInteractionsPanel from "./DockingInteractionsPanel";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
 import {
   DOCKING_ENABLED,
@@ -1002,6 +1003,14 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
               activePose={activePose}
               rankedPoses={dockingResults.rankedPoses}
               onSelectPose={(p) => setActivePose(p)}
+              interactionBundle={activePose?.interactions}
+            />
+            <DockingInteractionsPanel
+              interactionBundle={activePose?.interactions}
+              poseRmsdAngstrom={activePose?.rmsd}
+              unreliablePose={
+                activePose?.interactions?.bindingSiteSanity?.poseNotInKnownBindingSite || activePose?.rmsd > 2
+              }
             />
           </div>
 

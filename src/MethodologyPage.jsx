@@ -581,6 +581,22 @@ export default function MethodologyPage() {
               until it passes redocking — the Docking page shows: &quot;Docking is under validation and currently unavailable.&quot; No docking scores or
               poses are displayed in the app.
             </p>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginTop: 20, marginBottom: 8 }}>
+              Predicted pose protein–ligand interactions
+            </h3>
+            <p className="section-text">
+              The interaction view labels contacts inferred from the <strong>predicted docked pose</strong> (and optional offline demo JSON), not
+              experimentally validated binding data. Binding-site residues are residues with any protein heavy atom within 4.5 Å of the ligand
+              (extended 5.0 Å list shown for context). Contacts use PLIP/ProLIF-style geometric rules on the Fly.io Vina service and a matching
+              client classifier: hydrogen bonds (donor–acceptor ≤ 3.5 Å; D–H···A ≥ 120° when polar hydrogens are present, otherwise
+              &quot;distance-only&quot;), salt bridges (charged atom pairs ≤ 4.0 Å), hydrophobic C–C contacts (≤ 4.0 Å), π–π stacking (face-to-face or
+              T-shaped centroid/normal criteria), cation–π (≤ 6.0 Å), and halogen bonds (Cl/Br/I donors only, not fluorine; C–X···acceptor ≥
+              165°). Heavy-atom pairs closer than ~3.0 Å that are not H-bond donor–acceptor pairs are labeled steric clashes, not hydrophobic
+              contacts. Each pose is compared to the co-crystal binding site (residues within 4.5 Å of the deposited ligand); recovery below 25%
+              marks the pose as off-site and interactions unreliable (PDB vs literature numbering is noted where relevant, e.g. sitagliptin/4FFW).
+              Where a co-crystal ligand is available, matching interaction types at the same residue may be flagged as consistent with the crystal
+              pose.
+            </p>
           </section>
 
           {/* Section 8: ADME & Pharmacokinetic Profiling */}

@@ -53,3 +53,5 @@ def test_known_complex_job_completes(client):
     poses = results.json()["result"]["poses"]
     assert len(poses) >= 1
     assert poses[0]["scoreKcalMol"] <= float(cfg["maxScoreKcalMol"])
+    assert "interactions" in poses[0]
+    assert "interactions" in poses[0]["interactions"]

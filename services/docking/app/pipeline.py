@@ -10,6 +10,7 @@ from typing import Any, Callable, Optional
 from urllib.request import urlopen
 
 from .config import load_engine_config
+from .interactions import analyze_pose_interactions
 
 ProgressFn = Callable[[float, str], None]
 
@@ -46,6 +47,47 @@ def fetch_pdb_text(pdb_id: str) -> str:
     if len(text) < 100:
         raise RuntimeError(f"Empty PDB response for {pdb_id}")
     return text
+
+
+def _parse_crystal_ligand_atoms(
+    pdb_text: str, ligand_resname: Optional[str] = None
+) -> list[dict[str, Any]]:
+    """HETATM records for co-crystal ligand (heavy atoms + element)."""
+    resname: Optional[str] = ligand_resname.strip().upper() if ligand_resname else None
+    atoms: list[dict[str, Any]] = []
+    idx = 0
+    for line in pdb_text.splitlines():
+        if not line.startswith("HETATM"):
+            continue
+        name = line[17:20].strip()
+        if name in WATER_AND_IONS:
+            continue
+        if resname is None:
+            resname = name
+        if name != resname:
+            continue
+        try:
+            atom_name = line[12:16].strip()
+            x = float(line[30:38])
+            y = float(line[38:46])
+            z = float(line[46:54])
+            element = (line[76:78].strip() or atom_name[0]).upper()
+        except (ValueError, IndexError):
+            continue
+        if element == "H":
+            continue
+        atoms.append(
+            {
+                "index": idx,
+                "atomName": atom_name,
+                "x": x,
+                "y": y,
+                "z": z,
+                "element": element,
+            }
+        )
+        idx += 1
+    return atoms
 
 
 def _parse_ligand_atoms(
@@ -241,6 +283,38 @@ def _parse_pdbqt_poses(pdbqt_text: str) -> list[list[dict[str, Any]]]:
     return poses
 
 
+def _parse_protein_atoms(pdb_text: str) -> list[dict[str, Any]]:
+    atoms: list[dict[str, Any]] = []
+    for line in pdb_text.splitlines():
+        if not line.startswith("ATOM  "):
+            continue
+        try:
+            atom_name = line[12:16].strip()
+            res_name = line[17:20].strip()
+            chain_id = line[21:22].strip() or "A"
+            res_seq = int(line[22:26])
+            x = float(line[30:38])
+            y = float(line[38:46])
+            z = float(line[46:54])
+            element = (line[76:78].strip() or atom_name[0]).upper()
+        except (ValueError, IndexError):
+            continue
+        atoms.append(
+            {
+                "atomName": atom_name,
+                "resName": res_name,
+                "resSeq": res_seq,
+                "chainId": chain_id,
+                "x": x,
+                "y": y,
+                "z": z,
+                "element": element,
+                "isBackbone": atom_name in {"N", "CA", "C", "O"},
+            }
+        )
+    return atoms
+
+
 def _extract_pocket_atoms(pdb_text: str, center: dict[str, float], radius: float = 12.0) -> list[dict[str, Any]]:
     pocket: list[dict[str, Any]] = []
     cx, cy, cz = center["center_x"], center["center_y"], center["center_z"]
@@ -288,6 +362,10 @@ def _mock_pipeline(pdb_id: str, smiles: str) -> dict[str, Any]:
                 "rmsdLb": 0.0,
                 "rmsdUb": 0.0,
                 "atoms": [{"x": 0.1, "y": 0.2, "z": 0.3, "element": "C"}],
+                "interactions": analyze_pose_interactions(
+                    [],
+                    [{"x": 0.1, "y": 0.2, "z": 0.3, "element": "C"}],
+                ),
             }
         ],
         "pocketAtoms": [],
@@ -343,17 +421,32 @@ def run_docking_pipeline(
     tick(90.0, "Parsing poses")
     pose_models = _parse_pdbqt_poses(out_pdbqt.read_text(encoding="utf-8"))
     poses = []
+    protein_atoms = _parse_protein_atoms(pdb_text)
+    crystal_ligand_atoms = _parse_crystal_ligand_atoms(pdb_text, ligand_resname=lig_name)
+
     for idx, atoms in enumerate(pose_models):
         score_row = scores[idx] if idx < len(scores) else scores[0] if scores else {}
-        poses.append(
-            {
-                "rank": idx + 1,
-                "scoreKcalMol": score_row.get("affinityKcalMol", 0.0),
-                "rmsdLb": score_row.get("rmsdLb", 0.0),
-                "rmsdUb": score_row.get("rmsdUb", 0.0),
-                "atoms": atoms,
-            }
-        )
+        pose_row = {
+            "rank": idx + 1,
+            "scoreKcalMol": score_row.get("affinityKcalMol", 0.0),
+            "rmsdLb": score_row.get("rmsdLb", 0.0),
+            "rmsdUb": score_row.get("rmsdUb", 0.0),
+            "atoms": atoms,
+        }
+        if atoms:
+            cx = sum(a["x"] for a in atoms) / len(atoms)
+            cy = sum(a["y"] for a in atoms) / len(atoms)
+            cz = sum(a["z"] for a in atoms) / len(atoms)
+            pose_center = {"center_x": cx, "center_y": cy, "center_z": cz}
+            pose_pocket = _extract_pocket_atoms(pdb_text, pose_center, radius=10.0)
+            pose_row["interactions"] = analyze_pose_interactions(
+                pose_pocket or protein_atoms,
+                atoms,
+                full_protein_atoms=protein_atoms,
+                crystal_ligand_atoms=crystal_ligand_atoms,
+                pdb_id=pdb_id,
+            )
+        poses.append(pose_row)
 
     pocket_atoms = _extract_pocket_atoms(
         pdb_text,

@@ -141,14 +141,16 @@ export function normalizeServiceDockingResult(servicePayload, { targetTitle, pdb
         }
       : { x: 0, y: 0, z: 0 };
 
+    const interactions = p.interactions || null;
+    const interactionRows = interactions?.interactions || [];
     return {
       rank: p.rank || idx + 1,
       deltaG: Number(deltaG.toFixed(2)),
       kiMolar,
       kiFormatted: formatKi(kiMolar),
       rmsd: Number((p.rmsdLb ?? 0).toFixed(2)),
-      hbondCount: 0,
-      hydrophobicCount: 0,
+      hbondCount: interactionRows.filter((r) => r.type === "hydrogen_bond").length,
+      hydrophobicCount: interactionRows.filter((r) => r.type === "hydrophobic").length,
       components: {
         vdw: deltaG,
         hbond: 0,
@@ -156,8 +158,17 @@ export function normalizeServiceDockingResult(servicePayload, { targetTitle, pdb
         desolvation: 0,
         torsional: 0,
       },
-      hbondInteractions: [],
+      hbondInteractions: interactionRows
+        .filter((r) => r.type === "hydrogen_bond")
+        .map((r) => ({
+          ligandAtom: `${r.ligandElement}-${r.ligandAtomIndex + 1}`,
+          residue: `${r.resName}-${r.resSeq}`,
+          proteinAtom: r.proteinAtom,
+          distance: r.distanceAngstrom,
+          energy: 0,
+        })),
       residueBreakdown: [],
+      interactions,
       atoms,
       center,
     };
