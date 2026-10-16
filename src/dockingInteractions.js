@@ -17,6 +17,9 @@ export const INTERACTION_METHODOLOGY = {
   piPiTShapeNormalMaxDeg: 120,
   cationPiMaxDistanceAngstrom: 6.0,
   halogenBondMaxDistanceAngstrom: 4.0,
+  halogenBondMinCxaAngleDeg: 165,
+  stericClashMaxDistanceAngstrom: 3.0,
+  bindingSiteRecoveryMinFraction: 0.25,
 };
 
 const AROMATIC_RESIDUES = new Set(["PHE", "TYR", "TRP", "HIS"]);
@@ -24,7 +27,8 @@ const HYDROPHOBIC_RESIDUES = new Set(["ALA", "VAL", "LEU", "ILE", "PHE", "TRP", 
 const POSITIVE_RESIDUES = new Set(["LYS", "ARG", "HIS"]);
 const NEGATIVE_RESIDUES = new Set(["ASP", "GLU"]);
 
-const HALOGENS = new Set(["F", "CL", "BR", "I"]);
+/** Halogen-bond donors: Cl, Br, I only (not F). */
+const HALOGEN_BOND_DONORS = new Set(["CL", "BR", "I"]);
 const HB_ACCEPTOR_ELEMENTS = new Set(["O", "N", "S"]);
 const HB_DONOR_ELEMENTS = new Set(["N", "O", "S"]);
 
@@ -61,6 +65,22 @@ export const INTERACTION_COLORS = {
   pi_pi: "#A855F7",
   cation_pi: "#EC4899",
   halogen_bond: "#14B8A6",
+  clash: "#EF4444",
+};
+
+/** UniProt-style labels vs PDB residue numbers (same chain). */
+export const PDB_LITERATURE_RESIDUE_NOTES = {
+  "4FFW": {
+    note:
+      "4FFW PDB numbering differs from common DPP-4 literature: e.g. GLU204≈GLU205, GLU203≈GLU206, TYR663≈TYR662, ARG123≈ARG125, PHE355≈PHE357.",
+    pairs: [
+      ["GLU205", "GLU204"],
+      ["GLU206", "GLU203"],
+      ["TYR662", "TYR663"],
+      ["ARG125", "ARG123"],
+      ["PHE357", "PHE355"],
+    ],
+  },
 };
 
 export function normalizeElement(symbol) {
@@ -224,6 +244,80 @@ function isLigandAcceptor(la) {
   return HB_ACCEPTOR_ELEMENTS.has(la.element);
 }
 
+export function isHydrogenBondPair(pa, la, ligandAtoms, proteinAtoms, distanceAngstrom) {
+  const m = INTERACTION_METHODOLOGY;
+  if (distanceAngstrom > m.hydrogenBondMaxDistanceAngstrom) return false;
+  const protDonor = isProteinDonor(pa);
+  const protAcceptor = isProteinAcceptor(pa);
+  const ligDonor = isLigandDonor(la, ligandAtoms);
+  const ligAcceptor = isLigandAcceptor(la);
+  return (
+    (protDonor && ligAcceptor) || (ligDonor && protAcceptor) || (protDonor && ligDonor)
+  );
+}
+
+function findBondedCarbon(halogenAtom, ligandAtoms) {
+  for (const a of ligandAtoms) {
+    if (!isHeavyAtom(a.element)) continue;
+    if (a.element !== "C") continue;
+    if (dist(a, halogenAtom) <= 1.95) return a;
+  }
+  return null;
+}
+
+function residueKeysFromSiteRows(rows) {
+  return new Set(rows.map((r) => `${r.resName}-${r.resSeq}-${r.chainId || "A"}`));
+}
+
+/**
+ * Compare pose binding site to co-crystal ligand site on the same PDB (chain-aware).
+ */
+export function evaluateBindingSiteSanity(proteinAtoms, crystalLigandAtoms, poseLigandAtoms, options = {}) {
+  const protein = proteinAtoms.map(normalizeProteinAtom);
+  const crystalSite = findBindingSiteResidues(
+    protein,
+    crystalLigandAtoms,
+    INTERACTION_METHODOLOGY.bindingSiteHeavyAtomCutoffAngstrom
+  );
+  const poseSite = findBindingSiteResidues(
+    protein,
+    poseLigandAtoms,
+    INTERACTION_METHODOLOGY.bindingSiteHeavyAtomCutoffAngstrom
+  );
+  const crystalKeys = residueKeysFromSiteRows(crystalSite);
+  const poseKeys = residueKeysFromSiteRows(poseSite);
+  const recovered = [...crystalKeys].filter((k) => poseKeys.has(k));
+  const fraction =
+    crystalKeys.size > 0 ? recovered.length / crystalKeys.size : null;
+  const minFraction =
+    options.minRecoveryFraction ?? INTERACTION_METHODOLOGY.bindingSiteRecoveryMinFraction;
+  const poseNotInKnownBindingSite =
+    crystalKeys.size > 0 && (fraction ?? 0) < minFraction;
+
+  const keyToLabel = (key) => {
+    const row = crystalSite.find((r) => `${r.resName}-${r.resSeq}-${r.chainId}` === key);
+    return row?.label || key.replace(/-/g, "").replace(/(\d+)-([A-Z])$/, "$1 $2");
+  };
+
+  return {
+    crystalSiteResidueCount: crystalKeys.size,
+    poseSiteResidueCount: poseKeys.size,
+    overlapResidueCount: recovered.length,
+    crystalSiteRecoveryFraction: fraction != null ? parseFloat(fraction.toFixed(3)) : null,
+    recoveredResidueKeys: recovered,
+    recoveredResidueLabels: recovered.map(keyToLabel),
+    missingCrystalSiteResidueCount: crystalKeys.size - recovered.length,
+    poseNotInKnownBindingSite,
+    unreliableInteractions: poseNotInKnownBindingSite,
+    message: poseNotInKnownBindingSite
+      ? "Pose not in the known binding site; interactions unreliable."
+      : null,
+    crystalSiteResidues45Angstrom: crystalSite,
+    poseSiteResidues45Angstrom: poseSite,
+    pdbLiteratureResidueNote: options.pdbId ? PDB_LITERATURE_RESIDUE_NOTES[options.pdbId]?.note : null,
+  };
+}
+
 function findDonorHydrogen(donor, allAtoms) {
   for (const h of allAtoms) {
     if (normalizeElement(h.element) !== "H") continue;
@@ -353,38 +447,47 @@ export function analyzePoseInteractions(proteinAtoms, ligandAtoms, options = {})
         distanceAngstrom: parseFloat(d.toFixed(2)),
       };
 
-      if (d <= m.hydrogenBondMaxDistanceAngstrom) {
-        const protDonor = isProteinDonor(pa);
-        const protAcceptor = isProteinAcceptor(pa);
-        const ligDonor = isLigandDonor(la, allLigand);
-        const ligAcceptor = isLigandAcceptor(la);
-        const donorAcceptor =
-          (protDonor && ligAcceptor) || (ligDonor && protAcceptor) || (protDonor && ligDonor);
-        if (donorAcceptor) {
-          let geometricQuality = "distance-only";
-          let hbondAngleDeg = null;
-          const donor = protDonor && !ligDonor ? pa : la;
-          const acceptor = donor === pa ? la : pa;
-          const donorH =
-            donor === pa
-              ? findDonorHydrogen(pa, protein)
-              : findDonorHydrogen(la, allLigand);
-          if (donorH) {
-            const ang = angleDeg(donorH, donor, acceptor);
-            hbondAngleDeg = parseFloat(ang.toFixed(1));
-            if (ang >= m.hydrogenBondMinAngleDeg) geometricQuality = "full";
-          }
-          pushInteraction(interactions, seen, {
-            ...base,
-            type: "hydrogen_bond",
-            subtype: geometricQuality === "full" ? "angle_confirmed" : "distance_only",
-            geometricQuality,
-            hbondAngleDeg,
-          });
-        }
+      const isHbPair = isHydrogenBondPair(pa, la, allLigand, protein, d);
+
+      if (d < m.stericClashMaxDistanceAngstrom && !isHbPair) {
+        pushInteraction(interactions, seen, {
+          ...base,
+          type: "clash",
+          subtype: "heavy_atom_too_close",
+          warning: true,
+        });
+        continue;
       }
 
-      if (d <= m.hydrophobicMaxDistanceAngstrom && la.element === "C" && pa.element === "C") {
+      if (d <= m.hydrogenBondMaxDistanceAngstrom && isHbPair) {
+        const protDonor = isProteinDonor(pa);
+        const ligDonor = isLigandDonor(la, allLigand);
+        let geometricQuality = "distance-only";
+        let hbondAngleDeg = null;
+        const donor = protDonor && !ligDonor ? pa : la;
+        const acceptor = donor === pa ? la : pa;
+        const donorH =
+          donor === pa ? findDonorHydrogen(pa, protein) : findDonorHydrogen(la, allLigand);
+        if (donorH) {
+          const ang = angleDeg(donorH, donor, acceptor);
+          hbondAngleDeg = parseFloat(ang.toFixed(1));
+          if (ang >= m.hydrogenBondMinAngleDeg) geometricQuality = "full";
+        }
+        pushInteraction(interactions, seen, {
+          ...base,
+          type: "hydrogen_bond",
+          subtype: geometricQuality === "full" ? "angle_confirmed" : "distance_only",
+          geometricQuality,
+          hbondAngleDeg,
+        });
+      }
+
+      if (
+        d >= m.stericClashMaxDistanceAngstrom &&
+        d <= m.hydrophobicMaxDistanceAngstrom &&
+        la.element === "C" &&
+        pa.element === "C"
+      ) {
         if (HYDROPHOBIC_RESIDUES.has(pa.resName)) {
           pushInteraction(interactions, seen, {
             ...base,
@@ -412,13 +515,23 @@ export function analyzePoseInteractions(proteinAtoms, ligandAtoms, options = {})
         }
       }
 
-      if (HALOGENS.has(la.element) && HB_ACCEPTOR_ELEMENTS.has(pa.element) && d <= m.halogenBondMaxDistanceAngstrom) {
-        if (isProteinAcceptor(pa) || pa.element === "N") {
-          pushInteraction(interactions, seen, {
-            ...base,
-            type: "halogen_bond",
-            subtype: la.element,
-          });
+      if (
+        HALOGEN_BOND_DONORS.has(la.element) &&
+        HB_ACCEPTOR_ELEMENTS.has(pa.element) &&
+        d <= m.halogenBondMaxDistanceAngstrom &&
+        (isProteinAcceptor(pa) || pa.element === "N")
+      ) {
+        const carbon = findBondedCarbon(la, ligandHeavy);
+        if (carbon) {
+          const cxa = angleDeg(carbon, la, pa);
+          if (cxa >= m.halogenBondMinCxaAngleDeg) {
+            pushInteraction(interactions, seen, {
+              ...base,
+              type: "halogen_bond",
+              subtype: la.element,
+              halogenAngleDeg: parseFloat(cxa.toFixed(1)),
+            });
+          }
         }
       }
     }
@@ -506,13 +619,29 @@ export function analyzePoseInteractions(proteinAtoms, ligandAtoms, options = {})
     return a.type.localeCompare(b.type);
   });
 
+  const bindingSiteSanity =
+    options.bindingSiteSanity ||
+    (options.fullProteinAtoms && options.crystalLigandAtoms
+      ? evaluateBindingSiteSanity(options.fullProteinAtoms, options.crystalLigandAtoms, ligandAtoms, {
+          pdbId: options.pdbId,
+        })
+      : null);
+
+  const disclaimerBase =
+    "Interactions are inferred from the predicted docked pose geometry; they are not experimentally confirmed contacts.";
+  const disclaimer =
+    bindingSiteSanity?.poseNotInKnownBindingSite
+      ? `${disclaimerBase} ${bindingSiteSanity.message}`
+      : disclaimerBase;
+
   return {
     methodology: INTERACTION_METHODOLOGY,
-    disclaimer:
-      "Interactions are inferred from the predicted docked pose geometry; they are not experimentally confirmed contacts.",
+    disclaimer,
     bindingSiteResidues45Angstrom: bindingSite45,
     bindingSiteResidues50Angstrom: bindingSite50,
+    bindingSiteSanity,
     interactions,
+    clashCount: interactions.filter((r) => r.type === "clash").length,
   };
 }
 

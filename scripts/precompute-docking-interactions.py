@@ -10,28 +10,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "services" / "docking"))
 
-from app.interactions import analyze_pose_interactions  # noqa: E402
-from app.pipeline import _parse_ligand_atoms, _parse_protein_atoms, fetch_pdb_text  # noqa: E402
+from app.interactions import analyze_pose_interactions, evaluate_binding_site_sanity  # noqa: E402
+from app.pipeline import (  # noqa: E402
+    _parse_crystal_ligand_atoms,
+    _parse_protein_atoms,
+    fetch_pdb_text,
+)
 
 CASE_DIR = ROOT / "public" / "docking-demo" / "cases"
 OUT_DIR = ROOT / "public" / "docking-demo" / "interactions"
-
-
-def _crystal_ligand_atoms(pdb_text: str, ligand_code: str) -> list[dict]:
-    atoms, _ = _parse_ligand_atoms(pdb_text, ligand_resname=ligand_code)
-    out = []
-    for i, a in enumerate(atoms):
-        out.append(
-            {
-                "index": i,
-                "x": a["x"],
-                "y": a["y"],
-                "z": a["z"],
-                "element": "C",
-                "atomName": f"C{i + 1}",
-            }
-        )
-    return out
 
 
 def main() -> None:
@@ -39,32 +26,47 @@ def main() -> None:
     for case_path in sorted(CASE_DIR.glob("*.json")):
         case = json.loads(case_path.read_text(encoding="utf-8"))
         case_id = case["id"]
-        protein = case.get("pocketAtoms") or []
+        protein_pocket = case.get("pocketAtoms") or []
         ligand = case.get("poseAtoms") or []
-        analysis = analyze_pose_interactions(protein, ligand)
+
+        pdb_text = fetch_pdb_text(case["pdbId"])
+        full_protein = _parse_protein_atoms(pdb_text)
+        crystal_ligand = _parse_crystal_ligand_atoms(pdb_text, case["ligandCode"])
+        sanity = evaluate_binding_site_sanity(
+            full_protein, crystal_ligand, ligand, pdb_id=case["pdbId"]
+        )
+
+        analysis = analyze_pose_interactions(
+            protein_pocket,
+            ligand,
+            full_protein_atoms=full_protein,
+            crystal_ligand_atoms=crystal_ligand,
+            pdb_id=case["pdbId"],
+            binding_site_sanity=sanity,
+        )
 
         try:
-            pdb_text = fetch_pdb_text(case["pdbId"])
-            full_protein = _parse_protein_atoms(pdb_text)
-            crystal_lig = _crystal_ligand_atoms(pdb_text, case["ligandCode"])
-            if crystal_lig:
-                crystal = analyze_pose_interactions(full_protein, crystal_lig)
-                crystal_keys = {
-                    f"{r['type']}|{r['resName']}|{r['resSeq']}|{r['proteinAtom']}|{r['ligandElement']}"
-                    for r in crystal.get("interactions", [])
-                }
-                for row in analysis.get("interactions", []):
-                    row["matchesCrystal"] = (
-                        f"{row['type']}|{row['resName']}|{row['resSeq']}|{row['proteinAtom']}|{row['ligandElement']}"
-                        in crystal_keys
-                    )
-                analysis["crystalInteractionCount"] = len(crystal.get("interactions", []))
-        except Exception as exc:  # noqa: BLE001 — demo precompute should not fail the batch
+            crystal = analyze_pose_interactions(full_protein, crystal_ligand)
+            crystal_keys = {
+                f"{r['type']}|{r['resName']}|{r['resSeq']}|{r['proteinAtom']}|{r['ligandElement']}"
+                for r in crystal.get("interactions", [])
+            }
+            for row in analysis.get("interactions", []):
+                row["matchesCrystal"] = (
+                    f"{row['type']}|{row['resName']}|{row['resSeq']}|{row['proteinAtom']}|{row['ligandElement']}"
+                    in crystal_keys
+                )
+            analysis["crystalInteractionCount"] = len(crystal.get("interactions", []))
+        except Exception as exc:  # noqa: BLE001
             analysis["crystalMatchError"] = str(exc)
 
         out_path = OUT_DIR / f"{case_id}.json"
         out_path.write_text(json.dumps(analysis, separators=(",", ":")), encoding="utf-8")
-        print(f"Wrote {out_path} ({out_path.stat().st_size} bytes, {len(analysis.get('interactions', []))} contacts)")
+        frac = sanity.get("crystalSiteRecoveryFraction")
+        print(
+            f"Wrote {out_path} ({out_path.stat().st_size} bytes, "
+            f"{len(analysis.get('interactions', []))} contacts, site recovery={frac})"
+        )
 
 
 if __name__ == "__main__":

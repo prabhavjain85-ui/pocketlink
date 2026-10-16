@@ -225,7 +225,9 @@ export default function DockingDemoPanel({ embedded = false, onClose = null }) {
             interactionBundle={demoView.bestPose?.interactions}
             poseRmsdAngstrom={activeCase?.redockRmsdAngstrom}
             unreliablePose={
-              !demoCasePassesBenchmarkSanity(activeCase) || (activeCase?.redockRmsdAngstrom ?? 0) > 2
+              demoView.bestPose?.interactions?.bindingSiteSanity?.poseNotInKnownBindingSite ||
+              !demoCasePassesBenchmarkSanity(activeCase) ||
+              (activeCase?.redockRmsdAngstrom ?? 0) > 2
             }
           />
         </>

@@ -1008,7 +1008,9 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
             <DockingInteractionsPanel
               interactionBundle={activePose?.interactions}
               poseRmsdAngstrom={activePose?.rmsd}
-              unreliablePose={activePose?.rmsd > 2}
+              unreliablePose={
+                activePose?.interactions?.bindingSiteSanity?.poseNotInKnownBindingSite || activePose?.rmsd > 2
+              }
             />
           </div>
 

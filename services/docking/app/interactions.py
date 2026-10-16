@@ -26,13 +26,16 @@ METHODOLOGY: dict[str, float] = {
     "piPiTShapeNormalMaxDeg": 120.0,
     "cationPiMaxDistanceAngstrom": 6.0,
     "halogenBondMaxDistanceAngstrom": 4.0,
+    "halogenBondMinCxaAngleDeg": 165.0,
+    "stericClashMaxDistanceAngstrom": 3.0,
+    "bindingSiteRecoveryMinFraction": 0.25,
 }
 
 AROMATIC_RESIDUES = {"PHE", "TYR", "TRP", "HIS"}
 HYDROPHOBIC_RESIDUES = {"ALA", "VAL", "LEU", "ILE", "PHE", "TRP", "MET", "PRO", "TYR", "CYS"}
 POSITIVE_RESIDUES = {"LYS", "ARG", "HIS"}
 NEGATIVE_RESIDUES = {"ASP", "GLU"}
-HALOGENS = {"F", "CL", "BR", "I"}
+HALOGEN_BOND_DONORS = {"CL", "BR", "I"}
 HB_ACCEPTOR = {"O", "N", "S"}
 HB_DONOR = {"N", "O", "S"}
 PROTEIN_DONOR = {"N", "NE", "NH1", "NH2", "NZ", "ND1", "ND2", "NE2", "OG", "OG1", "OH"}
@@ -102,9 +105,67 @@ def find_binding_site_residues(
     return sorted(by_res.values(), key=lambda r: r["minDistanceAngstrom"])
 
 
+def _is_hbond_pair(pa: dict[str, Any], la: dict[str, Any], dist: float) -> bool:
+    if dist > METHODOLOGY["hydrogenBondMaxDistanceAngstrom"]:
+        return False
+    prot_donor = pa.get("isBackbone") and pa.get("atomName") == "N" or pa.get("atomName") in PROTEIN_DONOR
+    prot_acc = pa.get("isBackbone") and pa.get("atomName") == "O" or pa.get("atomName") in PROTEIN_ACCEPTOR
+    lig_acc = la["element"] in HB_ACCEPTOR
+    lig_donor = la["element"] in HB_DONOR
+    return (prot_donor and lig_acc) or (lig_donor and prot_acc) or (prot_donor and lig_donor)
+
+
+def evaluate_binding_site_sanity(
+    protein_atoms: list[dict[str, Any]],
+    crystal_ligand_atoms: list[dict[str, Any]],
+    pose_ligand_atoms: list[dict[str, Any]],
+    *,
+    pdb_id: Optional[str] = None,
+) -> dict[str, Any]:
+    crystal_site = find_binding_site_residues(
+        protein_atoms, crystal_ligand_atoms, METHODOLOGY["bindingSiteHeavyAtomCutoffAngstrom"]
+    )
+    pose_site = find_binding_site_residues(
+        protein_atoms, pose_ligand_atoms, METHODOLOGY["bindingSiteHeavyAtomCutoffAngstrom"]
+    )
+    crystal_keys = {_residue_key_from_row(r) for r in crystal_site}
+    pose_keys = {_residue_key_from_row(r) for r in pose_site}
+    recovered = [k for k in crystal_keys if k in pose_keys]
+    fraction = len(recovered) / len(crystal_keys) if crystal_keys else None
+    min_frac = METHODOLOGY["bindingSiteRecoveryMinFraction"]
+    off_site = bool(crystal_keys) and (fraction or 0) < min_frac
+    note = None
+    if pdb_id == "4FFW":
+        note = (
+            "4FFW PDB numbering differs from common DPP-4 literature: "
+            "e.g. GLU204≈GLU205, GLU203≈GLU206, TYR663≈TYR662, ARG123≈ARG125, PHE355≈PHE357."
+        )
+    return {
+        "crystalSiteResidueCount": len(crystal_keys),
+        "poseSiteResidueCount": len(pose_keys),
+        "overlapResidueCount": len(recovered),
+        "crystalSiteRecoveryFraction": round(fraction, 3) if fraction is not None else None,
+        "poseNotInKnownBindingSite": off_site,
+        "unreliableInteractions": off_site,
+        "message": "Pose not in the known binding site; interactions unreliable." if off_site else None,
+        "pdbLiteratureResidueNote": note,
+        "crystalSiteResidues45Angstrom": crystal_site,
+        "poseSiteResidues45Angstrom": pose_site,
+    }
+
+
+def _residue_key_from_row(row: dict[str, Any]) -> str:
+    return f"{row['resName']}-{row['resSeq']}-{row['chainId']}"
+
+
 def analyze_pose_interactions(
     protein_atoms: list[dict[str, Any]],
     ligand_atoms: list[dict[str, Any]],
+    *,
+    full_protein_atoms: Optional[list[dict[str, Any]]] = None,
+    crystal_ligand_atoms: Optional[list[dict[str, Any]]] = None,
+    pdb_id: Optional[str] = None,
+    binding_site_sanity: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Geometric interaction list aligned with the frontend classifier."""
     protein = [
@@ -123,7 +184,7 @@ def analyze_pose_interactions(
     lig_heavy = [a for a in ligand if _is_heavy(a["element"])]
     site45 = find_binding_site_residues(protein, ligand, METHODOLOGY["bindingSiteHeavyAtomCutoffAngstrom"])
     site50 = find_binding_site_residues(protein, ligand, METHODOLOGY["bindingSiteExtendedCutoffAngstrom"])
-    site_keys = {f"{r['resName']}-{r['resSeq']}-{r['chainId']}" for r in site45}
+    site_keys = {_residue_key_from_row(r) for r in site45}
 
     interactions: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -164,13 +225,12 @@ def analyze_pose_interactions(
                 "distanceAngstrom": round(d, 2),
             }
 
-            prot_donor = pa.get("isBackbone") and pa.get("atomName") == "N" or pa.get("atomName") in PROTEIN_DONOR
-            prot_acc = pa.get("isBackbone") and pa.get("atomName") == "O" or pa.get("atomName") in PROTEIN_ACCEPTOR
-            lig_acc = la["element"] in HB_ACCEPTOR
-            lig_donor = la["element"] in HB_DONOR
-            if d <= METHODOLOGY["hydrogenBondMaxDistanceAngstrom"] and (
-                (prot_donor and lig_acc) or (lig_donor and prot_acc)
-            ):
+            hb = _is_hbond_pair(pa, la, d)
+            if d < METHODOLOGY["stericClashMaxDistanceAngstrom"] and not hb:
+                _push({**base, "type": "clash", "subtype": "heavy_atom_too_close", "warning": True})
+                continue
+
+            if d <= METHODOLOGY["hydrogenBondMaxDistanceAngstrom"] and hb:
                 _push(
                     {
                         **base,
@@ -182,7 +242,8 @@ def analyze_pose_interactions(
                 )
 
             if (
-                d <= METHODOLOGY["hydrophobicMaxDistanceAngstrom"]
+                d >= METHODOLOGY["stericClashMaxDistanceAngstrom"]
+                and d <= METHODOLOGY["hydrophobicMaxDistanceAngstrom"]
                 and la["element"] == "C"
                 and pa["element"] == "C"
                 and pa["resName"] in HYDROPHOBIC_RESIDUES
@@ -190,35 +251,94 @@ def analyze_pose_interactions(
                 _push({**base, "type": "hydrophobic", "subtype": "carbon_carbon"})
 
             if d <= METHODOLOGY["saltBridgeMaxDistanceAngstrom"]:
-                pos = pa["resName"] in POSITIVE_RESIDUES and pa.get("atomName") in {"NZ", "NH1", "NH2", "NE", "ND1", "NE2"}
+                pos = pa["resName"] in POSITIVE_RESIDUES and pa.get("atomName") in {
+                    "NZ",
+                    "NH1",
+                    "NH2",
+                    "NE",
+                    "ND1",
+                    "NE2",
+                }
                 neg = pa["resName"] in NEGATIVE_RESIDUES and pa.get("atomName") in {"OD1", "OD2", "OE1", "OE2"}
                 if (pos and la["element"] == "O") or (neg and la["element"] == "N"):
                     _push({**base, "type": "salt_bridge", "subtype": "ionic"})
 
-            if la["element"] in HALOGENS and pa["element"] in HB_ACCEPTOR and d <= METHODOLOGY["halogenBondMaxDistanceAngstrom"]:
-                if prot_acc or pa["element"] == "N":
-                    _push({**base, "type": "halogen_bond", "subtype": la["element"]})
+            if (
+                la["element"] in HALOGEN_BOND_DONORS
+                and pa["element"] in HB_ACCEPTOR
+                and d <= METHODOLOGY["halogenBondMaxDistanceAngstrom"]
+            ):
+                prot_acc = pa.get("atomName") in PROTEIN_ACCEPTOR or pa["element"] == "N"
+                if prot_acc:
+                    carbon = _bonded_carbon(la, lig_heavy)
+                    if carbon:
+                        ang = _angle_deg(carbon, la, pa)
+                        if ang >= METHODOLOGY["halogenBondMinCxaAngleDeg"]:
+                            _push(
+                                {
+                                    **base,
+                                    "type": "halogen_bond",
+                                    "subtype": la["element"],
+                                    "halogenAngleDeg": round(ang, 1),
+                                }
+                            )
 
     interactions.sort(key=lambda r: (r["resName"], r["resSeq"], r["type"]))
+
+    sanity = binding_site_sanity
+    if sanity is None and full_protein_atoms and crystal_ligand_atoms:
+        sanity = evaluate_binding_site_sanity(
+            full_protein_atoms, crystal_ligand_atoms, ligand_atoms, pdb_id=pdb_id
+        )
+
+    disclaimer = (
+        "Interactions are inferred from the predicted docked pose geometry; "
+        "they are not experimentally confirmed contacts."
+    )
+    if sanity and sanity.get("poseNotInKnownBindingSite"):
+        disclaimer = f"{disclaimer} {sanity['message']}"
+
     return {
         "methodology": METHODOLOGY,
         "engine": "geometric_v1",
         "prolifAvailable": _HAS_PROLIF,
-        "disclaimer": (
-            "Interactions are inferred from the predicted docked pose geometry; "
-            "they are not experimentally confirmed contacts."
-        ),
+        "disclaimer": disclaimer,
         "bindingSiteResidues45Angstrom": site45,
         "bindingSiteResidues50Angstrom": site50,
+        "bindingSiteSanity": sanity,
         "interactions": interactions,
+        "clashCount": sum(1 for r in interactions if r["type"] == "clash"),
     }
+
+
+def _bonded_carbon(halogen: dict[str, Any], ligand_heavy: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    for a in ligand_heavy:
+        if a["element"] != "C":
+            continue
+        if _dist(a, halogen) <= 1.95:
+            return a
+    return None
+
+
+def _angle_deg(a: dict[str, float], b: dict[str, float], c: dict[str, float]) -> float:
+    def _norm(v: tuple[float, float, float]) -> tuple[float, float, float]:
+        m = math.sqrt(v[0] ** 2 + v[1] ** 2 + v[2] ** 2)
+        if m < 1e-8:
+            return (0.0, 0.0, 0.0)
+        return (v[0] / m, v[1] / m, v[2] / m)
+
+    u = _norm((b["x"] - a["x"], b["y"] - a["y"], b["z"] - a["z"]))
+    v = _norm((b["x"] - c["x"], b["y"] - c["y"], b["z"] - c["z"]))
+    dot = max(-1.0, min(1.0, u[0] * v[0] + u[1] * v[1] + u[2] * v[2]))
+    return math.degrees(math.acos(dot))
 
 
 def attach_interactions_to_pose(
     pose: dict[str, Any],
     protein_atoms: list[dict[str, Any]],
+    **kwargs: Any,
 ) -> dict[str, Any]:
     lig_atoms = pose.get("atoms") or []
-    analysis = analyze_pose_interactions(protein_atoms, lig_atoms)
+    analysis = analyze_pose_interactions(protein_atoms, lig_atoms, **kwargs)
     pose["interactions"] = analysis
     return pose

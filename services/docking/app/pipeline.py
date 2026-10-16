@@ -49,6 +49,47 @@ def fetch_pdb_text(pdb_id: str) -> str:
     return text
 
 
+def _parse_crystal_ligand_atoms(
+    pdb_text: str, ligand_resname: Optional[str] = None
+) -> list[dict[str, Any]]:
+    """HETATM records for co-crystal ligand (heavy atoms + element)."""
+    resname: Optional[str] = ligand_resname.strip().upper() if ligand_resname else None
+    atoms: list[dict[str, Any]] = []
+    idx = 0
+    for line in pdb_text.splitlines():
+        if not line.startswith("HETATM"):
+            continue
+        name = line[17:20].strip()
+        if name in WATER_AND_IONS:
+            continue
+        if resname is None:
+            resname = name
+        if name != resname:
+            continue
+        try:
+            atom_name = line[12:16].strip()
+            x = float(line[30:38])
+            y = float(line[38:46])
+            z = float(line[46:54])
+            element = (line[76:78].strip() or atom_name[0]).upper()
+        except (ValueError, IndexError):
+            continue
+        if element == "H":
+            continue
+        atoms.append(
+            {
+                "index": idx,
+                "atomName": atom_name,
+                "x": x,
+                "y": y,
+                "z": z,
+                "element": element,
+            }
+        )
+        idx += 1
+    return atoms
+
+
 def _parse_ligand_atoms(
     pdb_text: str, ligand_resname: Optional[str] = None
 ) -> tuple[list[dict[str, float]], Optional[str]]:
@@ -381,6 +422,7 @@ def run_docking_pipeline(
     pose_models = _parse_pdbqt_poses(out_pdbqt.read_text(encoding="utf-8"))
     poses = []
     protein_atoms = _parse_protein_atoms(pdb_text)
+    crystal_ligand_atoms = _parse_crystal_ligand_atoms(pdb_text, ligand_resname=lig_name)
 
     for idx, atoms in enumerate(pose_models):
         score_row = scores[idx] if idx < len(scores) else scores[0] if scores else {}
@@ -397,7 +439,13 @@ def run_docking_pipeline(
             cz = sum(a["z"] for a in atoms) / len(atoms)
             pose_center = {"center_x": cx, "center_y": cy, "center_z": cz}
             pose_pocket = _extract_pocket_atoms(pdb_text, pose_center, radius=10.0)
-            pose_row["interactions"] = analyze_pose_interactions(pose_pocket or protein_atoms, atoms)
+            pose_row["interactions"] = analyze_pose_interactions(
+                pose_pocket or protein_atoms,
+                atoms,
+                full_protein_atoms=protein_atoms,
+                crystal_ligand_atoms=crystal_ligand_atoms,
+                pdb_id=pdb_id,
+            )
         poses.append(pose_row)
 
     pocket_atoms = _extract_pocket_atoms(

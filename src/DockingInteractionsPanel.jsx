@@ -13,6 +13,7 @@ function typeLabel(type) {
     pi_pi: "π–π stacking",
     cation_pi: "Cation–π",
     halogen_bond: "Halogen bond",
+    clash: "Steric clash",
   };
   return map[type] || type;
 }
@@ -23,7 +24,15 @@ export default function DockingInteractionsPanel({
   unreliablePose = false,
   showMethodology = true,
 }) {
-  if (!interactionBundle?.interactions?.length) {
+  const sanity = interactionBundle?.bindingSiteSanity;
+  const offSite = sanity?.poseNotInKnownBindingSite;
+  const interactions = interactionBundle?.interactions || [];
+
+  if (!interactionBundle) {
+    return null;
+  }
+
+  if (!interactions.length && !offSite) {
     return (
       <p style={{ fontSize: "12px", color: "var(--text-dim)", margin: "12px 0 0" }}>
         No binding-site contacts detected at the configured cutoffs for this pose.
@@ -31,9 +40,10 @@ export default function DockingInteractionsPanel({
     );
   }
 
-  const groups = groupInteractionsByResidue(interactionBundle.interactions);
+  const groups = groupInteractionsByResidue(interactions);
   const site45 = interactionBundle.bindingSiteResidues45Angstrom || [];
   const site50 = interactionBundle.bindingSiteResidues50Angstrom || [];
+  const clashCount = interactionBundle.clashCount ?? interactions.filter((r) => r.type === "clash").length;
 
   return (
     <div style={{ marginTop: 16 }}>
@@ -55,6 +65,55 @@ export default function DockingInteractionsPanel({
           </p>
         </div>
       </div>
+
+      {offSite && (
+        <div
+          role="alert"
+          style={{
+            marginBottom: 10,
+            padding: "10px 12px",
+            fontSize: "12px",
+            color: "var(--red, #B91C1C)",
+            background: "var(--red-bg, #FEF2F2)",
+            border: "1px solid var(--red-border, #FECACA)",
+            borderRadius: "var(--radius)",
+            lineHeight: 1.5,
+          }}
+        >
+          <strong>{sanity.message || "Pose not in the known binding site; interactions unreliable."}</strong>
+          {sanity.crystalSiteRecoveryFraction != null && (
+            <>
+              {" "}
+              Crystal-site recovery:{" "}
+              <span className="mono">{(sanity.crystalSiteRecoveryFraction * 100).toFixed(1)}%</span> (
+              {sanity.overlapResidueCount}/{sanity.crystalSiteResidueCount} co-crystal pocket residues).
+            </>
+          )}
+          {sanity.pdbLiteratureResidueNote && (
+            <div style={{ marginTop: 6, fontSize: "11px", color: "var(--text-dim)" }}>
+              {sanity.pdbLiteratureResidueNote}
+            </div>
+          )}
+        </div>
+      )}
+
+      {clashCount > 0 && (
+        <div
+          role="alert"
+          style={{
+            marginBottom: 10,
+            padding: "8px 10px",
+            fontSize: "12px",
+            color: "var(--red, #B91C1C)",
+            background: "var(--red-bg, #FEF2F2)",
+            border: "1px solid var(--red-border, #FECACA)",
+            borderRadius: "var(--radius)",
+          }}
+        >
+          {clashCount} steric clash{clashCount === 1 ? "" : "es"} (heavy-atom distance &lt;{" "}
+          {INTERACTION_METHODOLOGY.stericClashMaxDistanceAngstrom} Å, excluding H-bond pairs).
+        </div>
+      )}
 
       {unreliablePose && (
         <div
@@ -107,7 +166,7 @@ export default function DockingInteractionsPanel({
             <tbody>
               {rows.map((row, idx) => (
                 <tr key={`${label}-${idx}`}>
-                  <td>
+                  <td style={row.type === "clash" ? { color: "var(--red, #B91C1C)", fontWeight: 600 } : undefined}>
                     <span
                       style={{
                         display: "inline-block",
@@ -121,6 +180,7 @@ export default function DockingInteractionsPanel({
                     />
                     {typeLabel(row.type)}
                     {row.subtype ? ` (${row.subtype.replace(/_/g, " ")})` : ""}
+                    {row.type === "clash" ? " ⚠" : ""}
                   </td>
                   <td className="mono">
                     {row.proteinAtom} ({row.proteinElement})
@@ -161,7 +221,17 @@ export default function DockingInteractionsPanel({
             <li>Hydrophobic C–C contacts ≤ {INTERACTION_METHODOLOGY.hydrophobicMaxDistanceAngstrom} Å.</li>
             <li>π–π: aromatic centroid/normal criteria (face-to-face or T-shaped).</li>
             <li>Cation–π: cation to aromatic centroid ≤ {INTERACTION_METHODOLOGY.cationPiMaxDistanceAngstrom} Å.</li>
-            <li>Halogen bonds: halogen to N/O acceptor ≤ {INTERACTION_METHODOLOGY.halogenBondMaxDistanceAngstrom} Å.</li>
+            <li>
+              Halogen bonds: Cl/Br/I only (not F), X···acceptor ≤ {INTERACTION_METHODOLOGY.halogenBondMaxDistanceAngstrom} Å with C–X···A ≥
+              {INTERACTION_METHODOLOGY.halogenBondMinCxaAngleDeg}°.
+            </li>
+            <li>
+              Steric clashes: heavy-atom pairs &lt; {INTERACTION_METHODOLOGY.stericClashMaxDistanceAngstrom} Å unless classified as H-bonds.
+            </li>
+            <li>
+              Binding-site sanity: pose residues within 4.5 Å compared to co-crystal pocket; recovery &lt;
+              {(INTERACTION_METHODOLOGY.bindingSiteRecoveryMinFraction * 100).toFixed(0)}% flags off-site poses.
+            </li>
           </ul>
         </details>
       )}
