@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import CocrystalMolstarViewer from "./CocrystalMolstarViewer";
+import InlineErrorBoundary from "./InlineErrorBoundary";
 import DockingInteractionsPanel from "./DockingInteractionsPanel";
 import { analyzeExperimentalCocrystal } from "./cocrystalAnalysis";
 import { poseCentroidFromAtoms } from "./pdbStructure";
@@ -49,11 +50,16 @@ export default function ExperimentalCocrystalPanel({ caseJson, precomputedPoseBu
 
   return (
     <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
-      <CocrystalMolstarViewer
-        pdbId={caseJson.pdbId}
-        ligandCode={caseJson.ligandCode}
-        cocrystalLigand={cocrystalLigand || bundle?.bindingSiteSanity?.cocrystalLigand}
-      />
+      <InlineErrorBoundary
+        fallbackMessage="Experimental co-crystal 3D viewer could not be shown for this demo pose."
+        showDetail
+      >
+        <CocrystalMolstarViewer
+          pdbId={caseJson.pdbId}
+          ligandCode={caseJson.ligandCode}
+          cocrystalLigand={cocrystalLigand || bundle?.bindingSiteSanity?.cocrystalLigand}
+        />
+      </InlineErrorBoundary>
       {loading && (
         <p style={{ fontSize: "12px", color: "var(--text-dim)", marginTop: 12 }}>
           Computing experimental contact table…

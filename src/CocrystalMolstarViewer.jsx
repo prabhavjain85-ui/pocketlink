@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import InlineErrorBoundary from "./InlineErrorBoundary";
 import { destroyCocrystalMolstarViewer, mountCocrystalMolstarViewer, rcsbStructurePageUrl } from "./cocrystalMolstar";
 
 const LEGEND = [
@@ -10,20 +11,20 @@ const LEGEND = [
   { color: "#14B8A6", label: "Halogen bond" },
 ];
 
-export default function CocrystalMolstarViewer({
+function CocrystalMolstarViewerInner({
   pdbId,
   ligandCode,
   cocrystalLigand = null,
   height = 420,
 }) {
-  const hostRef = useRef(null);
+  const molstarHostRef = useRef(null);
   const viewerRef = useRef(null);
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
-    const el = hostRef.current;
+    const el = molstarHostRef.current;
     if (!el || !pdbId) return undefined;
 
     setStatus("loading");
@@ -57,8 +58,9 @@ export default function CocrystalMolstarViewer({
 
     return () => {
       cancelled = true;
-      destroyCocrystalMolstarViewer(viewerRef.current);
+      const v = viewerRef.current;
       viewerRef.current = null;
+      void destroyCocrystalMolstarViewer(v);
     };
   }, [pdbId, ligandCode, cocrystalLigand?.chainId, cocrystalLigand?.resSeq]);
 
@@ -88,7 +90,6 @@ export default function CocrystalMolstarViewer({
       </div>
 
       <div
-        ref={hostRef}
         style={{
           position: "relative",
           width: "100%",
@@ -100,6 +101,11 @@ export default function CocrystalMolstarViewer({
         }}
         aria-label={`Molstar co-crystal viewer for PDB ${pdbId}`}
       >
+        <div
+          ref={molstarHostRef}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+          data-molstar-host
+        />
         {status === "loading" && (
           <div
             style={{
@@ -112,6 +118,7 @@ export default function CocrystalMolstarViewer({
               color: "var(--text-dim)",
               background: "rgba(255,255,255,0.85)",
               zIndex: 2,
+              pointerEvents: "none",
             }}
           >
             Loading structure from RCSB…
@@ -155,5 +162,16 @@ export default function CocrystalMolstarViewer({
         ))}
       </div>
     </div>
+  );
+}
+
+export default function CocrystalMolstarViewer(props) {
+  return (
+    <InlineErrorBoundary
+      fallbackMessage="The 3D co-crystal viewer failed unexpectedly. You can still use the contact table above."
+      showDetail
+    >
+      <CocrystalMolstarViewerInner {...props} />
+    </InlineErrorBoundary>
   );
 }
