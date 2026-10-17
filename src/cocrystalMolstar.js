@@ -56,11 +56,74 @@ export function rcsbStructurePageUrl(pdbId) {
   return `https://www.rcsb.org/structure/${String(pdbId || "").trim().toUpperCase()}`;
 }
 
+/** Returns false when WebGL cannot be created (headless browsers, disabled GPU, etc.). */
+export function isWebGLAvailable() {
+  if (typeof document === "undefined") return false;
+  try {
+    const canvas = document.createElement("canvas");
+    const gl = canvas.getContext("webgl2") || canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+    return Boolean(gl);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Download and sanity-check RCSB BinaryCIF before handing it to Mol*.
+ * @returns {Promise<ArrayBuffer>}
+ */
+export async function fetchRcsbBcifBuffer(pdbId) {
+  const id = String(pdbId || "").trim().toUpperCase();
+  if (!id) throw new Error("Missing PDB ID.");
+  const url = rcsbBcifUrl(id);
+  let res;
+  try {
+    res = await fetch(url);
+  } catch {
+    throw new Error(`Could not download structure ${id} from RCSB. Check your network connection.`);
+  }
+  if (!res.ok) {
+    throw new Error(`RCSB structure download failed for ${id} (HTTP ${res.status}).`);
+  }
+  const contentType = (res.headers.get("content-type") || "").toLowerCase();
+  if (contentType.includes("text/html")) {
+    throw new Error(`RCSB returned an HTML page instead of structure data for ${id}.`);
+  }
+  const buf = await res.arrayBuffer();
+  if (!buf || buf.byteLength < 64) {
+    throw new Error(`Structure file for ${id} is empty or too small to be valid BinaryCIF.`);
+  }
+  const head = new Uint8Array(buf, 0, Math.min(16, buf.byteLength));
+  if (head[0] === 0x3c || head[0] === 0x7b) {
+    throw new Error(`Downloaded data for ${id} is not valid BinaryCIF (unexpected text/JSON payload).`);
+  }
+  return buf;
+}
+
+async function loadBcifIntoViewer(viewer, pdbId, label) {
+  const id = String(pdbId || "").trim().toUpperCase();
+  const buf = await fetchRcsbBcifBuffer(id);
+  const plugin = viewer.plugin;
+  const data = await plugin.builders.data.rawData(
+    { data: new Uint8Array(buf), label: label || `${id} (experimental co-crystal)` },
+    { state: { isGhost: true } }
+  );
+  const trajectory = await plugin.builders.structure.parseTrajectory(data, "mmcif");
+  await plugin.builders.structure.hierarchy.applyPreset(trajectory, "default");
+}
+
 /**
  * Mount Mol* and load the experimental structure from RCSB BinaryCIF.
  */
 export async function mountCocrystalMolstarViewer(container, options) {
   const { pdbId, ligandCode, ligandChainId, ligandResSeq } = options;
+
+  if (!isWebGLAvailable()) {
+    throw new Error(
+      "WebGL is not available in this browser. Enable hardware acceleration or use a browser with 3D graphics support to view structures."
+    );
+  }
+
   const { Viewer } = await getMolstarViewerApi();
 
   const viewer = await Viewer.create(container, {
@@ -78,11 +141,24 @@ export async function mountCocrystalMolstarViewer(container, options) {
     pdbProvider: "rcsb",
   });
 
-  await viewer.loadStructureFromUrl(rcsbBcifUrl(pdbId), "mmcif", true, {
-    label: `${String(pdbId).toUpperCase()} (experimental co-crystal)`,
-  });
+  try {
+    await loadBcifIntoViewer(
+      viewer,
+      pdbId,
+      `${String(pdbId).toUpperCase()} (experimental co-crystal)`
+    );
+  } catch (e) {
+    await destroyCocrystalMolstarViewer(viewer);
+    const msg = e?.message || String(e);
+    if (/invalid data cell/i.test(msg)) {
+      throw new Error(
+        `Could not parse BinaryCIF for ${String(pdbId).toUpperCase()}. The file may be corrupt or the download failed.`
+      );
+    }
+    throw e instanceof Error ? e : new Error(msg);
+  }
 
-  if (ligandCode) {
+  if (ligandCode && container?.setAttribute) {
     container.setAttribute(
       "data-cocrystal-ligand",
       `${ligandCode} chain ${ligandChainId || "?"} res ${ligandResSeq ?? "?"}`
@@ -93,9 +169,14 @@ export async function mountCocrystalMolstarViewer(container, options) {
 }
 
 export async function destroyCocrystalMolstarViewer(viewer) {
+  if (!viewer) return;
   try {
-    await viewer?.plugin?.dispose?.();
+    if (typeof viewer.dispose === "function") {
+      await viewer.dispose();
+      return;
+    }
+    await viewer.plugin?.dispose?.();
   } catch {
-    /* ignore */
+    /* ignore dispose errors during teardown */
   }
 }

@@ -169,15 +169,33 @@ const ENTRY_SUMMARY_QUERY = `query($ids: [String!]!) {
 }`;
 
 async function fetchGraphql(query, variables) {
-  const res = await fetch(GRAPHQL_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, variables }),
-  });
-  if (!res.ok) throw new Error(`RCSB GraphQL failed (${res.status})`);
-  const data = await res.json();
-  if (data.errors?.length) throw new Error(data.errors[0].message || "GraphQL error");
-  return data.data;
+  try {
+    const res = await fetch(GRAPHQL_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, variables }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.errors?.length) return null;
+    return data.data;
+  } catch {
+    return null;
+  }
+}
+
+function fallbackEntrySummaries(entryIds) {
+  return (entryIds || [])
+    .map((id) => String(id || "").trim().toUpperCase())
+    .filter(Boolean)
+    .map((pdbId) => ({
+      pdbId,
+      title: pdbId,
+      resolution: null,
+      proteinName: "—",
+      organism: "—",
+      method: "—",
+    }));
 }
 
 function scoreCompMatch(compId, name, description, query, synonyms) {
@@ -231,7 +249,7 @@ export async function discoverChemCompCandidates(query) {
     const ids = (ft.result_set || []).map((r) => r.identifier);
     if (ids.length) {
       const data = await fetchGraphql(ENTRY_LIGANDS_QUERY, { ids });
-      for (const entry of data.entries || []) {
+      for (const entry of data?.entries || []) {
         for (const ent of entry.nonpolymer_entities || []) {
           const compId =
             ent.pdbx_entity_nonpoly?.comp_id ||
@@ -287,6 +305,11 @@ export async function enrichEntrySummaries(entryIds) {
   if (hit) return hit;
 
   const data = await fetchGraphql(ENTRY_SUMMARY_QUERY, { ids });
+  if (!data?.entries) {
+    const rows = fallbackEntrySummaries(ids);
+    cacheSet(cacheKey, rows);
+    return rows;
+  }
   const rows = (data.entries || []).filter(Boolean).map((e) => {
     const polymer = e.polymer_entities?.[0];
     const organism =
@@ -318,7 +341,7 @@ export async function enrichEntrySummaries(entryIds) {
 
 export async function listDrugLikeLigandsInEntry(pdbId) {
   const data = await fetchGraphql(ENTRY_LIGANDS_QUERY, { ids: [pdbId.toUpperCase()] });
-  const entry = data.entries?.[0];
+  const entry = data?.entries?.[0];
   if (!entry) return [];
   const out = [];
   for (const ent of entry.nonpolymer_entities || []) {
