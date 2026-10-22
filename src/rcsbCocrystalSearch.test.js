@@ -3,10 +3,18 @@ import {
   enrichEntrySummaries,
   looksLikeChemCompId,
   looksLikePdbId,
+  normalizeResolutionCombined,
   resolveCocrystalSearchQuery,
 } from "./rcsbCocrystalSearch";
 
 describe("rcsbCocrystalSearch helpers", () => {
+  test("normalizeResolutionCombined accepts scalar or array from GraphQL", () => {
+    expect(normalizeResolutionCombined(1.57)).toBe(1.57);
+    expect(normalizeResolutionCombined([2.1])).toBe(2.1);
+    expect(normalizeResolutionCombined([])).toBeNull();
+    expect(normalizeResolutionCombined(null)).toBeNull();
+  });
+
   test("detects PDB IDs and CCD codes", () => {
     expect(looksLikePdbId("1iep")).toBe(true);
     expect(looksLikePdbId("STI")).toBe(false);

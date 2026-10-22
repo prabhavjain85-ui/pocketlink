@@ -47,6 +47,17 @@ const CCD_RE = /^[A-Z0-9]{1,3}$/i;
 
 const memoryCache = new Map();
 
+/** RCSB GraphQL may return resolution_combined as a number or single-element array. */
+export function normalizeResolutionCombined(raw) {
+  let resolution = raw ?? null;
+  if (Array.isArray(resolution)) resolution = resolution[0] ?? null;
+  if (resolution != null && typeof resolution !== "number") {
+    const n = Number(resolution);
+    resolution = Number.isFinite(n) ? n : null;
+  }
+  return resolution;
+}
+
 function cacheGet(key) {
   const row = memoryCache.get(key);
   if (!row) return null;
@@ -324,7 +335,7 @@ export async function enrichEntrySummaries(entryIds) {
     return {
       pdbId: e.rcsb_id,
       title: e.struct?.title || e.rcsb_id,
-      resolution: e.rcsb_entry_info?.resolution_combined ?? null,
+      resolution: normalizeResolutionCombined(e.rcsb_entry_info?.resolution_combined),
       proteinName,
       organism,
       method,
