@@ -2,7 +2,11 @@ import React, { useCallback, useState } from "react";
 import CocrystalMolstarViewer from "./CocrystalMolstarViewer";
 import DockingInteractionsPanel from "./DockingInteractionsPanel";
 import { analyzeExperimentalCocrystal } from "./cocrystalAnalysis";
-import { resolveCocrystalSearchQuery, searchPdbEntriesForChemComp } from "./rcsbCocrystalSearch";
+import {
+  normalizeResolutionCombined,
+  resolveCocrystalSearchQuery,
+  searchPdbEntriesForChemComp,
+} from "./rcsbCocrystalSearch";
 import { rcsbStructurePageUrl } from "./cocrystalMolstar";
 
 export default function CocrystalStructureSearch() {
@@ -249,7 +253,12 @@ export default function CocrystalStructureSearch() {
                   <td>{row.title}</td>
                   <td>{row.proteinName}</td>
                   <td>{row.organism}</td>
-                  <td className="mono">{row.resolution != null ? row.resolution.toFixed(2) : "—"}</td>
+                  <td className="mono">
+                    {(() => {
+                      const res = normalizeResolutionCombined(row.resolution);
+                      return res != null ? res.toFixed(2) : "—";
+                    })()}
+                  </td>
                   <td>
                     <button
                       type="button"
@@ -305,23 +314,27 @@ export default function CocrystalStructureSearch() {
         </p>
       )}
 
-      {bundle && activeEntry && activeLigand && (
+      {activeEntry && activeLigand && (
         <>
-          <p style={{ fontSize: "12px", color: "var(--text-dim)", margin: "8px 0" }}>
-            Pocket residues within 4.5 Å: <span className="mono">{pocketCount}</span> · Measured contacts:{" "}
-            <span className="mono">{bundle.interactions?.length ?? 0}</span>
-          </p>
           <CocrystalMolstarViewer
             pdbId={activeEntry}
             ligandCode={activeLigand}
-            cocrystalLigand={bundle.bindingSiteSanity?.cocrystalLigand}
+            cocrystalLigand={bundle?.bindingSiteSanity?.cocrystalLigand}
           />
-          <DockingInteractionsPanel
-            interactionBundle={bundle}
-            showMethodology
-            title="Measured co-crystal contacts"
-            experimental
-          />
+          {bundle && (
+            <p style={{ fontSize: "12px", color: "var(--text-dim)", margin: "8px 0" }}>
+              Pocket residues within 4.5 Å: <span className="mono">{pocketCount}</span> · Measured contacts:{" "}
+              <span className="mono">{bundle.interactions?.length ?? 0}</span>
+            </p>
+          )}
+          {bundle && (
+            <DockingInteractionsPanel
+              interactionBundle={bundle}
+              showMethodology
+              title="Measured co-crystal contacts"
+              experimental
+            />
+          )}
         </>
       )}
     </div>

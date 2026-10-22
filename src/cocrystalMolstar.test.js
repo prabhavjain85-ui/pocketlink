@@ -1,4 +1,9 @@
-import { fetchRcsbBcifBuffer, isWebGLAvailable, rcsbBcifUrl } from "./cocrystalMolstar";
+import {
+  fetchRcsbBcifBuffer,
+  isWebGLAvailable,
+  rcsbBcifUrl,
+  scheduleCocrystalMolstarResize,
+} from "./cocrystalMolstar";
 
 describe("cocrystalMolstar helpers", () => {
   test("rcsbBcifUrl uppercases PDB id", () => {
@@ -7,6 +12,24 @@ describe("cocrystalMolstar helpers", () => {
 
   test("isWebGLAvailable returns boolean without throwing", () => {
     expect(typeof isWebGLAvailable()).toBe("boolean");
+  });
+
+  test("scheduleCocrystalMolstarResize calls canvas handleResize when present", () => {
+    const handleResize = jest.fn();
+    const raf = jest
+      .spyOn(global, "requestAnimationFrame")
+      .mockImplementation((cb) => {
+        cb();
+        return 0;
+      });
+    scheduleCocrystalMolstarResize({
+      plugin: {
+        canvas3d: { handleResize },
+        layout: { events: { layoutUpdated: { dispatch: jest.fn() } } },
+      },
+    });
+    raf.mockRestore();
+    expect(handleResize).toHaveBeenCalled();
   });
 
   test("fetchRcsbBcifBuffer rejects HTML payloads", async () => {

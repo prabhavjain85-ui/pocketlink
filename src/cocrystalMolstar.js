@@ -100,6 +100,27 @@ export async function fetchRcsbBcifBuffer(pdbId) {
   return buf;
 }
 
+/** Mol* can mount at 0×0 if the host was hidden; nudge layout after the DOM settles. */
+export function scheduleCocrystalMolstarResize(viewer) {
+  if (!viewer?.plugin) return;
+  const resize = () => {
+    try {
+      viewer.plugin.canvas3d?.handleResize?.();
+      viewer.plugin.layout?.events?.layoutUpdated?.dispatch?.();
+    } catch {
+      /* ignore resize errors during teardown */
+    }
+  };
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(() => {
+      resize();
+      requestAnimationFrame(resize);
+    });
+  } else {
+    resize();
+  }
+}
+
 async function loadBcifIntoViewer(viewer, pdbId, label) {
   const id = String(pdbId || "").trim().toUpperCase();
   const buf = await fetchRcsbBcifBuffer(id);
@@ -164,6 +185,8 @@ export async function mountCocrystalMolstarViewer(container, options) {
       `${ligandCode} chain ${ligandChainId || "?"} res ${ligandResSeq ?? "?"}`
     );
   }
+
+  scheduleCocrystalMolstarResize(viewer);
 
   return viewer;
 }
