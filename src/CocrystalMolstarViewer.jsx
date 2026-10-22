@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import InlineErrorBoundary from "./InlineErrorBoundary";
-import { destroyCocrystalMolstarViewer, mountCocrystalMolstarViewer, rcsbStructurePageUrl } from "./cocrystalMolstar";
+import {
+  destroyCocrystalMolstarViewer,
+  mountCocrystalMolstarViewer,
+  rcsbStructurePageUrl,
+  scheduleCocrystalMolstarResize,
+} from "./cocrystalMolstar";
 
 const LEGEND = [
   { color: "#10B981", label: "Hydrogen bond" },
@@ -63,6 +68,21 @@ function CocrystalMolstarViewerInner({
       void destroyCocrystalMolstarViewer(v);
     };
   }, [pdbId, ligandCode, cocrystalLigand?.chainId, cocrystalLigand?.resSeq]);
+
+  useEffect(() => {
+    if (status !== "ready" || !viewerRef.current) return undefined;
+    const host = molstarHostRef.current;
+    if (!host || typeof ResizeObserver === "undefined") {
+      scheduleCocrystalMolstarResize(viewerRef.current);
+      return undefined;
+    }
+    const ro = new ResizeObserver(() => {
+      scheduleCocrystalMolstarResize(viewerRef.current);
+    });
+    ro.observe(host);
+    scheduleCocrystalMolstarResize(viewerRef.current);
+    return () => ro.disconnect();
+  }, [status, pdbId, ligandCode]);
 
   return (
     <div style={{ marginTop: 16 }}>

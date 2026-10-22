@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import {
   DOCKING_REFERENCE_TARGETS,
@@ -16,80 +16,13 @@ import {
 } from "./featureFlags";
 import ReportExportButtons from "./ReportExportButtons";
 import { buildDockingReportMarkdown, defaultReportFilename } from "./reportExport";
+import { fetchDockingRunCocrystalContext } from "./dockingRunCocrystal";
+import DockingRunCocrystalSection from "./DockingRunCocrystalSection";
+import { shouldAutoRunDockingOnLoad, shouldRunRemoteDocking } from "./dockingServiceGate";
 
 const dockingUiEnabled = () => DOCKING_ENABLED || DOCKING_ENGINE_ENABLED;
 
-const PROTOTYPE_BANNER_TEXT = "Prototype: results are not yet validated";
-
-function DockingPrototypeBanner() {
-  return (
-    <div
-      role="status"
-      style={{
-        background: "var(--amber-bg, #FFFBEB)",
-        border: "2px solid var(--amber-border, #FDE68A)",
-        color: "var(--text)",
-        borderRadius: "var(--radius-lg)",
-        padding: "14px 18px",
-        marginBottom: "20px",
-        fontSize: "15px",
-        fontWeight: 700,
-        lineHeight: 1.5,
-        textAlign: "center",
-      }}
-    >
-      {PROTOTYPE_BANNER_TEXT}
-    </div>
-  );
-}
-
-const DockingDemoPanel = React.lazy(() => import("./DockingDemoPanel"));
 const CocrystalSearchSection = React.lazy(() => import("./CocrystalSearchSection"));
-
-function DockingServiceUnavailableView({ detail }) {
-  return (
-    <div className="docking-page-container" style={{ maxWidth: "1120px", margin: "0 auto 48px" }}>
-      <h1 style={{ margin: "0 0 12px", fontSize: "26px", fontWeight: 700 }}>Molecular Docking</h1>
-      <DockingPrototypeBanner />
-      <p
-        role="note"
-        style={{
-          margin: "0 0 16px",
-          fontSize: "13px",
-          color: "var(--text-dim)",
-          lineHeight: 1.5,
-        }}
-      >
-        {DOCKING_BENCHMARK_PAIRS_NOTICE}
-      </p>
-      <div
-        role="status"
-        style={{
-          background: "var(--surface-muted)",
-          border: "1px solid var(--border)",
-          color: "var(--text)",
-          borderRadius: "var(--radius-lg)",
-          padding: "16px 20px",
-          fontSize: "15px",
-          fontWeight: 600,
-          lineHeight: 1.5,
-        }}
-      >
-        Docking service unavailable
-      </div>
-      <p style={{ marginTop: 16, fontSize: "14px", color: "var(--text-dim)", lineHeight: 1.5 }}>
-        {detail ||
-          "The AutoDock Vina backend is not reachable yet. This page will work once the Fly.io service is deployed and DOCKING_SERVICE_URL is set on Vercel. You can still explore precomputed demo poses below."}
-      </p>
-      <React.Suspense fallback={<p style={{ fontSize: "13px", color: "var(--text-dim)" }}>Loading demo…</p>}>
-        <DockingDemoPanel embedded />
-      </React.Suspense>
-      <React.Suspense fallback={null}>
-        <CocrystalSearchSection />
-      </React.Suspense>
-    </div>
-  );
-}
 
 function DockingUnavailableView() {
   return (
@@ -149,11 +82,42 @@ export default function DockingPage() {
   const [dockingResults, setDockingResults] = useState(null);
   const [activePose, setActivePose] = useState(null);
   const [copiedReport, setCopiedReport] = useState(false);
-  const [serviceCheck, setServiceCheck] = useState(
-    DOCKING_ENABLED ? "checking" : "ready"
-  );
+  /** @type {"checking"|"online"|"offline"} */
+  const [serviceCheck, setServiceCheck] = useState(DOCKING_ENABLED ? "checking" : "online");
   const [serviceUnavailableMessage, setServiceUnavailableMessage] = useState("");
-  const [showDemo, setShowDemo] = useState(false);
+  const [runCocrystalContext, setRunCocrystalContext] = useState(null);
+  const runCocrystalRef = useRef(null);
+
+  const loadRunCocrystal = useCallback(async (targetPdb, compoundName) => {
+    setRunCocrystalContext({
+      pdbId: targetPdb,
+      loading: true,
+      ligandCode: null,
+      bundle: null,
+      pocketCount: null,
+    });
+    try {
+      const ctx = await fetchDockingRunCocrystalContext(targetPdb, compoundName);
+      setRunCocrystalContext({ ...ctx, loading: false });
+    } catch (e) {
+      setRunCocrystalContext({
+        ok: false,
+        pdbId: targetPdb,
+        loading: false,
+        ligandCode: null,
+        bundle: null,
+        error: e?.message || "Could not load co-crystal structure.",
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!runCocrystalContext?.pdbId || runCocrystalContext.loading) return undefined;
+    const frame = requestAnimationFrame(() => {
+      runCocrystalRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [runCocrystalContext?.pdbId, runCocrystalContext?.loading]);
 
   // Active bench target & candidates
   const benchTarget = useMemo(() => {
@@ -192,6 +156,18 @@ export default function DockingPage() {
     setProgressPercent(5);
     setProgressMsg(`Downloading crystallographic structure for ${targetPdb} from RCSB PDB...`);
 
+    void loadRunCocrystal(targetPdb, name || compoundNameInput);
+
+    if (
+      DOCKING_ENABLED &&
+      !shouldRunRemoteDocking({ dockingEnabled: true, serviceStatus: serviceCheck })
+    ) {
+      setProgressMsg("");
+      setProgressPercent(0);
+      setLoading(false);
+      return;
+    }
+
     try {
       let res;
       if (DOCKING_ENABLED) {
@@ -224,9 +200,10 @@ export default function DockingPage() {
       setTargetTitle(res.target.title || targetTitle);
     } catch (err) {
       if (err?.name === "DockingServiceUnavailableError" || err?.serviceUnavailable) {
-        setServiceCheck("unavailable");
-        setServiceUnavailableMessage(err.message);
-        setError(null);
+        setError(
+          err.message ||
+            "The docking service is not reachable. The experimental co-crystal structure for this target is still shown above."
+        );
       } else {
         setError(err?.message || "An unexpected error occurred during molecular docking.");
       }
@@ -239,7 +216,7 @@ export default function DockingPage() {
 
   useEffect(() => {
     if (!DOCKING_ENABLED) {
-      setServiceCheck("ready");
+      setServiceCheck("online");
       return;
     }
     let cancelled = false;
@@ -248,13 +225,15 @@ export default function DockingPage() {
       const health = await fetchDockingServiceHealth();
       if (cancelled) return;
       if (health.serviceUnavailable || !health.serviceReachable) {
-        setServiceCheck("unavailable");
+        setServiceCheck("offline");
         setServiceUnavailableMessage(
           health.message ||
-            "The docking service is not configured or could not be reached. Deploy the Fly.io service and set DOCKING_SERVICE_URL on Vercel."
+            health.raw?.message ||
+            "Docking service is not configured or could not be reached (set DOCKING_SERVICE_URL on Vercel)."
         );
       } else {
-        setServiceCheck("ready");
+        setServiceCheck("online");
+        setServiceUnavailableMessage("");
       }
     })();
     return () => {
@@ -262,40 +241,46 @@ export default function DockingPage() {
     };
   }, []);
 
-  // Run on first mount or when URL search parameters change (enabled engine only)
+  // Co-crystal bootstrap + optional auto-dock when the remote service is online
   useEffect(() => {
     if (!dockingUiEnabled()) return;
-    if (DOCKING_ENABLED && serviceCheck !== "ready") return;
+
     const urlPdb = searchParams.get("pdb");
     const urlSmiles = searchParams.get("smiles");
     const urlName = searchParams.get("name");
     const urlCid = searchParams.get("cid");
 
-    if (urlPdb || urlSmiles) {
-      if (urlPdb) setPdbIdInput(urlPdb);
-      if (urlSmiles) setSmilesInput(urlSmiles);
-      if (urlName) setCompoundNameInput(urlName);
-      if (urlCid) setCidInput(urlCid);
+    const targetPdb = urlPdb || DOCKING_REFERENCE_TARGETS[0].id;
+    const ligandSmiles = urlSmiles || DOCKING_REFERENCE_TARGETS[0].referenceSmiles;
+    const ligandName = urlName || "Imatinib";
 
-      const matchPreset = DOCKING_REFERENCE_TARGETS.find(
-        (t) => t.id.toUpperCase() === (urlPdb || "").toUpperCase()
-      );
+    if (urlPdb) setPdbIdInput(urlPdb);
+    if (urlSmiles) setSmilesInput(urlSmiles);
+    if (urlName) setCompoundNameInput(urlName);
+    if (urlCid) setCidInput(urlCid);
 
-      executeDocking(
-        urlPdb || pdbIdInput,
-        urlSmiles || smilesInput,
-        urlName || compoundNameInput,
-        matchPreset ? matchPreset.center : null
-      );
-    } else {
-      // Run default reference docking (1IEP with Imatinib)
-      executeDocking(
-        DOCKING_REFERENCE_TARGETS[0].id,
-        DOCKING_REFERENCE_TARGETS[0].referenceSmiles,
-        "Imatinib",
-        DOCKING_REFERENCE_TARGETS[0].center
-      );
+    void loadRunCocrystal(targetPdb, ligandName);
+
+    if (
+      !shouldAutoRunDockingOnLoad({
+        dockingUiEnabled,
+        dockingEnabled: DOCKING_ENABLED,
+        serviceStatus: serviceCheck,
+      })
+    ) {
+      return;
     }
+
+    const matchPreset = DOCKING_REFERENCE_TARGETS.find(
+      (t) => t.id.toUpperCase() === String(targetPdb).toUpperCase()
+    );
+
+    executeDocking(
+      targetPdb,
+      ligandSmiles,
+      ligandName,
+      matchPreset ? matchPreset.center : null
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serviceCheck]);
 
@@ -379,22 +364,37 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
     return <DockingUnavailableView />;
   }
 
-  if (DOCKING_ENABLED && serviceCheck === "checking") {
-    return (
-      <div className="docking-page-container" style={{ maxWidth: "720px", margin: "0 auto 48px" }}>
-        <h1 style={{ margin: "0 0 12px", fontSize: "26px", fontWeight: 700 }}>Molecular Docking</h1>
-        <p style={{ fontSize: "14px", color: "var(--text-dim)" }}>Checking docking service…</p>
-      </div>
-    );
-  }
-
-  if (DOCKING_ENABLED && serviceCheck === "unavailable") {
-    return <DockingServiceUnavailableView detail={serviceUnavailableMessage} />;
-  }
+  const remoteDockingOnline = shouldRunRemoteDocking({
+    dockingEnabled: DOCKING_ENABLED,
+    serviceStatus: serviceCheck,
+  });
 
   return (
     <div className="docking-page-container" style={{ maxWidth: "1120px", margin: "0 auto 48px" }}>
-      <DockingPrototypeBanner />
+      {DOCKING_ENABLED && serviceCheck === "checking" && (
+        <p role="status" style={{ margin: "0 0 12px", fontSize: "13px", color: "var(--text-dim)" }}>
+          Checking live docking service… Co-crystal structures load from RCSB in the meantime.
+        </p>
+      )}
+      {DOCKING_ENABLED && serviceCheck === "offline" && (
+        <p
+          role="status"
+          style={{
+            margin: "0 0 12px",
+            fontSize: "13px",
+            color: "var(--text-dim)",
+            lineHeight: 1.5,
+            padding: "10px 12px",
+            background: "var(--surface-muted)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius)",
+          }}
+        >
+          Live AutoDock Vina docking is unavailable on this deployment
+          {serviceUnavailableMessage ? ` (${serviceUnavailableMessage})` : ""}. Run still loads the
+          experimental co-crystal from RCSB PDB; scores require the docking service.
+        </p>
+      )}
       <p
         role="note"
         style={{
@@ -410,21 +410,6 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
       >
         {DOCKING_BENCHMARK_PAIRS_NOTICE}
       </p>
-      <div style={{ marginBottom: "16px", display: "flex", justifyContent: "flex-end" }}>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          style={{ fontSize: "12px" }}
-          onClick={() => setShowDemo((v) => !v)}
-        >
-          {showDemo ? "Hide demo" : "Try demo"}
-        </button>
-      </div>
-      {showDemo && (
-        <React.Suspense fallback={<p style={{ fontSize: "13px", color: "var(--text-dim)" }}>Loading demo…</p>}>
-          <DockingDemoPanel onClose={() => setShowDemo(false)} />
-        </React.Suspense>
-      )}
       <React.Suspense fallback={null}>
         <CocrystalSearchSection />
       </React.Suspense>
@@ -735,10 +720,25 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
             disabled={loading || !pdbIdInput.trim() || !smilesInput.trim()}
             style={{ padding: "9px 24px", fontSize: "13px" }}
           >
-            {loading ? "Simulating Docking..." : "Run Molecular Docking"}
+            {loading
+              ? remoteDockingOnline
+                ? "Simulating Docking..."
+                : "Loading crystal structure…"
+              : remoteDockingOnline
+                ? "Run Molecular Docking"
+                : "Load crystal structure"}
           </button>
         </div>
       </div>
+
+      {runCocrystalContext && (
+        <DockingRunCocrystalSection
+          sectionRef={runCocrystalRef}
+          context={runCocrystalContext}
+          dockingResults={dockingResults}
+          dockingError={error}
+        />
+      )}
 
       {/* Error Alert */}
       {error && (
