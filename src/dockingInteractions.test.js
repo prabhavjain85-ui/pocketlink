@@ -7,13 +7,15 @@ import {
   normalizeElement,
 } from "./dockingInteractions";
 
-const demoDir = path.join(process.cwd(), "public/docking-demo");
+const fixtureDir = path.join(process.cwd(), "src/test-fixtures/docking");
 const erlotinibCase = JSON.parse(
-  fs.readFileSync(path.join(demoDir, "cases/erlotinib-1m17.json"), "utf8")
+  fs.readFileSync(path.join(fixtureDir, "cases/erlotinib-1m17.json"), "utf8")
 );
 
 function loadInteractions(caseId) {
-  return JSON.parse(fs.readFileSync(path.join(demoDir, `interactions/${caseId}.json`), "utf8"));
+  return JSON.parse(
+    fs.readFileSync(path.join(fixtureDir, `interactions/${caseId}.json`), "utf8")
+  );
 }
 
 describe("dockingInteractions classifier", () => {
@@ -23,7 +25,7 @@ describe("dockingInteractions classifier", () => {
     expect(normalizeElement("A")).toBe("C");
   });
 
-  test("erlotinib in 1M17 demo pose shows hinge H-bond to MET769 backbone N", () => {
+  test("erlotinib in 1M17 fixture pose shows hinge H-bond to MET769 backbone N", () => {
     const analysis = analyzePoseInteractions(erlotinibCase.pocketAtoms, erlotinibCase.poseAtoms);
     const hingeHb = analysis.interactions.find(
       (row) =>
@@ -80,7 +82,7 @@ describe("dockingInteractions classifier", () => {
     expect(leu764Hydrophobic).toBeUndefined();
   });
 
-  test("precomputed demo binding-site sanity uses single co-crystal ligand copy", () => {
+  test("precomputed interaction fixtures use single co-crystal ligand copy for binding-site sanity", () => {
     const imatinib = loadInteractions("imatinib-1iep");
     const sita = loadInteractions("sitagliptin-4ffw");
     const erl = loadInteractions("erlotinib-1m17");

@@ -43,7 +43,6 @@ function DockingPrototypeBanner() {
   );
 }
 
-const DockingDemoPanel = React.lazy(() => import("./DockingDemoPanel"));
 const CocrystalSearchSection = React.lazy(() => import("./CocrystalSearchSection"));
 
 function DockingServiceUnavailableView({ detail }) {
@@ -79,11 +78,8 @@ function DockingServiceUnavailableView({ detail }) {
       </div>
       <p style={{ marginTop: 16, fontSize: "14px", color: "var(--text-dim)", lineHeight: 1.5 }}>
         {detail ||
-          "The AutoDock Vina backend is not reachable yet. This page will work once the Fly.io service is deployed and DOCKING_SERVICE_URL is set on Vercel. You can still explore precomputed demo poses below."}
+          "The AutoDock Vina backend is not reachable yet. This page will work once the Fly.io service is deployed and DOCKING_SERVICE_URL is set on Vercel. You can still browse co-crystal structures below."}
       </p>
-      <React.Suspense fallback={<p style={{ fontSize: "13px", color: "var(--text-dim)" }}>Loading demo…</p>}>
-        <DockingDemoPanel embedded />
-      </React.Suspense>
       <React.Suspense fallback={null}>
         <CocrystalSearchSection />
       </React.Suspense>
@@ -153,8 +149,6 @@ export default function DockingPage() {
     DOCKING_ENABLED ? "checking" : "ready"
   );
   const [serviceUnavailableMessage, setServiceUnavailableMessage] = useState("");
-  const [showDemo, setShowDemo] = useState(false);
-
   // Active bench target & candidates
   const benchTarget = useMemo(() => {
     try {
@@ -410,21 +404,6 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
       >
         {DOCKING_BENCHMARK_PAIRS_NOTICE}
       </p>
-      <div style={{ marginBottom: "16px", display: "flex", justifyContent: "flex-end" }}>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          style={{ fontSize: "12px" }}
-          onClick={() => setShowDemo((v) => !v)}
-        >
-          {showDemo ? "Hide demo" : "Try demo"}
-        </button>
-      </div>
-      {showDemo && (
-        <React.Suspense fallback={<p style={{ fontSize: "13px", color: "var(--text-dim)" }}>Loading demo…</p>}>
-          <DockingDemoPanel onClose={() => setShowDemo(false)} />
-        </React.Suspense>
-      )}
       <React.Suspense fallback={null}>
         <CocrystalSearchSection />
       </React.Suspense>
