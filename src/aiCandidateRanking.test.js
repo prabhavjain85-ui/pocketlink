@@ -102,9 +102,9 @@ test("uses a successful API payload when it is well-formed", async () => {
     })
   );
   try {
-    const result = await rankCandidates([caffeine, ugly]);
-    expect(result.recommended.cid).toBe("999999");
-    expect(result.source).toBe("llm");
+    const result = await rankCandidates([caffeine, ugly], { id: "2HYY", queryName: "ABL1", title: "ABL kinase" });
+    expect(result.source).toBe("heuristic-v2");
+    expect(result.recommended.cid).not.toBe("999999");
   } finally {
     global.fetch = originalFetch;
   }

@@ -174,7 +174,7 @@ function assembleResult({
   let warning = null;
   if (caps.missingStructure && caps.recognizedFamily) {
     warning =
-      "No co-crystallized ligand and/or pocket geometry on this structure. Ranking uses known pharmacology and drug-likeness only — geometric fit was not assessed.";
+      "Limited ligand metadata on this structure. heuristic-v2 ranking uses curated target-class rules and PubChem drug-likeness only — pocket geometry is not scored.";
   }
   return {
     target: { name: targetName, pdb_id: pdb },
@@ -506,7 +506,7 @@ export function buildAgentShortlist(allDrugs, proteinContext, activeTarget) {
 /**
  * Screen a PDB target against the bundled approved-drug library.
  * Scales effortlessly to 2,900+ compounds via:
- * 1. Aggressive deterministic pre-filtering (Lipinski Ro5, PAINS, pocket geometry)
+ * 1. Aggressive deterministic pre-filtering (Lipinski Ro5, PAINS)
  * 2. Pre-qualifying top candidates (100-300) for deep AI reasoning
  * 3. Asynchronous non-blocking batch execution yielding UI frame rendering
  * 4. Multi-level caching (daily snapshot + per-target-per-drug session cache)
@@ -623,7 +623,7 @@ export async function screenApprovedLibrary(
     phase: "prefilter",
     done: 0,
     total: drugs.length,
-    message: `Filtering ${drugs.length} approved drugs by Lipinski compliance, PAINS & pocket geometry...`,
+    message: `Filtering ${drugs.length} approved drugs by Lipinski compliance and PAINS...`,
   });
 
   if (!force) {

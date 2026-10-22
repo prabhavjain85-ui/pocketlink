@@ -84,10 +84,10 @@ function reportFooter() {
 }
 
 function rankingSourceLabel(source, usedLlm, fromDailyCache) {
-  if (usedLlm) return "Ranked with OpenAI for this specific target";
+  if (usedLlm) return "Scores/rank from heuristic-v2; OpenAI notes attached as reasoning";
   if (source === "cache" || fromDailyCache) return "Reused cached scores for this (compound, PDB) pair";
-  if (source === "llm") return "Ranked with OpenAI for this specific target";
-  return "Ranked with PocketLink's target-aware heuristic-v2 model";
+  if (source === "llm") return "Scores/rank from heuristic-v2; OpenAI notes attached as reasoning";
+  return "Ranked with heuristic-v2 (target-class + PubChem drug-likeness)";
 }
 
 function formatReasoning(row) {
@@ -413,7 +413,7 @@ export function buildRepurposingReportMarkdown({ result, timestamp, title }) {
         : null,
     ]),
     section("Methodology & Limitations", [
-      "- Screens bundled approved-drug library with knowledge-based triage scoring (heuristic-v2: pocket geometry, co-crystal ligand, pharmacophore bands).",
+      "- Screens bundled approved-drug library with heuristic-v2 triage (curated target-class rules, co-crystal ligand name match, PubChem drug-likeness; not pocket geometry).",
       "- Triage scores prioritize hypotheses for follow-up; they are not validated activity or binding predictors.",
       result.excluded?.length
         ? `- Pre-filter excluded ${result.excluded.length} entries (missing SMILES, extreme MW, or severe Lipinski/Veber failures).`

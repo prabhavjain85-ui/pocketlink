@@ -1,6 +1,6 @@
 # TargetForge
 
-**TargetForge** is a computational drug discovery and repurposing workbench. It integrates genetic target identification, crystallographic structure selection, knowledge-based triage scoring (`heuristic-v2`), in-browser ADME profiling, an in-browser docking module (currently disabled pending validation), and an autonomous research agent into a unified workflow.
+**TargetForge** is a computational drug discovery and repurposing workbench. It integrates genetic target identification, crystallographic structure selection, knowledge-based triage scoring (`heuristic-v2`), in-browser ADME profiling, native docking (enabled; poses under validation per `benchmark/docking/RESULTS.md`), and an autonomous research agent into a unified workflow.
 
 ---
 
@@ -14,7 +14,7 @@ TargetForge is structured across nine dedicated routes:
 | `/target-discovery` | **Target Discovery** | Query Open Targets GraphQL for genetically validated disease targets, ranked by Novelty Score versus known clinical drug saturation. |
 | `/repurposing` | **Drug Repurposing Screen** | Screen a target against a library of 2,983 approved small-molecule drugs using knowledge-based triage rules and Lipinski/Veber filters (not a validated activity predictor). |
 | `/adme` | **In-Browser ADME Profiling** | Calculate physicochemical descriptors, BOILED-Egg gastrointestinal and BBB permeation, ESOL aqueous solubility, Lipinski/Veber/Ghose rules, and organ toxicity alerts using client-side RDKit WASM. |
-| `/docking` | **Molecular Docking (paused)** | In-browser docking is under validation and currently unavailable in the UI. Engine code remains in-repo behind `DOCKING_ENGINE_ENABLED`. |
+| `/docking` | **Molecular Docking** | Native docking when `DOCKING_ENABLED` is true. Co-crystal redocking quality is uneven — see `benchmark/docking/RESULTS.md`. |
 | `/agent` | **Autonomous Research Agent** | Orchestrate an automated 4-step pipeline: Target Discovery $\rightarrow$ PDB Selection $\rightarrow$ Repurposing Screen $\rightarrow$ Adversarial Critique ("The Case Against"). |
 | `/history` | **Session History** | Track and review past staging sessions, target discoveries, screening runs, agent investigations, and docking logs saved in persistent browser storage. |
 | `/methodology` | **Scientific Methodology** | Detailed documentation of scoring equations, rule tables, heuristic bands, algorithmic thresholds, and literature citations. |
@@ -33,23 +33,18 @@ Ranks crystallographic PDB entries to identify the most reliable experimental st
 
 ### Station 2: PAINS and Toxicophore Screening
 Screens chemical structures against recognized pan-assay interference and reactive chemotypes prior to ranking:
-- **PAINS Filters:** Substructure pattern matching corresponding to `PAINS_A`, `PAINS_B`, and `PAINS_C` filter catalogs (Baell & Holloway).
+- **PAINS Filters:** A small local regex catalogue in `painsCheck.js` (not the full RDKit PAINS set), plus optional server-side checks when configured.
 - **Reactive Toxicophores:** Screening for reactive functional groups not covered by PAINS, including Michael acceptors, aliphatic aldehydes, epoxides, and alkyl halides.
 - **Reporting:** Flagged compounds display actionable warnings and structural liability descriptions. Flagged molecules remain selectable, and alerts are factored into downstream candidate scoring as deductions rather than arbitrary exclusions.
 
 ### Station 3: Knowledge-Based Triage Score (`heuristic-v2`)
-Scores 2–5 staged molecules specifically against the selected PDB target:
-- **Triage engine (`heuristic-v2`):** A 0–100 knowledge-based triage score built from curated target rules and literature knowledge — not a validated predictor of binding or clinical activity. It evaluates target context (protein name, gene symbol, family classification, co-crystal ligand functional groups, and binding pocket size/hydrophobicity) alongside drug-likeness.
-- **Pharmacological Rule Table:** Specific rules match recognized target genes and families (e.g., EGFR, ABL1, BRAF, HER2, $\beta_2$-AR, COX-1/2, HMGCR, DPP4, HIV Protease, SARS-CoV-2 Mpro, PDE5, HDACs) into calibrated score bands:
-  - **On-target canonical chemotypes:** $\sim 67$ base points
-  - **Same-family chemotypes:** $\sim 24$ base points
-  - **Generic / off-target drug-like molecules:** $\sim 12$ base points
-  - **Co-crystal ligand / pocket geometry match:** up to $+15$ bonus points
-  - **Penalties:** Deductions for Lipinski/Veber rule violations and PAINS/toxicophore alerts.
-- **Deterministic Calibration:** Numeric scores are governed by the local deterministic engine to ensure reproducibility across batches.
-- **Optional LLM Reasoning:** When `OPENAI_API_KEY` is provided, `/api/rank-candidates` invokes OpenAI (`gpt-4o-mini` by default) to generate qualitative clinical reasoning, strengths, and concerns without overriding the baseline calibrated score scale. If the LLM is absent or encounters an error, the system seamlessly uses local rule-based reasoning.
+Scores 2–5 staged molecules for the selected PDB target:
+- **Triage engine (`heuristic-v2`):** Target-class prioritisation: points for whether the drug's known pharmacological target matches the selected protein (curated rules), then drug-likeness from PubChem properties and structural-alert penalties. It does **not** compute pocket geometry or predict binding affinity. The integer is an ordinal prioritisation heuristic, not a probability of activity.
+- **Pharmacological Rule Table:** Rules for EGFR, ABL1, BRAF, HER2, $\beta_2$-AR, COX-1/2, HMGCR, DPP4, HIV Protease, SARS-CoV-2 Mpro, PDE5, HDACs, etc. Typical tiers from `scoreOne`: on-target + co-crystal ligand name (75–99), on-target (55–79), same-family/demoted (12–36), broad family without gene rule (25–49), drug-likeness only (1–24); +20 co-crystal **name** match; −12/−8 alert penalties.
+- **Deterministic Calibration:** Scores come from the local deterministic engine for reproducibility.
+- **Optional LLM Reasoning:** When `OPENAI_API_KEY` is set, `/api/rank-candidates` may attach OpenAI plain-language notes; **scores and rank always stay on heuristic-v2**.
 - **Isolation:** Scores are cached by `(PDB_ID, CID)`. A score computed against one target is never reused for another.
-- **Workflow handoff:** ADME profiling (`/adme`) is available from Station 4. In-browser docking (`/docking`) is disabled until redocking validation passes.
+- **Workflow handoff:** ADME (`/adme`) and native docking (`/docking`) from Station 4 when enabled in `featureFlags.js`.
 
 ---
 
@@ -78,8 +73,8 @@ The Repurposing Screen evaluates existing approved therapeutics against any crys
 - **Approved Drug Library:** Served from `public/data/approvedDrugs.json` (lazy-loaded at runtime, not in the main JS bundle), containing **2,983 approved small-molecule drugs** with SMILES, PubChem CIDs, indications, and physicochemical properties. `src/data/approvedDrugs.json` remains for scripts and tests.
 - **Pre-Qualification Pipeline:**
   1. Filters out entries with missing SMILES, extreme molecular weight ($\text{MW} > 900\text{ g/mol}$), or severe drug-likeness failures ($\ge 5$ Lipinski/Veber violations).
-  2. Evaluates pocket geometry (small, large, hydrophobic, hydrophilic) and reference ligand molecular weight.
-  3. Pre-qualifies top candidates for deep scoring, while the remaining library is evaluated via the local `heuristic-v2` engine.
+  2. Uses structure metadata (pocket labels, reference ligand MW) for library messaging — not for heuristic-v2 numeric triage, which uses target-class rules only.
+  3. Scores the library via the local `heuristic-v2` engine in client-side batches.
 - **Client-Side Batching:** Shortlisted compounds are scored in client-side batches of 25 to respect the 30-second execution window of serverless functions.
 - **24-Hour Snapshot Cache:** Results for each PDB structure are cached locally for 24 hours, preventing redundant calculations and minimizing serverless traffic.
 
@@ -108,9 +103,9 @@ The ADME module executes physicochemical and pharmacokinetic predictions entirel
 
 ---
 
-## 5. Molecular Docking (`/docking`) — validation paused
+## 5. Molecular Docking (`/docking`)
 
-The in-browser docking engine (`src/dockingEngine.js`) is **disabled in the UI** (`DOCKING_ENGINE_ENABLED = false`) while co-crystal redocking validation is in progress. The Docking page shows: *Docking is under validation and currently unavailable.* No binding scores or poses are shown elsewhere in the app. Source code remains for future re-enable after validation.
+Native docking is **enabled** when `DOCKING_ENABLED` / `DOCKING_ENGINE_ENABLED` are true in `featureFlags.js`. Co-crystal redocking is still uneven for several benchmark pairs documented in `benchmark/docking/RESULTS.md` (e.g. high RMSD on some EGFR/HIV pairs). Treat poses as hypothesis-generating, not validated binding.
 
 ---
 
@@ -121,7 +116,7 @@ The Autonomous Research Agent automates multi-stage hypothesis exploration from 
 1. **Step 1 — Target Discovery:** Translates natural-language disease queries into Open Targets ontology records, evaluates biological association scores, and ranks genes by Novelty Score.
 2. **Step 2 — Crystallographic Structure Selection:** Searches RCSB PDB for experimental structures matching the lead gene. Validates authentic drug-like small-molecule ligands and binding pockets, rejecting DNA/RNA complexes, crystal additives, and unliganded structures.
    - *Honest Dead-End Handling:* If the top target lacks a suitable structural pocket, the agent articulates the dead-end and pivots to the next candidate rather than fabricating false confidence.
-3. **Step 3 — Target-Aware Repurposing Screen:** Scores a targeted shortlist of approved drugs against the resolved binding site using `heuristic-v2`.
+3. **Step 3 — Target-Aware Repurposing Screen:** Ranks a shortlist of approved drugs with `heuristic-v2` (target-class rules + drug-likeness, not pocket geometry).
 4. **Step 4 — Adversarial Critique ("The Case Against"):** Invokes Gemini AI (or OpenAI/heuristic fallback) to act as a devil's advocate against the top lead, probing for off-target liabilities, metabolic instability, resistance mutations, and formulation roadblocks.
 
 ---

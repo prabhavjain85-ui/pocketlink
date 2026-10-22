@@ -6,6 +6,7 @@ import {
   getCompoundSmiles,
 } from "./benchUi";
 import { drugLikenessChecks } from "./scoreCandidates";
+import { formatTriageScore } from "./triageScorePresentation";
 import AdversarialCritique from "./AdversarialCritique";
 
 export function compareCandidateField(a, b, key) {
@@ -66,6 +67,7 @@ export function CandidateScoreTable({ rows, selectedCid, recommendedCid, sortKey
               : [...(r.strengths || []), ...(r.concerns || [])];
             const fullCandidate = candidates?.find((c) => String(c.CID) === String(r.cid)) || {};
             const mergedCandidate = { ...fullCandidate, ...r, cid: r.cid };
+            const triage = formatTriageScore(r.score, r);
 
             return (
               <tr
@@ -84,7 +86,15 @@ export function CandidateScoreTable({ rows, selectedCid, recommendedCid, sortKey
                   <div className="result-id">{r.name || `CID ${r.cid}`}</div>
                   <div className="score-title">CID {r.cid}</div>
                 </td>
-                <td className="mono score-num">{r.score}/100</td>
+                <td className="mono score-num">
+                  <div>{r.score}</div>
+                  <div className="score-title" style={{ fontSize: 11, fontWeight: 500, marginTop: 2 }}>
+                    {triage.tier.label}
+                  </div>
+                  <div className="score-title" style={{ fontSize: 10, marginTop: 2, opacity: 0.85 }}>
+                    {triage.note}
+                  </div>
+                </td>
                 <td>
                   <ul className="rank-bullets table-reasons">
                     {reasons.slice(0, 4).map((item, i) => (

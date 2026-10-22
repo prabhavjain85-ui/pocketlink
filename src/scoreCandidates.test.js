@@ -3,6 +3,7 @@ import {
   rankCandidatesLocal,
   scoreLibraryLocal,
   rankRepurposing,
+  scoreOne,
 } from "./scoreCandidates";
 
 const caffeine = {
@@ -411,6 +412,24 @@ test("BRAF (4XV2) prioritizes dabrafenib over imatinib", () => {
   const braf = { id: "4XV2", queryName: "BRAF", title: "BRAF kinase domain with dabrafenib" };
   const result = rankCandidatesLocal([dabrafenib, imatinib, caffeine], braf);
   expect(result.recommended.cid).toBe("44462760"); // dabrafenib
+});
+
+test("β2-AR treats propranolol as on-target but not when mislabeled as beta-2 agonist class", () => {
+  const adrb2 = { id: "3SN6", queryName: "ADRB2", title: "beta-2 adrenergic receptor" };
+  const propranolol = {
+    cid: "4946",
+    displayName: "propranolol",
+    drugClass: "beta-blocker",
+    molecularWeight: 259.34,
+    xlogp: 3.1,
+    hbd: 2,
+    hba: 3,
+    rotatableBonds: 6,
+    tpsa: 41.5,
+  };
+  const mislabeled = { ...propranolol, drugClass: "beta-2 agonist" };
+  expect(scoreOne(propranolol, adrb2).targetBonus).toBe(55);
+  expect(scoreOne(mislabeled, adrb2).targetBonus).toBeLessThan(55);
 });
 
 test("β2-AR (3SN6) demotes opioids and ARBs with off-target concern", () => {

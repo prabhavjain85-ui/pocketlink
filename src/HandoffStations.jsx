@@ -5,7 +5,8 @@ import AdversarialCritique from "./AdversarialCritique";
 import QuantumInsight from "./QuantumInsight";
 import { CandidateScoreTable } from "./CandidateViews";
 import HistoricalTrialSuccessContext from "./HistoricalTrialSuccessContext";
-import { DOCKING_ENGINE_ENABLED, DOCKING_ENABLED, DOCKING_UNAVAILABLE_NOTICE } from "./featureFlags";
+import { DOCKING_ENGINE_ENABLED, DOCKING_ENABLED, DOCKING_UNAVAILABLE_NOTICE, DOCKING_BENCHMARK_PAIRS_NOTICE } from "./featureFlags";
+import { formatTriageScore } from "./triageScorePresentation";
 import ReportExportButtons from "./ReportExportButtons";
 import { buildBenchReportMarkdown, defaultReportFilename } from "./reportExport";
 
@@ -23,7 +24,7 @@ export default function HandoffStations({ b }) {
             <div>
               <div className="ai-kicker">Score the shortlist for this target</div>
               <div className="hint" style={{ margin: "6px 0 0" }}>
-                Applies a knowledge-based triage score (0–100) to 2–5 molecules for the selected PDB structure using curated target rules, pocket/ligand context, Lipinski/Veber drug-likeness, and PAINS flags — a heuristic for prioritization, not a validated activity or binding predictor. The same compound is scored differently against different targets. If an OpenAI key is configured, a language model writes the comparison; otherwise TargetForge uses its built-in target-aware model.
+                Target-class prioritisation for 2–5 molecules: curated pharmacology rules for the selected protein (+ co-crystal ligand <em>name</em> match when applicable), then PubChem drug-likeness and PAINS/toxicophore penalties. The integer is an ordinal prioritisation heuristic — not pocket geometry, not binding affinity, not a probability of activity. The same compound scores differently against different targets. If an OpenAI key is configured, the model adds plain-language notes only; scores and rank always come from heuristic-v2.
               </div>
             </div>
             <button className="btn btn-handoff" onClick={analyze} disabled={candidates.length < 2 || aiLoading} type="button">
@@ -47,8 +48,14 @@ export default function HandoffStations({ b }) {
                     : "Best fit (no structure selected — scores are not pocket-specific)"}
                 </div>
                 <div className="winner-score">
-                  {winner?.displayName || (recommendedCid ? `CID ${recommendedCid}` : "—")} · {aiResult.recommended?.score ?? "—"}/100
+                  {winner?.displayName || (recommendedCid ? `CID ${recommendedCid}` : "—")}
+                  {aiResult.recommended?.score != null
+                    ? ` · ${formatTriageScore(aiResult.recommended.score).line}`
+                    : ""}
                 </div>
+                {aiResult.recommended?.score != null && (
+                  <div className="score-title" style={{ fontSize: 11, marginTop: 4 }}>{formatTriageScore(aiResult.recommended.score).note}</div>
+                )}
                 <div className="winner-reason">{aiResult.recommended?.reason}</div>
                 {winnerCandidate && (
                   <div style={{ marginTop: 10 }}>
@@ -75,11 +82,11 @@ export default function HandoffStations({ b }) {
               <div className="lipinski-note" style={{ marginTop: 12 }}>{aiResult.summary}</div>
               <div className="lipinski-note"><strong>Limitations:</strong> {(aiResult.limitations || []).join(" ")}</div>
               <div className="source-pill">
-                {aiResult.source === "llm"
-                  ? "Ranked with OpenAI for this specific target"
+                {aiResult.llmReasoning
+                  ? "Scores/rank from heuristic-v2; OpenAI notes attached as reasoning"
                   : aiResult.source === "cache"
                     ? "Reused cached scores for this (compound, PDB) pair"
-                    : "Ranked with TargetForge's target-aware model"}
+                    : "Ranked with TargetForge heuristic-v2 (target-class + drug-likeness)"}
               </div>
               <ReportExportButtons
                 label="Export report"
@@ -101,11 +108,15 @@ export default function HandoffStations({ b }) {
       </div>
 
       <div className="handoff-panel">
-        <Panel eyebrow="Station 4 — handoff" title="Follow-up: ADME prediction (docking paused)" kind="handoff">
+        <Panel
+          eyebrow="Station 4 — handoff"
+          title={DOCKING_ENABLED || DOCKING_ENGINE_ENABLED ? "Follow-up: ADME and docking" : "Follow-up: ADME prediction (docking paused)"}
+          kind="handoff"
+        >
           {!protein && !candidates.length && (
             <div className="empty-state">
-              Stage a target and a shortlist above — TargetForge will prepare inputs for ADME prediction.
-              Molecular docking is temporarily unavailable during validation.
+              Stage a target and a shortlist above — TargetForge will prepare inputs for ADME prediction
+              {DOCKING_ENABLED || DOCKING_ENGINE_ENABLED ? " and optional native docking." : ". Molecular docking is temporarily unavailable during validation."}
             </div>
           )}
           {(protein || candidates.length > 0) && (
@@ -157,8 +168,11 @@ export default function HandoffStations({ b }) {
                 </Link>
               </div>
               <div className="lipinski-note" style={{ marginTop: 14 }}>
-                ADME descriptors are computed locally in-browser via RDKit WebAssembly without external server dependencies.
-                Docking poses and binding scores are not available while the in-browser engine is under validation.
+                ADME descriptors are computed locally in-browser via RDKit WebAssembly (RDKit cLogP/average MW) — distinct from Station 2 PubChem
+                properties used in triage, so a compound can pass shortlist checks and still fail ADME filters.
+                {DOCKING_ENABLED || DOCKING_ENGINE_ENABLED
+                  ? ` Native docking is available from the link above; ${DOCKING_BENCHMARK_PAIRS_NOTICE}`
+                  : ` ${DOCKING_UNAVAILABLE_NOTICE}`}
               </div>
             </div>
           )}
