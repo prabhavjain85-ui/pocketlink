@@ -312,9 +312,11 @@ export default function CocrystalStructureSearch() {
       {activeEntry && activeLigand && (
         <>
           <CocrystalMolstarViewer
+            key={`${activeEntry}-${activeLigand}-${bundle?.bindingSiteSanity?.focusCenter?.x ?? "pending"}`}
             pdbId={activeEntry}
             ligandCode={activeLigand}
             cocrystalLigand={bundle?.bindingSiteSanity?.cocrystalLigand}
+            focusCenter={bundle?.bindingSiteSanity?.focusCenter}
           />
           <ExperimentalCocrystalContacts
             loading={analysisLoading}

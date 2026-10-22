@@ -20,6 +20,7 @@ export const DRUG_NAME_TO_CCD = {
   imatinib: "STI",
   gleevec: "STI",
   glivec: "STI",
+  /** PDB 1M17 and related EGFR structures: AQ4 = erlotinib (not gefitinib; gefitinib CCD is IRE). */
   erlotinib: "AQ4",
   tarceva: "AQ4",
   gefitinib: "IRE",

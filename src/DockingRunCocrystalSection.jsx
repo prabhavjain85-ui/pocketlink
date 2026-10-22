@@ -81,9 +81,11 @@ export default function DockingRunCocrystalSection({
       )}
       {!loading && pdbId && (
         <CocrystalMolstarViewer
+          key={`${pdbId}-${ligandCode || ""}-${bundle?.bindingSiteSanity?.focusCenter?.x ?? "pending"}`}
           pdbId={pdbId}
           ligandCode={ligandCode || undefined}
           cocrystalLigand={bundle?.bindingSiteSanity?.cocrystalLigand}
+          focusCenter={bundle?.bindingSiteSanity?.focusCenter}
         />
       )}
       {loading && !pdbId && (
