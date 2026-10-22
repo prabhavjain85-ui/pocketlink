@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import {
   DOCKING_REFERENCE_TARGETS,
@@ -16,6 +16,8 @@ import {
 } from "./featureFlags";
 import ReportExportButtons from "./ReportExportButtons";
 import { buildDockingReportMarkdown, defaultReportFilename } from "./reportExport";
+import { fetchDockingRunCocrystalContext } from "./dockingRunCocrystal";
+import DockingRunCocrystalSection from "./DockingRunCocrystalSection";
 
 const dockingUiEnabled = () => DOCKING_ENABLED || DOCKING_ENGINE_ENABLED;
 
@@ -149,6 +151,40 @@ export default function DockingPage() {
     DOCKING_ENABLED ? "checking" : "ready"
   );
   const [serviceUnavailableMessage, setServiceUnavailableMessage] = useState("");
+  const [runCocrystalContext, setRunCocrystalContext] = useState(null);
+  const runCocrystalRef = useRef(null);
+
+  const loadRunCocrystal = useCallback(async (targetPdb, compoundName) => {
+    setRunCocrystalContext({
+      pdbId: targetPdb,
+      loading: true,
+      ligandCode: null,
+      bundle: null,
+      pocketCount: null,
+    });
+    try {
+      const ctx = await fetchDockingRunCocrystalContext(targetPdb, compoundName);
+      setRunCocrystalContext({ ...ctx, loading: false });
+    } catch (e) {
+      setRunCocrystalContext({
+        ok: false,
+        pdbId: targetPdb,
+        loading: false,
+        ligandCode: null,
+        bundle: null,
+        error: e?.message || "Could not load co-crystal structure.",
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!runCocrystalContext?.pdbId || runCocrystalContext.loading) return undefined;
+    const frame = requestAnimationFrame(() => {
+      runCocrystalRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [runCocrystalContext?.pdbId, runCocrystalContext?.loading]);
+
   // Active bench target & candidates
   const benchTarget = useMemo(() => {
     try {
@@ -186,6 +222,8 @@ export default function DockingPage() {
     setProgressPercent(5);
     setProgressMsg(`Downloading crystallographic structure for ${targetPdb} from RCSB PDB...`);
 
+    void loadRunCocrystal(targetPdb, name || compoundNameInput);
+
     try {
       let res;
       if (DOCKING_ENABLED) {
@@ -218,9 +256,10 @@ export default function DockingPage() {
       setTargetTitle(res.target.title || targetTitle);
     } catch (err) {
       if (err?.name === "DockingServiceUnavailableError" || err?.serviceUnavailable) {
-        setServiceCheck("unavailable");
-        setServiceUnavailableMessage(err.message);
-        setError(null);
+        setError(
+          err.message ||
+            "The docking service is not reachable. The experimental co-crystal structure for this target is still shown above."
+        );
       } else {
         setError(err?.message || "An unexpected error occurred during molecular docking.");
       }
@@ -718,6 +757,15 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
           </button>
         </div>
       </div>
+
+      {runCocrystalContext && (
+        <DockingRunCocrystalSection
+          sectionRef={runCocrystalRef}
+          context={runCocrystalContext}
+          dockingResults={dockingResults}
+          dockingError={error}
+        />
+      )}
 
       {/* Error Alert */}
       {error && (
