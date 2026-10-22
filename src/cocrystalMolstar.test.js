@@ -104,10 +104,6 @@ describe("cocrystalMolstar helpers", () => {
     const requestCameraReset = jest.fn();
     const viewer = {
       plugin: {
-        canvas3d: {
-          camera: { getFocus: jest.fn(() => ({ target: [0, 0, 0], position: [0, 0, 10] })) },
-          requestCameraReset,
-        },
         managers: {
           structure: {
             hierarchy: { current: { structures: [{ cell: { ref: "struct", obj: { data: {} } } }] } },
@@ -121,7 +117,11 @@ describe("cocrystalMolstar helpers", () => {
             representation: { addRepresentation },
           },
         },
-        canvas3d: { handleResize: jest.fn() },
+        canvas3d: {
+          handleResize: jest.fn(),
+          camera: { getFocus: jest.fn(() => ({ target: [0, 0, 0], position: [0, 0, 10] })) },
+          requestCameraReset,
+        },
         layout: { events: { layoutUpdated: { dispatch: jest.fn() } } },
       },
     };
