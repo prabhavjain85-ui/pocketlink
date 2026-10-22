@@ -1,4 +1,3 @@
-import { analyzeExperimentalCocrystal } from "./cocrystalAnalysis";
 import { DOCKING_REFERENCE_TARGETS } from "./dockingEngine";
 import { DRUG_NAME_TO_CCD, listDrugLikeLigandsInEntry } from "./rcsbCocrystalSearch";
 
