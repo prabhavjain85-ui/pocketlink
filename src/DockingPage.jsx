@@ -87,26 +87,40 @@ export default function DockingPage() {
   const [serviceUnavailableMessage, setServiceUnavailableMessage] = useState("");
   const [runCocrystalContext, setRunCocrystalContext] = useState(null);
   const runCocrystalRef = useRef(null);
+  const runCocrystalRequestId = useRef(0);
 
   const loadRunCocrystal = useCallback(async (targetPdb, compoundName) => {
-    setRunCocrystalContext({
-      pdbId: targetPdb,
+    const requestId = ++runCocrystalRequestId.current;
+    const pdb = String(targetPdb || "").trim().toUpperCase();
+    setRunCocrystalContext((prev) => ({
+      ...prev,
+      pdbId: pdb,
       loading: true,
-      ligandCode: null,
-      bundle: null,
-      pocketCount: null,
-    });
+      contactsLoading: true,
+      contactsError: null,
+      ligandCode: prev?.pdbId === pdb ? prev.ligandCode : null,
+      bundle: prev?.pdbId === pdb ? prev.bundle : null,
+      pocketCount: prev?.pdbId === pdb ? prev.pocketCount : null,
+    }));
     try {
-      const ctx = await fetchDockingRunCocrystalContext(targetPdb, compoundName);
-      setRunCocrystalContext({ ...ctx, loading: false });
+      const ctx = await fetchDockingRunCocrystalContext(pdb, compoundName);
+      if (requestId !== runCocrystalRequestId.current) return;
+      setRunCocrystalContext({
+        ...ctx,
+        loading: false,
+        contactsLoading: false,
+        contactsError: ctx.analysisError || ctx.error || null,
+      });
     } catch (e) {
+      if (requestId !== runCocrystalRequestId.current) return;
       setRunCocrystalContext({
         ok: false,
-        pdbId: targetPdb,
+        pdbId: pdb,
         loading: false,
+        contactsLoading: false,
         ligandCode: null,
         bundle: null,
-        error: e?.message || "Could not load co-crystal structure.",
+        contactsError: e?.message || "Could not load co-crystal structure.",
       });
     }
   }, []);

@@ -67,7 +67,7 @@ function CocrystalMolstarViewerInner({
       viewerRef.current = null;
       void destroyCocrystalMolstarViewer(v);
     };
-  }, [pdbId, ligandCode, cocrystalLigand?.chainId, cocrystalLigand?.resSeq]);
+  }, [pdbId, ligandCode, cocrystalLigand?.chainId, cocrystalLigand?.resSeq, cocrystalLigand?.ligandCode]);
 
   useEffect(() => {
     if (status !== "ready" || !viewerRef.current) return undefined;

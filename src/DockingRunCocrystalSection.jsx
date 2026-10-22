@@ -1,6 +1,6 @@
 import React from "react";
 import CocrystalMolstarViewer from "./CocrystalMolstarViewer";
-import DockingInteractionsPanel from "./DockingInteractionsPanel";
+import ExperimentalCocrystalContacts from "./ExperimentalCocrystalContacts";
 import { DOCKING_ENABLED, DOCKING_ENGINE_ENABLED } from "./featureFlags";
 
 export default function DockingRunCocrystalSection({
@@ -17,10 +17,14 @@ export default function DockingRunCocrystalSection({
     bundle,
     pocketCount,
     loading,
+    contactsLoading,
     warning,
-    analysisError,
+    contactsError,
     error: loadError,
   } = context;
+
+  const contactsErr = contactsError || loadError;
+  const showContactsLoading = Boolean(contactsLoading || (loading && !bundle && !contactsErr));
 
   const dockingUnavailable =
     !DOCKING_ENGINE_ENABLED || (!DOCKING_ENABLED && !DOCKING_ENGINE_ENABLED);
@@ -75,16 +79,6 @@ export default function DockingRunCocrystalSection({
       {warning && (
         <p style={{ margin: "0 0 10px", fontSize: "12px", color: "var(--text-dim)" }}>{warning}</p>
       )}
-      {loading && (
-        <p style={{ fontSize: "12px", color: "var(--text-dim)", marginBottom: 10 }}>
-          Resolving co-crystallized ligand and loading structure from RCSB…
-        </p>
-      )}
-      {(loadError || analysisError) && (
-        <p role="alert" style={{ fontSize: "12px", color: "var(--red, #B91C1C)", marginBottom: 10 }}>
-          {loadError || analysisError}
-        </p>
-      )}
       {!loading && pdbId && (
         <CocrystalMolstarViewer
           pdbId={pdbId}
@@ -92,20 +86,17 @@ export default function DockingRunCocrystalSection({
           cocrystalLigand={bundle?.bindingSiteSanity?.cocrystalLigand}
         />
       )}
-      {bundle && (
-        <>
-          <p style={{ fontSize: "12px", color: "var(--text-dim)", margin: "8px 0" }}>
-            Pocket residues within 4.5 Å: <span className="mono">{pocketCount}</span> · Measured contacts:{" "}
-            <span className="mono">{bundle.interactions?.length ?? 0}</span>
-          </p>
-          <DockingInteractionsPanel
-            interactionBundle={bundle}
-            showMethodology
-            title="Measured co-crystal contacts"
-            experimental
-          />
-        </>
+      {loading && !pdbId && (
+        <p style={{ fontSize: "12px", color: "var(--text-dim)", marginBottom: 10 }}>
+          Resolving co-crystallized ligand…
+        </p>
       )}
+      <ExperimentalCocrystalContacts
+        loading={showContactsLoading}
+        error={contactsErr}
+        bundle={bundle}
+        pocketCount={pocketCount}
+      />
     </div>
   );
 }

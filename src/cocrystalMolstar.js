@@ -134,6 +134,33 @@ async function loadBcifIntoViewer(viewer, pdbId, label) {
 }
 
 /**
+ * Add ball-and-stick pocket + Mol* non-covalent interaction dashes for the co-crystallized ligand.
+ * Uses measured coordinates only (Mol* computed interactions from the loaded structure).
+ */
+export async function applyCocrystalInteractionVisuals(viewer) {
+  const plugin = viewer?.plugin;
+  if (!plugin) return;
+  const structures = plugin.managers.structure.hierarchy.current.structures;
+  if (!structures?.length) return;
+
+  const structureCell = structures[0].cell;
+  const ligand = await plugin.builders.structure.tryCreateComponentStatic(structureCell, "ligand");
+  if (!ligand) return;
+
+  await plugin.builders.structure.representation.addRepresentation(ligand, {
+    type: "ball-and-stick",
+    typeParams: { sizeFactor: 0.32, sizeAspectRatio: 1 },
+    colorTheme: { name: "element-symbol", params: {} },
+  });
+
+  await plugin.builders.structure.representation.addRepresentation(ligand, {
+    type: "interactions",
+    typeParams: { includeParent: true, parentDisplay: "between" },
+    colorTheme: { name: "interaction-type", params: {} },
+  });
+}
+
+/**
  * Mount Mol* and load the experimental structure from RCSB BinaryCIF.
  */
 export async function mountCocrystalMolstarViewer(container, options) {
@@ -168,6 +195,11 @@ export async function mountCocrystalMolstarViewer(container, options) {
       pdbId,
       `${String(pdbId).toUpperCase()} (experimental co-crystal)`
     );
+    try {
+      await applyCocrystalInteractionVisuals(viewer);
+    } catch {
+      /* optional styling; structure still usable */
+    }
   } catch (e) {
     await destroyCocrystalMolstarViewer(viewer);
     const msg = e?.message || String(e);

@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from "react";
 import CocrystalMolstarViewer from "./CocrystalMolstarViewer";
-import DockingInteractionsPanel from "./DockingInteractionsPanel";
+import ExperimentalCocrystalContacts from "./ExperimentalCocrystalContacts";
 import { analyzeExperimentalCocrystal } from "./cocrystalAnalysis";
 import {
   normalizeResolutionCombined,
@@ -26,6 +26,7 @@ export default function CocrystalStructureSearch() {
   const [analysisError, setAnalysisError] = useState(null);
   const [bundle, setBundle] = useState(null);
   const [pocketCount, setPocketCount] = useState(null);
+  const loadRequestId = React.useRef(0);
 
   const resetAnalysis = () => {
     setActiveEntry(null);
@@ -38,6 +39,7 @@ export default function CocrystalStructureSearch() {
   };
 
   const loadStructure = async (pdbId, ligandCode, instancePick = null) => {
+    const requestId = ++loadRequestId.current;
     setAnalysisLoading(true);
     setAnalysisError(null);
     setBundle(null);
@@ -48,6 +50,7 @@ export default function CocrystalStructureSearch() {
       const result = await analyzeExperimentalCocrystal(pdbId, ligandCode, {
         instancePick: instancePick || undefined,
       });
+      if (requestId !== loadRequestId.current) return;
       if (!result.ok) {
         setAnalysisError(result.error || "Analysis failed.");
         setInstances(result.instances || []);
@@ -58,9 +61,10 @@ export default function CocrystalStructureSearch() {
       setInstances(result.instances || []);
       setSelectedInstance(result.pick);
     } catch (e) {
+      if (requestId !== loadRequestId.current) return;
       setAnalysisError(e?.message || "Could not fetch or parse the structure from RCSB.");
     } finally {
-      setAnalysisLoading(false);
+      if (requestId === loadRequestId.current) setAnalysisLoading(false);
     }
   };
 
@@ -305,15 +309,6 @@ export default function CocrystalStructureSearch() {
         </div>
       )}
 
-      {analysisLoading && (
-        <p style={{ fontSize: "12px", color: "var(--text-dim)" }}>Loading structure and computing measured contacts…</p>
-      )}
-      {analysisError && (
-        <p role="alert" style={{ fontSize: "12px", color: "var(--red, #B91C1C)" }}>
-          {analysisError}
-        </p>
-      )}
-
       {activeEntry && activeLigand && (
         <>
           <CocrystalMolstarViewer
@@ -321,20 +316,12 @@ export default function CocrystalStructureSearch() {
             ligandCode={activeLigand}
             cocrystalLigand={bundle?.bindingSiteSanity?.cocrystalLigand}
           />
-          {bundle && (
-            <p style={{ fontSize: "12px", color: "var(--text-dim)", margin: "8px 0" }}>
-              Pocket residues within 4.5 Å: <span className="mono">{pocketCount}</span> · Measured contacts:{" "}
-              <span className="mono">{bundle.interactions?.length ?? 0}</span>
-            </p>
-          )}
-          {bundle && (
-            <DockingInteractionsPanel
-              interactionBundle={bundle}
-              showMethodology
-              title="Measured co-crystal contacts"
-              experimental
-            />
-          )}
+          <ExperimentalCocrystalContacts
+            loading={analysisLoading}
+            error={analysisError}
+            bundle={bundle}
+            pocketCount={pocketCount}
+          />
         </>
       )}
     </div>

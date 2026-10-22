@@ -1,4 +1,5 @@
 import {
+  applyCocrystalInteractionVisuals,
   fetchRcsbBcifBuffer,
   isWebGLAvailable,
   rcsbBcifUrl,
@@ -46,6 +47,30 @@ describe("cocrystalMolstar helpers", () => {
     } finally {
       global.fetch = originalFetch;
     }
+  });
+
+  test("applyCocrystalInteractionVisuals adds ligand interaction representations", async () => {
+    const addRepresentation = jest.fn(() => Promise.resolve());
+    const tryCreateComponentStatic = jest.fn(() => Promise.resolve({ ref: "ligand" }));
+    const viewer = {
+      plugin: {
+        managers: {
+          structure: {
+            hierarchy: { current: { structures: [{ cell: { ref: "struct" } }] } },
+          },
+        },
+        builders: {
+          structure: {
+            tryCreateComponentStatic,
+            representation: { addRepresentation },
+          },
+        },
+      },
+    };
+    await applyCocrystalInteractionVisuals(viewer);
+    expect(tryCreateComponentStatic).toHaveBeenCalledWith({ ref: "struct" }, "ligand");
+    expect(addRepresentation).toHaveBeenCalledTimes(2);
+    expect(addRepresentation.mock.calls[1][1].type).toBe("interactions");
   });
 
   test("fetchRcsbBcifBuffer rejects HTTP errors", async () => {

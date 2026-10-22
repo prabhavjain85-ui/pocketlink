@@ -97,7 +97,22 @@ export async function fetchDockingRunCocrystalContext(pdbId, compoundName) {
     };
   }
 
-  const result = await analyzeExperimentalCocrystal(id, pick.ligandCode);
+  let pdbText;
+  try {
+    const { fetchPdbText } = await import("./pdbStructure");
+    pdbText = await fetchPdbText(id);
+  } catch (e) {
+    return {
+      ok: false,
+      pdbId: id,
+      ligandCode: pick.ligandCode,
+      bundle: null,
+      error: e?.message || `Could not download PDB ${id} from RCSB.`,
+    };
+  }
+
+  const { analyzeExperimentalCocrystalFromPdbText } = await import("./cocrystalAnalysis");
+  const result = analyzeExperimentalCocrystalFromPdbText(pdbText, id, pick.ligandCode);
   if (!result.ok) {
     return {
       ok: true,
