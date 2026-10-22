@@ -21,37 +21,12 @@ import DockingRunCocrystalSection from "./DockingRunCocrystalSection";
 
 const dockingUiEnabled = () => DOCKING_ENABLED || DOCKING_ENGINE_ENABLED;
 
-const PROTOTYPE_BANNER_TEXT = "Prototype: results are not yet validated";
-
-function DockingPrototypeBanner() {
-  return (
-    <div
-      role="status"
-      style={{
-        background: "var(--amber-bg, #FFFBEB)",
-        border: "2px solid var(--amber-border, #FDE68A)",
-        color: "var(--text)",
-        borderRadius: "var(--radius-lg)",
-        padding: "14px 18px",
-        marginBottom: "20px",
-        fontSize: "15px",
-        fontWeight: 700,
-        lineHeight: 1.5,
-        textAlign: "center",
-      }}
-    >
-      {PROTOTYPE_BANNER_TEXT}
-    </div>
-  );
-}
-
 const CocrystalSearchSection = React.lazy(() => import("./CocrystalSearchSection"));
 
 function DockingServiceUnavailableView({ detail }) {
   return (
     <div className="docking-page-container" style={{ maxWidth: "1120px", margin: "0 auto 48px" }}>
       <h1 style={{ margin: "0 0 12px", fontSize: "26px", fontWeight: 700 }}>Molecular Docking</h1>
-      <DockingPrototypeBanner />
       <p
         role="note"
         style={{
@@ -427,7 +402,6 @@ Method: Empirical Force Field Scoring (Trott & Olson 2010, Morris et al. 2009) v
 
   return (
     <div className="docking-page-container" style={{ maxWidth: "1120px", margin: "0 auto 48px" }}>
-      <DockingPrototypeBanner />
       <p
         role="note"
         style={{
