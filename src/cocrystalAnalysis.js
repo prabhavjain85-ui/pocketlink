@@ -3,6 +3,7 @@ import {
   fetchPdbText,
   groupHetatmLigandInstances,
   parseProteinAtomsFromPdb,
+  poseCentroidFromAtoms,
   selectCoCrystalLigandInstance,
 } from "./pdbStructure";
 
@@ -70,6 +71,7 @@ export function analyzeExperimentalCocrystalFromPdbText(pdbText, pdbId, ligandCo
     cocrystalLigand: pick.instance,
     cocrystalLigandSelectionReason: pick.selectionReason,
     cocrystalLigandInstanceCount: pick.instanceCount,
+    focusCenter: poseCentroidFromAtoms(pick.atoms),
   };
 
   return {

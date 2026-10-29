@@ -3,6 +3,7 @@ import {
   ligandCodeFromReferenceLigand,
   pickCocrystalLigandForDocking,
 } from "./dockingRunCocrystal";
+import { DRUG_NAME_TO_CCD } from "./rcsbCocrystalSearch";
 
 describe("dockingRunCocrystal ligand resolution", () => {
   test("ligandCodeFromReferenceLigand parses CCD prefix", () => {
@@ -28,12 +29,19 @@ describe("dockingRunCocrystal ligand resolution", () => {
 
   test("pickCocrystalLigandForDocking maps erlotinib alias for EGFR entry", () => {
     const preset = dockingPresetForPdb("1M17");
+    expect(preset?.referenceLigand).toMatch(/Erlotinib/i);
     const pick = pickCocrystalLigandForDocking({
       compoundName: "Erlotinib",
       entryLigands: [{ compId: "AQ4", name: "ERLOTINIB" }],
       preset,
     });
     expect(pick.ligandCode).toBe("AQ4");
+  });
+
+  test("1M17 AQ4 is erlotinib in presets; gefitinib CCD is IRE not AQ4", () => {
+    expect(dockingPresetForPdb("1M17")?.referenceLigand).toMatch(/Erlotinib/i);
+    expect(DRUG_NAME_TO_CCD.erlotinib).toBe("AQ4");
+    expect(DRUG_NAME_TO_CCD.gefitinib).toBe("IRE");
   });
 
   test("pickCocrystalLigandForDocking uses sole native ligand", () => {

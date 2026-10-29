@@ -121,6 +121,83 @@ export function scheduleCocrystalMolstarResize(viewer) {
   }
 }
 
+function structureElementLociFromStructure(structure) {
+  if (!structure?.units?.length || !structure.serialMapping) return null;
+  const { units, elementCount, serialMapping } = structure;
+  if (!elementCount) return null;
+  const { unitIndices, elementIndices } = serialMapping;
+  const elements = [];
+  for (let i = 0; i < elementCount; i += 1) {
+    elements.push({ unit: units[unitIndices[i]], element: elementIndices[i] });
+  }
+  return { kind: "element-loci", structure, elements };
+}
+
+/** Bounding sphere in Å from structure coordinates (fallback camera focus). */
+export function boundingSphereFromStructure(structure, paddingAngstrom = 5) {
+  const units = structure?.units;
+  if (!units?.length) return null;
+  const pos = [0, 0, 0];
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
+  for (const unit of units) {
+    const { elements, conformation } = unit;
+    for (let i = 0; i < elements.length; i += 1) {
+      conformation.position(elements[i], pos);
+      const x = pos[0];
+      const y = pos[1];
+      const z = pos[2];
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+      minZ = Math.min(minZ, z);
+      maxZ = Math.max(maxZ, z);
+    }
+  }
+  if (!Number.isFinite(minX)) return null;
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  const cz = (minZ + maxZ) / 2;
+  const half = Math.max(maxX - minX, maxY - minY, maxZ - minZ) / 2;
+  return { center: [cx, cy, cz], radius: half + paddingAngstrom };
+}
+
+function focusCameraOnSphere(plugin, sphere) {
+  if (!sphere?.center || !plugin?.managers?.camera) return;
+  const center = sphere.center;
+  const radius = sphere.radius;
+  const canvas3d = plugin.canvas3d;
+  if (canvas3d?.camera?.getFocus && typeof canvas3d.requestCameraReset === "function") {
+    try {
+      const snapshot = canvas3d.camera.getFocus(center, radius);
+      canvas3d.requestCameraReset({ snapshot, durationMs: 0 });
+      return;
+    } catch {
+      /* try manager API */
+    }
+  }
+  const cam = plugin.managers.camera;
+  if (typeof cam.focusSphere === "function") {
+    cam.focusSphere(
+      { center, radius },
+      { durationMs: 0, extraRadius: 2, minRadius: Math.min(radius, 10) }
+    );
+    return;
+  }
+  if (typeof cam.focusObject === "function") {
+    cam.focusObject({
+      targets: [{ center, radius }],
+      minRadius: radius,
+      durationMs: 0,
+    });
+  }
+}
+
 async function loadBcifIntoViewer(viewer, pdbId, label) {
   const id = String(pdbId || "").trim().toUpperCase();
   const buf = await fetchRcsbBcifBuffer(id);
@@ -134,10 +211,119 @@ async function loadBcifIntoViewer(viewer, pdbId, label) {
 }
 
 /**
+ * Add ball-and-stick pocket + Mol* non-covalent interaction dashes for the co-crystallized ligand.
+ * Uses measured coordinates only (Mol* computed interactions from the loaded structure).
+ */
+/**
+ * @param {object} [options]
+ * @param {number} [options.pocketRadiusAngstrom]
+ * @param {string} [options.ligandCode]
+ */
+export async function applyCocrystalInteractionVisuals(viewer, options = {}) {
+  const plugin = viewer?.plugin;
+  if (!plugin) return;
+  const structures = plugin.managers.structure.hierarchy.current.structures;
+  if (!structures?.length) return;
+
+  const pocketRadius = Number(options.pocketRadiusAngstrom) > 0 ? Number(options.pocketRadiusAngstrom) : 5;
+  const focusCenter = options.focusCenter;
+
+  const structureCell = structures[0].cell;
+  const parentStructure = structureCell?.obj?.data;
+
+  const ligand = await plugin.builders.structure.tryCreateComponentStatic(structureCell, "ligand");
+  if (!ligand) return;
+
+  const focus = plugin.managers.structure.focus;
+  if (focus?.setParams) {
+    try {
+      focus.setParams({
+        expandRadius: pocketRadius,
+        ignoreHydrogens: true,
+        ignoreLight: true,
+      });
+    } catch {
+      /* use defaults */
+    }
+  }
+
+  await plugin.builders.structure.representation.addRepresentation(ligand, {
+    type: "ball-and-stick",
+    typeParams: { sizeFactor: 0.44, sizeAspectRatio: 1 },
+    colorTheme: { name: "element-symbol", params: {} },
+  });
+
+  await plugin.builders.structure.representation.addRepresentation(ligand, {
+    type: "interactions",
+    typeParams: {
+      includeParent: true,
+      parentDisplay: "between",
+      sizeFactor: 0.42,
+      visuals: ["intra-unit", "inter-unit"],
+    },
+    colorTheme: { name: "interaction-type", params: {} },
+  });
+
+  const ligandStructure = ligand.cell?.obj?.data;
+  const loci = ligandStructure ? structureElementLociFromStructure(ligandStructure) : null;
+  if (loci && parentStructure) {
+    loci.structure = parentStructure;
+  }
+  if (loci && focus?.setFromLoci) {
+    try {
+      focus.setFromLoci(loci);
+    } catch {
+      /* fall back to camera-only focus */
+    }
+  }
+
+  const measuredSphere =
+    focusCenter && Number.isFinite(focusCenter.x)
+      ? {
+          center: [focusCenter.x, focusCenter.y, focusCenter.z],
+          radius: pocketRadius + 5,
+        }
+      : ligandStructure
+        ? boundingSphereFromStructure(ligandStructure, pocketRadius + 3)
+        : null;
+
+  const applyCameraFocus = () => {
+    if (measuredSphere) {
+      focusCameraOnSphere(plugin, measuredSphere);
+      return;
+    }
+    if (plugin.managers.camera?.focusObject) {
+      try {
+        plugin.managers.camera.focusObject({
+          targets: [{ targetRef: ligand.ref, extraRadius: pocketRadius + 4, radiusFactor: 1.05 }],
+          minRadius: Math.max(8, pocketRadius + 5),
+          durationMs: 0,
+        });
+      } catch {
+        /* ignore */
+      }
+    }
+  };
+
+  scheduleCocrystalMolstarResize(viewer);
+  applyCameraFocus();
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(() => {
+      scheduleCocrystalMolstarResize(viewer);
+      applyCameraFocus();
+    });
+  }
+  for (const delayMs of [150, 500, 1200]) {
+    setTimeout(applyCameraFocus, delayMs);
+  }
+}
+
+/**
  * Mount Mol* and load the experimental structure from RCSB BinaryCIF.
  */
 export async function mountCocrystalMolstarViewer(container, options) {
-  const { pdbId, ligandCode, ligandChainId, ligandResSeq } = options;
+  const { pdbId, ligandCode, ligandChainId, ligandResSeq, pocketRadiusAngstrom, focusCenter } =
+    options;
 
   if (!isWebGLAvailable()) {
     throw new Error(
@@ -168,6 +354,15 @@ export async function mountCocrystalMolstarViewer(container, options) {
       pdbId,
       `${String(pdbId).toUpperCase()} (experimental co-crystal)`
     );
+    try {
+      await applyCocrystalInteractionVisuals(viewer, {
+        pocketRadiusAngstrom: pocketRadiusAngstrom ?? 5,
+        ligandCode,
+        focusCenter,
+      });
+    } catch {
+      /* optional styling; structure still usable */
+    }
   } catch (e) {
     await destroyCocrystalMolstarViewer(viewer);
     const msg = e?.message || String(e);

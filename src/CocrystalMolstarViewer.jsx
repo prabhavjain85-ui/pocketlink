@@ -21,6 +21,8 @@ function CocrystalMolstarViewerInner({
   ligandCode,
   cocrystalLigand = null,
   height = 420,
+  pocketRadiusAngstrom = 5,
+  focusCenter = null,
 }) {
   const molstarHostRef = useRef(null);
   const viewerRef = useRef(null);
@@ -46,6 +48,8 @@ function CocrystalMolstarViewerInner({
           ligandCode,
           ligandChainId: cocrystalLigand?.chainId,
           ligandResSeq: cocrystalLigand?.resSeq,
+          pocketRadiusAngstrom,
+          focusCenter,
         });
         if (!cancelled) {
           viewerRef.current = viewer;
@@ -67,7 +71,15 @@ function CocrystalMolstarViewerInner({
       viewerRef.current = null;
       void destroyCocrystalMolstarViewer(v);
     };
-  }, [pdbId, ligandCode, cocrystalLigand?.chainId, cocrystalLigand?.resSeq]);
+  }, [
+    pdbId,
+    ligandCode,
+    cocrystalLigand?.chainId,
+    cocrystalLigand?.resSeq,
+    cocrystalLigand?.ligandCode,
+    pocketRadiusAngstrom,
+    focusCenter,
+  ]);
 
   useEffect(() => {
     if (status !== "ready" || !viewerRef.current) return undefined;
@@ -104,7 +116,7 @@ function CocrystalMolstarViewerInner({
               <span className="mono">{cocrystalLigand.resSeq}</span>)
             </>
           )}
-          . Pocket residues within ~4.5 Å shown as sticks with labels; dashed lines are Mol* non-covalent
+          . Pocket residues within ~{pocketRadiusAngstrom} Å shown as sticks; dashed lines are Mol* non-covalent
           interactions (H-bonds, hydrophobic, π-stacking, salt bridges, halogen bonds).
         </p>
       </div>
