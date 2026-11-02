@@ -1,6 +1,7 @@
 import {
   biologySignal,
-  drugNoveltyFactor,
+  broadDrugDiscount,
+  diseaseNoveltyFactor,
   evidenceSummary,
   explainTarget,
   geneticStrength,
@@ -54,11 +55,45 @@ function row({
   };
 }
 
-test("drug novelty factor is 1 with zero drugs and falls as coverage grows", () => {
-  expect(drugNoveltyFactor(0)).toBe(1);
-  expect(drugNoveltyFactor(1)).toBeCloseTo(0.5);
-  expect(drugNoveltyFactor(3)).toBeCloseTo(0.25);
-  expect(drugNoveltyFactor(9)).toBeCloseTo(0.1);
+test("disease novelty factor is driven by clinical evidence for THIS disease", () => {
+  expect(diseaseNoveltyFactor(0)).toBe(1);
+  expect(diseaseNoveltyFactor(0.5)).toBeCloseTo(0.525);
+  expect(diseaseNoveltyFactor(1)).toBeCloseTo(0.05);
+});
+
+test("global drug count only discounts novelty gently", () => {
+  expect(broadDrugDiscount(0)).toBe(1);
+  expect(broadDrugDiscount(1)).toBeGreaterThan(0.8);
+  expect(broadDrugDiscount(82)).toBeGreaterThan(0.4);
+  // The old 1/(1+n) curve put 82 drugs at 0.012, which wiped the score out.
+  expect(broadDrugDiscount(82)).toBeGreaterThan(1 / 83);
+});
+
+test("biology weights sum to exactly 1 so perfect evidence scores 100", () => {
+  const perfect = biologySignal(
+    {
+      genetic_association: 1,
+      genetic_literature: 1,
+      somatic_mutation: 1,
+      literature: 1,
+      affected_pathway: 1,
+      animal_model: 1,
+      rna_expression: 1,
+    },
+    1
+  );
+  expect(perfect).toBeCloseTo(1, 10);
+  expect(noveltyScoreValue(perfect, { clinicalScore: 0, drugCount: 0 })).toBe(100);
+});
+
+test("a gene drugged for other diseases stays novel for an untouched disease", () => {
+  // EGFR: 82 drugs globally, but clinical evidence is 0.996 in NSCLC and
+  // 0.000 in pachyonychia congenita. Novelty must follow the disease.
+  const biology = biologySignal({ genetic_association: 0.6, literature: 0.4 }, 0.5);
+  const inLungCancer = noveltyScoreValue(biology, { clinicalScore: 0.996, drugCount: 82 });
+  const inRareDisease = noveltyScoreValue(biology, { clinicalScore: 0, drugCount: 82 });
+  expect(inRareDisease).toBeGreaterThan(inLungCancer * 10);
+  expect(inRareDisease).toBeGreaterThan(10);
 });
 
 test("biology signal weights genetic association far above literature", () => {
@@ -67,9 +102,10 @@ test("biology signal weights genetic association far above literature", () => {
   expect(genetic).toBeGreaterThan(literatureOnly * 1.5);
 });
 
-test("novelty score is high for strong genetics and zero drugs, low when many drugs exist", () => {
-  const undrugged = noveltyScoreValue(biologySignal({ genetic_association: 0.9 }, 0.8), 0);
-  const crowded = noveltyScoreValue(biologySignal({ genetic_association: 0.9 }, 0.8), 27);
+test("novelty score is high for strong genetics with no clinical programme here", () => {
+  const biology = biologySignal({ genetic_association: 0.9 }, 0.8);
+  const undrugged = noveltyScoreValue(biology, { clinicalScore: 0, drugCount: 0 });
+  const crowded = noveltyScoreValue(biology, { clinicalScore: 0.95, drugCount: 27 });
   expect(undrugged).toBeGreaterThan(50);
   expect(crowded).toBeLessThan(10);
   expect(undrugged).toBeGreaterThan(crowded * 5);
@@ -86,7 +122,7 @@ test("evidence floor drops literature/clinical-only noise but keeps genetic or s
   expect(passesEvidenceFloor(weak)).toBe(false);
 });
 
-test("high-novelty badge is reserved for strong evidence and zero existing drugs", () => {
+test("high-novelty badge is reserved for strong evidence and no clinical programme for this disease", () => {
   const palb2 = scoreAssociatedRows([
     row({
       symbol: "PALB2",
@@ -99,22 +135,26 @@ test("high-novelty badge is reserved for strong evidence and zero existing drugs
     }),
   ]).all[0];
   const kras = scoreAssociatedRows([
-    row({ symbol: "KRAS", overall: 0.81, genetic: 0.86, somatic: 0.89, drugs: 3 }),
+    row({ symbol: "KRAS", overall: 0.81, genetic: 0.86, somatic: 0.89, clinical: 0.75, drugs: 3 }),
   ]).all[0];
   expect(isHighNovelty(palb2)).toBe(true);
   expect(isHighNovelty(kras)).toBe(false);
-  expect(palb2.explanation).toMatch(/no approved or investigational drugs/i);
+  expect(palb2.explanation).toMatch(/no drug is in clinical development/i);
   expect(palb2.explanation).toMatch(/rare variant/i);
 });
 
-test("well-established targets are high association with many existing drugs", () => {
+test("well-established means clinical programmes exist for THIS disease", () => {
   const abl1 = scoreAssociatedRows([
     row({ symbol: "ABL1", overall: 0.84, genetic: 0.86, clinical: 0.9, drugs: 27 }),
   ]).all[0];
   const tet2 = scoreAssociatedRows([row({ symbol: "TET2", overall: 0.64, genetic: 0.71, drugs: 0 })]).all[0];
+  // Drugged elsewhere but untouched here: novel for this disease, not established.
+  const elsewhere = scoreAssociatedRows([row({ symbol: "EGFR", overall: 0.5, genetic: 0.5, clinical: 0, drugs: 82 })]).all[0];
   expect(isWellEstablished(abl1)).toBe(true);
   expect(isWellEstablished(tet2)).toBe(false);
-  expect(abl1.explanation).toMatch(/27 existing/i);
+  expect(isWellEstablished(elsewhere)).toBe(false);
+  expect(abl1.explanation).toMatch(/already in clinical development/i);
+  expect(elsewhere.explanation).toMatch(/82 drugs target EGFR in other indications/i);
 });
 
 test("pancreatic cancer fixtures: undrugged genetic genes outrank KRAS/TP53 on novelty", () => {
@@ -172,7 +212,8 @@ test("pancreatic cancer fixtures: undrugged genetic genes outrank KRAS/TP53 on n
   const tp53 = novelty.find((r) => r.symbol === "TP53");
   expect(palb2.noveltyScore).toBeGreaterThan(kras.noveltyScore);
   expect(kras.noveltyScore).toBeGreaterThan(tp53.noveltyScore);
-  expect(established.map((r) => r.symbol)).toEqual(expect.arrayContaining(["KRAS", "TP53", "RRM1"]));
+  // Disease-specific: only RRM1 has real clinical evidence in these fixtures.
+  expect(established.map((r) => r.symbol)).toEqual(expect.arrayContaining(["RRM1"]));
   expect(established.map((r) => r.symbol)).not.toContain("PALB2");
 });
 
@@ -210,7 +251,7 @@ test("genetic strength labels and evidence summary are human-readable", () => {
   expect(evidenceSummary({ genetic_association: 0.9, literature: 0.4, clinical: 0.9 })).toMatch(
     /Genetic association 90/
   );
-  expect(explainTarget({ symbol: "ATM", geneticScore: 0.8, drugCount: 0, datasourceScores: {} })).toMatch(
-    /no approved or investigational drugs currently target ATM/i
+  expect(explainTarget({ symbol: "ATM", geneticScore: 0.8, clinicalScore: 0, drugCount: 0, datasourceScores: {} })).toMatch(
+    /no drug is in clinical development against ATM/i
   );
 });
