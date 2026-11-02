@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Panel } from "./benchUi";
-import { getTargetExpressionProfile } from "./geneExpression";
-import { runTargetDiscovery, searchDiseases } from "./openTargets";
+import { getTargetExpressionProfile, runTargetDiscovery, searchDiseases } from "./serverApi";
 import {
   ACTIVE_STATE_KEYS,
   getActiveState,
@@ -54,6 +53,7 @@ function NoveltyInfoTip() {
 
 function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
   const [expandedExpression, setExpandedExpression] = useState({});
+  const [expressionProfiles, setExpressionProfiles] = useState({});
 
   const sorted = useMemo(() => {
     const mul = sortDir === "asc" ? 1 : -1;
@@ -73,10 +73,16 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
   ];
 
   const toggleExpression = (symbol) => {
+    const opening = !expandedExpression[symbol];
     setExpandedExpression((prev) => ({
       ...prev,
       [symbol]: !prev[symbol],
     }));
+    if (opening && !(symbol in expressionProfiles)) {
+      getTargetExpressionProfile(symbol)
+        .then((profile) => setExpressionProfiles((prev) => ({ ...prev, [symbol]: profile })))
+        .catch(() => setExpressionProfiles((prev) => ({ ...prev, [symbol]: null })));
+    }
   };
 
   return (
@@ -107,7 +113,7 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
         <tbody>
           {sorted.map((r) => {
             const isExpanded = Boolean(expandedExpression[r.symbol]);
-            const expProfile = isExpanded ? getTargetExpressionProfile(r.symbol) : null;
+            const expProfile = isExpanded ? expressionProfiles[r.symbol] : null;
 
             return (
               <React.Fragment key={r.ensemblId || r.symbol}>

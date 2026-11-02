@@ -1,9 +1,6 @@
-import React, { useMemo } from "react";
-import {
-  describeTrialSuccessMatch,
-  formatPhaseDisplay,
-  getTrialSuccessContext,
-} from "./trialSuccessContext";
+import React, { useEffect, useState } from "react";
+import { describeTrialSuccessMatch, formatPhaseDisplay } from "./shared/trialSuccessDisplay";
+import { getTrialSuccessContext } from "./serverApi";
 
 const PHASE_COLUMNS = [
   { key: "PHASE1", label: "Phase 1" },
@@ -12,9 +9,23 @@ const PHASE_COLUMNS = [
 ];
 
 export default function HistoricalTrialSuccessContext({ target, className = "" }) {
-  const context = useMemo(() => getTrialSuccessContext(target), [target]);
+  const [context, setContext] = useState(null);
 
-  if (!context.available) return null;
+  useEffect(() => {
+    let cancelled = false;
+    setContext(null);
+    if (!target) return undefined;
+    getTrialSuccessContext(target)
+      .then((ctx) => {
+        if (!cancelled) setContext(ctx);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [target]);
+
+  if (!context?.available) return null;
 
   const matchDescription = describeTrialSuccessMatch(context);
 

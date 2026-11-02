@@ -1,7 +1,7 @@
 import { execFileSync } from "child_process";
 import path from "path";
 import { getRDKit } from "../rdkitLoader";
-import { calculateSaScore } from "./saScorer";
+import { calculateSaScore } from "../../server/evolution/saScorer";
 
 const SAMPLES = [
   "CCO",

@@ -5,7 +5,7 @@ import {
   looksLikePdbId,
   normalizeResolutionCombined,
   resolveCocrystalSearchQuery,
-} from "./rcsbCocrystalSearch";
+} from "../server/rcsbCocrystalSearch";
 
 describe("rcsbCocrystalSearch helpers", () => {
   test("normalizeResolutionCombined accepts scalar or array from GraphQL", () => {

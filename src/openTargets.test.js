@@ -1,5 +1,5 @@
-import { noDiseaseMatchMessage, pickDiseaseHit, runTargetDiscovery, searchDiseases } from "./openTargets";
-import { clearTargetDiscoveryCache, getCachedTargets, rememberTargets } from "./targetDiscoveryCache";
+import { noDiseaseMatchMessage, pickDiseaseHit, runTargetDiscovery, searchDiseases } from "../server/openTargets";
+import { clearTargetDiscoveryCache, getCachedTargets, rememberTargets } from "../server/targetDiscoveryCache";
 
 const originalFetch = global.fetch;
 

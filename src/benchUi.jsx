@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getRDKit } from "./rdkitLoader";
-import { SCORE_FORMULA_TEXT } from "./targetSelectionScore";
+import { SCORE_FORMULA_TEXT } from "./shared/targetSelectionText";
 
 /** PubChem 2D PNG via PUG-REST (works in cross-site <img>; legacy imgsrv.fcgi blocks with 403). */
 export function pubchemStructureImageUrl(cid) {

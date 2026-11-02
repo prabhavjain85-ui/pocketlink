@@ -1,12 +1,12 @@
 import React, { useCallback, useState } from "react";
 import CocrystalMolstarViewer from "./CocrystalMolstarViewer";
 import ExperimentalCocrystalContacts from "./ExperimentalCocrystalContacts";
-import { analyzeExperimentalCocrystal } from "./cocrystalAnalysis";
 import {
-  normalizeResolutionCombined,
+  analyzeExperimentalCocrystal,
   resolveCocrystalSearchQuery,
   searchPdbEntriesForChemComp,
-} from "./rcsbCocrystalSearch";
+} from "./serverApi";
+import { normalizeResolutionCombined } from "./shared/cocrystalDisplay";
 import { rcsbStructurePageUrl } from "./cocrystalMolstar";
 
 export default function CocrystalStructureSearch() {

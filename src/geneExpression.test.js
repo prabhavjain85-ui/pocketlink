@@ -1,4 +1,4 @@
-import { getTargetExpressionProfile, MAJOR_TISSUES } from "./geneExpression";
+import { getTargetExpressionProfile, MAJOR_TISSUES } from "../server/geneExpression";
 
 describe("geneExpression module", () => {
   test("MAJOR_TISSUES contains expected vital organs", () => {

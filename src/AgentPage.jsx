@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { runResearchAgent } from "./agentPipeline";
+import { runResearchAgent } from "./serverApi";
 import {
   ACTIVE_STATE_KEYS,
   clearActiveState,

@@ -158,9 +158,22 @@ TargetForge operates out-of-the-box with local deterministic models. Advanced AI
 - **RCSB Protein Data Bank:** Crystallographic structure models, resolution metrics, ligands, and pocket coordinates (`data.rcsb.org`).
 - **Open Targets Platform:** Live GraphQL API for genetic associations, somatic mutations, and clinical drug pipelines (`api.platform.opentargets.org`).
 - **PubChem PUG-REST:** Chemical structure records, 2D depictions, and compound property retrieval (`pubchem.ncbi.nlm.nih.gov`).
-- **RDKit WebAssembly:** Client-side chemical informatics, descriptor generation, and substructure matching.
-- **Approved Drug Pharmacopeia:** Bundled library of 2,983 approved therapeutics (`src/data/approvedDrugs.json`).
+- **RDKit WebAssembly:** Server-side chemical informatics, descriptor generation, and substructure matching (the browser uses RDKit only to draw structures).
+- **Approved Drug Pharmacopeia:** Library of 2,983 approved therapeutics (`public/data/approvedDrugs.json`).
 - **3Dmol.js:** WebGL-accelerated interactive 3D protein-ligand structural visualization.
+
+---
+
+## Code Layout: UI in the Browser, Calculations on the Server
+
+All scoring, screening and analysis code lives in `server/` and never ships to the browser. Create React App refuses to bundle files outside `src/`, so nothing in `server/` can leak into the production build by accident.
+
+- `src/` — UI only. Pages call `src/serverApi.js`, which keeps the original function names (`searchPdbTargets`, `screenApprovedLibrary`, `runEvolutionCampaign`, …) but runs them on the server. `src/shared/` holds display-only constants and formatters (example compounds, chart geometry, colour tables); keep algorithms out of it.
+- `api/compute.js` — one Vercel function that runs any allow-listed operation and streams progress callbacks back as newline-delimited JSON.
+- `server/compute.js` — the allow-list. To expose a new calculation, add it here and a matching export in `src/serverApi.js`.
+- `server/runtime.js` — lets server code `fetch("/api/...")` and `fetch("/data/...")` in-process.
+
+Production builds set `GENERATE_SOURCEMAP=false`, so readable source is never published. Requires Node 22+ (see `engines` in `package.json`).
 
 ---
 

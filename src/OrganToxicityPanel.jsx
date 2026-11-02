@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ORGAN_SYSTEMS } from "./organToxicity";
+import { ORGAN_SYSTEMS } from "./shared/organSystems";
 
 export default function OrganToxicityPanel({ organToxicity, onSelectPreset }) {
   const [expandedAlerts, setExpandedAlerts] = useState({});

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { approvedDrugCount } from "./approvedDrugs";
 import { Panel, PainsBadge, PainsInfoTip } from "./benchUi";
@@ -8,10 +8,9 @@ import {
   PAGE_SIZE,
   SERVERLESS_TIMEOUT_NOTE,
   INSUFFICIENT_STRUCTURE_ERROR,
-  screenApprovedLibrary,
-} from "./repurposingScreen";
-import { getDrugSafetyProfile } from "./safetyProfiles";
-import { targetDisplayName } from "./targetContext";
+} from "./shared/repurposingConstants";
+import { getDrugSafetyProfiles, screenApprovedLibrary } from "./serverApi";
+import { targetDisplayName } from "./shared/targetLabels";
 import AdversarialCritique from "./AdversarialCritique";
 import ReportExportButtons from "./ReportExportButtons";
 import { buildRepurposingReportMarkdown, defaultReportFilename } from "./reportExport";
@@ -44,6 +43,33 @@ function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page
   const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize));
   const safePage = Math.min(page, pageCount - 1);
   const slice = sorted.slice(safePage * pageSize, safePage * pageSize + pageSize);
+
+  // Safety profiles are computed on the server; load them for the visible page.
+  const [safetyByCid, setSafetyByCid] = useState({});
+  const missingSafety = slice.filter((r) => !(String(r.cid) in safetyByCid));
+  const missingKey = missingSafety.map((r) => r.cid).join(",");
+  useEffect(() => {
+    if (!missingSafety.length) return undefined;
+    let cancelled = false;
+    getDrugSafetyProfiles(
+      missingSafety.map((r) => ({ cid: r.cid, id: r.id, name: r.name, indication: r.indication, class: r.class }))
+    )
+      .then((profiles) => {
+        if (cancelled) return;
+        setSafetyByCid((prev) => {
+          const next = { ...prev };
+          missingSafety.forEach((r, i) => {
+            next[String(r.cid)] = profiles?.[i] || null;
+          });
+          return next;
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [missingKey]);
 
   const cols = [
     { key: "name", label: "Drug name", sortable: true },
@@ -90,8 +116,9 @@ function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page
               const highlighted = (r.rank || 0) <= highlightCount && sortKey === "score" && sortDir === "desc";
               const reasons = r.reasoning && r.reasoning.length ? r.reasoning : [];
               const isSafetyExpanded = Boolean(expandedSafety[r.cid]);
-              const safetyProfile = isSafetyExpanded ? getDrugSafetyProfile(r) : null;
-              const quickSafety = getDrugSafetyProfile(r);
+              const loadedSafety = safetyByCid[String(r.cid)] || null;
+              const safetyProfile = isSafetyExpanded ? loadedSafety : null;
+              const quickSafety = loadedSafety || { categoryLabel: "Loading…", hasBoxedWarning: false };
 
               return (
                 <React.Fragment key={r.cid}>

@@ -1,7 +1,13 @@
-import React from "react";
+﻿import React from "react";
 import { act } from "react-dom/test-utils";
 import ReactDOM from "react-dom/client";
 import HistoricalTrialSuccessContext from "./HistoricalTrialSuccessContext";
+
+// The component fetches its data from the server; serve it from the real server module.
+jest.mock("./serverApi", () => {
+  const { getTrialSuccessContext } = jest.requireActual("../server/trialSuccessContext");
+  return { getTrialSuccessContext: async (target) => getTrialSuccessContext(target) };
+});
 
 global.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -30,8 +36,8 @@ describe("HistoricalTrialSuccessContext", () => {
     container = null;
   });
 
-  test("shows category and all three phase columns (no single giant percentage)", () => {
-    act(() => {
+  test("shows category and all three phase columns (no single giant percentage)", async () => {
+    await act(async () => {
       root.render(<HistoricalTrialSuccessContext target={egfrProtein} />);
     });
 

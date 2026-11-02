@@ -1,12 +1,12 @@
-import {
+﻿import {
   approvedDrugCount,
   drugToCandidate,
   ensureApprovedDrugsLoaded,
   findApprovedDrug,
   loadApprovedDrugs,
-} from "./approvedDrugs";
-import { scoreLibraryLocal } from "./scoreCandidates";
-import { clearRankingCache } from "./rankingCache";
+} from "../server/approvedDrugs";
+import { scoreLibraryLocal } from "../server/scoreCandidates";
+import { clearRankingCache } from "../server/rankingCache";
 import {
   AI_BATCH_SIZE,
   EXTREME_MW_CUTOFF,
@@ -15,8 +15,8 @@ import {
   prefilterApprovedDrug,
   rememberDailyScreen,
   screenApprovedLibrary,
-} from "./repurposingScreen";
-import { rankingCacheKey } from "./targetContext";
+} from "../server/repurposingScreen";
+import { rankingCacheKey } from "../server/targetContext";
 
 jest.setTimeout(60000);
 
@@ -24,7 +24,7 @@ beforeAll(async () => {
   const fs = require("fs");
   const path = require("path");
   const payload = JSON.parse(
-    fs.readFileSync(path.join(__dirname, "data/approvedDrugs.json"), "utf8")
+    fs.readFileSync(path.join(__dirname, "../server/data/approvedDrugs.json"), "utf8")
   );
   global.fetch = jest.fn((url) => {
     if (String(url).includes("approvedDrugs.json")) {

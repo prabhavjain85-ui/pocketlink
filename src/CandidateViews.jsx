@@ -5,7 +5,7 @@ import {
   prettyName,
   getCompoundSmiles,
 } from "./benchUi";
-import { drugLikenessChecks } from "./scoreCandidates";
+import { drugLikenessChecks } from "./shared/drugLikeness";
 import AdversarialCritique from "./AdversarialCritique";
 
 export function compareCandidateField(a, b, key) {

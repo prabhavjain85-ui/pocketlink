@@ -1,4 +1,4 @@
-const { handleHealth, json } = require("../lib/dockingProxy");
+const { handleHealth, json } = require("../_lib/dockingProxy");
 
 module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") {

@@ -1,5 +1,5 @@
 import { getRDKit } from "../rdkitLoader";
-import { computeQEDFromSmiles } from "./qedFromRdkit";
+import { computeQEDFromSmiles } from "../../server/evolution/qedFromRdkit";
 
 /**
  * Reference QED values from RDKit 2024 (Bickerton ADS, WEIGHT_MEAN).

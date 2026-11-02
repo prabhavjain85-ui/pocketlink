@@ -3,7 +3,7 @@ import {
   rankCandidatesLocal,
   scoreLibraryLocal,
   rankRepurposing,
-} from "./scoreCandidates";
+} from "../server/scoreCandidates";
 
 const caffeine = {
   cid: "2519",

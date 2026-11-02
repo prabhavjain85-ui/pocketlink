@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { BOILED_EGG_GEOMETRY } from "./admeCalculator";
+import { BOILED_EGG_GEOMETRY } from "./shared/admeDisplay";
 
 /**
  * Generate an SVG path string for a rotated ellipse

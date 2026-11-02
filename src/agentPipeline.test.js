@@ -1,14 +1,14 @@
-import {
+﻿import {
   extractDiseaseQuery,
   getDrugCountPhrase,
   getGeneticAdjective,
   getNoveltyAdjective,
   runResearchAgent,
-} from "./agentPipeline";
-import * as openTargets from "./openTargets";
-import * as pdbSearch from "./pdbSearch";
-import * as repurposingScreen from "./repurposingScreen";
-import * as adversarialService from "./adversarialService";
+} from "../server/agentPipeline";
+import * as openTargets from "../server/openTargets";
+import * as pdbSearch from "../server/pdbSearch";
+import * as repurposingScreen from "../server/repurposingScreen";
+import * as adversarialService from "../server/adversarialService";
 
 describe("agentPipeline", () => {
   describe("extractDiseaseQuery", () => {

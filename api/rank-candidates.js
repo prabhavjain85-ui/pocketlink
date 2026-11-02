@@ -1,5 +1,5 @@
-const { rankCandidatesLocal, drugLikenessChecks, scoringCapabilities, resolveTargetRule } = require("../src/scoreCandidates");
-const { TARGET_SPECIFIC_INSTRUCTION, buildTargetContext, targetDisplayName } = require("../src/targetContext");
+const { rankCandidatesLocal, drugLikenessChecks, scoringCapabilities, resolveTargetRule } = require("../server/scoreCandidates.js");
+const { TARGET_SPECIFIC_INSTRUCTION, buildTargetContext, targetDisplayName } = require("../server/targetContext.js");
 
 const ALLOWED_ORIGIN = "*";
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";

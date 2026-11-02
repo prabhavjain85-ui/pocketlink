@@ -1,10 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import {
-  DOCKING_REFERENCE_TARGETS,
-  fetchPdbFromRcsb,
-  runMolecularDocking,
-} from "./dockingEngine";
+import { fetchPdbFromRcsb, runMolecularDocking, fetchDockingRunCocrystalContext } from "./serverApi";
+import { DOCKING_REFERENCE_TARGETS } from "./shared/dockingDisplay";
 import DockingViewer from "./DockingViewer";
 import DockingInteractionsPanel from "./DockingInteractionsPanel";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
@@ -16,7 +13,6 @@ import {
 } from "./featureFlags";
 import ReportExportButtons from "./ReportExportButtons";
 import { buildDockingReportMarkdown, defaultReportFilename } from "./reportExport";
-import { fetchDockingRunCocrystalContext } from "./dockingRunCocrystal";
 import DockingRunCocrystalSection from "./DockingRunCocrystalSection";
 import { shouldAutoRunDockingOnLoad, shouldRunRemoteDocking } from "./dockingServiceGate";
 

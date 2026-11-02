@@ -1,4 +1,4 @@
-import { NO_EXPERIMENTAL_STRUCTURE_MSG, noPdbMatchMessage, searchPdbTargets } from "./pdbSearch";
+import { NO_EXPERIMENTAL_STRUCTURE_MSG, noPdbMatchMessage, searchPdbTargets } from "../server/pdbSearch";
 
 test("searchPdbTargets returns an empty result for a blank query", async () => {
   const { results, error } = await searchPdbTargets("   ");

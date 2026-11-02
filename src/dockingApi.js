@@ -1,4 +1,4 @@
-import { RT, formatKi } from "./dockingEngine";
+import { RT, formatKi } from "./shared/dockingDisplay";
 
 const API_BASE = "/api/docking";
 

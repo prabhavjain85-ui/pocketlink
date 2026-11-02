@@ -5,7 +5,7 @@ import {
   findBindingSiteResidues,
   isHydrogenBondPair,
   normalizeElement,
-} from "./dockingInteractions";
+} from "../server/dockingInteractions";
 
 const fixtureDir = path.join(process.cwd(), "src/test-fixtures/docking");
 const erlotinibCase = JSON.parse(

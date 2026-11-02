@@ -1,11 +1,16 @@
 {
   "outputDirectory": "dist",
   "functions": {
-    "api/rank-candidates.js": {
-      "maxDuration": 30
+    "api/compute.js": {
+      "maxDuration": 300,
+      "includeFiles": "{server/**,public/data/**,node_modules/@rdkit/rdkit/dist/RDKit_minimal.*}"
     },
     "api/pains-check.js": {
       "maxDuration": 15
+    },
+    "api/rank-candidates.js": {
+      "maxDuration": 30,
+      "includeFiles": "server/**"
     },
     "api/contact.js": {
       "maxDuration": 10

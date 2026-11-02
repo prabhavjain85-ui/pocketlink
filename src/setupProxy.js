@@ -31,6 +31,10 @@ module.exports = function setupProxy(app) {
 
   app.use("/api/contact", vercelOnExpress(contactHandler));
 
+  // Server-side computation (scoring, screening, ADME, evolution, ...).
+  const computeHandler = require("../api/compute");
+  app.use("/api/compute", vercelOnExpress(computeHandler));
+
   const rankHandler = require("../api/rank-candidates");
   app.use("/api/rank-candidates", vercelOnExpress(rankHandler));
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { rankCandidates, tryCachedRanking } from "./aiCandidateRanking";
+import { rankCandidates } from "./serverApi";
 import {
   ACTIVE_STATE_KEYS,
   getActiveState,
@@ -8,13 +8,50 @@ import {
   setActiveState,
 } from "./historyService";
 import { prettyName, getCompoundSmiles } from "./benchUi";
-import { checkPainsBatch } from "./painsCheck";
-import { MAX_CANDIDATES, drugLikenessChecks } from "./scoreCandidates";
-import { searchPdbTargets } from "./pdbSearch";
-import { targetDisplayName } from "./targetContext";
+import { checkPainsBatch } from "./serverApi";
+import { MAX_CANDIDATES, drugLikenessChecks } from "./shared/drugLikeness";
+import { searchPdbTargets } from "./serverApi";
+import { targetDisplayName } from "./shared/targetLabels";
 
 const EGFR_DEMO_PDB = "1M17";
 const EGFR_DEMO_COMPOUNDS = ["imatinib", "osimertinib"];
+
+// Rankings are computed on the server; remember finished ones for this tab so
+// revisiting the same target + shortlist restores the result instantly.
+const BENCH_RANKING_STORAGE_KEY = "targetforge_bench_rankings_v1";
+const MAX_CACHED_RANKINGS = 20;
+
+function benchRankingKey(candidates, protein) {
+  const pdb = String(protein?.id || protein?.pdb_id || "none").toUpperCase();
+  const cids = candidates.map((c) => String(c.CID ?? c.cid ?? "")).sort();
+  return `${pdb}|${cids.join(",")}`;
+}
+
+function readBenchRankings() {
+  try {
+    if (typeof sessionStorage === "undefined") return {};
+    return JSON.parse(sessionStorage.getItem(BENCH_RANKING_STORAGE_KEY) || "{}") || {};
+  } catch {
+    return {};
+  }
+}
+
+function tryCachedRanking(candidates, protein) {
+  return readBenchRankings()[benchRankingKey(candidates, protein)] || null;
+}
+
+function rememberBenchRanking(candidates, protein, data) {
+  try {
+    if (typeof sessionStorage === "undefined" || !data?.ranking) return;
+    const all = readBenchRankings();
+    all[benchRankingKey(candidates, protein)] = data;
+    const keys = Object.keys(all);
+    for (const key of keys.slice(0, Math.max(0, keys.length - MAX_CACHED_RANKINGS))) delete all[key];
+    sessionStorage.setItem(BENCH_RANKING_STORAGE_KEY, JSON.stringify(all));
+  } catch {
+    // storage full or blocked — caching is best-effort
+  }
+}
 
 export function useStagingBench() {
   const [searchParams] = useSearchParams();
@@ -255,6 +292,7 @@ export function useStagingBench() {
       setPainsByCid((prev) => ({ ...prev, ...latestPains }));
       const data = await rankCandidates(candidates, protein, latestPains);
       setAiResult(data);
+      rememberBenchRanking(candidates, protein, data);
       if (data?.aiError) {
         setAiError(`Unable to score against this target with the language model (${data.aiError}). TargetForge used its target-aware model instead.`);
       }

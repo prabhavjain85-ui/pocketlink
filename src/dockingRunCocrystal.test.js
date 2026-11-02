@@ -2,8 +2,8 @@ import {
   dockingPresetForPdb,
   ligandCodeFromReferenceLigand,
   pickCocrystalLigandForDocking,
-} from "./dockingRunCocrystal";
-import { DRUG_NAME_TO_CCD } from "./rcsbCocrystalSearch";
+} from "../server/dockingRunCocrystal";
+import { DRUG_NAME_TO_CCD } from "../server/rcsbCocrystalSearch";
 
 describe("dockingRunCocrystal ligand resolution", () => {
   test("ligandCodeFromReferenceLigand parses CCD prefix", () => {

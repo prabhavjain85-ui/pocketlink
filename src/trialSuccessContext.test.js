@@ -5,7 +5,7 @@ import {
   formatPhaseDisplay,
   describeTrialSuccessMatch,
   LIMITATION_NOTE,
-} from "./trialSuccessContext";
+} from "../server/trialSuccessContext";
 
 const egfrProtein = {
   id: "1M17",

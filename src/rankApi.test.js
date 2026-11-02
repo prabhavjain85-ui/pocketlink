@@ -120,7 +120,7 @@ test("API returns heuristic ranking when OpenAI is not configured", async () => 
 });
 
 test("rank prompt instructs the model to score the compound-target pair only", () => {
-  const { TARGET_SPECIFIC_INSTRUCTION } = require("../src/targetContext");
+  const { TARGET_SPECIFIC_INSTRUCTION } = require("../server/targetContext");
   const protein = handler.compactProtein({
     id: "2HYY",
     queryName: "ABL1",

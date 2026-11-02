@@ -9,7 +9,7 @@ import {
   noveltyScoreValue,
   passesEvidenceFloor,
   scoreAssociatedRows,
-} from "./noveltyScore";
+} from "../server/noveltyScore";
 
 function row({
   symbol,

@@ -1,4 +1,4 @@
-import { runEvolutionCampaign } from "../evolutionEngine";
+import { runEvolutionCampaign } from "../../server/evolutionEngine";
 
 jest.setTimeout(180000);
 

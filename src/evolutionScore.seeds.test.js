@@ -1,5 +1,5 @@
 import { getRDKit } from "./rdkitLoader";
-import { scoreEvolvedMolecule } from "./evolutionScore";
+import { scoreEvolvedMolecule } from "../server/evolutionScore";
 
 /** Drug-like seeds that pass evolution hard gates (MW 180–600, heavy atoms 12–45). */
 const SEEDS = [

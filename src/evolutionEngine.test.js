@@ -1,7 +1,7 @@
-import { clampSettings, DEFAULT_EVOLUTION_SETTINGS } from "./evolutionEngine";
-import { EVOLUTION_TRANSFORMS } from "./evolutionTransforms";
-import { manifestStats } from "./evolution/transformManifest";
-import { evolutionCacheKey } from "./evolutionScore";
+import { clampSettings, DEFAULT_EVOLUTION_SETTINGS } from "../server/evolutionEngine";
+import { EVOLUTION_TRANSFORMS } from "../server/evolutionTransforms";
+import { manifestStats } from "../server/evolution/transformManifest";
+import { evolutionCacheKey } from "../server/evolutionScore";
 
 test("default settings stay in the documented band", () => {
   expect(DEFAULT_EVOLUTION_SETTINGS).toEqual({

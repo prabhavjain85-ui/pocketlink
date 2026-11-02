@@ -1,5 +1,5 @@
 import { getRDKit } from "../rdkitLoader";
-import { getSparseMorganCountFingerprint, sparseCountsToObject } from "./morganSparseCount";
+import { getSparseMorganCountFingerprint, sparseCountsToObject } from "../../server/evolution/morganSparseCount";
 
 const CASES = {
   CCO: { 864662311: 1, 1535166686: 1, 2245384272: 1, 2246728737: 1, 3542456614: 1, 4018048386: 1 },

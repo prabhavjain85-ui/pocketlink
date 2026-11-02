@@ -3,7 +3,7 @@ import {
   INTERACTION_COLORS,
   interactionsToViewerLines,
   normalizeElement,
-} from "./dockingInteractions";
+} from "./shared/dockingDisplay";
 
 // Element standard colors
 const ELEMENT_COLORS = {

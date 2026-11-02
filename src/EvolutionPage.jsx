@@ -4,16 +4,12 @@ import PdbTargetSearch from "./PdbTargetSearch";
 import { Panel, PainsBadge } from "./benchUi";
 import AdversarialCritique from "./AdversarialCritique";
 import { getRDKit } from "./rdkitLoader";
-import { molSvg, detectReactionSupport } from "./evolutionTransforms";
-import {
-  DEFAULT_EVOLUTION_SETTINGS,
-  clampSettings,
-  runEvolutionCampaign,
-} from "./evolutionEngine";
-import { probeSaScoreSupport, lookupPubChemExact, noveltyBadge } from "./evolutionScore";
+import { molSvg, detectReactionSupport } from "./shared/molDrawing";
+import { DEFAULT_EVOLUTION_SETTINGS, clampSettings } from "./shared/evolutionSettings";
+import { noveltyForSmiles, probeSaScoreSupport, runEvolutionCampaign } from "./serverApi";
 import { getHistory, saveHistoryEntry } from "./historyService";
 import { ensureApprovedDrugsLoaded, loadApprovedDrugs } from "./approvedDrugs";
-import { targetDisplayName } from "./targetContext";
+import { targetDisplayName } from "./shared/targetLabels";
 import "./evolution.css";
 
 const IMATINIB =
@@ -231,8 +227,7 @@ export default function EvolutionPage() {
       const last = primary.finals;
       const withNovelty = [];
       for (const row of last) {
-        const pubchem = await lookupPubChemExact(row.smiles);
-        withNovelty.push({ ...row, novelty: noveltyBadge({ smiles: row.smiles, pubchem }) });
+        withNovelty.push({ ...row, novelty: await noveltyForSmiles(row.smiles) });
       }
       setFinals(withNovelty);
       await renderSvgs([primary.seed, ...withNovelty]);

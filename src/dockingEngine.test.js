@@ -8,7 +8,7 @@ import {
   calculatePoseRmsd,
   runMolecularDocking,
   DOCKING_REFERENCE_TARGETS,
-} from "./dockingEngine";
+} from "../server/dockingEngine";
 
 jest.mock("./featureFlags", () => ({
   DOCKING_ENGINE_ENABLED: true,

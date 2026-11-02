@@ -3,7 +3,7 @@ import {
   groupInteractionsByResidue,
   INTERACTION_COLORS,
   INTERACTION_METHODOLOGY,
-} from "./dockingInteractions";
+} from "./shared/dockingDisplay";
 
 function typeLabel(type) {
   const map = {

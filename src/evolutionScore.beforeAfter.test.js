@@ -1,7 +1,7 @@
 import { getRDKit } from "./rdkitLoader";
-import { scoreEvolvedMolecule } from "./evolutionScore";
-import { runEvolutionGeneration, seedParent } from "./evolutionEngine";
-import { mulberry32 } from "./evolution/evolutionRng";
+import { scoreEvolvedMolecule } from "../server/evolutionScore";
+import { runEvolutionGeneration, seedParent } from "../server/evolutionEngine";
+import { mulberry32 } from "../server/evolution/evolutionRng";
 
 const IMATINIB = "Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1";
 const ASPIRIN = "CC(=O)Oc1ccccc1C(=O)O";

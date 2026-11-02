@@ -1,5 +1,5 @@
-const { buildTargetContext, targetDisplayName } = require("../src/targetContext");
-const { scoringCapabilities } = require("../src/scoreCandidates");
+const { buildTargetContext, targetDisplayName } = require("../server/targetContext.js");
+const { scoringCapabilities } = require("../server/scoreCandidates.js");
 
 const ALLOWED_ORIGIN = "*";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";

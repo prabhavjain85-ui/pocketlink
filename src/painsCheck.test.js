@@ -1,4 +1,4 @@
-import { checkPainsBatch, clearPainsCache, compactPainsForRanking, getCachedPains } from "./painsCheck";
+import { checkPainsBatch, clearPainsCache, compactPainsForRanking, getCachedPains } from "../server/painsCheck";
 
 const caffeine = {
   CID: 2519,

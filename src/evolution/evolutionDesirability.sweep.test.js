@@ -1,4 +1,4 @@
-import { dHi, dLo } from "./evolutionDesirability";
+import { dHi, dLo } from "../../server/evolution/evolutionDesirability";
 
 function expectMonotone(samples, fn, increasing = true) {
   for (let i = 1; i < samples.length; i += 1) {

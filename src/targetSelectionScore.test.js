@@ -12,7 +12,7 @@ import {
   extractFromGraphqlEntry,
   rankScoredTargets,
   recommendationReasons,
-} from "./targetSelectionScore";
+} from "../server/targetSelectionScore";
 
 test("resolution buckets match the spec", () => {
   expect(scoreResolution(1.5).pts).toBe(25);
@@ -27,7 +27,7 @@ test("resolution buckets match the spec", () => {
 });
 
 test("formats noisy RCSB resolution values to two decimal places", () => {
-  const { formatAngstrom } = require("./targetSelectionScore");
+  const { formatAngstrom } = require("../server/targetSelectionScore");
   expect(formatAngstrom(2.5009425482)).toBe("2.5 Å");
   expect(formatAngstrom(2.83)).toBe("2.83 Å");
   expect(formatAngstrom(1.783)).toBe("1.78 Å");
@@ -60,7 +60,7 @@ test("method buckets and missing method", () => {
 });
 
 test("converts RCSB kDa nonpolymer formula_weight to g/mol", () => {
-  const { ligandWeightDa } = require("./targetSelectionScore");
+  const { ligandWeightDa } = require("../server/targetSelectionScore");
   expect(ligandWeightDa(0.494)).toBe(494);
   expect(ligandWeightDa(0.388)).toBe(388);
   expect(ligandWeightDa(286.4)).toBe(286.4);

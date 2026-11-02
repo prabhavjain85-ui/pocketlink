@@ -1,11 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  ACTIVE_HYPOTHESIS_KEY,
-  evaluateHypothesisApi,
-  generateHypothesisReport,
-  parseHypothesisApi,
-} from "./hypothesis/hypothesisService";
+import { evaluateHypothesisApi, parseHypothesisApi } from "./serverApi";
+import { ACTIVE_HYPOTHESIS_KEY, generateHypothesisReport } from "./hypothesis/hypothesisReport";
 import EvidenceGraph from "./hypothesis/EvidenceGraph";
 import EvidenceMatrixTable from "./hypothesis/EvidenceMatrixTable";
 import ExperimentDesignerCard from "./hypothesis/ExperimentDesignerCard";

@@ -1,6 +1,6 @@
 import { getRDKit } from "../rdkitLoader";
-import { checkPainsFast } from "../painsCheck";
-import { structuralAlerts, elementSymbolsFromSmiles } from "./evolutionGates";
+import { checkPainsFast } from "../../server/painsCheck";
+import { structuralAlerts, elementSymbolsFromSmiles } from "../../server/evolution/evolutionGates";
 
 const IMATINIB = "Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1";
 

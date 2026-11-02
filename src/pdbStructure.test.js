@@ -2,7 +2,7 @@ import {
   groupHetatmLigandInstances,
   parseProteinAtomsFromPdb,
   selectCoCrystalLigandInstance,
-} from "./pdbStructure";
+} from "../server/pdbStructure";
 
 const STI_TWO_CHAIN_SNIPPET = `ATOM      1  N   MET A 315      15.000  60.000  12.000  1.00 30.00           N
 ATOM      2  CA  MET A 315      16.000  60.500  12.500  1.00 30.00           C

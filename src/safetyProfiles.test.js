@@ -1,4 +1,4 @@
-import { getDrugSafetyProfile, SAFETY_INTRO, LIMITATION_NOTE } from "./safetyProfiles";
+import { getDrugSafetyProfile, SAFETY_INTRO, LIMITATION_NOTE } from "../server/safetyProfiles";
 
 describe("safetyProfiles module", () => {
   test("exports standard intro and limitation note", () => {

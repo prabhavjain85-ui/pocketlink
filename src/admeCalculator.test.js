@@ -3,7 +3,7 @@ import {
   evaluateBoiledEgg,
   calculateEsolSolubility,
   ADME_EXAMPLE_COMPOUNDS,
-} from "./admeCalculator";
+} from "../server/admeCalculator";
 
 jest.setTimeout(20000);
 

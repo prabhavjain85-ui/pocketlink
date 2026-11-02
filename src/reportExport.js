@@ -1,4 +1,4 @@
-import { targetDisplayName } from "./targetContext";
+import { targetDisplayName } from "./shared/targetLabels";
 
 export const REPORT_DISCLAIMER =
   "For research and educational use only — not medical advice. The 0–100 knowledge-based triage score is a heuristic for prioritization (curated target rules and literature knowledge), not a validated predictor of binding, activity, or clinical success. Computational rankings are triage aids only; experimental validation (ADME, biochemical assays, clinical studies) is required before treating any candidate as a lead.";

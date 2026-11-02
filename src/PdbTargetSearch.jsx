@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel, ScoreInfoTip, TargetScoreTable } from "./benchUi";
-import { searchPdbTargets } from "./pdbSearch";
+import { searchPdbTargets } from "./serverApi";
 import { saveHistoryEntry } from "./historyService";
 
 /**

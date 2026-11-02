@@ -1,9 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import {
-  calculateAdmeProperties,
-  ADME_EXAMPLE_COMPOUNDS,
-} from "./admeCalculator";
+import { calculateAdmeProperties } from "./serverApi";
+import { ADME_EXAMPLE_COMPOUNDS } from "./shared/admeDisplay";
 import { getRDKit } from "./rdkitLoader";
 import BoiledEggPlot from "./BoiledEggPlot";
 import OrganToxicityPanel from "./OrganToxicityPanel";

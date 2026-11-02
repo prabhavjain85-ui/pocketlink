@@ -1,4 +1,4 @@
-const { handleSubmit, json } = require("../lib/dockingProxy");
+const { handleSubmit, json } = require("../_lib/dockingProxy");
 
 module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") {

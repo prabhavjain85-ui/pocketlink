@@ -7,8 +7,8 @@ import {
   tryCachedRanking,
   clearRankingCache,
   overlayLocalScores,
-} from "./aiCandidateRanking";
-import { TARGET_SPECIFIC_INSTRUCTION, buildTargetContext, rankingCacheKey as contextKey } from "./targetContext";
+} from "../server/aiCandidateRanking";
+import { TARGET_SPECIFIC_INSTRUCTION, buildTargetContext, rankingCacheKey as contextKey } from "../server/targetContext";
 
 const caffeine = {
   CID: 2519,
