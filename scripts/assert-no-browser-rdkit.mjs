@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Guard against accidentally shipping the RDKit runtime to browser clients.
- * The server imports RDKit from node_modules; browser code may only use the
- * disabled compatibility adapter in src/rdkitLoader.js.
+ * RDKit remains a server dependency; source-code documentation may mention it,
+ * so this checks executable imports and browser runtime loaders, not plain text.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -11,10 +11,12 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const SRC = path.join(ROOT, "src");
 const forbidden = [
-  /initRDKitModule/,
+  /\binitRDKitModule\b/,
   /RDKit_minimal\.(?:js|wasm)/,
-  /@rdkit\/rdkit/,
-  /window\.RDKit/,
+  /\bwindow\s*\.\s*RDKit\b/,
+  /\bimport\s*["']@rdkit\/rdkit(?:\/|["'])/,
+  /\bfrom\s*["']@rdkit\/rdkit(?:\/|["'])/,
+  /\b(?:import|require)\s*\(\s*["']@rdkit\/rdkit(?:\/|["'])/,
 ];
 const failures = [];
 
@@ -48,4 +50,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("[browser-rdkit-guard] No RDKit runtime found in browser source/assets.");
+console.log("[browser-rdkit-guard] No RDKit runtime import or browser loader found in source/assets.");
