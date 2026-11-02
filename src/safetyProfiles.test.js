@@ -25,11 +25,33 @@ describe("safetyProfiles module", () => {
     expect(profile.boxedWarning).toContain("Boxed warning");
   });
 
-  test("generates deterministic fallback profile for uncurated drug", () => {
+  test("uncurated drugs are flagged as estimates and invent no safety data", () => {
     const drug = { cid: "999988", name: "NovelRepurposingLead", indication: "Hypertension", class: "kinase inhibitor" };
     const profile = getDrugSafetyProfile(drug);
     expect(profile.cid).toBe("999988");
-    expect(profile.synthesis).toContain("established safety profile from its approved use for Hypertension");
-    expect(profile.topEvents.length).toBeGreaterThanOrEqual(2);
+    expect(profile.isEstimate).toBe(true);
+    expect(profile.synthesis).toContain("No curated pharmacovigilance record");
+    expect(profile.synthesis).not.toMatch(/established safety profile/i);
+    // No fabricated report counts, frequencies, approval year or boxed warning.
+    expect(profile.approvalYear).toBeNull();
+    expect(profile.hasBoxedWarning).toBe(false);
+    for (const event of profile.topEvents) {
+      expect(event.count).toBeNull();
+      expect(event.frequency).toBeNull();
+    }
+  });
+
+  test("uncurated profiles never vary with the compound id", () => {
+    const base = { name: "X", indication: "Hypertension", class: "kinase inhibitor" };
+    const a = getDrugSafetyProfile({ ...base, cid: "111111" });
+    const b = getDrugSafetyProfile({ ...base, cid: "999999" });
+    expect(a.safetyCategory).toBe(b.safetyCategory);
+    expect(a.topEvents).toEqual(b.topEvents);
+  });
+
+  test("curated profiles keep their recorded events and are not flagged as estimates", () => {
+    const profile = getDrugSafetyProfile({ cid: "5291", name: "Imatinib" });
+    expect(profile.isEstimate).toBe(false);
+    expect(profile.topEvents[0].count).toBeTruthy();
   });
 });

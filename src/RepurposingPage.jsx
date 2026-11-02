@@ -215,31 +215,40 @@ function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page
                               </span>
                             </div>
                             <span className="mono hint" style={{ margin: 0 }}>
-                              First Approved: ~{safetyProfile.approvalYear} · FAERS Post-Market Surveillance
+                              {safetyProfile.isEstimate
+                                ? "No curated pharmacovigilance record"
+                                : `First Approved: ~${safetyProfile.approvalYear} · FAERS Post-Market Surveillance`}
                             </span>
                           </div>
 
                           <div className="safety-intro">
-                            Already-approved drugs come with an established real-world human safety track record, which is a major
-                            practical advantage over developing completely uncharacterized de novo chemotypes.
+                            {safetyProfile.isEstimate
+                              ? "Approved drugs carry a real-world safety record, but TargetForge holds curated entries for only part of the library. Look this one up in FDA labeling or FAERS before relying on it."
+                              : "Already-approved drugs come with an established real-world human safety track record, which is a major practical advantage over developing completely uncharacterized de novo chemotypes."}
                           </div>
 
                           <div className="safety-synthesis-box">
-                            <strong>Observed Clinical Tolerability</strong>
+                            <strong>{safetyProfile.isEstimate ? "No Record Held" : "Observed Clinical Tolerability"}</strong>
                             {safetyProfile.synthesis}
                           </div>
 
                           <div className="safety-details-grid">
                             <div className="safety-events-panel">
-                              <div className="safety-panel-title">Top Reported Adverse Events (FDA FAERS)</div>
+                              <div className="safety-panel-title">
+                                {safetyProfile.isEstimate
+                                  ? "Class-level themes to check (not reported events)"
+                                  : "Top Reported Adverse Events (FDA FAERS)"}
+                              </div>
                               <div className="safety-events-list">
                                 {safetyProfile.topEvents.map((evt, idx) => (
                                   <div key={idx} className="safety-event-item">
                                     <span className="safety-event-name">{evt.term}</span>
-                                    <div className="safety-event-counts">
-                                      <span className="mono">{evt.count} reports</span>
-                                      <span className="safety-event-freq">({evt.frequency})</span>
-                                    </div>
+                                    {evt.count ? (
+                                      <div className="safety-event-counts">
+                                        <span className="mono">{evt.count} reports</span>
+                                        <span className="safety-event-freq">({evt.frequency})</span>
+                                      </div>
+                                    ) : null}
                                   </div>
                                 ))}
                               </div>
@@ -265,10 +274,21 @@ function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page
                           </div>
 
                           <div className="safety-limit-note">
+                            {safetyProfile.isEstimate ? (
+                              <>
+                                <strong>No pharmacovigilance record:</strong> TargetForge holds curated safety entries for a subset of
+                                the approved-drug library. This drug is not one of them, so no adverse-event counts, frequencies,
+                                approval date or boxed-warning status are shown. The themes above are class-level prompts for your own
+                                lookup in FDA labeling or FAERS, not observations about this drug.
+                              </>
+                            ) : (
+                              <>
                             <strong>Methodology Note & Reporting Limitations:</strong> Adverse event reports from public safety databases
                             (such as FDA FAERS) are voluntary, spontaneous, and do not establish clinical causation. Reporting rates
                             are heavily influenced by commercial prescription volume, media publicity, and background disease severity.
                             This cross-reference serves as an empirical tolerability baseline, not a definitive safety verdict.
+                              </>
+                            )}
                           </div>
                         </div>
                       </td>

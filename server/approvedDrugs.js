@@ -136,6 +136,10 @@ export function drugToCandidate(drug) {
     TPSA: drug.tpsa,
     indication: drug.indication,
     drugClass: drug.class,
+    // Carried through when the screen has compared this drug to the staged
+    // structure's co-crystal ligand (server/structuralSimilarity.js).
+    structuralSimilarity: drug.structuralSimilarity,
+    structuralSimilarityRef: drug.structuralSimilarityRef,
   };
 }
 

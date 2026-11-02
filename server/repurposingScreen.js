@@ -1,6 +1,7 @@
 import { rankCandidatesBatch, scoreLibraryLocal } from "./aiCandidateRanking.js";
 import { drugToCandidate, ensureApprovedDrugsLoaded, loadApprovedDrugs } from "./approvedDrugs.js";
 import { checkPainsFast } from "./painsCheck.js";
+import { annotateStructuralSimilarity } from "./structuralSimilarity.js";
 import { getCachedScore, pdbIdOf, rememberScores } from "./rankingCache.js";
 import { rankingCacheKey, targetDisplayName, summarizeTargetData, buildTargetContext } from "./targetContext.js";
 import {
@@ -651,6 +652,20 @@ export async function screenApprovedLibrary(
     else excluded.push({ cid: String(drug.cid), name: drug.name, reason: gate.reason, indication: drug.indication });
   }
 
+  await yieldUi();
+
+  // 0. Structural similarity to this structure's co-crystallised ligand.
+  // Annotates the drug records in place so every later scoring pass sees it.
+  // Fingerprints are cached per SMILES, so only the first screen pays the cost.
+  const similarity = await annotateStructuralSimilarity(kept, protein);
+  report({
+    phase: "similarity",
+    done: 0,
+    total: kept.length,
+    message: similarity.available
+      ? `Compared ${similarity.scored} drugs against co-crystal ligand ${similarity.compId}`
+      : `Structural similarity unavailable (${similarity.reason})`,
+  });
   await yieldUi();
 
   // 1. Aggressive pre-qualification for AI shortlist (cuts down 2,900+ drugs to top 100-300 candidates)

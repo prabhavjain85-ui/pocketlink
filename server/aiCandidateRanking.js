@@ -26,6 +26,8 @@ function toApiCandidate(candidate, painsByCid = {}) {
     tpsa: candidate.TPSA ?? candidate.tpsa,
     class: candidate.drugClass || candidate.class || "",
     indication: candidate.indication || "",
+    structuralSimilarity: candidate.structuralSimilarity,
+    structuralSimilarityRef: candidate.structuralSimilarityRef,
   };
   const compact = compactPainsForRanking(pains);
   if (compact) row.pains = compact;

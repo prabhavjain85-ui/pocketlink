@@ -163,81 +163,49 @@ const CURATED_SAFETY = {
  * Deterministically generates realistic FAERS-style safety profile for any drug.
  */
 function deriveSafetyProfile(drug) {
-  const cid = String(drug.cid || drug.id || "0");
   const ind = String(drug.indication || "approved indication");
   const dClass = String(drug.class || "").toLowerCase();
-
-  let hash = 0;
-  for (let i = 0; i < cid.length; i++) {
-    hash = (hash << 5) - hash + cid.charCodeAt(i);
-    hash |= 0;
-  }
-  const abs = Math.abs(hash);
 
   const isKinase = dClass.includes("kinase");
   const isAntiInfective = dClass.includes("antibacterial") || dClass.includes("antiviral");
   const isCns = dClass.includes("cns") || dClass.includes("psychiatric");
 
-  let safetyCategory = "well_tolerated";
-  let categoryLabel = "Established Profile";
-  let topEvents = [];
-  let boxedWarning = "No black box warnings documented";
-  let hasBoxedWarning = false;
-  let severity = "low";
-
+  // Drug classes carry broadly documented monitoring themes. These are
+  // qualitative class expectations, never drug-specific observations, so no
+  // report counts, percentages or approval years are produced here.
+  let watchItems = [];
   if (isKinase) {
-    safetyCategory = "monitored";
-    categoryLabel = "Monitored Profile";
-    severity = "moderate";
-    boxedWarning = "Target-related hematologic and GI monitoring recommended";
-    topEvents = [
-      { term: "Diarrhea / Nausea", count: `${(abs % 6000) + 3000}`, frequency: "Common (25–35%)" },
-      { term: "Fatigue & Asthenia", count: `${(abs % 4000) + 2000}`, frequency: "Common (20–30%)" },
-      { term: "Mild cytopenias", count: `${(abs % 3000) + 1000}`, frequency: "Occasional (10–15%)" },
-      { term: "Transient transaminase elevation", count: `${(abs % 1500) + 500}`, frequency: "Occasional (5–8%)" },
+    watchItems = [
+      "Gastrointestinal tolerability (diarrhea, nausea)",
+      "Hematologic parameters (cytopenias)",
+      "Hepatic transaminases",
     ];
-  } else if (isCns && abs % 3 === 0) {
-    safetyCategory = "boxed_warning";
-    categoryLabel = "Boxed Warning Alert";
-    severity = "high";
-    hasBoxedWarning = true;
-    boxedWarning = "Boxed warning: CNS depression / dependence potential";
-    topEvents = [
-      { term: "Somnolence / Drowsiness", count: `${(abs % 8000) + 4000}`, frequency: "Very common (>30%)" },
-      { term: "Dizziness & Headache", count: `${(abs % 5000) + 2500}`, frequency: "Common (15–20%)" },
-      { term: "Tolerance / Withdrawal concerns", count: `${(abs % 3000) + 1200}`, frequency: "Monitored" },
+  } else if (isCns) {
+    watchItems = [
+      "Sedation and psychomotor effects",
+      "Dependence and withdrawal potential for some members of this class",
     ];
   } else if (isAntiInfective) {
-    safetyCategory = "well_tolerated";
-    categoryLabel = "Well-Tolerated";
-    severity = "low";
-    topEvents = [
-      { term: "Mild GI discomfort / Nausea", count: `${(abs % 3000) + 1200}`, frequency: "Common (5–10%)" },
-      { term: "Transient headache", count: `${(abs % 1800) + 800}`, frequency: "Occasional (2–4%)" },
-      { term: "Mild dermatologic rash", count: `${(abs % 1000) + 400}`, frequency: "Rare (<2%)" },
+    watchItems = [
+      "Gastrointestinal tolerability",
+      "Hypersensitivity and dermatologic reactions",
     ];
   } else {
-    // General small molecule
-    const isMonitored = abs % 2 === 0;
-    safetyCategory = isMonitored ? "monitored" : "well_tolerated";
-    categoryLabel = isMonitored ? "Monitored Profile" : "Well-Tolerated";
-    severity = isMonitored ? "moderate" : "low";
-    topEvents = [
-      { term: "Nausea & Dyspepsia", count: `${(abs % 4000) + 1500}`, frequency: "Common (8–12%)" },
-      { term: "Headache", count: `${(abs % 3000) + 1000}`, frequency: "Occasional (4–7%)" },
-      { term: "Dizziness / Fatigue", count: `${(abs % 2000) + 600}`, frequency: "Occasional (2–5%)" },
-    ];
+    watchItems = ["No class-level monitoring theme is recorded for this compound class"];
   }
 
   return {
     indication: ind,
-    approvalYear: `${1980 + (abs % 42)}`,
-    safetyCategory,
-    categoryLabel,
-    topEvents,
-    boxedWarning,
-    hasBoxedWarning,
-    severity,
+    approvalYear: null,
+    safetyCategory: "estimate",
+    categoryLabel: "Not in curated set",
+    // Shaped like curated topEvents so the UI can iterate either, but these are
+    // class themes to check rather than reported events, and carry no counts.
+    topEvents: watchItems.map((term) => ({ term, count: null, frequency: null })),
+    boxedWarning: "Boxed-warning status not assessed — this drug is not in the curated safety set",
+    hasBoxedWarning: false,
+    severity: null,
+    isEstimate: true,
   };
 }
 
@@ -246,17 +214,23 @@ function deriveSafetyProfile(drug) {
  */
 export function getDrugSafetyProfile(drug) {
   const cid = String(drug?.cid || drug?.id || "");
-  const base = CURATED_SAFETY[cid] || deriveSafetyProfile(drug);
+  const curated = CURATED_SAFETY[cid];
+  const base = curated || deriveSafetyProfile(drug);
+  const isEstimate = Boolean(base.isEstimate);
 
   const eventTerms = base.topEvents.map((e) => e.term.toLowerCase()).slice(0, 3).join(", ");
-  const freqLabel = base.severity === "high" ? "frequent and monitored" : base.severity === "moderate" ? "common" : "infrequent, mild";
 
-  // Synthesizes copy according to the user's template:
-  // "This drug has an established safety profile from its approved use for [X], with [common/rare] reported adverse events including [examples]"
-  const synthesis = `This drug has an established safety profile from its approved use for ${base.indication}, with ${freqLabel} reported adverse events including ${eventTerms}.`;
+  // Curated entries summarize recorded events. Uncurated ones must not: they
+  // only name class-level themes a reviewer should look up for themselves.
+  const synthesis = isEstimate
+    ? `No curated pharmacovigilance record is held for this drug in TargetForge, so no adverse-event data is shown. Approved use: ${base.indication}. Class-level themes worth checking against primary sources: ${eventTerms}.`
+    : `This drug has an established safety profile from its approved use for ${base.indication}, with ${
+        base.severity === "high" ? "frequent and monitored" : base.severity === "moderate" ? "common" : "infrequent, mild"
+      } reported adverse events including ${eventTerms}.`;
 
   return {
     cid,
+    isEstimate,
     name: drug.name,
     indication: base.indication,
     approvalYear: base.approvalYear,
