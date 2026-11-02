@@ -553,7 +553,7 @@ export default function AgentPage() {
                         <span>·</span>
                         <span>Genetic: <strong className="mono">{step1.data.primaryTarget.geneticScore != null ? `${(step1.data.primaryTarget.geneticScore * 100).toFixed(0)}%` : "0%"}</strong></span>
                         <span>·</span>
-                        <span>Approved Drugs: <strong className="mono">{step1.data.primaryTarget.drugCount ?? 0}</strong></span>
+                        <span>Drugs (any indication): <strong className="mono">{step1.data.primaryTarget.drugCount ?? 0}</strong></span>
                       </div>
                     </div>
 

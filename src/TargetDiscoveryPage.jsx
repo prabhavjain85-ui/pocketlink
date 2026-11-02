@@ -68,18 +68,18 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
     { key: "symbol", label: "Target / gene", sortable: true },
     { key: "noveltyScore", label: "Novelty score", sortable: true },
     { key: "geneticScore", label: "Genetic evidence", sortable: true },
-    { key: "drugCount", label: "Existing drugs", sortable: true },
+    { key: "drugCount", label: "Drugs (any indication)", sortable: true },
     { key: "evidenceSummary", label: "Key evidence summary", sortable: false },
   ];
 
-  const toggleExpression = (symbol) => {
+  const toggleExpression = (symbol, ensemblId) => {
     const opening = !expandedExpression[symbol];
     setExpandedExpression((prev) => ({
       ...prev,
       [symbol]: !prev[symbol],
     }));
     if (opening && !(symbol in expressionProfiles)) {
-      getTargetExpressionProfile(symbol)
+      getTargetExpressionProfile(symbol, { ensemblId })
         .then((profile) => setExpressionProfiles((prev) => ({ ...prev, [symbol]: profile })))
         .catch(() => setExpressionProfiles((prev) => ({ ...prev, [symbol]: null })));
     }
@@ -129,7 +129,7 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
                       <button
                         type="button"
                         className={"btn-expression-toggle" + (isExpanded ? " active" : "")}
-                        onClick={() => toggleExpression(r.symbol)}
+                        onClick={() => toggleExpression(r.symbol, r.ensemblId)}
                         aria-expanded={isExpanded}
                         title="View tissue expression distribution across human organs"
                       >
@@ -166,7 +166,9 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
                             </span>
                           </div>
                           <span className="mono hint" style={{ margin: 0 }}>
-                            Primary: {expProfile.primaryTissue} ({expProfile.primaryTpm} TPM)
+                            {expProfile.available
+                              ? `Primary: ${expProfile.primaryTissue} (${expProfile.primaryTpm} TPM) · tau ${expProfile.tau}`
+                              : "No expression data"}
                           </span>
                         </div>
 
@@ -177,10 +179,11 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
                         </div>
 
                         <div className="expression-synthesis-box">
-                          <strong>Physiological Specificity Assessment</strong>
-                          {expProfile.synthesis}
+                          <strong>{expProfile.available ? "Physiological Specificity Assessment" : "No Expression Data"}</strong>
+                          {expProfile.available ? expProfile.synthesis : expProfile.reason}
                         </div>
 
+                        {expProfile.available && (
                         <div className="expression-chart-wrap">
                           <div className="expression-chart-header">
                             <span>Tissue / Anatomical System</span>
@@ -207,11 +210,24 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
                             ))}
                           </div>
                         </div>
+                        )}
 
                         <div className="expression-limit-note">
-                          <strong>Methodology note:</strong> Baseline RNA expression data is grounded in GTEx (Genotype-Tissue Expression v8)
-                          and Human Protein Atlas consensus values (Transcripts Per Million, TPM). Sourced for healthy adult human
-                          tissues. Expression levels in pathological or inflamed disease states may diverge from healthy baselines.
+                          <strong>Methodology note:</strong>{" "}
+                          {expProfile.available ? (
+                            <>
+                              Median TPM per tissue from {expProfile.source?.name}, across {expProfile.source?.tissueCount}{" "}
+                              GTEx tissues for healthy adult donors. Specificity is the tau index (Yanai et al., 2005):
+                              tau = Σ(1 − x<sub>i</sub>/x<sub>max</sub>)/(n − 1), where 0 is even expression everywhere and 1
+                              is a single tissue. Expression in diseased or inflamed tissue can differ from healthy baseline.
+                            </>
+                          ) : (
+                            <>
+                              TargetForge shows GTEx medians from the Open Targets Platform and nothing else. When a gene has
+                              no GTEx profile, no values are shown — earlier versions of this page filled the gap with
+                              generated numbers, which has been removed.
+                            </>
+                          )}
                         </div>
                       </div>
                     </td>

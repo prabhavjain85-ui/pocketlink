@@ -1,4 +1,4 @@
-﻿import {
+import {
   extractDiseaseQuery,
   getDrugCountPhrase,
   getGeneticAdjective,
@@ -541,8 +541,8 @@ describe("agentPipeline", () => {
       expect(narration).toContain("weak / none genetic disease association (**0%**)");
       expect(narration).not.toContain("strong genetic disease association");
 
-      // Must say "already has 67 approved/pipeline drugs (not underexplored)", NOT "underexplored"
-      expect(narration).toContain("already has 67 approved/pipeline drugs (not underexplored)");
+      // Must report the global drug count without calling the disease explored
+      expect(narration).toContain("67 drugs against it across all indications");
       expect(narration).not.toContain("underexplored opportunity");
 
       // Must be classified as established / already drugged, NOT novel
@@ -577,12 +577,14 @@ describe("agentPipeline", () => {
       expect(getGeneticAdjective(5)).toBe("weak / none");
     });
 
-    test("getDrugCountPhrase maps approved drug counts correctly", () => {
-      expect(getDrugCountPhrase(0)).toBe("no approved drugs (underexplored)");
-      expect(getDrugCountPhrase(1)).toBe("few drugs");
-      expect(getDrugCountPhrase(2)).toBe("few drugs");
-      expect(getDrugCountPhrase(3)).toBe("already has 3 approved/pipeline drugs (not underexplored)");
-      expect(getDrugCountPhrase(67)).toBe("already has 67 approved/pipeline drugs (not underexplored)");
+    test("getDrugCountPhrase describes the global count without calling a disease explored", () => {
+      expect(getDrugCountPhrase(0)).toBe("no drugs against it in any indication");
+      expect(getDrugCountPhrase(1)).toBe("1 drug against it in other indications");
+      expect(getDrugCountPhrase(2)).toBe("2 drugs against it in other indications");
+      expect(getDrugCountPhrase(3)).toBe("3 drugs against it across all indications");
+      expect(getDrugCountPhrase(67)).toBe("67 drugs against it across all indications");
+      // The count is global, so it must never claim the queried disease is explored.
+      for (const n of [0, 1, 3, 67]) expect(getDrugCountPhrase(n)).not.toMatch(/underexplored/i);
     });
   });
 });

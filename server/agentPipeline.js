@@ -238,16 +238,18 @@ export function getGeneticAdjective(score) {
 }
 
 /**
- * Descriptive phrase for approved drug count.
- * - drugCount === 0 -> "no approved drugs (underexplored)"
- * - drugCount 1-2   -> "few drugs"
- * - drugCount >= 3  -> "already has N approved/pipeline drugs (not underexplored)"
+ * Descriptive phrase for the drug count.
+ *
+ * This count is Open Targets' global `drugAndClinicalCandidates`: drugs that
+ * target the gene in ANY indication. It does not say whether the disease under
+ * study has been drugged through this target — `clinicalScore` does that — so
+ * the wording must not call a gene "explored" for a disease on this basis.
  */
 export function getDrugCountPhrase(drugCount) {
   const n = Math.max(0, Number(drugCount) || 0);
-  if (n === 0) return "no approved drugs (underexplored)";
-  if (n <= 2) return "few drugs";
-  return `already has ${n} approved/pipeline drugs (not underexplored)`;
+  if (n === 0) return "no drugs against it in any indication";
+  if (n <= 2) return `${n} drug${n === 1 ? "" : "s"} against it in other indications`;
+  return `${n} drugs against it across all indications`;
 }
 
 /**
@@ -931,7 +933,7 @@ export async function runResearchAgent({
       targetOneLineWhy: pivoted
         ? `Pivoted from ${primaryTarget.symbol} (lacked pocket); ${activeTarget.symbol} has validated structure & ${(activeTarget.geneticScore != null ? (activeTarget.geneticScore * 100).toFixed(0) : "0")}% genetic disease association (${getGeneticAdjective(activeTarget.geneticScore)})`
         : (activeTarget.drugCount ?? 0) >= 3
-        ? `Established target (already drugged / backup for structures): ${(activeTarget.geneticScore != null ? (activeTarget.geneticScore * 100).toFixed(0) : "0")}% genetic disease association (${getGeneticAdjective(activeTarget.geneticScore)}), ${activeTarget.drugCount ?? 0} approved drugs`
+        ? `Established target (already drugged / backup for structures): ${(activeTarget.geneticScore != null ? (activeTarget.geneticScore * 100).toFixed(0) : "0")}% genetic disease association (${getGeneticAdjective(activeTarget.geneticScore)}), ${activeTarget.drugCount ?? 0} drugs against it across all indications`
         : `${getGeneticAdjective(activeTarget.geneticScore)} genetic disease association (${(activeTarget.geneticScore != null ? (activeTarget.geneticScore * 100).toFixed(0) : "0")}%) with ${getDrugCountPhrase(activeTarget.drugCount)}`,
       pivotedFrom: pivoted ? primaryTarget.symbol : null,
       pdbId: selectedStructure.id,
