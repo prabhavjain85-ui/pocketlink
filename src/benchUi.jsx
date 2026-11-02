@@ -1,432 +1,872 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { getRDKit } from "./rdkitLoader";
-import { SCORE_FORMULA_TEXT } from "./shared/targetSelectionText";
+import React, { useEffect, useState, useMemo } from "react";
+import { useSearchParams, Link } from "react-router-dom";
+import { calculateAdmeProperties } from "./serverApi";
+import { ADME_EXAMPLE_COMPOUNDS } from "./shared/admeDisplay";
+import BoiledEggPlot from "./BoiledEggPlot";
+import OrganToxicityPanel from "./OrganToxicityPanel";
+import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
 
-/** PubChem 2D PNG via PUG-REST (works in cross-site <img>; legacy imgsrv.fcgi blocks with 403). */
-export function pubchemStructureImageUrl(cid) {
-  const id = String(cid ?? "").trim();
-  if (!id) return null;
-  return `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${encodeURIComponent(id)}/PNG`;
-}
-
-function RdkitStructureFallback({ smiles, compact, cid }) {
-  const [svg, setSvg] = useState(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setSvg(null);
-    setFailed(false);
-    const raw = String(smiles || "").trim();
-    if (!raw) {
-      setFailed(true);
-      return undefined;
-    }
-
-    (async () => {
-      const RDKit = await getRDKit();
-      if (cancelled) return;
-      if (!RDKit) {
-        setFailed(true);
-        return;
-      }
-      let mol = null;
-      try {
-        mol = RDKit.get_mol(raw);
-        if (!mol) {
-          setFailed(true);
-          return;
-        }
-        const w = compact ? 120 : 220;
-        const h = compact ? 80 : 160;
-        setSvg(mol.get_svg(w, h));
-      } catch {
-        setFailed(true);
-      } finally {
-        try {
-          mol?.delete?.();
-        } catch {
-          // ignore
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [smiles, compact]);
-
-  if (failed || !svg) {
-    return (
-      <div className={"pubchem-structure-fallback" + (compact ? " compact" : "")}>
-        Structure image unavailable
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={"pubchem-structure-image rdkit-structure-svg" + (compact ? " compact" : "")}
-      role="img"
-      aria-label={cid ? `2D structure for CID ${cid}` : "2D molecular structure"}
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
+export default function AdmePage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [smilesInput, setSmilesInput] = useState(
+    searchParams.get("smiles") || "Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1" // Imatinib default
   );
-}
-
-export function PubChemStructureImage({ cid, smiles, compact }) {
-  const [useRdkit, setUseRdkit] = useState(false);
-  const [pubchemFailed, setPubchemFailed] = useState(false);
-
-  const resolvedSmiles = useMemo(() => String(smiles || "").trim(), [smiles]);
-  const imageUrl = useMemo(() => pubchemStructureImageUrl(cid), [cid]);
-
-  useEffect(() => {
-    setUseRdkit(false);
-    setPubchemFailed(false);
-  }, [cid, imageUrl]);
-
-  if (!cid && !resolvedSmiles) {
-    return (
-      <div className={"pubchem-structure-fallback" + (compact ? " compact" : "")}>
-        Structure image unavailable
-      </div>
-    );
-  }
-
-  if (pubchemFailed) {
-    return (
-      <div className={"pubchem-structure-fallback" + (compact ? " compact" : "")}>
-        Structure image unavailable
-      </div>
-    );
-  }
-
-  if (useRdkit && resolvedSmiles) {
-    return <RdkitStructureFallback smiles={resolvedSmiles} compact={compact} cid={cid} />;
-  }
-
-  if (!imageUrl) {
-    if (resolvedSmiles) {
-      return <RdkitStructureFallback smiles={resolvedSmiles} compact={compact} cid={cid} />;
-    }
-    return (
-      <div className={"pubchem-structure-fallback" + (compact ? " compact" : "")}>
-        Structure image unavailable
-      </div>
-    );
-  }
-
-  const handleImgError = () => {
-    if (resolvedSmiles) setUseRdkit(true);
-    else setPubchemFailed(true);
-  };
-
-  return (
-    <img
-      className={"pubchem-structure-image" + (compact ? " compact" : "")}
-      src={imageUrl}
-      alt={cid ? `PubChem structure for CID ${cid}` : "PubChem 2D structure"}
-      title={cid ? `PubChem structure for CID ${cid}` : "PubChem 2D structure"}
-      onError={handleImgError}
-    />
+  const [compoundNameInput, setCompoundNameInput] = useState(
+    searchParams.get("name") || "Imatinib"
   );
-}
+  const [cidInput, setCidInput] = useState(searchParams.get("cid") || "5291");
 
-export function StationIcon({ kind }) {
-  if (kind === "target") {
-    return (
-      <svg viewBox="0 0 32 32" width="18" height="18" fill="none">
-        <path d="M6 16c0-6 4-10 10-10s10 4 10 10-4 10-10 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        <path d="M11 16c0-3.5 2-6 5-6s5 2.5 5 6-2 6-5 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        <circle cx="16" cy="16" r="1.6" fill="currentColor" />
-      </svg>
-    );
-  }
-  if (kind === "candidate") {
-    return (
-      <svg viewBox="0 0 32 32" width="18" height="18" fill="none">
-        <circle cx="9" cy="11" r="2.6" stroke="currentColor" strokeWidth="1.6" />
-        <circle cx="21" cy="9" r="2.6" stroke="currentColor" strokeWidth="1.6" />
-        <circle cx="17" cy="21" r="2.6" stroke="currentColor" strokeWidth="1.6" />
-        <path d="M11.2 12.4L18.8 9.6M11 13.2l4.5 6M19 11.3l-1 7" stroke="currentColor" strokeWidth="1.4" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 32 32" width="18" height="18" fill="none">
-      <path d="M6 10h8M6 16h8M6 22h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M14 10h4a4 4 0 0 1 4 4v0a4 4 0 0 1-4 4h-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M22 16h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M23 13l3 3-3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [admeData, setAdmeData] = useState(null);
+  const [copiedSmiles, setCopiedSmiles] = useState(false);
+  const [copiedReport, setCopiedReport] = useState(false);
 
-export function CopyField({ label, value, mono = true }) {
-  const [copied, setCopied] = useState(false);
-  const doCopy = async () => {
+  // Shortlist from active session
+  const benchCandidates = useMemo(() => {
     try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1400);
-    } catch (e) {
-      // clipboard blocked — field remains selectable
+      const state = getActiveState(ACTIVE_STATE_KEYS.BENCH);
+      return Array.isArray(state?.candidates) ? state.candidates : [];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  // Run calculation
+  const runPrediction = async (smiles, name, cid) => {
+    const targetSmiles = (smiles || smilesInput).trim();
+    if (!targetSmiles) {
+      setError("Please provide a chemical SMILES string.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await calculateAdmeProperties(targetSmiles, {
+        name: name || compoundNameInput || "Compound",
+        cid: cid || cidInput || null,
+      });
+
+      if (!res.valid) {
+        setError(res.error || "Unable to compute ADME properties for this structure.");
+        setAdmeData(null);
+      } else {
+        setAdmeData(res);
+      }
+    } catch (err) {
+      setError(err?.message || "An unexpected error occurred during calculation.");
+      setAdmeData(null);
+    } finally {
+      setLoading(false);
     }
   };
+
+  // Initialize from URL params or default example
+  useEffect(() => {
+    const paramSmiles = searchParams.get("smiles");
+    const paramName = searchParams.get("name");
+    const paramCid = searchParams.get("cid");
+
+    if (paramSmiles) {
+      setSmilesInput(paramSmiles);
+      if (paramName) setCompoundNameInput(paramName);
+      if (paramCid) setCidInput(paramCid);
+      runPrediction(paramSmiles, paramName, paramCid);
+    } else {
+      // Default to initial example
+      runPrediction(smilesInput, compoundNameInput, cidInput);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSelectPreset = (preset) => {
+    setSmilesInput(preset.smiles);
+    setCompoundNameInput(preset.name);
+    setCidInput(preset.cid || "");
+    setSearchParams({
+      smiles: preset.smiles,
+      name: preset.name,
+      ...(preset.cid ? { cid: preset.cid } : {}),
+    });
+    runPrediction(preset.smiles, preset.name, preset.cid);
+  };
+
+  const handleSelectBenchCandidate = (cand) => {
+    const s = cand.canonicalSmiles || cand.smiles || "";
+    const n = cand.displayName || cand.name || "Bench Candidate";
+    const c = cand.CID || cand.cid || "";
+    setSmilesInput(s);
+    setCompoundNameInput(n);
+    setCidInput(String(c));
+    setSearchParams({ smiles: s, name: n, ...(c ? { cid: String(c) } : {}) });
+    runPrediction(s, n, c);
+  };
+
+  const handleCopySmiles = () => {
+    const str = admeData?.canonicalSmiles || smilesInput;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(str).then(() => {
+        setCopiedSmiles(true);
+        setTimeout(() => setCopiedSmiles(false), 2500);
+      });
+    }
+  };
+
+  const handleCopyReport = () => {
+    if (!admeData) return;
+
+    let toxSummary = "";
+    if (admeData.organToxicity && admeData.organToxicity.valid) {
+      const b = admeData.organToxicity.organBreakdown;
+      toxSummary = `\nStructural Alerts: ${admeData.organToxicity.totalAlerts === 0 ? "0" : `${admeData.organToxicity.totalAlerts} (${admeData.organToxicity.flaggedCategories.join(", ")})`}
+ - Liver (Hepatotoxicity): ${b.liver?.riskLevel || "Low"} Risk - ${b.liver?.summaryExplanation || "No alerts"}
+ - Heart (Cardiotoxicity / hERG): ${b.heart?.riskLevel || "Low"} Risk - ${b.heart?.summaryExplanation || "No alerts"}
+ - Kidney (Nephrotoxicity): ${b.kidney?.riskLevel || "Low"} Risk - ${b.kidney?.summaryExplanation || "No alerts"}
+ - Genetic Material (Mutagenicity): ${b.mutagenicity?.riskLevel || "Low"} Risk - ${b.mutagenicity?.summaryExplanation || "No alerts"}
+ - Cellular Safety (Carcinogenicity): ${b.carcinogenicity?.riskLevel || "Low"} Risk - ${b.carcinogenicity?.summaryExplanation || "No alerts"}\n`;
+    }
+
+    const text = `TargetForge ADME Profile
+Compound: ${admeData.compoundName} (CID: ${admeData.cid || "N/A"})
+ SMILES: ${admeData.canonicalSmiles}
+
+ Physicochemical Properties:
+ - Molecular Weight: ${admeData.properties.mw.toFixed(1)} g/mol
+ - cLogP (Crippen): ${admeData.properties.logp.toFixed(2)}
+ - WLOGP (approx): ${admeData.properties.wlogp.toFixed(2)}
+ - TPSA: ${admeData.properties.tpsa.toFixed(1)} Å²
+ - H-Bond Donors (HBD): ${admeData.properties.hbd}
+ - H-Bond Acceptors (HBA): ${admeData.properties.hba}
+ - Rotatable Bonds: ${admeData.properties.rotb}
+ - Molar Refractivity: ${admeData.properties.mr.toFixed(1)}
+ - Heavy Atoms: ${admeData.properties.heavyAtoms}
+
+ Druglikeness Assessment:
+ - Lipinski Rule of 5: ${admeData.druglikeness.lipinski.status}
+ - Veber Bioavailability: ${admeData.druglikeness.veber.status}
+ - Ghose Filter: ${admeData.druglikeness.ghose.status}
+
+ Pharmacokinetics (rules & models):
+ - Passive HIA: ${admeData.pharmacokinetics.boiledEgg.giAbsorption}
+ - Passive BBB: ${admeData.pharmacokinetics.boiledEgg.passiveBbb}
+ - ESOL Aqueous Solubility: ${admeData.pharmacokinetics.solubility.qualitativeClass} (logS ${admeData.pharmacokinetics.solubility.logS})
+ - P-gp Substrate (heuristic): ${admeData.pharmacokinetics.rules?.pgpSubstrate.value || "N/A"}
+ - CYP: not modeled
+ - Bioavailability Score: ${admeData.pharmacokinetics.rules?.bioavailabilityScore.score || "N/A"}
+ ${toxSummary}
+ Disclaimer: Passive BOILED-Egg only. Transporters, Pgp, CYPs, and clinical toxicity are not measured.
+ Methods: Server-side RDKit + rule-based cheminformatics, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete (2016), Delaney (2004), Martin (2005).`;
+
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopiedReport(true);
+        setTimeout(() => setCopiedReport(false), 2500);
+      });
+    }
+  };
+
   return (
-    <div className="copyfield">
-      <div className="copyfield-label">{label}</div>
-      <div className="copyfield-row">
-        <div className={"copyfield-value" + (mono ? " mono" : "")}>{value}</div>
-        <button className="copy-btn" onClick={doCopy} type="button">
-          {copied ? "Copied" : "Copy"}
-        </button>
+    <div className="adme-page-container" style={{ maxWidth: "1080px", margin: "0 auto 48px" }}>
+      {/* Page Header */}
+      <div style={{ marginBottom: "24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+          <span
+            style={{
+              padding: "2px 8px",
+              borderRadius: "4px",
+              background: "var(--primary-light)",
+              color: "var(--primary)",
+              border: "1px solid var(--primary-border)",
+              fontSize: "11px",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+            }}
+          >
+            Secure Cheminformatics
+          </span>
+          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+            Server-side RDKit analysis
+          </span>
+        </div>
+        <h1
+          style={{
+            margin: "0 0 6px",
+            fontSize: "26px",
+            fontWeight: 700,
+            color: "var(--text)",
+            letterSpacing: "-0.5px",
+          }}
+        >
+          ADME &amp; Pharmacokinetic Profiling
+        </h1>
+        <p
+          style={{
+            margin: 0,
+            fontSize: "14px",
+            color: "var(--text-dim)",
+            lineHeight: 1.5,
+            maxWidth: "800px",
+          }}
+        >
+          Calculate physicochemical properties, rule-based druglikeness filters (Lipinski, Veber, Ghose), and
+          BOILED-Egg absorption models using secure server-side chemistry. The browser never downloads or executes the RDKit runtime.
+        </p>
       </div>
-    </div>
-  );
-}
 
-export function getCompoundSmiles(compound) {
-  if (!compound) return "";
-  return compound.IsomericSMILES || compound.CanonicalSMILES || compound.SMILES || compound.ConnectivitySMILES || compound.smiles || "";
-}
+      {/* Input Panel */}
+      <div
+        className="panel"
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-lg)",
+          padding: "20px",
+          marginBottom: "24px",
+          boxShadow: "var(--shadow-sm)",
+        }}
+      >
+        <div style={{ marginBottom: "14px" }}>
+          <label
+            htmlFor="adme-smiles-input"
+            style={{
+              display: "block",
+              fontSize: "13px",
+              fontWeight: 600,
+              color: "var(--text)",
+              marginBottom: "6px",
+            }}
+          >
+            Compound SMILES String
+          </label>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <input
+              id="adme-smiles-input"
+              type="text"
+              className="mono"
+              value={smilesInput}
+              onChange={(e) => setSmilesInput(e.target.value)}
+              placeholder="e.g. CC(=O)Oc1ccccc1C(=O)O"
+              style={{
+                flex: "1 1 360px",
+                padding: "9px 12px",
+                fontSize: "13px",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius)",
+                background: "var(--surface-muted)",
+                color: "var(--text)",
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  runPrediction(smilesInput, compoundNameInput, cidInput);
+                }
+              }}
+            />
+            <input
+              type="text"
+              value={compoundNameInput}
+              onChange={(e) => setCompoundNameInput(e.target.value)}
+              placeholder="Compound Name (optional)"
+              style={{
+                width: "200px",
+                padding: "9px 12px",
+                fontSize: "13px",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius)",
+                background: "var(--surface-muted)",
+                color: "var(--text)",
+              }}
+            />
+            <button
+              id="predict-adme-btn"
+              type="button"
+              className="btn btn-primary"
+              onClick={() => runPrediction(smilesInput, compoundNameInput, cidInput)}
+              disabled={loading || !smilesInput.trim()}
+              style={{
+                padding: "9px 20px",
+                fontWeight: 600,
+                background: !smilesInput.trim() ? "var(--surface-muted)" : "var(--primary)",
+                borderColor: !smilesInput.trim() ? "var(--border)" : "var(--primary)",
+                color: !smilesInput.trim() ? "var(--text-muted)" : "#FFFFFF",
+                cursor: !smilesInput.trim() || loading ? "not-allowed" : "pointer",
+                boxShadow: !smilesInput.trim() ? "none" : "0 1px 2px rgba(15, 118, 110, 0.18)",
+              }}
+            >
+              {loading ? "Calculating..." : "Predict ADME"}
+            </button>
+          </div>
+        </div>
 
-export function prettyName(result, query) {
-  const q = (query || "").trim();
-  if (q && q.length <= 48 && !q.includes(",") && q.split(" ").length <= 6) return q;
-  if (result?.IUPACName) {
-    return result.IUPACName.length > 52 ? `${result.IUPACName.slice(0, 50)}…` : result.IUPACName;
-  }
-  return result?.CID ? `CID ${result.CID}` : "Unknown compound";
-}
+        {/* Preset Selector & Bench Candidate Linkage */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-muted)" }}>
+              Reference Drugs:
+            </span>
+            {ADME_EXAMPLE_COMPOUNDS.map((ex) => (
+              <button
+                key={ex.name}
+                type="button"
+                className={`chip ${compoundNameInput === ex.name ? "active" : ""}`}
+                onClick={() => handleSelectPreset(ex)}
+                style={{ fontSize: "11px", padding: "4px 8px" }}
+              >
+                {ex.name}
+              </button>
+            ))}
+          </div>
 
-export function Panel({ title, eyebrow, kind, children }) {
-  return (
-    <div className="panel">
-      <div className="panel-head">
-        <span className={"station-icon icon-" + kind}>
-          <StationIcon kind={kind} />
-        </span>
-        <div>
-          <div className="panel-eyebrow">{eyebrow}</div>
-          <div className="panel-title">{title}</div>
+          {benchCandidates.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--primary)" }}>
+                From Active Bench:
+              </span>
+              {benchCandidates.slice(0, 6).map((c) => (
+                <button
+                  key={c.CID || c.cid}
+                  type="button"
+                  className="chip"
+                  onClick={() => handleSelectBenchCandidate(c)}
+                  style={{
+                    fontSize: "11px",
+                    padding: "4px 8px",
+                    borderColor: "var(--primary-border)",
+                  }}
+                >
+                  {c.displayName || c.name || `CID ${c.CID}`}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-      <div className="panel-body">{children}</div>
-    </div>
-  );
-}
 
-export function PainsInfoTip() {
-  return (
-    <span className="score-tip">
-      <button
-        type="button"
-        className="score-tip-btn"
-        aria-label="How PAINS and toxicophore flags are calculated"
-        aria-describedby="pains-tip-pop"
-        title="Rules-based RDKit substructure screen: PAINS filter catalogs plus a small toxicophore SMARTS list. Warnings only — flagged compounds stay selectable."
-      >
-        i
-      </button>
-      <span className="score-tip-pop" id="pains-tip-pop" role="tooltip">
-        <strong>PAINS &amp; toxicophore flags</strong>
-        <span className="score-tip-lead">Deterministic RDKit substructure check. No AI call. Flags are warnings, not hard blocks.</span>
-        <ul>
-          <li><b>PAINS</b> — RDKit FilterCatalog families A/B/C (Baell &amp; Holloway). Frequent HTS false-positive chemotypes.</li>
-          <li><b>Toxicophores</b> — small extra SMARTS list: Michael acceptors, aldehydes, epoxides, alkyl halides.</li>
-          <li><b>Unable to check</b> — missing or invalid SMILES, or the checker was unreachable. Not treated as clean.</li>
-        </ul>
-      </span>
-    </span>
-  );
-}
+      {/* Error Alert */}
+      {error && (
+        <div
+          style={{
+            background: "var(--red-bg)",
+            border: "1px solid var(--red-border)",
+            color: "var(--red)",
+            borderRadius: "var(--radius)",
+            padding: "12px 16px",
+            marginBottom: "24px",
+            fontSize: "13px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+        >
+          <span style={{ fontWeight: 700 }}>Calculation Error:</span>
+          <span>{error}</span>
+        </div>
+      )}
 
-export function PainsBadge({ result, tipId }) {
-  const popId = tipId || "pains-pop";
-  if (!result || result.status === "pending") {
-    return (
-      <span className="score-tip pains-tip">
-        <span className="pains-badge pending">Checking…</span>
-      </span>
-    );
-  }
-  if (result.status === "unable") {
-    return (
-      <span className="score-tip pains-tip">
-        <button type="button" className="pains-badge unable" aria-describedby={popId}>
-          Unable to check
-        </button>
-        <span className="score-tip-pop" id={popId} role="tooltip">
-          <strong>Unable to check</strong>
-          <span className="score-tip-lead">
-            {result.reason || "This structure could not be screened."} Missing or invalid SMILES is not treated as a clean pass.
-          </span>
-        </span>
-      </span>
-    );
-  }
-  if (result.hasAlerts || result.status === "alert") {
-    const alerts = Array.isArray(result.alerts) ? result.alerts : [];
-    return (
-      <span className="score-tip pains-tip">
-        <button type="button" className="pains-badge alert" aria-describedby={popId}>
-          ⚠️ Alert(s) found
-        </button>
-        <span className="score-tip-pop" id={popId} role="tooltip">
-          <strong>Substructure alerts</strong>
-          <span className="score-tip-lead">
-            Rules-based PAINS / toxicophore screen. This is a warning, not a hard block — some flagged compounds become real drugs.
-          </span>
-          <ul>
-            {alerts.map((alert, i) => (
-              <li key={`${alert.id || alert.name}-${i}`}>
-                <b>{alert.name}</b>
-                {alert.family === "pains" ? " · PAINS" : alert.family === "toxicophore" ? " · toxicophore" : ""}
-                {" — "}
-                {alert.explanation}
-              </li>
-            ))}
-          </ul>
-        </span>
-      </span>
-    );
-  }
-  return (
-    <span className="score-tip pains-tip">
-      <button type="button" className="pains-badge clean" aria-describedby={popId}>
-        ✅ Clean
-      </button>
-      <span className="score-tip-pop" id={popId} role="tooltip">
-        <strong>No PAINS or toxicophore alerts</strong>
-        <span className="score-tip-lead">
-          RDKit found no matches in the PAINS A/B/C catalogs or the curated reactive-group list. This is not proof of safety or inactivity.
-        </span>
-      </span>
-    </span>
-  );
-}
+      {/* Calculation Loading Spinner */}
+      {loading && (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "40px",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-lg)",
+            color: "var(--text-muted)",
+          }}
+        >
+          <div style={{ fontSize: "14px", fontWeight: 600, marginBottom: "6px" }}>
+            Processing molecular descriptors via secure backend…
+          </div>
+          <div style={{ fontSize: "12px" }}>
+            Computing solubility, lipophilicity, and structure-derived scores without exposing chemical tooling to the browser.
+          </div>
+        </div>
+      )}
 
-export function ScoreInfoTip() {
-  return (
-    <span className="score-tip">
-      <button
-        type="button"
-        className="score-tip-btn"
-        aria-label="How the target selection score is calculated"
-        aria-describedby="score-tip-pop"
-        title={SCORE_FORMULA_TEXT}
-      >
-        i
-      </button>
-      <span className="score-tip-pop" id="score-tip-pop" role="tooltip">
-        <strong>Target Selection Score</strong>
-        <span className="score-tip-lead">Rules-based total out of 100 from RCSB metadata. No AI call.</span>
-        <ul>
-          <li><b>Resolution (25)</b> — ≤2.0 Å = 25, ≤2.5 = 20, ≤3.0 = 15, ≤3.5 = 10, worse = 5, missing = 0</li>
-          <li><b>Completeness (25)</b> — linear, 100% = 25 pts</li>
-          <li><b>Ligand (20)</b> — real co-crystallized ligand = 20 (crystallization additives excluded)</li>
-          <li><b>Pocket (15)</b> — residues within ~5 Å of a ligand = 15, unclear = 7, none = 0</li>
-          <li><b>Method (15)</b> — X-ray = 15, Cryo-EM = 12, NMR = 8, other = 5</li>
-        </ul>
-      </span>
-    </span>
-  );
-}
-
-function compareScoreField(a, b, key) {
-  const nullableNum = (va, vb) => {
-    if (va == null && vb == null) return 0;
-    if (va == null) return -1;
-    if (vb == null) return 1;
-    return va < vb ? -1 : va > vb ? 1 : 0;
-  };
-  if (key === "id") return String(a.id).localeCompare(String(b.id));
-  if (key === "resolution") return nullableNum(a.resolutionValue, b.resolutionValue);
-  if (key === "ligand") return Number(Boolean(a.hasLigand)) - Number(Boolean(b.hasLigand));
-  if (key === "completeness") return nullableNum(a.completeness, b.completeness);
-  if (key === "pocket") {
-    const order = { detected: 2, unclear: 1, none: 0 };
-    return (order[a.pocket] ?? -1) - (order[b.pocket] ?? -1);
-  }
-  if (key === "method") return String(a.methodLabel || "").localeCompare(String(b.methodLabel || ""));
-  return (a.score ?? 0) - (b.score ?? 0);
-}
-
-export function TargetScoreTable({ results, selectedId, recommendedId, sortKey, sortDir, onSort, onSelect }) {
-  const sorted = useMemo(() => {
-    const mul = sortDir === "asc" ? 1 : -1;
-    return [...results].sort((a, b) => {
-      const cmp = compareScoreField(a, b, sortKey);
-      if (cmp !== 0) return cmp * mul;
-      return String(a.id).localeCompare(String(b.id));
-    });
-  }, [results, sortKey, sortDir]);
-
-  const cols = [
-    { key: "id", label: "PDB ID" },
-    { key: "resolution", label: "Resolution" },
-    { key: "ligand", label: "Ligand" },
-    { key: "completeness", label: "Completeness %" },
-    { key: "pocket", label: "Pocket" },
-    { key: "method", label: "Method" },
-    { key: "score", label: "Score" },
-  ];
-
-  return (
-    <div className="score-table-wrap">
-      <table className="score-table">
-        <thead>
-          <tr>
-            {cols.map((col) => {
-              const active = sortKey === col.key;
-              const ariaSort = active ? (sortDir === "asc" ? "ascending" : "descending") : "none";
-              return (
-                <th key={col.key} aria-sort={ariaSort}>
-                  <button type="button" className={"score-th" + (active ? " active" : "")} onClick={() => onSort(col.key)}>
-                    {col.label}
-                    <span className="sort-ind" aria-hidden="true">
-                      {active ? (sortDir === "asc" ? "▲" : "▼") : "↕"}
-                    </span>
-                  </button>
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((r) => {
-            const selected = selectedId === r.id;
-            const recommended = recommendedId === r.id;
-            return (
-              <tr
-                key={r.id}
-                className={(selected ? "selected" : "") + (recommended ? " recommended" : "")}
-                onClick={() => onSelect(r)}
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onSelect(r);
-                  }
+      {!loading && admeData && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-lg)",
+              padding: "20px",
+              boxShadow: "var(--shadow-sm)",
+              display: "grid",
+              gridTemplateColumns: "auto 1fr auto",
+              gap: "24px",
+              alignItems: "center",
+            }}
+          >
+            {admeData.structureSvg ? (
+              <div
+                style={{
+                  background: "#FFFFFF",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--radius)",
+                  padding: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "180px",
+                  height: "140px",
+                  overflow: "hidden",
+                }}
+                dangerouslySetInnerHTML={{ __html: admeData.structureSvg }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: "180px",
+                  height: "140px",
+                  background: "var(--surface-subtle)",
+                  borderRadius: "var(--radius)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "12px",
+                  color: "var(--text-light)",
                 }}
               >
-                <td>
-                  <div className="result-id">{r.id}</div>
-                  <div className="score-title" title={r.title}>{r.title}</div>
-                </td>
-                <td className="mono">{r.resolution || "N/A"}</td>
-                <td className="score-icon-cell">{r.ligandLabel || "❌"}</td>
-                <td className="mono">{r.completenessLabel || "N/A"}</td>
-                <td className="score-icon-cell">{r.pocketLabel || "?"}</td>
-                <td>{r.methodLabel || "N/A"}</td>
-                <td className="mono score-num">{r.score}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                Structure Preview
+              </div>
+            )}
+
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                <h2
+                  style={{
+                    margin: 0,
+                    fontSize: "20px",
+                    fontWeight: 700,
+                    color: "var(--text)",
+                  }}
+                >
+                  {admeData.compoundName}
+                </h2>
+                {admeData.cid && (
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      padding: "2px 6px",
+                      background: "var(--surface-subtle)",
+                      borderRadius: "4px",
+                      color: "var(--text-muted)",
+                      fontFamily: "monospace",
+                    }}
+                  >
+                    CID: {admeData.cid}
+                  </span>
+                )}
+              </div>
+
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "var(--text-dim)",
+                  marginBottom: "12px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <span className="mono" style={{ wordBreak: "break-all" }}>
+                  {admeData.canonicalSmiles}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopySmiles}
+                  title="Copy Canonical SMILES"
+                  style={{
+                    border: "none",
+                    background: "none",
+                    cursor: "pointer",
+                    padding: "2px 4px",
+                    color: copiedSmiles ? "var(--green)" : "var(--text-muted)",
+                    fontSize: "11px",
+                  }}
+                >
+                  {copiedSmiles ? "Copied ✓" : "Copy"}
+                </button>
+              </div>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                {/* badges omitted for brevity; same content as existing page */}
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    padding: "4px 10px",
+                    borderRadius: "20px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    background:
+                      admeData.druglikeness.lipinski.violations === 0
+                        ? "var(--green-bg)"
+                        : admeData.druglikeness.lipinski.violations === 1
+                        ? "var(--amber-bg)"
+                        : "var(--red-bg)",
+                    color:
+                      admeData.druglikeness.lipinski.violations === 0
+                        ? "var(--green)"
+                        : admeData.druglikeness.lipinski.violations === 1
+                        ? "var(--amber)"
+                        : "var(--red)",
+                    border: `1px solid ${
+                      admeData.druglikeness.lipinski.violations === 0
+                        ? "var(--green-border)"
+                        : admeData.druglikeness.lipinski.violations === 1
+                        ? "var(--amber-border)"
+                        : "var(--red-border)"
+                    }`,
+                  }}
+                >
+                  Lipinski: {admeData.druglikeness.lipinski.status}
+                </span>
+
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    padding: "4px 10px",
+                    borderRadius: "20px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    background:
+                      admeData.pharmacokinetics.boiledEgg.giAbsorption === "High"
+                        ? "var(--green-bg)"
+                        : "var(--surface-subtle)",
+                    color:
+                      admeData.pharmacokinetics.boiledEgg.giAbsorption === "High"
+                        ? "var(--green)"
+                        : "var(--text-dim)",
+                    border: `1px solid ${
+                      admeData.pharmacokinetics.boiledEgg.giAbsorption === "High"
+                        ? "var(--green-border)"
+                        : "var(--border)"
+                    }`,
+                  }}
+                >
+                  Passive HIA: {admeData.pharmacokinetics.boiledEgg.giAbsorption}
+                </span>
+
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    padding: "4px 10px",
+                    borderRadius: "20px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    background:
+                      admeData.pharmacokinetics.boiledEgg.passiveBbb === "Yes"
+                        ? "var(--amber-bg)"
+                        : "var(--surface-subtle)",
+                    color:
+                      admeData.pharmacokinetics.boiledEgg.passiveBbb === "Yes"
+                        ? "var(--amber)"
+                        : "var(--text-dim)",
+                    border: `1px solid ${
+                      admeData.pharmacokinetics.boiledEgg.passiveBbb === "Yes"
+                        ? "var(--amber-border)"
+                        : "var(--border)"
+                    }`,
+                  }}
+                >
+                  Passive BBB: {admeData.pharmacokinetics.boiledEgg.passiveBbb}
+                </span>
+
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    padding: "4px 10px",
+                    borderRadius: "20px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    background:
+                      admeData.pharmacokinetics.solubility.classColor === "green"
+                        ? "var(--green-bg)"
+                        : admeData.pharmacokinetics.solubility.classColor === "amber"
+                        ? "var(--amber-bg)"
+                        : "var(--red-bg)",
+                    color:
+                      admeData.pharmacokinetics.solubility.classColor === "green"
+                        ? "var(--green)"
+                        : admeData.pharmacokinetics.solubility.classColor === "amber"
+                        ? "var(--amber)"
+                        : "var(--red)",
+                    border: `1px solid ${
+                      admeData.pharmacokinetics.solubility.classColor === "green"
+                        ? "var(--green-border)"
+                        : admeData.pharmacokinetics.solubility.classColor === "amber"
+                        ? "var(--amber-border)"
+                        : "var(--red-border)"
+                    }`,
+                  }}
+                >
+                  Solubility: {admeData.pharmacokinetics.solubility.qualitativeClass} (logS {admeData.pharmacokinetics.solubility.logS}, est.)
+                </span>
+
+                {admeData.organToxicity && admeData.organToxicity.valid && (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      padding: "4px 10px",
+                      borderRadius: "20px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      background:
+                        admeData.organToxicity.overallBadgeColor === "red"
+                          ? "var(--red-bg)"
+                          : admeData.organToxicity.overallBadgeColor === "amber"
+                          ? "var(--amber-bg)"
+                          : "var(--green-bg)",
+                      color:
+                        admeData.organToxicity.overallBadgeColor === "red"
+                          ? "var(--red)"
+                          : admeData.organToxicity.overallBadgeColor === "amber"
+                          ? "var(--amber)"
+                          : "var(--green)",
+                      border: `1px solid ${
+                        admeData.organToxicity.overallBadgeColor === "red"
+                          ? "var(--red-border)"
+                          : admeData.organToxicity.overallBadgeColor === "amber"
+                          ? "var(--amber-border)"
+                          : "var(--green-border)"
+                      }`,
+                    }}
+                  >
+                    Structural alerts: {admeData.organToxicity.totalAlerts === 0
+                      ? "0"
+                      : `${admeData.organToxicity.totalAlerts} (${admeData.organToxicity.flaggedCategories.join(", ")})`}
+                  </span>
+                )}
+              </div>
+
+              <p style={{ margin: "8px 0 0", fontSize: "12px", color: "var(--text-muted)", fontStyle: "italic" }}>
+                Server-side ADME: calculations run in the backend and do not expose the RDKit runtime to visitors.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleCopyReport}
+                style={{ fontSize: "12px", padding: "6px 14px", whiteSpace: "nowrap" }}
+              >
+                {copiedReport ? "Report Copied ✓" : "Copy Report"}
+              </button>
+              <Link
+                to="/"
+                className="btn"
+                style={{
+                  fontSize: "12px",
+                  padding: "6px 14px",
+                  textAlign: "center",
+                  border: "1px solid var(--border)",
+                  color: "var(--text-dim)",
+                  background: "var(--surface)",
+                  textDecoration: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                ← Back to Bench
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
