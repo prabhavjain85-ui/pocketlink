@@ -814,9 +814,61 @@ export default function MethodologyPage() {
               </li>
               <li>
                 <strong>Repeat runs:</strong> Multiple independent RNG seeds report recurring survivors and run-to-run score spread. Offline
-                retrosynthesis screening (e.g. AiZynthFinder) on the final top hits is a plausible follow-up but is not run in the browser.
+                retrosynthesis screening (e.g. AiZynthFinder) on the final top-5 survivors is a plausible follow-up but is too heavy for the live
+                app and is not run here.
               </li>
             </ul>
+
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginTop: 24, marginBottom: 8 }} id="evolution-rediscovery-benchmark">
+              Held-out ChEMBL rediscovery benchmark (target-free)
+            </h3>
+            <p className="section-text">
+              We evaluate whether local search enriches close analogs of <em>held-out</em> ChEMBL actives relative to a random-edit null baseline.
+              Fixtures use the same three targets and MD5 train/test split as the docking enrichment panel (
+              <code>benchmark/docking/scripts/run_enrichment.py</code>, <code>train_frac = 0.55</code>, actives with pChEMBL ≥ 6): EGFR, JAK2, and
+              PDE5A (<code>benchmark/evolution/fixtures/chembl_rediscovery_panel.json</code>). No docking or target-fit score enters the objective.
+            </p>
+            <ul className="methodology-bullet-list">
+              <li>
+                <strong>Seed:</strong> Each train-split active (52 of 59 seeds produced valid RDKit parents in the reported run).
+              </li>
+              <li>
+                <strong>Cluster mask:</strong> Train actives with Morgan (r=2, 2048) Tanimoto &gt; 0.4 to the seed are removed from the ligand-reference
+                set (not from held-out test actives).
+              </li>
+              <li>
+                <strong>Evolution settings:</strong> 4 generations, 16 variants/generation, 4 survivors, seed similarity floor 0.4, Murcko protection,
+                MaxMin diversity, RNG seed 42 (+ per-seed offset), target-free scoring only.
+              </li>
+              <li>
+                <strong>Hit definition:</strong> A unique generated structure counts as a rediscovery hit if its max Tanimoto to any held-out test active
+                is ≥ 0.55. Hit rate = hits / unique valid offspring (excluding the seed).
+              </li>
+              <li>
+                <strong>Null baseline:</strong> Identical reaction library, hard gates, similarity floor, and Murcko protection; survivors are chosen
+                uniformly at random among valid offspring instead of NSGA-II + diversity picking.
+              </li>
+              <li>
+                <strong>Enrichment:</strong> Mean evolution hit rate minus mean null hit rate across all seed×target trials; 95% bootstrap CI (2000
+                resamples, seed 42).
+              </li>
+            </ul>
+            <p className="section-text">
+              <strong>Results (measured 2026-10-14, not tuned):</strong> Overall mean evolution hit rate 0.422, mean null hit rate 0.465, enrichment
+              −0.043 (95% CI −0.093 to +0.005). Per target — EGFR (14 seeds): evolution 0.386, null 0.401, enrichment −0.015 (95% CI −0.128 to +0.104);
+              JAK2 (20 seeds): evolution 0.282, null 0.319, enrichment −0.036 (95% CI −0.121 to +0.046); PDE5A (18 seeds): evolution 0.606, null 0.677,
+              enrichment −0.071 (95% CI −0.123 to −0.025). Evolution did not beat the random null on aggregate; this is reported as a null result.
+            </p>
+            <p className="section-text">
+              <strong>Optional ligand-based hypothesis term:</strong> We tested adding a desirability term from max Tanimoto to cluster-filtered train
+              actives (labeled ligand-based hypothesis). Mean enrichment with the term −0.044 (95% CI −0.095 to +0.006) vs −0.043 without; the lower CI
+              did not move above zero, so this term was <em>not</em> added to the production objective.
+            </p>
+            <p className="section-text">
+              Reproduce: <code>CI=true npm test -- --testPathPattern=evolutionRediscovery</code> (smoke subset). Full panel:{" "}
+              <code>REDISCOVERY_FULL=1 NODE_OPTIONS=--max-old-space-size=6144 npm test -- --testPathPattern=evolutionRediscovery.bench</code>.
+              Cached numbers: <code>benchmark/evolution/results/rediscovery.json</code>.
+            </p>
           </section>
 
           {/* Section 10: General Disclaimer */}

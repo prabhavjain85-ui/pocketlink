@@ -157,6 +157,8 @@ export async function runEvolutionGeneration({
   protectedQuery = null,
   diversityMethod = "maxmin",
   globalScaffoldArchive = null,
+  selectionMode = "nsga",
+  scoreCtxExtra = {},
 }) {
   const started = typeof performance !== "undefined" ? performance.now() : Date.now();
   const RDKit = await getRDKit();
@@ -182,6 +184,7 @@ export async function runEvolutionGeneration({
     RDKit,
     seedSimilarityFloor,
     protectedQuery,
+    ...scoreCtxExtra,
   };
 
   const scoredRows = await scoreOffspring(produced.variants, scoreCtx);
@@ -265,16 +268,27 @@ export async function runEvolutionGeneration({
     dockingMeta.docked = trainRows.length;
   }
 
-  const combined = [...parents, ...pool];
-  const objectives = combined.map((row) => objectiveVector(row, targetFree));
-  let ranked = selectSurvivorsMuPlusLambda(combined, objectives, combined.length);
-  ranked = applyScaffoldQuota(ranked, Math.max(survivors * 3, survivors), 0.25);
-  ranked = pickDiverseSurvivors(RDKit, ranked, survivors, {
-    method: diversityMethod,
-    rng,
-    seedSmiles: seedSmiles || referenceSmiles,
-  });
-  ranked = mergeElites(ranked, parents, survivors);
+  let ranked;
+  if (selectionMode === "random") {
+    const combined = [...parents, ...pool];
+    const shuffled = combined.slice();
+    for (let i = shuffled.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(rng() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    ranked = shuffled.slice(0, survivors);
+  } else {
+    const combined = [...parents, ...pool];
+    const objectives = combined.map((row) => objectiveVector(row, targetFree));
+    ranked = selectSurvivorsMuPlusLambda(combined, objectives, combined.length);
+    ranked = applyScaffoldQuota(ranked, Math.max(survivors * 3, survivors), 0.25);
+    ranked = pickDiverseSurvivors(RDKit, ranked, survivors, {
+      method: diversityMethod,
+      rng,
+      seedSmiles: seedSmiles || referenceSmiles,
+    });
+    ranked = mergeElites(ranked, parents, survivors);
+  }
 
   if (globalScaffoldArchive) {
     for (const row of ranked) {

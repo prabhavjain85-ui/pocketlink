@@ -1,0 +1,633 @@
+{
+  "generated_at": "2026-10-14T06:18:21.845691+00:00",
+  "baseline": {
+    "ok": true,
+    "settings": {
+      "generations": 4,
+      "variantsPerGeneration": 16,
+      "survivors": 4,
+      "rngSeed": 42,
+      "independentRuns": 1,
+      "seedSimilarityFloor": 0.4,
+      "dockingBudgetPerGen": 0,
+      "diversityMethod": "maxmin"
+    },
+    "smoke": false,
+    "ligandHypothesis": false,
+    "thresholds": {
+      "clusterExcludeTanimoto": 0.4,
+      "heldOutHitTanimoto": 0.55
+    },
+    "targets": [
+      {
+        "target_id": "egfr",
+        "n_train_seeds": 21,
+        "n_test_actives": 15
+      },
+      {
+        "target_id": "jak2",
+        "n_train_seeds": 20,
+        "n_test_actives": 16
+      },
+      {
+        "target_id": "pde5a",
+        "n_train_seeds": 18,
+        "n_test_actives": 18
+      }
+    ],
+    "pairedTrials": [
+      {
+        "targetId": "egfr",
+        "seedChemblId": "CHEMBL69960",
+        "hitRateEvolution": 0.8125,
+        "hitRateNull": 0.5714285714285714,
+        "uniqueHitsEvolution": 26,
+        "uniqueHitsNull": 20,
+        "nGeneratedEvolution": 32,
+        "nGeneratedNull": 35
+      },
+      {
+        "targetId": "egfr",
+        "seedChemblId": "CHEMBL76589",
+        "hitRateEvolution": 0.09523809523809523,
+        "hitRateNull": 0.038461538461538464,
+        "uniqueHitsEvolution": 2,
+        "uniqueHitsNull": 1,
+        "nGeneratedEvolution": 21,
+        "nGeneratedNull": 26
+      },
+      {
+        "targetId": "egfr",
+        "seedChemblId": "CHEMBL336113",
+        "hitRateEvolution": 0.2222222222222222,
+        "hitRateNull": 0.21428571428571427,
+        "uniqueHitsEvolution": 6,
+        "uniqueHitsNull": 9,
+        "nGeneratedEvolution": 27,
+        "nGeneratedNull": 42
+      },
+      {
+        "targetId": "egfr",
+        "seedChemblId": "CHEMBL302552",
+        "hitRateEvolution": 0.07692307692307693,
+        "hitRateNull": 0.05405405405405406,
+        "uniqueHitsEvolution": 2,
+        "uniqueHitsNull": 2,
+        "nGeneratedEvolution": 26,
+        "nGeneratedNull": 37
+      },
+      {
+        "targetId": "egfr",
+        "seedChemblId": "CHEMBL67057",
+        "hitRateEvolution": 0.37037037037037035,
+        "hitRateNull": 0.8275862068965517,
+        "uniqueHitsEvolution": 10,
+        "uniqueHitsNull": 24,
+        "nGeneratedEvolution": 27,
+        "nGeneratedNull": 29
+      },
+      {
+        "targetId": "egfr",
+        "seedChemblId": "CHEMBL332096",
+        "hitRateEvolution": 0.08,
+        "hitRateNull": 0.08695652173913043,
+        "uniqueHitsEvolution": 2,
+        "uniqueHitsNull": 2,
+        "nGeneratedEvolution": 25,
+        "nGeneratedNull": 23
+      },
+      {
+        "targetId": "egfr",
+        "seedChemblId": "CHEMBL432903",
+        "hitRateEvolution": 0.5909090909090909,
+        "hitRateNull": 0.78125,
+        "uniqueHitsEvolution": 13,
+        "uniqueHitsNull": 25,
+        "nGeneratedEvolution": 22,
+        "nGeneratedNull": 32
+      },
+      {
+        "targetId": "egfr",
+        "seedChemblId": "CHEMBL69964",
+        "hitRateEvolution": 0.65625,
+        "hitRateNull": 0.8461538461538461,
+        "uniqueHitsEvolution": 21,
+        "uniqueHitsNull": 44,
+        "nGeneratedEvolution": 32,
+        "nGeneratedNull": 52
+      },
+      {
+        "targetId": "egfr",
+        "seedChemblId": "CHEMBL69629",
+        "hitRateEvolution": 0.5666666666666667,
+        "hitRateNull": 0.8205128205128205,
+        "uniqueHitsEvolution": 17,
+        "uniqueHitsNull": 32,
+        "nGeneratedEvolution": 30,
+        "nGeneratedNull": 39
+      },
+      {
+        "targetId": "egfr",
+        "seedChemblId": "CHEMBL305194",
+        "hitRateEvolution": 0.5,
+        "hitRateNull": 0.5128205128205128,
+        "uniqueHitsEvolution": 13,
+        "uniqueHitsNull": 20,
+        "nGeneratedEvolution": 26,
+        "nGeneratedNull": 39
+      },
+      {
+        "targetId": "egfr",
+        "seedChemblId": "CHEMBL52765",
+        "hitRateEvolution": 0.25925925925925924,
+        "hitRateNull": 0.2413793103448276,
+        "uniqueHitsEvolution": 7,
+        "uniqueHitsNull": 7,
+        "nGeneratedEvolution": 27,
+        "nGeneratedNull": 29
+      },
+      {
+        "targetId": "egfr",
+        "seedChemblId": "CHEMBL69966",
+        "hitRateEvolution": 0.2608695652173913,
+        "hitRateNull": 0.21052631578947367,
+        "uniqueHitsEvolution": 6,
+        "uniqueHitsNull": 8,
+        "nGeneratedEvolution": 23,
+        "nGeneratedNull": 38
+      },
+      {
+        "targetId": "egfr",
+        "seedChemblId": "CHEMBL69071",
+        "hitRateEvolution": 0.918918918918919,
+        "hitRateNull": 0.4146341463414634,
+        "uniqueHitsEvolution": 34,
+        "uniqueHitsNull": 17,
+        "nGeneratedEvolution": 37,
+        "nGeneratedNull": 41
+      },
+      {
+        "targetId": "egfr",
+        "seedChemblId": "CHEMBL77030",
+        "hitRateEvolution": 0,
+        "hitRateNull": 0,
+        "uniqueHitsEvolution": 0,
+        "uniqueHitsNull": 0,
+        "nGeneratedEvolution": 22,
+        "nGeneratedNull": 20
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL21156",
+        "hitRateEvolution": 0,
+        "hitRateNull": 0,
+        "uniqueHitsEvolution": 0,
+        "uniqueHitsNull": 0,
+        "nGeneratedEvolution": 36,
+        "nGeneratedNull": 36
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL557844",
+        "hitRateEvolution": 0.43333333333333335,
+        "hitRateNull": 0.7297297297297297,
+        "uniqueHitsEvolution": 13,
+        "uniqueHitsNull": 27,
+        "nGeneratedEvolution": 30,
+        "nGeneratedNull": 37
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL221378",
+        "hitRateEvolution": 0.3939393939393939,
+        "hitRateNull": 0.4473684210526316,
+        "uniqueHitsEvolution": 13,
+        "uniqueHitsNull": 17,
+        "nGeneratedEvolution": 33,
+        "nGeneratedNull": 38
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL375205",
+        "hitRateEvolution": 0.1875,
+        "hitRateNull": 0.15,
+        "uniqueHitsEvolution": 6,
+        "uniqueHitsNull": 6,
+        "nGeneratedEvolution": 32,
+        "nGeneratedNull": 40
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL374321",
+        "hitRateEvolution": 0.2647058823529412,
+        "hitRateNull": 0.47368421052631576,
+        "uniqueHitsEvolution": 9,
+        "uniqueHitsNull": 18,
+        "nGeneratedEvolution": 34,
+        "nGeneratedNull": 38
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL221376",
+        "hitRateEvolution": 0.16666666666666666,
+        "hitRateNull": 0.16279069767441862,
+        "uniqueHitsEvolution": 7,
+        "uniqueHitsNull": 7,
+        "nGeneratedEvolution": 42,
+        "nGeneratedNull": 43
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL220483",
+        "hitRateEvolution": 0.22857142857142856,
+        "hitRateNull": 0.8421052631578947,
+        "uniqueHitsEvolution": 8,
+        "uniqueHitsNull": 32,
+        "nGeneratedEvolution": 35,
+        "nGeneratedNull": 38
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL384820",
+        "hitRateEvolution": 0.43333333333333335,
+        "hitRateNull": 0.3,
+        "uniqueHitsEvolution": 13,
+        "uniqueHitsNull": 12,
+        "nGeneratedEvolution": 30,
+        "nGeneratedNull": 40
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL222027",
+        "hitRateEvolution": 0.36666666666666664,
+        "hitRateNull": 0.3333333333333333,
+        "uniqueHitsEvolution": 11,
+        "uniqueHitsNull": 12,
+        "nGeneratedEvolution": 30,
+        "nGeneratedNull": 36
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL221037",
+        "hitRateEvolution": 0.5333333333333333,
+        "hitRateNull": 0.15625,
+        "uniqueHitsEvolution": 16,
+        "uniqueHitsNull": 5,
+        "nGeneratedEvolution": 30,
+        "nGeneratedNull": 32
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL376885",
+        "hitRateEvolution": 0.02631578947368421,
+        "hitRateNull": 0.02,
+        "uniqueHitsEvolution": 1,
+        "uniqueHitsNull": 1,
+        "nGeneratedEvolution": 38,
+        "nGeneratedNull": 50
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL218439",
+        "hitRateEvolution": 0.5128205128205128,
+        "hitRateNull": 0.5135135135135135,
+        "uniqueHitsEvolution": 20,
+        "uniqueHitsNull": 19,
+        "nGeneratedEvolution": 39,
+        "nGeneratedNull": 37
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL375296",
+        "hitRateEvolution": 0.2962962962962963,
+        "hitRateNull": 0.4666666666666667,
+        "uniqueHitsEvolution": 8,
+        "uniqueHitsNull": 21,
+        "nGeneratedEvolution": 27,
+        "nGeneratedNull": 45
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL218579",
+        "hitRateEvolution": 0.2692307692307692,
+        "hitRateNull": 0.4,
+        "uniqueHitsEvolution": 7,
+        "uniqueHitsNull": 12,
+        "nGeneratedEvolution": 26,
+        "nGeneratedNull": 30
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL375076",
+        "hitRateEvolution": 0.16666666666666666,
+        "hitRateNull": 0.11904761904761904,
+        "uniqueHitsEvolution": 4,
+        "uniqueHitsNull": 5,
+        "nGeneratedEvolution": 24,
+        "nGeneratedNull": 42
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL220585",
+        "hitRateEvolution": 0.4666666666666667,
+        "hitRateNull": 0.2619047619047619,
+        "uniqueHitsEvolution": 7,
+        "uniqueHitsNull": 11,
+        "nGeneratedEvolution": 15,
+        "nGeneratedNull": 42
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL323994",
+        "hitRateEvolution": 0,
+        "hitRateNull": 0,
+        "uniqueHitsEvolution": 0,
+        "uniqueHitsNull": 0,
+        "nGeneratedEvolution": 22,
+        "nGeneratedNull": 38
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL386637",
+        "hitRateEvolution": 0,
+        "hitRateNull": 0,
+        "uniqueHitsEvolution": 0,
+        "uniqueHitsNull": 0,
+        "nGeneratedEvolution": 33,
+        "nGeneratedNull": 33
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL392998",
+        "hitRateEvolution": 0.20588235294117646,
+        "hitRateNull": 0.2,
+        "uniqueHitsEvolution": 7,
+        "uniqueHitsNull": 6,
+        "nGeneratedEvolution": 34,
+        "nGeneratedNull": 30
+      },
+      {
+        "targetId": "jak2",
+        "seedChemblId": "CHEMBL231948",
+        "hitRateEvolution": 0.6956521739130435,
+        "hitRateNull": 0.8,
+        "uniqueHitsEvolution": 16,
+        "uniqueHitsNull": 32,
+        "nGeneratedEvolution": 23,
+        "nGeneratedNull": 40
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL87901",
+        "hitRateEvolution": 0.6571428571428571,
+        "hitRateNull": 0.868421052631579,
+        "uniqueHitsEvolution": 23,
+        "uniqueHitsNull": 33,
+        "nGeneratedEvolution": 35,
+        "nGeneratedNull": 38
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL313197",
+        "hitRateEvolution": 1,
+        "hitRateNull": 1,
+        "uniqueHitsEvolution": 28,
+        "uniqueHitsNull": 23,
+        "nGeneratedEvolution": 28,
+        "nGeneratedNull": 23
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL87202",
+        "hitRateEvolution": 0.9,
+        "hitRateNull": 0.8918918918918919,
+        "uniqueHitsEvolution": 36,
+        "uniqueHitsNull": 33,
+        "nGeneratedEvolution": 40,
+        "nGeneratedNull": 37
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL87954",
+        "hitRateEvolution": 0.6451612903225806,
+        "hitRateNull": 0.825,
+        "uniqueHitsEvolution": 20,
+        "uniqueHitsNull": 33,
+        "nGeneratedEvolution": 31,
+        "nGeneratedNull": 40
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL89670",
+        "hitRateEvolution": 0.8571428571428571,
+        "hitRateNull": 1,
+        "uniqueHitsEvolution": 24,
+        "uniqueHitsNull": 17,
+        "nGeneratedEvolution": 28,
+        "nGeneratedNull": 17
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL89151",
+        "hitRateEvolution": 0.9333333333333333,
+        "hitRateNull": 0.9696969696969697,
+        "uniqueHitsEvolution": 28,
+        "uniqueHitsNull": 32,
+        "nGeneratedEvolution": 30,
+        "nGeneratedNull": 33
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL314849",
+        "hitRateEvolution": 1,
+        "hitRateNull": 1,
+        "uniqueHitsEvolution": 26,
+        "uniqueHitsNull": 27,
+        "nGeneratedEvolution": 26,
+        "nGeneratedNull": 27
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL89239",
+        "hitRateEvolution": 0.7567567567567568,
+        "hitRateNull": 1,
+        "uniqueHitsEvolution": 28,
+        "uniqueHitsNull": 37,
+        "nGeneratedEvolution": 37,
+        "nGeneratedNull": 37
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL313482",
+        "hitRateEvolution": 0.8,
+        "hitRateNull": 0.9285714285714286,
+        "uniqueHitsEvolution": 20,
+        "uniqueHitsNull": 26,
+        "nGeneratedEvolution": 25,
+        "nGeneratedNull": 28
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL86602",
+        "hitRateEvolution": 0.35135135135135137,
+        "hitRateNull": 0.6764705882352942,
+        "uniqueHitsEvolution": 13,
+        "uniqueHitsNull": 23,
+        "nGeneratedEvolution": 37,
+        "nGeneratedNull": 34
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL86982",
+        "hitRateEvolution": 0.868421052631579,
+        "hitRateNull": 0.8214285714285714,
+        "uniqueHitsEvolution": 33,
+        "uniqueHitsNull": 46,
+        "nGeneratedEvolution": 38,
+        "nGeneratedNull": 56
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL86512",
+        "hitRateEvolution": 0.7142857142857143,
+        "hitRateNull": 0.8214285714285714,
+        "uniqueHitsEvolution": 25,
+        "uniqueHitsNull": 23,
+        "nGeneratedEvolution": 35,
+        "nGeneratedNull": 28
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL315477",
+        "hitRateEvolution": 0.972972972972973,
+        "hitRateNull": 0.8888888888888888,
+        "uniqueHitsEvolution": 36,
+        "uniqueHitsNull": 32,
+        "nGeneratedEvolution": 37,
+        "nGeneratedNull": 36
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL87777",
+        "hitRateEvolution": 0.4166666666666667,
+        "hitRateNull": 0.47368421052631576,
+        "uniqueHitsEvolution": 15,
+        "uniqueHitsNull": 18,
+        "nGeneratedEvolution": 36,
+        "nGeneratedNull": 38
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL142238",
+        "hitRateEvolution": 0,
+        "hitRateNull": 0,
+        "uniqueHitsEvolution": 0,
+        "uniqueHitsNull": 0,
+        "nGeneratedEvolution": 39,
+        "nGeneratedNull": 36
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL42713",
+        "hitRateEvolution": 0.03333333333333333,
+        "hitRateNull": 0.024390243902439025,
+        "uniqueHitsEvolution": 1,
+        "uniqueHitsNull": 1,
+        "nGeneratedEvolution": 30,
+        "nGeneratedNull": 41
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL436402",
+        "hitRateEvolution": 0,
+        "hitRateNull": 0,
+        "uniqueHitsEvolution": 0,
+        "uniqueHitsNull": 0,
+        "nGeneratedEvolution": 40,
+        "nGeneratedNull": 40
+      },
+      {
+        "targetId": "pde5a",
+        "seedChemblId": "CHEMBL332898",
+        "hitRateEvolution": 0,
+        "hitRateNull": 0,
+        "uniqueHitsEvolution": 0,
+        "uniqueHitsNull": 0,
+        "nGeneratedEvolution": 34,
+        "nGeneratedNull": 32
+      }
+    ],
+    "summary": {
+      "nTrials": 52,
+      "meanEvolutionHitRate": 0.42238993688213483,
+      "meanNullHitRate": 0.4651214652430257,
+      "meanEnrichment": -0.04273152836089089,
+      "ci95": [
+        -0.09294726229777273,
+        0.0047941828081273785
+      ]
+    },
+    "perTarget": [
+      {
+        "targetId": "egfr",
+        "nSeeds": 14,
+        "nTrials": 14,
+        "meanEvolutionHitRate": 0.3864376618375066,
+        "meanNullHitRate": 0.40143211134489315,
+        "meanEnrichment": -0.014994449507386542,
+        "ci95": [
+          -0.12815073911513458,
+          0.10417069281581315
+        ]
+      },
+      {
+        "targetId": "jak2",
+        "nSeeds": 20,
+        "nTrials": 20,
+        "meanEvolutionHitRate": 0.28237906331029566,
+        "meanNullHitRate": 0.3188197108303442,
+        "meanEnrichment": -0.03644064752004855,
+        "ci95": [
+          -0.12127044087945621,
+          0.04555297393278679
+        ]
+      },
+      {
+        "targetId": "pde5a",
+        "nSeeds": 18,
+        "nTrials": 18,
+        "meanEvolutionHitRate": 0.6059204547744446,
+        "meanNullHitRate": 0.677215134288997,
+        "meanEnrichment": -0.07129467951455248,
+        "ci95": [
+          -0.12315897177924107,
+          -0.02542036796422764
+        ]
+      }
+    ]
+  },
+  "ligandHypothesisComparison": {
+    "ligandHelps": false,
+    "baseline": {
+      "nTrials": 52,
+      "meanEvolutionHitRate": 0.42238993688213483,
+      "meanNullHitRate": 0.4651214652430257,
+      "meanEnrichment": -0.04273152836089089,
+      "ci95": [
+        -0.09294726229777273,
+        0.0047941828081273785
+      ]
+    },
+    "withLigand": {
+      "nTrials": 52,
+      "meanEvolutionHitRate": 0.4214348261651243,
+      "meanNullHitRate": 0.4651214652430257,
+      "meanEnrichment": -0.043686639077901435,
+      "ci95": [
+        -0.0948548314809397,
+        0.005512728812879397
+      ]
+    }
+  },
+  "ligandHypothesisAddedToProduct": false
+}
