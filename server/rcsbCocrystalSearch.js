@@ -59,12 +59,18 @@ export function normalizeResolutionCombined(raw) {
   return resolution;
 }
 
+/**
+ * Returns undefined on a miss so callers can cache a null result and still
+ * tell "not looked up yet" from "looked up, came back empty". fetchChemComp
+ * relies on that distinction; returning null for a miss made it answer null
+ * without ever calling RCSB.
+ */
 function cacheGet(key) {
   const row = memoryCache.get(key);
-  if (!row) return null;
+  if (!row) return undefined;
   if (Date.now() > row.expires) {
     memoryCache.delete(key);
-    return null;
+    return undefined;
   }
   return row.value;
 }

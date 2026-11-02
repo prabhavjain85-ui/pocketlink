@@ -15,7 +15,14 @@ const OPS = Object.assign(Object.create(null), {
   // Staging bench
   searchPdbTargets: lazy(() => import("./pdbSearch.js"), "searchPdbTargets"),
   checkPainsBatch: lazy(() => import("./painsCheck.js"), "checkPainsBatch"),
-  rankCandidates: lazy(() => import("./aiCandidateRanking.js"), "rankCandidates"),
+  async rankCandidates(candidates, protein, painsByCid) {
+    const { rankCandidates } = await import("./aiCandidateRanking.js");
+    const { annotateStructuralSimilarity } = await import("./structuralSimilarity.js");
+    // Compare the shortlist to the staged structure's co-crystal ligand before
+    // scoring, so unnamed compounds still get a target-specific signal.
+    await annotateStructuralSimilarity(candidates, protein);
+    return rankCandidates(candidates, protein, painsByCid);
+  },
 
   // Target discovery
   searchDiseases: lazy(() => import("./openTargets.js"), "searchDiseases"),

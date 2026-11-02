@@ -577,6 +577,26 @@ function evaluateCandidateForTargetRule(candidate, rule, protein) {
   };
 }
 
+// Similarity below this is treated as unrelated chemistry; at or above the top
+// of the ramp the candidate is a close analogue of the co-crystal ligand.
+const SIMILARITY_FLOOR = 0.25;
+const SIMILARITY_CEILING = 0.75;
+// Points a purely structural match can earn. Deliberately below the 55-point
+// on-target bonus: resembling the bound ligand is weaker evidence than being a
+// drug with documented pharmacology for this target.
+const SIMILARITY_MAX_TARGET_PTS = 35;
+const SIMILARITY_MAX_LIGAND_PTS = 20;
+
+/** 0 below the floor, 1 at or above the ceiling, linear between. */
+function similarityRamp(similarity) {
+  if (similarity === null || similarity === undefined) return null;
+  const value = Number(similarity);
+  if (!Number.isFinite(value)) return null;
+  if (value <= SIMILARITY_FLOOR) return 0;
+  if (value >= SIMILARITY_CEILING) return 1;
+  return (value - SIMILARITY_FLOOR) / (SIMILARITY_CEILING - SIMILARITY_FLOOR);
+}
+
 function trap(val, minOk, idealLow, idealHigh, maxOk) {
   if (val === null || val === undefined) return 0.5;
   if (val < minOk) return 0;
@@ -652,6 +672,37 @@ function scoreOne(candidate, protein = null) {
     reasoning.push(`No target structure was staged; scored purely on generic physicochemical properties`);
   }
 
+  // Structural similarity to the co-crystallised ligand (set upstream by
+  // server/structuralSimilarity.js). This is the only target-specific signal
+  // available for molecules the name-based rules cannot recognise, so it can
+  // stand in for both the target and ligand terms when they are absent.
+  const similarity = num(candidate.structuralSimilarity);
+  const ramp = similarityRamp(similarity);
+  let similarityApplied = false;
+  if (ramp !== null && ramp > 0) {
+    const structuralTargetPts = Math.round(SIMILARITY_MAX_TARGET_PTS * ramp);
+    const structuralLigandPts = Math.round(SIMILARITY_MAX_LIGAND_PTS * ramp);
+
+    if (structuralTargetPts > targetBonus) {
+      targetBonus = structuralTargetPts;
+      similarityApplied = true;
+    }
+    // A name-based co-crystal match already scores the full 20; only fill in
+    // when that lookup found nothing.
+    if (ligandBonus === 0 && structuralLigandPts > 0) {
+      ligandBonus = structuralLigandPts;
+      similarityApplied = true;
+    }
+
+    if (similarityApplied) {
+      const pct = (similarity * 100).toFixed(0);
+      reasoning.push(
+        `Structural similarity to the co-crystallised ligand: Tanimoto ${similarity.toFixed(2)} (Morgan radius 2, 2048-bit)`
+      );
+      strengths.push(`${pct}% 2D fingerprint similarity to the ligand bound in this structure (resemblance only, not binding).`);
+    }
+  }
+
   // Lipinski/Veber drug-likeness component (max ~24 pts)
   const weighted =
     0.22 * trap(p.mw, 0, 180, 420, 650) +
@@ -698,6 +749,8 @@ function scoreOne(candidate, protein = null) {
     ligandBonus,
     druglikePts,
     alertPenalty,
+    structuralSimilarity: similarity,
+    similarityApplied,
   };
 }
 
@@ -776,18 +829,32 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
 
   scored.sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;
+    const simA = Number.isFinite(a.structuralSimilarity) ? a.structuralSimilarity : -1;
+    const simB = Number.isFinite(b.structuralSimilarity) ? b.structuralSimilarity : -1;
+    if (simB !== simA) return simB - simA;
     if (b.passCount !== a.passCount) return b.passCount - a.passCount;
     return String(a.cid).localeCompare(String(b.cid));
   });
 
-  const ranking = scored.map((item, index) => ({
-    cid: item.cid,
-    rank: index + 1,
-    score: item.score,
-    reasoning: (item.reasoning || []).slice(0, 6),
-    strengths: item.strengths.slice(0, 3),
-    concerns: item.concerns.slice(0, 3),
-  }));
+  // Competition ranking: equally scored compounds share a rank rather than
+  // being separated by the alphabetical order of their compound id, which the
+  // table would otherwise present as a real ordering.
+  const ranking = scored.map((item, index) => {
+    const previous = index > 0 ? scored[index - 1] : null;
+    const tiedWithPrevious = previous && previous.score === item.score;
+    return {
+      cid: item.cid,
+      rank: index + 1,
+      score: item.score,
+      tiedWithPrevious: Boolean(tiedWithPrevious),
+      reasoning: (item.reasoning || []).slice(0, 6),
+      strengths: item.strengths.slice(0, 3),
+      concerns: item.concerns.slice(0, 3),
+    };
+  });
+  for (let i = 0; i < ranking.length; i += 1) {
+    if (ranking[i].tiedWithPrevious) ranking[i].rank = ranking[i - 1].rank;
+  }
 
   const top = scored[0];
   const originalTop = list.find((c) => cidOf(c) === top.cid) || list[0];

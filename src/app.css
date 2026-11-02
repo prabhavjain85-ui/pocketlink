@@ -7045,3 +7045,9 @@ textarea.field-input {
 
 
 
+
+.safety-badge.estimate {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}

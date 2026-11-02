@@ -5,6 +5,8 @@
  * and streams newline-delimited JSON back: callback invocations and client
  * effects as they happen, then a final {t:"result"} or {t:"error"} line.
  */
+const { checkRateLimit } = require("./_lib/rateLimit");
+
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
 
 let computePromise = null;
@@ -70,6 +72,19 @@ async function handler(req, res) {
     res.statusCode = 400;
     res.setHeader("Content-Type", "application/json");
     res.end(JSON.stringify({ error: "Unknown operation." }));
+    return;
+  }
+
+  const limit = checkRateLimit(req, body.op);
+  if (!limit.allowed) {
+    res.statusCode = 429;
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Retry-After", String(limit.retryAfterSeconds));
+    res.end(
+      JSON.stringify({
+        error: `Rate limit reached (${limit.reason}) Please wait ${limit.retryAfterSeconds}s and try again.`,
+      })
+    );
     return;
   }
 

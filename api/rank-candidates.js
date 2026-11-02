@@ -55,6 +55,8 @@ function compactCandidates(raw, limit = 5) {
       tpsa: c.tpsa,
       class: clean(c.class || c.drugClass, 80),
       indication: clean(c.indication, 160),
+      structuralSimilarity: Number.isFinite(Number(c.structuralSimilarity)) ? Number(c.structuralSimilarity) : undefined,
+      structuralSimilarityRef: c.structuralSimilarityRef ? clean(c.structuralSimilarityRef, 12) : undefined,
       lipinskiVeber: {
         passCount: checks.filter((x) => x.pass).length,
         violations: checks.filter((x) => !x.pass).length,

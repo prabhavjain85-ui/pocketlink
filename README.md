@@ -164,6 +164,30 @@ TargetForge operates out-of-the-box with local deterministic models. Advanced AI
 
 ---
 
+## Scoring: What Generalises and What Does Not
+
+The curated target rules in `server/scoreCandidates.js` recognise compounds by **name**, so they award the 55-point on-target bonus only to drugs already listed in a rule. They say nothing about an unnamed or newly generated molecule.
+
+`server/structuralSimilarity.js` adds the one target-specific signal that works for any molecule: Morgan fingerprint (radius 2, 2048-bit) Tanimoto similarity to the ligand co-crystallised in the staged PDB entry, fetched from the RCSB chemical-component record. It is continuous, so it also breaks the score ties the discrete bonuses produce.
+
+- Named on-target drugs score exactly as before — similarity only fills in the target and ligand terms when the name lookup finds nothing.
+- Similarity contributes at most 35 target points and 20 ligand points, ramping from Tanimoto 0.25 to 0.75. Resembling the bound ligand is deliberately weaker evidence than documented pharmacology.
+- It is a 2D fingerprint comparison, not docking, and does not estimate binding.
+
+`src/structuralSimilarity.test.js` includes a held-out check: the same compounds are scored with their names replaced, which removes the curated-rule signal entirely. Without similarity the known inhibitor is indistinguishable from an unrelated stimulant; with it, the co-crystal analogue is recovered without using its name.
+
+Equally scored compounds now share a rank (`tiedWithPrevious`) instead of being ordered by the alphabetical accident of their compound id.
+
+### Auditing the Target Selection Score
+
+```bash
+node scripts/audit-target-score-variance.mjs 150
+```
+
+Scores a sample of real PDB entries and reports how much each weighted axis varies. On a 150-entry sample, completeness (25 pts) and method (15 pts) together accounted for about 3.6% of the total spread — 40 of 100 points that barely separate structures — while ligand presence (20 pts) accounted for ~25%. Re-run it before changing the weights.
+
+---
+
 ## Code Layout: UI in the Browser, Calculations on the Server
 
 All scoring, screening and analysis code lives in `server/` and never ships to the browser. Create React App refuses to bundle files outside `src/`, so nothing in `server/` can leak into the production build by accident.
