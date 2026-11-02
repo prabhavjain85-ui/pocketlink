@@ -1,1 +1,1 @@
-RDKit browser WASM runtime removed. Calculations run on the server via /api/compute.
+Browser RDKit runtime removed. The server uses its private deployment dependency for calculations.

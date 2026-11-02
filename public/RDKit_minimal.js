@@ -1,1 +1,1 @@
-/* RDKit browser runtime removed. Calculations run on the server via /api/compute. */
+/* RDKit browser runtime removed; server-side calculations use @rdkit/rdkit from node_modules. */

@@ -1,8 +1,16 @@
 /**
- * Browser-side RDKit is disabled. Molecular calculations use the server API.
- * This compatibility stub remains for UI components that optionally render a
- * local structure preview; it deliberately exposes no RDKit methods/runtime.
+ * Browser-side RDKit is intentionally unavailable.
+ *
+ * ADME/cheminformatics runs through the server API. This tiny compatibility
+ * adapter remains only because legacy UI components call getRDKit() before
+ * attempting optional local structure previews. It exposes no parser or WASM.
  */
+const DISABLED_RDKIT = Object.freeze({
+  get_mol() {
+    return null;
+  },
+});
+
 export async function getRDKit() {
-  return {};
+  return DISABLED_RDKIT;
 }
