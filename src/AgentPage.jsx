@@ -941,7 +941,7 @@ export default function AgentPage() {
                               <td>{c.indication || "—"}</td>
                               <td>
                                 <span style={{ color: "var(--text-dim)" }}>
-                                  {(c.reasoning || []).slice(0, 2).join("; ") || "Compatible pocket fit"}
+                                  {(c.reasoning || []).slice(0, 2).join("; ") || "Target-class and drug-likeness triage"}
                                 </span>
                               </td>
                             </tr>
@@ -1008,7 +1008,7 @@ export default function AgentPage() {
 
                     <ul className="adversarial-point-list">
                       <li className="adversarial-point-item">
-                        <strong>Target-Aware Pocket Fit:</strong> Scored {step4.data.candidate.score}/100 using TargetForge’s heuristic-v2 ranker accounting for pocket residues, ligand coordinates, and catalytic site constraints.
+                        <strong>Target-class triage (heuristic-v2):</strong> Priority tier score {step4.data.candidate.score} from curated pharmacology rules for the selected target, co-crystal ligand name match when applicable, PubChem drug-likeness, and alert penalties — not pocket geometry or predicted binding affinity.
                       </li>
                       <li className="adversarial-point-item">
                         <strong>Pharmacophore Rationale:</strong> {Array.isArray(step4.data.candidate.reasoning) ? step4.data.candidate.reasoning.slice(0, 2).join("; ") : "Favorable geometric and electrostatic complementarity."}
@@ -1045,7 +1045,7 @@ export default function AgentPage() {
                         <strong>On-Label vs Repurposing Regimen:</strong> Approved for {step4.data.candidate.indication || "its primary indication"}. Reaching therapeutic concentrations at the disease site ({report.diseaseResolved?.name || "target tissue"}) may require dosing exceeding established toxicity windows.
                       </li>
                       <li className="adversarial-point-item">
-                        <strong>Endogenous Substrate Competition:</strong> In silico scores reflect pocket geometry; the scaffold must outcompete physiological ATP and native cofactors in vivo.
+                        <strong>Endogenous Substrate Competition:</strong> The triage score does not model in-pocket competition; the scaffold must still outcompete physiological ATP and native cofactors in vivo.
                       </li>
                       <li className="adversarial-point-item">
                         <strong>Transporter &amp; First-Pass Clearance:</strong> Subject to hepatic CYP metabolism and P-gp/BCRP transporter efflux, which in silico heuristic scoring cannot rule out.

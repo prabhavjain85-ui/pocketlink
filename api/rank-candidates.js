@@ -171,6 +171,38 @@ function rowReasoning(row) {
   return mixed.map((s) => clean(s, 240)).slice(0, 6);
 }
 
+function extractLlmReasoningOnly(result, allowedCids) {
+  if (!result || typeof result !== "object") return null;
+  const fromCandidates = Array.isArray(result.candidates) ? result.candidates : [];
+  const fromRanking = Array.isArray(result.ranking) ? result.ranking : [];
+  const sourceRows = fromCandidates.length ? fromCandidates : fromRanking;
+  if (!sourceRows.length) return null;
+
+  const byCid = new Map();
+  for (const row of sourceRows) {
+    const cid = rowCid(row);
+    if (!allowedCids.includes(cid) || byCid.has(cid)) continue;
+    const reasoning = rowReasoning(row);
+    if (!reasoning.length) continue;
+    byCid.set(cid, {
+      cid,
+      reasoning,
+      strengths: Array.isArray(row.strengths) ? row.strengths.map((s) => clean(s, 240)).slice(0, 4) : reasoning.slice(0, 3),
+      concerns: Array.isArray(row.concerns) ? row.concerns.map((s) => clean(s, 240)).slice(0, 4) : [],
+    });
+  }
+  if (!byCid.size) return null;
+  const ranking = allowedCids.map((cid) => byCid.get(cid)).filter(Boolean);
+  if (!ranking.length) return null;
+  return {
+    ranking,
+    summary: clean(result.summary, 900),
+    limitations: Array.isArray(result.limitations)
+      ? result.limitations.map((s) => clean(s, 300)).slice(0, 6)
+      : [],
+  };
+}
+
 function mergeBatchLlmReasoning(heuristic, llm) {
   const llmByCid = new Map((llm?.ranking || []).map((row) => [String(row.cid), row]));
   const ranking = (heuristic.ranking || []).map((row) => {
@@ -279,31 +311,32 @@ function buildRankPrompt(compact, protein, heuristic) {
   const rule = resolveTargetRule(protein);
 
   const gaps = protein?.dataGaps?.length
-    ? `Missing target data:\n${protein.dataGaps.map((g) => `- ${g}`).join("\n")}\nGraceful fallback: no reference ligand and/or pocket geometry is available. Score using known pharmacology for this target family plus drug-likeness. Explicitly note in every candidate's reasoning that target-fit assessment is limited without pocket/ligand data. Do not fabricate a confident geometric fit. Do not rank by general drug-likeness alone — a benzodiazepine or anthelmintic must not outrank a known class match just because it is more Lipinski-compliant.`
-    : "Pocket and/or reference-ligand data are available — use them for size and polarity matching, and still require genuine pharmacological relevance.";
+    ? `Missing target data:\n${protein.dataGaps.map((g) => `- ${g}`).join("\n")}\nGraceful fallback: no reference ligand metadata is available. Write rationale from known pharmacology for this target family and PubChem drug-likeness only — do not claim pocket geometry, residue contacts, or binding affinity. Note in reasoning that structural context is limited. Do not rank by general drug-likeness alone — a benzodiazepine or anthelmintic must not sound like a better fit than a known class match just because it is more Lipinski-compliant.`
+    : "Reference-ligand metadata may be present for context only; triage does not compute pocket geometry. Ground rationale in curated target-class rules and supplied properties.";
 
   const familyLine = rule
-    ? `Specific target rule resolved: ${rule.name} (family: ${rule.family}). On-target drugs (${rule.onTargetDrugs.join(", ")}) must be prioritized over off-target or same-family drugs. For example, EGFR inhibitors like erlotinib/gefitinib must score above ABL inhibitors like imatinib against EGFR, and vice versa against ABL.`
-    : `Recognized target family: ${family}. Pharmacological class match for THIS family must drive the ranking. A generally drug-like molecule with no class match (for example alprazolam against HIV protease or COX-2) must score well below a known class match.`;
+    ? `Specific target rule resolved: ${rule.name} (family: ${rule.family}). On-target drugs (${rule.onTargetDrugs.join(", ")}) are pharmacologically relevant to this target. Explain how each candidate aligns or conflicts with that class — do not invent numeric scores or binding data.`
+    : `Recognized target family: ${family}. Discuss pharmacological class relevance for THIS family. A generally drug-like molecule with no class match (for example alprazolam against HIV protease or COX-2) should be described as a weak hypothesis, not a top lead.`;
 
   const system = `You are an assistant for early-stage computational drug discovery triage.
-Score each supplied small-molecule candidate for how well it fits THIS specific target / PDB structure, not how drug-like it is in general.
+Write plain-language comparison notes for the supplied candidates against THIS specific target / PDB context.
 ${TARGET_SPECIFIC_INSTRUCTION}
 
-Scoring (integer 0–100) is a weighted combination of:
-1. Target/pocket fit (~55%): size and polarity match relative to the pocket and the co-crystallized reference ligand when available, AND genuine pharmacological relevance. If the compound is a known inhibitor class for this target family — for example a tyrosine kinase inhibitor when the target is a tyrosine kinase, a protease inhibitor when the target is HIV protease, or an NSAID when the target is COX-2 — that must meaningfully raise the score. Use real chemical and pharmacological knowledge here, not just geometric property matching.
-2. Drug-likeness (~30%): Lipinski Rule-of-Five and Veber compliance from the supplied properties. This is a tie-breaker, not the ranking.
-3. PAINS/toxicophore penalty: deduct points if flagged (typically 8–15). Never hard-zero a score solely because of an alert — some flagged chemotypes become real drugs.
+Do NOT assign numeric scores, ranks, or probabilities. TargetForge's heuristic-v2 model (provided below) is the only source of scores and ordering.
 
-You may use established pharmacological knowledge about compound classes and protein families. Do not invent docking scores, IC50 values, ADME results, residue contacts, or unpublished experimental evidence. Do not call a molecule a drug or clinically effective against this target.
-When a candidate includes pains alerts, those are deterministic RDKit substructure flags, not an LLM judgment. Mention them in reasoning. Do not invent alerts that are not in the supplied data.
-A TargetForge heuristic ranking is provided as a starting point — you may reorder if target fit and pharmacology justify it.
+Focus each candidate's reasoning on:
+1. Whether the compound matches the resolved target-class rule (on-target, same-family/demoted, or unrelated).
+2. Lipinski/Veber drug-likeness and any PAINS/toxicophore flags in the supplied data.
+3. Co-crystallized reference ligand name matches when relevant — this is a string/name check, not a geometric fit.
+
+You may use established pharmacological knowledge about compound classes and protein families. Do not invent docking scores, IC50 values, ADME results, residue contacts, pocket fit, or unpublished experimental evidence. Do not call a molecule a drug or clinically effective against this target.
+When a candidate includes pains alerts, those are deterministic substructure flags from the app, not your judgment. Mention them in reasoning. Do not invent alerts that are not in the supplied data.
 
 Return valid JSON only with this schema:
-{"target":{"name":string,"pdb_id":string},"candidates":[{"compound_id":string,"score":number,"reasoning":[string]}],"summary":string,"limitations":[string]}
-compound_id must be the supplied cid. Include every candidate exactly once. reasoning should be 3–6 short factual bullets explaining what drove the score up or down.`;
+{"target":{"name":string,"pdb_id":string},"candidates":[{"compound_id":string,"reasoning":[string]}],"summary":string,"limitations":[string]}
+compound_id must be the supplied cid. Include every candidate exactly once. reasoning should be 3–6 short factual bullets.`;
 
-  const user = `Score these candidates for ${targetLabel}.
+  const user = `Write comparison notes for these candidates for ${targetLabel}.
 ${TARGET_SPECIFIC_INSTRUCTION}
 
 ${familyLine}
@@ -385,18 +418,16 @@ async function handler(req, res) {
 
     try {
       const llmRaw = await rankWithOpenAI(compact, protein, heuristic);
-      const llm = normalizeResult(llmRaw, allowedCids, protein);
-      if (llm) {
-        // Shortlist (2–5): the LLM ranks a single comparable set.
-        // Library batches (20–30): independent 0–100 LLM scores cannot be
-        // concatenated — that is what made one highly drug-like molecule
-        // (alprazolam) win every target. Keep target-aware local scores
-        // and attach LLM notes as reasoning only.
-        // Also guard against LLM returning tied family scores (e.g. all 87).
-        const topScores = llm.ranking.slice(0, 3).map((r) => r.score);
-        const allTied = topScores.length > 1 && topScores.every((s) => s === topScores[0]);
-        if (isBatch || allTied) return json(res, 200, mergeBatchLlmReasoning(heuristic, llm));
-        return json(res, 200, llm);
+      const llmNotes = extractLlmReasoningOnly(llmRaw, allowedCids);
+      if (llmNotes) {
+        const merged = mergeBatchLlmReasoning(heuristic, llmNotes);
+        if (llmNotes.summary) merged.summary = llmNotes.summary;
+        if (llmNotes.limitations?.length) {
+          merged.limitations = [...(heuristic.limitations || []), ...llmNotes.limitations].filter(
+            (item, index, arr) => arr.indexOf(item) === index
+          );
+        }
+        return json(res, 200, merged);
       }
       heuristic.aiError = "The AI returned malformed or incomplete ranking data.";
       heuristic.limitations = [
@@ -422,5 +453,6 @@ handler.normalizeResult = normalizeResult;
 handler.compactProtein = compactProtein;
 handler.compactCandidates = compactCandidates;
 handler.mergeBatchLlmReasoning = mergeBatchLlmReasoning;
+handler.extractLlmReasoningOnly = extractLlmReasoningOnly;
 handler.logRankPrompt = logRankPrompt;
 module.exports = handler;

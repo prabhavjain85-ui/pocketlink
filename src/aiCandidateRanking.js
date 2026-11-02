@@ -107,8 +107,11 @@ export async function rankCandidates(candidates, protein, painsByCid = {}) {
     if (!data?.recommended?.cid || !Array.isArray(data.ranking)) {
       throw new Error("The AI returned an incomplete ranking.");
     }
-    rememberRanking(protein, data);
-    return data;
+    const local = rankCandidatesLocal(withPains(candidates, painsByCid), protein);
+    const merged = overlayLocalScores(data, local);
+    if (data?.aiError) merged.aiError = data.aiError;
+    rememberRanking(protein, merged);
+    return merged;
   } catch (error) {
     const fallback = rankCandidatesLocal(withPains(candidates, painsByCid), protein);
     rememberRanking(protein, fallback);

@@ -94,11 +94,15 @@ const TARGET_RULES = [
     targetRe: /\b(beta-?2|adrb2|beta-2 adrenergic|adrenergic receptor)\b/i,
     geneRe: /\badrb2\b/i,
     ligandRe: /\b(carazolol|p0g|salbutamol|albuterol|timolol)\b/i,
+    // Agonists and beta-blockers both bind ADRB2 but are opposite modalities; do not treat them as interchangeable.
     onTargetDrugs: [
-      "salbutamol", "albuterol", "salmeterol", "formoterol", "propranolol", "atenolol", "metoprolol", "carvedilol"
+      "salbutamol", "albuterol", "salmeterol", "formoterol",
+      "propranolol", "atenolol", "metoprolol", "carvedilol", "nadolol", "timolol", "pindolol", "labetalol", "bisoprolol",
     ],
-    onTargetRe: /\b(salbutamol|albuterol|salmeterol|formoterol|propranolol|atenolol|metoprolol|carvedilol|nadolol|timolol|pindolol|labetalol|bisoprolol)\b/i,
-    onTargetClassRe: /\b(beta-blocker|beta-2 agonist)\b/i,
+    onTargetAgonistRe: /\b(salbutamol|albuterol|salmeterol|formoterol)\b/i,
+    onTargetAntagonistRe: /\b(propranolol|atenolol|metoprolol|carvedilol|nadolol|timolol|pindolol|labetalol|bisoprolol)\b/i,
+    onTargetClassAgonistRe: /\bbeta-2 agonist\b/i,
+    onTargetClassAntagonistRe: /\bbeta-blocker\b/i,
     demotedRe: /\b(morphine|fentanyl|oxycodone|codeine|naloxone|losartan|valsartan|olmesartan|candesartan|telmisartan|risperidone|olanzapine|quetiapine|haloperidol)\b/i,
     demotedConcern: "Same class, different primary target (opioid receptor / angiotensin receptor ligand, not beta-2 adrenergic).",
   },
@@ -520,13 +524,22 @@ function evaluateCandidateForTargetRule(candidate, rule, protein) {
 
   // 1. Check On-Target
   let isOnTarget = false;
-  if (
+  if (rule.id === "beta2") {
+    const agonistName = rule.onTargetAgonistRe && rule.onTargetAgonistRe.test(cName);
+    const antagonistName = rule.onTargetAntagonistRe && rule.onTargetAntagonistRe.test(cName);
+    const agonistClass = rule.onTargetClassAgonistRe && rule.onTargetClassAgonistRe.test(cClass);
+    const antagonistClass = rule.onTargetClassAntagonistRe && rule.onTargetClassAntagonistRe.test(cClass);
+    // Name match must agree with modality class when class is present (both bind ADRB2 but are not interchangeable).
+    if ((agonistName && !antagonistClass) || (antagonistName && !agonistClass)) {
+      isOnTarget = true;
+    }
+  } else if (
     rule.onTargetRe &&
     (rule.onTargetRe.test(cName) || (rule.onTargetClassRe && rule.onTargetClassRe.test(cClass)))
   ) {
     isOnTarget = true;
   }
-  if (!isOnTarget && rule.onTargetDrugs) {
+  if (!isOnTarget && rule.onTargetDrugs && rule.id !== "beta2") {
     isOnTarget = rule.onTargetDrugs.some(
       (d) => cName.includes(d.toLowerCase()) || d.toLowerCase().includes(cName)
     );

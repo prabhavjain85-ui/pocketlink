@@ -172,8 +172,8 @@ export default function MethodologyPage() {
             <div className="section-eyebrow">Workflow Overview</div>
             <h2 className="section-title">Discovery Staging Bench</h2>
             <p className="section-text">
-              The home screen (<strong>Run a screen</strong>) is a four-station pipeline for structure-based hit triage.
-              Each station builds on the previous one; you can hand off to native docking and ADME when you are ready.
+              The home screen (<strong>Run a screen</strong>) is a four-station pipeline for computational hit triage: choose a PDB structure,
+              shortlist compounds, rank by target-class rules and drug-likeness, then follow up with ADME and optional native docking.
             </p>
             <ol className="methodology-staging-steps">
               <li>
@@ -185,13 +185,15 @@ export default function MethodologyPage() {
                 Lipinski/Veber pre-checks and PAINS/toxicophore flags, and build a 2–5 molecule shortlist for ranking.
               </li>
               <li>
-                <strong>Station 3 — AI prioritization.</strong> Score the shortlist for the <em>selected PDB</em> using pocket context,
-                known pharmacology, drug-likeness, and PAINS deprioritization. Optional OpenAI narration when an API key is configured;
-                otherwise TargetForge uses its built-in target-aware model. Adversarial critique is available for the top pick.
+                <strong>Station 3 — AI prioritization.</strong> Rank the shortlist for the <em>selected PDB</em> with heuristic-v2: curated
+                target-class rules (whether the drug&apos;s known pharmacological target matches the protein), PubChem drug-likeness, and PAINS
+                penalties. This does not compute pocket geometry or predict binding affinity. Optional OpenAI text when an API key is configured
+                (scores and order stay on heuristic-v2). Adversarial critique is available for the top pick.
               </li>
               <li>
-                <strong>Station 4 — ADME handoff (docking paused).</strong> Pick a compound and launch RDKit-based ADME profiling with
-                the staged SMILES pre-filled. In-browser molecular docking is under validation and currently unavailable.
+                <strong>Station 4 — ADME and docking handoff.</strong> Pick a compound and launch RDKit-based ADME profiling with the staged
+                SMILES pre-filled. Native docking is available when <code>DOCKING_ENABLED</code> is true; poses remain under validation — see
+                benchmark/docking/RESULTS.md (e.g. erlotinib 1M17 redock RMSD 5.88 Å on several pairs).
               </li>
             </ol>
             <p className="section-text">
@@ -345,9 +347,10 @@ export default function MethodologyPage() {
             <p className="section-text">
               Conventional virtual screening tools often evaluate compounds solely through generic drug-likeness rules (such as Lipinski&apos;s
               Rule of Five). However, a molecule can be exceptionally &quot;drug-like&quot; in the abstract while having zero pharmacological
-              relevance to the specific target pocket. TargetForge&apos;s 0–100 output is a <strong>knowledge-based triage score</strong> — a heuristic
-              built from curated target rules and literature knowledge, not a validated activity or binding predictor. It is tagged programmatically
-              as <code>source: &quot;heuristic-v2&quot;</code> and combines two distinct components:
+              relevance to the selected protein&apos;s pharmacological class. TargetForge&apos;s 0–100 integer is a <strong>knowledge-based triage score</strong> — an
+              ordinal prioritisation heuristic from curated target rules and PubChem properties, not a validated activity or binding predictor and
+              not a probability of binding. It is tagged programmatically as <code>source: &quot;heuristic-v2&quot;</code> and combines two distinct components.
+              Pocket geometry is used elsewhere (PDB Target Selection Score, docking) but is <strong>not</strong> an input to heuristic-v2:
             </p>
 
             <div className="scoring-tiers-grid">
@@ -374,27 +377,28 @@ export default function MethodologyPage() {
 
             <div style={{ marginTop: "20px", marginBottom: "16px" }}>
               <h4 style={{ fontSize: "14.5px", fontWeight: 600, color: "var(--text)", marginBottom: "8px" }}>
-                Score Bands &amp; Score Composition
+                Prioritisation tiers (from <code>scoreOne</code> weights)
               </h4>
               <p className="section-text">
-                Candidate molecules are stratified into distinct score bands reflecting specific pharmacological evidence:
+                The UI shows the integer plus a tier label. Bands below are typical ranges after drug-likeness (up to +24) and alert penalties
+                (−12 PAINS, −8 toxicophore); scores are clamped to 1–100. They are not calibrated probabilities.
               </p>
               <ul className="methodology-bullet-list">
                 <li>
-                  <strong>On-Target (~67 points):</strong> Awarded when a compound has proven, established on-target clinical pharmacology
-                  matching the resolved gene or PDB rule (+55 on-target bonus + ~12–18 drug-likeness points).
+                  <strong>On-target + co-crystal ligand name (typical 75–99):</strong> +55 on-target bonus, +20 when the compound name matches the
+                  deposited co-crystal ligand (string/synonym check only), plus drug-likeness.
                 </li>
                 <li>
-                  <strong>Same-Family (~24 points):</strong> Awarded when a compound shares the broad target class but is demoted due to
-                  primary target divergence (+12 family bonus + ~12–16 drug-likeness points), such as testing an EGFR kinase inhibitor against ABL1.
+                  <strong>On-target pharmacology (typical 55–79):</strong> +55 on-target bonus without the co-crystal name match, plus drug-likeness.
                 </li>
                 <li>
-                  <strong>Generic Drug-Like (~12 points):</strong> Assigned to drug-like small molecules with zero established target or class
-                  relevance (+0 target bonus + ~12–18 drug-likeness points).
+                  <strong>Same family / demoted (typical 12–36):</strong> +12 when the chemotype is related but the primary target differs from the rule.
                 </li>
                 <li>
-                  <strong>Optional Co-Crystal Name Bonus (+20 points):</strong> Awarded when a candidate directly matches the co-crystallized
-                  reference ligand in the experimental PDB complex (e.g., STI-571 / Imatinib in PDB 2HYY), bringing the score to ~87.
+                  <strong>Target family without a gene rule (typical 25–49):</strong> +25 for broad kinase/GPCR recognition when no granular rule resolves.
+                </li>
+                <li>
+                  <strong>Drug-likeness only (typical 1–24):</strong> +0 target bonus; PubChem Lipinski/Veber component only.
                 </li>
               </ul>
             </div>
@@ -409,8 +413,11 @@ export default function MethodologyPage() {
               </div>
               <p className="limitation-body">
                 The <code>heuristic-v2</code> scoring engine is a <strong>rule-based prioritization heuristic</strong>, not molecular docking,
-                not a trained machine learning model, and not measured binding affinity. It does not predict free energy of binding (ΔG),
-                equilibrium dissociation constants (Kd), or experimental IC50 values. Its output field is explicitly tagged as <code>source: &quot;heuristic-v2&quot;</code>.
+                not a trained machine learning model, and not measured binding affinity. It does not read pocket coordinates, predict free energy of
+                binding (ΔG), equilibrium dissociation constants (Kd), or experimental IC50 values. Station 2 PAINS screening uses a small local regex
+                catalogue in <code>painsCheck.js</code>, not the full RDKit PAINS filter set. Triage drug-likeness uses PubChem fields (XLogP, H-bond
+                counts, MolecularWeight) while the ADME page uses RDKit descriptors (average MW, Crippen cLogP) — a compound can pass Station 2 and
+                still fail ADME. Output is tagged <code>source: &quot;heuristic-v2&quot;</code>.
               </p>
             </div>
           </section>
@@ -558,28 +565,29 @@ export default function MethodologyPage() {
             </h3>
             <ul className="methodology-bullet-list">
               <li>
-                <strong>Circular first test (withdrawn):</strong> Early checks used known drugs that are explicitly encoded in the app&apos;s own
-                target rule table (for example, comparing osimertinib vs imatinib on EGFR). Those drugs scored highly because the rules were written
-                around them — this is not independent validation.
+                <strong>Actives vs decoys:</strong> This repository does not include a script that benchmarks heuristic-v2 against held-out actives
+                and decoys (no DUD-E assets or cluster splits under <code>benchmark/</code>). Any prior ROC-AUC figures for the triage score are not
+                reproducible from this codebase and have been removed from this page.
               </li>
               <li>
-                <strong>Held-out drugs (not in rule table):</strong> On a set of approved molecules not encoded in the rules, the triage score
-                reached ROC-AUC ~0.35 — no better than chance at separating actives from decoys.
+                <strong>What is benchmarked here:</strong> <code>benchmark/docking/scripts/run_enrichment.py</code> evaluates AutoDock Vina enrichment
+                on ChEMBL actives versus weak binders for co-crystal pairs — that measures docking, not the heuristic-v2 triage score.
               </li>
               <li>
-                <strong>Rebuilt benchmark (in progress):</strong> A property-matched decoy benchmark is being rebuilt. So far only 3 of 15
-                targets pass decoy sanity checks; where benchmarks exist, scores are near random (~0.48 AUC).
+                <strong>Rule-table caveat:</strong> On-target drugs in the curated table will rank highly by design when matched to their rule; that
+                is intentional prioritisation, not independent validation of binding.
               </li>
             </ul>
 
             <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginTop: 20, marginBottom: 8 }}>
-              In-browser molecular docking
+              Native molecular docking
             </h3>
             <p className="section-text">
-              Co-crystal redocking validation is in progress. The in-browser docking engine failed redocking on every target tested (in-place RMSD
-              5.5–11.5 Å where a pose was returned; no valid pose on six targets). The engine remains in the repository but is disabled in the UI
-              until it passes redocking — the Docking page shows: &quot;Docking is under validation and currently unavailable.&quot; No docking scores or
-              poses are displayed in the app.
+              Docking is <strong>enabled</strong> in this build (<code>DOCKING_ENABLED</code> and <code>DOCKING_ENGINE_ENABLED</code> are true in{" "}
+              <code>featureFlags.js</code>). The UI exposes native docking from Station 4 and the <code>/docking</code> route. Co-crystal redocking
+              quality is still uneven: <code>benchmark/docking/RESULTS.md</code> flags several of the 25 benchmark pairs as unreliable (wrong ligand,
+              high RMSD, or missing co-crystal — e.g. erlotinib 1M17 redock RMSD 5.88 Å). Treat poses and interaction labels as hypothesis-generating,
+              not experimental binding confirmation.
             </p>
             <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginTop: 20, marginBottom: 8 }}>
               Predicted pose protein–ligand interactions
@@ -728,8 +736,8 @@ export default function MethodologyPage() {
                 <div className="scoring-tier-num">Stage 3</div>
                 <h3 className="scoring-tier-title">Target-Aware Repurposing Screen</h3>
                 <p className="scoring-tier-desc">
-                  Screens candidate molecules against the resolved PDB and target rules using <code>heuristic-v2</code>. Ranks candidates
-                  based on target-specific pharmacophores and oral drug-likeness.
+                  Screens candidate molecules against curated target-class rules using <code>heuristic-v2</code> (pharmacology + PubChem
+                  drug-likeness, not pocket geometry).
                 </p>
               </div>
 
