@@ -1,5 +1,5 @@
 import { getRDKit } from "./rdkitLoader.js";
-import { canonicalizeSmiles, generateOffspring, detectReactionSupport } from "./evolutionTransforms.js";
+import { canonicalizeSmiles, generateOffspring, detectReactionSupport, molSvg } from "./evolutionTransforms.js";
 import { scoreEvolvedMolecule, trainSurrogateFromDocked } from "./evolutionScore.js";
 import { selectSurvivorsMuPlusLambda } from "./evolution/evolutionNsga2.js";
 import { murckoKeys, applyScaffoldQuota, mergeElites } from "./evolution/evolutionScaffold.js";
@@ -79,44 +79,7 @@ function objectiveVector(row, targetFree) {
   return [-le, -qed, sa, alerts, -nov];
 }
 
-let scoringWorker = null;
-
-async function getScoringWorker() {
-  if (typeof window === "undefined" || typeof Worker === "undefined") return null;
-  if (scoringWorker) return scoringWorker;
-  try {
-    const { createScoringWorker } = await import("./evolution/evolutionWorkerClient.js");
-    scoringWorker = createScoringWorker();
-    return scoringWorker;
-  } catch {
-    return null;
-  }
-}
-
-async function scoreBatchInWorker(variants, ctx) {
-  const worker = await getScoringWorker();
-  if (!worker) return null;
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("Scoring worker timeout")), 120000);
-    worker.onmessage = (e) => {
-      clearTimeout(timer);
-      resolve(e.data?.results || []);
-    };
-    worker.onerror = (err) => {
-      clearTimeout(timer);
-      reject(err);
-    };
-    worker.postMessage({ variants, ctx });
-  });
-}
-
 async function scoreOffspring(variants, ctx) {
-  try {
-    const workerResults = await scoreBatchInWorker(variants, ctx);
-    if (workerResults && workerResults.length) return workerResults;
-  } catch {
-    // fallback main thread
-  }
   const RDKit = ctx.RDKit || (await getRDKit());
   const out = [];
   for (const variant of variants) {
@@ -356,6 +319,7 @@ export async function seedParent({
     ok: true,
     parent: {
       smiles: canon,
+      svg: molSvg(RDKit, canon),
       name: name || "Starting molecule",
       generation: 0,
       editId: "seed",
@@ -507,7 +471,11 @@ export async function runEvolutionCampaign({
         (a, b) =>
           (a.rank ?? 99) - (b.rank ?? 99) ||
           (b.displayScore ?? b.score ?? 0) - (a.displayScore ?? a.score ?? 0)
-      );
+      )
+      .map((row) => ({
+        ...row,
+        svg: row.svg || molSvg(RDKit, row.smiles),
+      }));
 
     runSummaries.push({
       runIndex: run,

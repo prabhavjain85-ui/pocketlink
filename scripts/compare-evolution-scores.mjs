@@ -16,7 +16,7 @@ const SEEDS = [
 
 const runner = `
 const init = require('@rdkit/rdkit/dist/RDKit_minimal.js');
-const { scoreEvolvedMolecule } = require('./src/evolutionScore.js');
+const { scoreEvolvedMolecule } = require('./server/evolutionScore.js');
 const seeds = JSON.parse(process.argv[2]);
 init().then(async (RDKit) => {
   const out = [];
