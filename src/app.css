@@ -1375,7 +1375,8 @@ body {
   min-width: 0;
 }
 
-.trial-success-phase-rate {
+.trial-success-phase-rate,
+.trial-success-transition-rate {
   display: block;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 15px;
@@ -1384,11 +1385,13 @@ body {
   line-height: 1.3;
 }
 
-.trial-success-phase-cell.has-rate .trial-success-phase-rate {
+.trial-success-phase-cell.has-rate .trial-success-phase-rate,
+.trial-success-phase-cell.has-rate .trial-success-transition-rate {
   color: var(--amber);
 }
 
-.trial-success-phase-cell.insufficient .trial-success-phase-rate {
+.trial-success-phase-cell.insufficient .trial-success-phase-rate,
+.trial-success-phase-cell.insufficient .trial-success-transition-rate {
   font-size: 11.5px;
   font-weight: 500;
   font-style: italic;
@@ -1402,6 +1405,46 @@ body {
   font-size: 10.5px;
   color: var(--text-muted);
   font-family: 'IBM Plex Mono', monospace;
+}
+
+.trial-success-phase-sub,
+.trial-success-filter-note {
+  display: block;
+  margin-top: 3px;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--text-dim);
+}
+
+.trial-success-filter-note {
+  margin: 0 0 4px;
+}
+
+.trial-success-completion-table {
+  margin-top: 12px;
+}
+
+.trial-success-disease-splits {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--amber-border);
+}
+
+.trial-success-disease-split-item {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.trial-success-disease-split-header {
+  margin-bottom: 2px;
+  color: var(--text);
+}
+
+.trial-success-disease-split-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
 }
 
 .trial-success-limitation {

@@ -1,179 +1,177 @@
 #!/usr/bin/env node
 /**
- * Build historical ClinicalTrials.gov trial completion base rates.
+ * Build historical ClinicalTrials.gov phase transition rates and trial
+ * completion rates by drug intervention list.
  *
- * Re-run monthly (or after major CT.gov data refreshes):
+ * Re-run manually when refreshing committed ClinicalTrials.gov statistics:
  *   node scripts/build-trial-success-rates.mjs
  *   npm run build:trial-rates
  *
- * Fetches interventional drug trials via API v2, aggregates completion rates
- * by phase for configured target/compound-class search terms, and writes
- * src/data/trialSuccessRates.json (committed artifact — not fetched at runtime).
- *
- * Metric: completion_rate = COMPLETED / (COMPLETED + TERMINATED + WITHDRAWN + SUSPENDED)
- * Excludes RECRUITING, ACTIVE_NOT_RECRUITING, UNKNOWN, etc. from the denominator.
- *
- * CT.gov "Completed" ≠ clinical efficacy or FDA approval. These are historical
- * non-early-termination completion base rates for similar trial classes.
+ * Queries interventional drug trials via ClinicalTrials.gov API v2 using
+ * `query.intr` with the curated on-target drug list from TARGET_RULES, filters
+ * fetched studies so only trials whose listed interventions actually match one
+ * of those drugs (case-insensitive, ignoring salt forms) are kept, and writes
+ * server/data/trialSuccessRates.json.
  */
 
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import {
+  SCHEMA_VERSION,
+  MIN_SAMPLE_SIZE,
+  CENSOR_YEARS,
+  CATEGORY_SPECS,
+  LIMITATION_NOTE,
+  getCategoryDrugList,
+  summarizeCategoryStudies,
+} from "../server/trialSuccessContext.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const OUT_PATH = join(__dirname, "../src/data/trialSuccessRates.json");
+const OUT_PATH = join(__dirname, "../server/data/trialSuccessRates.json");
 
 const API_BASE = "https://clinicaltrials.gov/api/v2/studies";
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 1000;
 const DELAY_MS = 300;
-const MAX_PAGES_PER_CATEGORY = 50; // up to 5,000 studies per category
-const MIN_SAMPLE_SIZE = 10;
-const REPORT_PHASES = ["PHASE1", "PHASE2", "PHASE3"];
-
-const DENOMINATOR_STATUSES = new Set([
-  "COMPLETED",
-  "TERMINATED",
-  "WITHDRAWN",
-  "SUSPENDED",
-]);
-
-const CATEGORIES = [
-  { key: "kinase_inhibitor", label: "Kinase inhibitors", query: "kinase inhibitor" },
-  { key: "kinase_broad", label: "Tyrosine kinase inhibitors (broad)", query: "tyrosine kinase inhibitor" },
-  { key: "egfr", label: "EGFR inhibitors", query: "EGFR inhibitor" },
-  { key: "her2", label: "HER2 / ERBB2 inhibitors", query: "HER2 inhibitor" },
-  { key: "abl", label: "ABL / BCR-ABL inhibitors", query: "BCR-ABL inhibitor" },
-  { key: "braf", label: "BRAF inhibitors", query: "BRAF inhibitor" },
-  { key: "gpcr", label: "GPCR-targeted drugs", query: "G protein-coupled receptor" },
-  { key: "beta2_adrenergic", label: "Beta-2 adrenergic drugs", query: "beta-2 adrenergic" },
-  { key: "protease_inhibitor", label: "Protease inhibitors", query: "protease inhibitor" },
-  { key: "hiv_protease", label: "HIV protease inhibitors", query: "HIV protease inhibitor" },
-  { key: "hdac_inhibitor", label: "HDAC inhibitors", query: "HDAC inhibitor" },
-  { key: "pde5_inhibitor", label: "PDE5 inhibitors", query: "PDE5 inhibitor" },
-  { key: "cox_inhibitor", label: "COX / NSAID drugs", query: "cyclooxygenase inhibitor" },
-  { key: "statin", label: "HMG-CoA reductase inhibitors (statins)", query: "statin HMG-CoA reductase" },
-  { key: "dpp4_inhibitor", label: "DPP-4 inhibitors", query: "DPP-4 inhibitor" },
-  { key: "estrogen_receptor", label: "Estrogen receptor modulators", query: "estrogen receptor" },
-];
+const MAX_PAGES_PER_CATEGORY = 10; // up to 10,000 studies per category
+const MAX_RETRIES = 4;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function emptyPhaseBuckets() {
-  const buckets = {};
-  for (const phase of REPORT_PHASES) {
-    buckets[phase] = {
-      completed: 0,
-      terminated: 0,
-      withdrawn: 0,
-      suspended: 0,
-      n: 0,
-      rate: null,
-      reliable: false,
-    };
-  }
-  return buckets;
+function buildInterventionQuery(drugs) {
+  return drugs
+    .map((d) => {
+      const trimmed = String(d || "").trim();
+      return /[\s-]/.test(trimmed) ? `"${trimmed}"` : trimmed;
+    })
+    .join(" OR ");
 }
 
-function addStudy(buckets, study) {
-  const proto = study?.protocolSection || {};
-  const status = proto.statusModule?.overallStatus || "";
-  if (!DENOMINATOR_STATUSES.has(status)) return;
-
-  const phases = proto.designModule?.phases || [];
-  const phase = phases.find((p) => REPORT_PHASES.includes(p));
-  if (!phase) return;
-
-  const bucket = buckets[phase];
-  bucket.n += 1;
-  if (status === "COMPLETED") bucket.completed += 1;
-  else if (status === "TERMINATED") bucket.terminated += 1;
-  else if (status === "WITHDRAWN") bucket.withdrawn += 1;
-  else if (status === "SUSPENDED") bucket.suspended += 1;
-}
-
-function finalizeBuckets(buckets) {
-  for (const phase of REPORT_PHASES) {
-    const bucket = buckets[phase];
-    if (bucket.n >= MIN_SAMPLE_SIZE) {
-      bucket.rate = bucket.completed / bucket.n;
-      bucket.reliable = true;
-    } else {
-      bucket.rate = bucket.n > 0 ? bucket.completed / bucket.n : null;
-      bucket.reliable = false;
+async function fetchWithRetry(url, label) {
+  let attempt = 0;
+  for (;;) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        return await res.json();
+      }
+      if ((res.status === 429 || res.status >= 500) && attempt < MAX_RETRIES) {
+        attempt += 1;
+        const backoffMs = DELAY_MS * Math.pow(2, attempt);
+        console.warn(`  [retry ${attempt}/${MAX_RETRIES}] HTTP ${res.status} for ${label}; waiting ${backoffMs}ms…`);
+        await sleep(backoffMs);
+        continue;
+      }
+      throw new Error(`ClinicalTrials.gov API ${res.status} for ${label}`);
+    } catch (err) {
+      if (attempt < MAX_RETRIES && !String(err.message || "").includes("API 4")) {
+        attempt += 1;
+        const backoffMs = DELAY_MS * Math.pow(2, attempt);
+        console.warn(`  [retry ${attempt}/${MAX_RETRIES}] ${err.message}; waiting ${backoffMs}ms…`);
+        await sleep(backoffMs);
+        continue;
+      }
+      throw err;
     }
-    bucket.rate = bucket.rate != null ? Math.round(bucket.rate * 1000) / 1000 : null;
   }
-  return buckets;
 }
 
-async function fetchCategoryStudies(query) {
+async function fetchCategoryRawStudies(intrQuery, label) {
   const filterAdvanced = "AREA[StudyType]Interventional AND AREA[InterventionType]Drug";
+  const fields = "NCTId,IdentificationModule,StatusModule,DesignModule,ConditionsModule,ArmsInterventionsModule";
   let pageToken = null;
   let page = 0;
-  let fetched = 0;
-  const buckets = emptyPhaseBuckets();
+  const studies = [];
+  const seenNctIds = new Set();
 
   while (page < MAX_PAGES_PER_CATEGORY) {
     const params = new URLSearchParams({
-      "query.term": query,
+      "query.intr": intrQuery,
       "filter.advanced": filterAdvanced,
+      fields,
       pageSize: String(PAGE_SIZE),
     });
     if (pageToken) params.set("pageToken", pageToken);
 
     const url = `${API_BASE}?${params.toString()}`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error(`ClinicalTrials.gov API ${res.status} for query "${query}"`);
+    const data = await fetchWithRetry(url, label);
+    const batch = data?.studies || [];
+    for (const study of batch) {
+      const nctId = study?.protocolSection?.identificationModule?.nctId;
+      if (nctId) {
+        if (seenNctIds.has(nctId)) continue;
+        seenNctIds.add(nctId);
+      }
+      studies.push(study);
     }
-    const data = await res.json();
-    const studies = data?.studies || [];
-    for (const study of studies) addStudy(buckets, study);
-    fetched += studies.length;
     page += 1;
 
     pageToken = data?.nextPageToken || null;
-    if (!pageToken || studies.length === 0) break;
     await sleep(DELAY_MS);
+    if (!pageToken || batch.length === 0) break;
   }
 
-  return { fetched, phases: finalizeBuckets(buckets) };
+  return studies;
 }
 
 async function main() {
-  console.log(`Building trial success rates for ${CATEGORIES.length} categories…`);
+  const generatedAt = new Date().toISOString();
+  console.log(`Building historical trial transition & completion rates for ${CATEGORY_SPECS.length} categories…`);
   const categories = {};
 
-  for (const cat of CATEGORIES) {
-    console.log(`  → ${cat.key} ("${cat.query}")`);
-    const { fetched, phases } = await fetchCategoryStudies(cat.query);
-    categories[cat.key] = {
-      label: cat.label,
-      query: cat.query,
-      fetched,
-      phases,
+  for (const spec of CATEGORY_SPECS) {
+    const drugs = getCategoryDrugList(spec.key);
+    const intrQuery = buildInterventionQuery(drugs);
+    console.log(`  → ${spec.key} (${drugs.length} drugs: ${drugs.join(", ")})`);
+
+    const rawStudies = await fetchCategoryRawStudies(intrQuery, spec.key);
+    const summary = summarizeCategoryStudies(rawStudies, drugs, {
+      generatedAt,
+      minSampleSize: MIN_SAMPLE_SIZE,
+      censorYears: CENSOR_YEARS,
+    });
+
+    categories[spec.key] = {
+      label: spec.label,
+      query: intrQuery,
+      drugs: summary.drugs,
+      fetched: summary.fetched,
+      kept: summary.kept,
+      discarded: summary.discarded,
+      transitions: summary.transitions,
+      completion: summary.completion,
+      phases: summary.phases,
+      byDiseaseArea: summary.byDiseaseArea,
     };
-    const summary = REPORT_PHASES
-      .map((p) => {
-        const b = phases[p];
-        return `${p}: n=${b.n}${b.reliable ? `, ${(b.rate * 100).toFixed(1)}%` : ""}`;
-      })
-      .join("; ");
-    console.log(`     fetched ${fetched} · ${summary}`);
-    await sleep(DELAY_MS);
+
+    const t1 = summary.transitions.PHASE1;
+    const t2 = summary.transitions.PHASE2;
+    const c1 = summary.completion.PHASE1;
+    const c2 = summary.completion.PHASE2;
+    const c3 = summary.completion.PHASE3;
+    console.log(
+      `     fetched=${summary.fetched}, kept=${summary.kept}, discarded=${summary.discarded} | ` +
+        `transitions Ph1→2+: ${t1.numerator}/${t1.denominator} (censored=${t1.censored}), Ph2→3+: ${t2.numerator}/${t2.denominator} (censored=${t2.censored}) | ` +
+        `completion Ph1=${c1.completed}/${c1.n}, Ph2=${c2.completed}/${c2.n}, Ph3=${c3.completed}/${c3.n}, Combined=${summary.completion.COMBINED.completed}/${summary.completion.COMBINED.n}`
+    );
   }
 
   const artifact = {
-    generatedAt: new Date().toISOString(),
+    schemaVersion: SCHEMA_VERSION,
+    generatedAt,
     source: "ClinicalTrials.gov API v2",
-    metric: "trial_completion_rate",
-    definition: "COMPLETED/(COMPLETED+TERMINATED+WITHDRAWN+SUSPENDED)",
+    metric: "phase_transition_and_trial_completion",
+    definition: {
+      phaseTransition:
+        "Fraction of on-target drugs with Phase k trials that also have at least one trial at Phase > k (drugs without advancement whose latest Phase-k trial started within 3 years are right-censored). Phase 3 → approval is not measurable from ClinicalTrials.gov.",
+      trialCompletion:
+        "COMPLETED / (COMPLETED + TERMINATED + WITHDRAWN + SUSPENDED), with separate combined-phase bucket, whyStopped classification (efficacy, safety, operational, unknown), excluding-operational completion rate, and UNKNOWN-status sensitivity rate.",
+    },
     minSampleSize: MIN_SAMPLE_SIZE,
-    disclaimer:
-      "Historical trial completion (non-early-termination) base rate for similar class/phase. CT.gov Completed status does not imply clinical efficacy or regulatory approval.",
+    censorYears: CENSOR_YEARS,
+    disclaimer: LIMITATION_NOTE,
     categories,
   };
 
