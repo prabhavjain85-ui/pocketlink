@@ -318,6 +318,225 @@ function pocketStatsFromLigands(ligands) {
   };
 }
 
+const TYPE_II_DFG_OUT_COMP_IDS = new Set(["STI", "NIL", "PON", "SOR", "BAX", "0LI", "P30"]);
+const TYPE_I_DFG_IN_COMP_IDS = new Set(["AQ4", "IRE", "YY3", "1N1", "STU", "ATP", "ANP", "ACP", "FMM"]);
+
+/**
+ * Inspect PDB unobserved residue metadata (`pdbx_unobs_or_zero_occ_residues`)
+ * or sequence gaps near the co-crystallized ligand / binding site within 5 Å.
+ * Penalizes structures with missing pocket residues by 12 points.
+ */
+function evaluateMissingPocketResidues(features = {}) {
+  if (features.unmodeledNearPocket === true || features.hasMissingPocketResidues === true) {
+    return {
+      hasMissingPocketResidues: true,
+      missingCount: Number(features.missingPocketResidueCount) || 1,
+      penalty: 12,
+    };
+  }
+
+  const unobsList = Array.isArray(features.unobservedResidues)
+    ? features.unobservedResidues
+    : Array.isArray(features.pdbx_unobs_or_zero_occ_residues)
+      ? features.pdbx_unobs_or_zero_occ_residues
+      : [];
+
+  const ligands = Array.isArray(features.ligands) ? features.ligands : [];
+  const pocketSeqIds = new Set();
+  for (const lig of ligands) {
+    for (const inst of lig.instances || []) {
+      const neighbors = inst.rcsb_target_neighbors || inst.target_neighbors || [];
+      for (const n of neighbors) {
+        const dist = num(n.distance);
+        if (dist != null && dist <= POCKET_DISTANCE_A) {
+          const seqId = num(n.target_seq_id ?? n.auth_seq_id ?? n.label_seq_id);
+          if (seqId != null) pocketSeqIds.add(seqId);
+          if (n.unobserved === true || n.zero_occupancy === true || num(n.occupancy) === 0) {
+            return {
+              hasMissingPocketResidues: true,
+              missingCount: 1,
+              penalty: 12,
+            };
+          }
+        }
+      }
+    }
+  }
+
+  if (unobsList.length > 0) {
+    let nearPocketCount = 0;
+    for (const item of unobsList) {
+      if (item && typeof item === "object") {
+        const dist = num(item.distanceToLigand ?? item.distance_to_ligand ?? item.pocketDistance);
+        if (dist != null && dist <= POCKET_DISTANCE_A) {
+          nearPocketCount += 1;
+          continue;
+        }
+        const seqId = num(item.auth_seq_id ?? item.label_seq_id ?? item.seq_id);
+        if (seqId != null && pocketSeqIds.size > 0) {
+          for (const pSeq of pocketSeqIds) {
+            if (Math.abs(seqId - pSeq) <= 2) {
+              nearPocketCount += 1;
+              break;
+            }
+          }
+        }
+      }
+    }
+    if (nearPocketCount > 0) {
+      return {
+        hasMissingPocketResidues: true,
+        missingCount: nearPocketCount,
+        penalty: 12,
+      };
+    }
+  }
+
+  return {
+    hasMissingPocketResidues: false,
+    missingCount: 0,
+    penalty: 0,
+  };
+}
+
+/**
+ * Compute pocket druggability tier, site classification
+ * (`Orthosteric / Catalytic`, `Allosteric`, `Shallow / PPI Surface`),
+ * and 3D bounding-box centroid `[x, y, z]`.
+ */
+function classifyPocketDruggabilityAndSite(features = {}, pocketStats = {}, hasMissingPocketResidues = false) {
+  const ligands = Array.isArray(features.ligands) ? features.ligands : [];
+  const primaryLigand = ligands[0] || null;
+  const titleText = `${features.title || ""} ${primaryLigand?.name || ""} ${primaryLigand?.compId || ""}`.trim();
+
+  let pocketCenter = [0, 0, 0];
+  if (
+    Array.isArray(features.pocketCenter) &&
+    features.pocketCenter.length === 3 &&
+    features.pocketCenter.every((c) => Number.isFinite(Number(c)))
+  ) {
+    pocketCenter = features.pocketCenter.map((c) => Math.round(Number(c) * 100) / 100);
+  } else if (
+    Array.isArray(primaryLigand?.centroid) &&
+    primaryLigand.centroid.length === 3 &&
+    primaryLigand.centroid.every((c) => Number.isFinite(Number(c)))
+  ) {
+    pocketCenter = primaryLigand.centroid.map((c) => Math.round(Number(c) * 100) / 100);
+  } else {
+    const coords = [];
+    for (const lig of ligands) {
+      for (const inst of lig.instances || []) {
+        if (Array.isArray(inst.coordinates) && inst.coordinates.length === 3) {
+          coords.push(inst.coordinates.map(Number));
+        }
+        for (const n of inst.rcsb_target_neighbors || inst.target_neighbors || []) {
+          if (Array.isArray(n.coordinates) && n.coordinates.length === 3) {
+            coords.push(n.coordinates.map(Number));
+          }
+        }
+      }
+    }
+    if (coords.length > 0) {
+      const sum = coords.reduce(
+        (acc, c) => [acc[0] + (c[0] || 0), acc[1] + (c[1] || 0), acc[2] + (c[2] || 0)],
+        [0, 0, 0]
+      );
+      pocketCenter = sum.map((v) => Math.round((v / coords.length) * 100) / 100);
+    }
+  }
+
+  const residueCount = num(pocketStats?.residueCount);
+  const hydrophobicity = num(pocketStats?.hydrophobicity);
+  const ligandMw = num(primaryLigand?.formulaWeight) || (features.hasLigand ? 380 : 250);
+  const estimatedVolume = Math.round(
+    Math.max(160, Math.min(1400, (residueCount != null ? residueCount : 12) * 32 + ligandMw * 0.45))
+  );
+
+  let pocketClass = "Orthosteric / Catalytic";
+  if (/\b(allosteric|myristoyl|exosite|cryptic|back[- ]pocket|type[- ]iii|type[- ]iv|site\s*2)\b/i.test(titleText)) {
+    pocketClass = "Allosteric";
+  } else if (
+    /\b(protein[- ]protein|ppi\b|interface|shallow|surface|kelch|wd40|sh2 domain|bh3|stapled peptide)\b/i.test(
+      titleText
+    ) ||
+    (pocketStats?.available && residueCount != null && residueCount <= 5 && (hydrophobicity ?? 0.5) < 0.35) ||
+    features.pocket === "none"
+  ) {
+    pocketClass = "Shallow / PPI Surface";
+  }
+
+  let druggabilityTier = "Moderate Druggability";
+  if (pocketClass === "Shallow / PPI Surface" || features.pocket === "none") {
+    druggabilityTier = "Low / Challenging";
+  } else if (
+    features.hasLigand &&
+    (features.pocket === "detected" || (hydrophobicity != null && hydrophobicity >= 0.42)) &&
+    !hasMissingPocketResidues
+  ) {
+    druggabilityTier = "High Druggability";
+  } else if (hasMissingPocketResidues && druggabilityTier === "High Druggability") {
+    druggabilityTier = "Moderate Druggability";
+  }
+
+  return {
+    pocketClass,
+    druggabilityTier,
+    pocketCenter,
+    pocketVolume: estimatedVolume,
+  };
+}
+
+/**
+ * Parse PDB title, bound ligand identity, and structural motifs to tag
+ * kinase, GPCR, nuclear receptor, and enzyme conformational states.
+ */
+function classifyConformationTag(features = {}) {
+  const ligands = Array.isArray(features.ligands) ? features.ligands : [];
+  const compIds = new Set(ligands.map((l) => String(l?.compId || "").toUpperCase()).filter(Boolean));
+  const ligNames = ligands.map((l) => l?.name || "").join(" ");
+  const text = `${features.title || ""} ${ligNames} ${features.conformationHint || ""}`.trim();
+
+  for (const id of compIds) {
+    if (TYPE_II_DFG_OUT_COMP_IDS.has(id)) return "Inactive / DFG-out";
+  }
+  if (
+    /\b(dfg[- ]out|type[- ]ii\b|inactive conformation|imatinib|sorafenib|ponatinib|nilotinib|regorafenib|rebastinib)\b/i.test(
+      text
+    )
+  ) {
+    return "Inactive / DFG-out";
+  }
+
+  for (const id of compIds) {
+    if (TYPE_I_DFG_IN_COMP_IDS.has(id)) return "Active / DFG-in";
+  }
+  if (
+    /\b(dfg[- ]in|type[- ]i\b|active conformation|ac[- ]helix[- ]in|erlotinib|gefitinib|osimertinib|dasatinib|bosutinib|crizotinib|staurosporine|k-252a)\b/i.test(
+      text
+    )
+  ) {
+    return "Active / DFG-in";
+  }
+
+  if (/\b(agonist[- ]bound|full agonist|partial agonist|active[- ]state gpcr|gs[- ]coupled|gi[- ]coupled)\b/i.test(text)) {
+    return "Agonist-bound";
+  }
+
+  if (
+    /\b(antagonist[- ]bound|inverse agonist|inactive[- ]state gpcr|antagonist complex|tamoxifen|fulvestrant|enzalutamide|bicalutamide|haloperidol|risperidone|carazolol|timolol)\b/i.test(
+      text
+    )
+  ) {
+    return "Antagonist-bound";
+  }
+
+  if (/\b(kinase)\b/i.test(text)) {
+    return features.hasLigand ? "Active / DFG-in" : "Apo / Unliganded";
+  }
+
+  return features.hasLigand ? "Closed / Holo" : "Apo / Unliganded";
+}
+
 function formatAngstrom(value) {
   const n = num(value);
   if (n == null) return "N/A";
@@ -345,6 +564,13 @@ function recommendationReasons(scored) {
     else if (resPts >= 15) items.push({ rank: 3, text: `Good resolution (${formatAngstrom(r)})` });
     else if (resPts >= 10) items.push({ rank: 2, text: `Moderate resolution (${formatAngstrom(r)})` });
     else items.push({ rank: 1, text: `Resolution ${formatAngstrom(r)}` });
+  }
+
+  if (scored.hasMissingPocketResidues) {
+    items.push({
+      rank: 5,
+      text: "Warning: missing/unmodeled residues within 5 Å of binding pocket",
+    });
   }
 
   if (scored.rFree != null) {
@@ -427,6 +653,7 @@ function scoreTargetFeatures(features) {
   const pocket = scorePocket(pocketStatus);
   const method = classifyMethod(features.method);
   const rFreeEval = evaluateRFree(features.rFree);
+  const missingPocketEval = evaluateMissingPocketResidues(features);
 
   const breakdown = {
     resolution: resolution.pts,
@@ -441,11 +668,19 @@ function scoreTargetFeatures(features) {
     breakdown.ligand +
     breakdown.pocket +
     breakdown.method -
-    rFreeEval.penalty;
+    rFreeEval.penalty -
+    missingPocketEval.penalty;
   const score = Math.round(Math.max(0, Math.min(100, rawTotal)));
 
   const ligands = features.ligands || [];
   const pocketStats = features.pocketStats || pocketStatsFromLigands(ligands);
+  const pocketDruggability = classifyPocketDruggabilityAndSite(
+    { ...features, hasLigand, pocket: pocket.value, ligands },
+    pocketStats,
+    missingPocketEval.hasMissingPocketResidues
+  );
+  const conformationTag = classifyConformationTag({ ...features, hasLigand, ligands });
+
   const scored = {
     id: features.id,
     title: features.title || "Untitled entry",
@@ -465,6 +700,11 @@ function scoreTargetFeatures(features) {
     pocket: pocket.value,
     pocketLabel: pocket.value === "detected" ? "✅" : pocket.value === "none" ? "❌" : "?",
     pocketStats,
+    pocketClass: pocketDruggability.pocketClass,
+    druggabilityTier: pocketDruggability.druggabilityTier,
+    conformationTag,
+    pocketCenter: pocketDruggability.pocketCenter,
+    hasMissingPocketResidues: missingPocketEval.hasMissingPocketResidues,
     breakdown,
     score,
     ligands,
@@ -491,6 +731,9 @@ function extractFromGraphqlEntry(entry) {
   const dateRaw =
     (entry.rcsb_accession_info && entry.rcsb_accession_info.initial_release_date) || "";
   const ligands = ligandEntitiesFromNonpolymers(entry.nonpolymer_entities);
+  const unobservedResidues = Array.isArray(entry.pdbx_unobs_or_zero_occ_residues)
+    ? entry.pdbx_unobs_or_zero_occ_residues
+    : [];
   return {
     id,
     title: (entry.struct && entry.struct.title) || "Untitled entry",
@@ -503,6 +746,7 @@ function extractFromGraphqlEntry(entry) {
     pocket: pocketFromLigands(ligands),
     pocketStats: pocketStatsFromLigands(ligands),
     ligands,
+    unobservedResidues,
   };
 }
 
@@ -524,6 +768,9 @@ function extractFromRestEntry(entry, nonpolymerEntities) {
   const dateRaw =
     (entry.rcsb_accession_info && entry.rcsb_accession_info.initial_release_date) || "";
   const ligands = ligandEntitiesFromNonpolymers(nonpolymerEntities);
+  const unobservedResidues = Array.isArray(entry.pdbx_unobs_or_zero_occ_residues)
+    ? entry.pdbx_unobs_or_zero_occ_residues
+    : [];
   return {
     id,
     title: (entry.struct && entry.struct.title) || "Untitled entry",
@@ -536,6 +783,7 @@ function extractFromRestEntry(entry, nonpolymerEntities) {
     pocket: pocketFromLigands(ligands),
     pocketStats: pocketStatsFromLigands(ligands),
     ligands,
+    unobservedResidues,
   };
 }
 
@@ -684,6 +932,9 @@ export {
   classifyMethod,
   scoreResolution,
   evaluateRFree,
+  evaluateMissingPocketResidues,
+  classifyPocketDruggabilityAndSite,
+  classifyConformationTag,
   completenessPercent,
   scoreCompleteness,
   ligandEntitiesFromNonpolymers,

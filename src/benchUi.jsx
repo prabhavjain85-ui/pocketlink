@@ -437,6 +437,75 @@ export function TargetScoreTable({ results, selectedId, recommendedId, sortKey, 
                 <td>
                   <div className="result-id">{r.id}</div>
                   <div className="score-title" title={r.title}>{r.title}</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                    {r.conformationTag ? (
+                      <span
+                        className="novelty-badge"
+                        style={{
+                          fontSize: 11,
+                          padding: "1px 6px",
+                          background: "rgba(56, 189, 248, 0.14)",
+                          color: "#38bdf8",
+                          border: "1px solid rgba(56, 189, 248, 0.35)",
+                        }}
+                      >
+                        {r.conformationTag}
+                      </span>
+                    ) : null}
+                    {r.pocketClass ? (
+                      <span
+                        className="novelty-badge"
+                        style={{
+                          fontSize: 11,
+                          padding: "1px 6px",
+                          background: "rgba(168, 85, 247, 0.14)",
+                          color: "#c084fc",
+                          border: "1px solid rgba(168, 85, 247, 0.35)",
+                        }}
+                      >
+                        {r.pocketClass}
+                      </span>
+                    ) : null}
+                    {r.druggabilityTier ? (
+                      <span
+                        className="novelty-badge"
+                        style={{
+                          fontSize: 11,
+                          padding: "1px 6px",
+                          background:
+                            r.druggabilityTier === "High Druggability"
+                              ? "rgba(34, 197, 94, 0.14)"
+                              : r.druggabilityTier === "Moderate Druggability"
+                                ? "rgba(250, 204, 21, 0.14)"
+                                : "rgba(248, 113, 113, 0.14)",
+                          color:
+                            r.druggabilityTier === "High Druggability"
+                              ? "#4ade80"
+                              : r.druggabilityTier === "Moderate Druggability"
+                                ? "#facc15"
+                                : "#f87171",
+                          border: "1px solid currentColor",
+                        }}
+                      >
+                        {r.druggabilityTier}
+                      </span>
+                    ) : null}
+                    {r.hasMissingPocketResidues ? (
+                      <span
+                        className="novelty-badge"
+                        style={{
+                          fontSize: 11,
+                          padding: "1px 6px",
+                          background: "rgba(239, 68, 68, 0.18)",
+                          color: "#f87171",
+                          border: "1px solid rgba(239, 68, 68, 0.45)",
+                        }}
+                        title="Unmodeled or zero-occupancy residues detected within 5 Å of the binding pocket"
+                      >
+                        ⚠️ Missing Pocket Residues (&lt;5 Å)
+                      </span>
+                    ) : null}
+                  </div>
                   {r.isAlphaFold && r.plddtTier ? (
                     <div
                       className="score-title"

@@ -70,10 +70,12 @@ export function useStagingBench() {
   const [demoKey, setDemoKey] = useState(0);
   const [demoLoading, setDemoLoading] = useState(false);
 
+  const committedFromDiscovery = searchParams.get("committed") === "1";
+
   const savedActive = useMemo(() => {
-    if (handoffQuery) return null;
+    if (handoffQuery && !committedFromDiscovery) return null;
     return getActiveState(ACTIVE_STATE_KEYS.BENCH);
-  }, [handoffQuery]);
+  }, [handoffQuery, committedFromDiscovery]);
 
   const [protein, setProteinState] = useState(() => savedActive?.protein || null);
   const setProtein = useCallback(

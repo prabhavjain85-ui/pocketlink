@@ -22,7 +22,11 @@ function prettyCompoundName(result, query) {
 
 function sanitizeTargetRowDto(row) {
   if (!row || typeof row !== "object") return row;
-  const { breakdown: _breakdown, ...rest } = row;
+  const {
+    breakdown: _breakdown,
+    unobservedResidues: _unobservedResidues,
+    ...rest
+  } = row;
   return rest;
 }
 
@@ -32,6 +36,7 @@ function sanitizeDiscoveryRowDto(row) {
     noveltyComponents: _noveltyComponents,
     datasourceScores: _datasourceScores,
     biologySignal: _biologySignal,
+    essentiality: _essentiality,
     ...rest
   } = row;
   return rest;

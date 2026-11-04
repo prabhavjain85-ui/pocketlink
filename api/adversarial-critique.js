@@ -1,5 +1,6 @@
 const { buildTargetContext, targetDisplayName } = require("../server/targetContext.js");
 const { scoringCapabilities } = require("../server/scoreCandidates.js");
+const { CURATED_HUMAN_PARALOGS } = require("../server/noveltyScore.js");
 const { checkRateLimit } = require("./_lib/rateLimit");
 const { applyCorsHeaders } = require("./_lib/security");
 
@@ -48,15 +49,59 @@ function extractJson(text) {
   }
 }
 
+function resolveTargetParalogs(raw, packedName) {
+  const explicit = Array.isArray(raw?.paralogs)
+    ? raw.paralogs
+    : Array.isArray(raw?.discoveryContext?.paralogs)
+      ? raw.discoveryContext.paralogs
+      : [];
+  if (explicit.length > 0) {
+    return explicit
+      .filter((p) => p && p.symbol && Number(p.identityPct) > 65)
+      .map((p) => ({
+        symbol: clean(p.symbol, 24).toUpperCase(),
+        identityPct: Math.round(Number(p.identityPct) * 10) / 10,
+      }))
+      .slice(0, 4);
+  }
+
+  const candidateSymbols = [
+    raw?.symbol,
+    raw?.approvedSymbol,
+    raw?.queryName,
+    raw?.geneSymbol,
+    packedName,
+  ]
+    .map((s) => String(s || "").trim().toUpperCase())
+    .filter(Boolean);
+
+  for (const sym of candidateSymbols) {
+    if (CURATED_HUMAN_PARALOGS && CURATED_HUMAN_PARALOGS[sym]) {
+      return CURATED_HUMAN_PARALOGS[sym]
+        .filter((p) => Number(p.identityPct) > 65)
+        .slice(0, 4);
+    }
+    for (const [geneKey, list] of Object.entries(CURATED_HUMAN_PARALOGS || {})) {
+      if (sym.includes(geneKey)) {
+        return list.filter((p) => Number(p.identityPct) > 65).slice(0, 4);
+      }
+    }
+  }
+  return [];
+}
+
 function compactTargetForAdversarial(raw) {
   if (!raw || typeof raw !== "object") {
-    return { name: "Target", pdb_id: null, family: "unknown" };
+    return { name: "Target", pdb_id: null, family: "unknown", paralogs: [], safetyProfile: null };
   }
   const packed = buildTargetContext(raw) || raw;
   const pdbId = clean(packed.pdb_id || packed.id, 12);
   const caps = scoringCapabilities(packed);
+  const name = clean(packed.name || packed.queryName || targetDisplayName(packed) || "staged target", 240);
+  const paralogs = resolveTargetParalogs(raw, name);
+  const safetyProfile = clean(raw.safetyProfile || raw.discoveryContext?.safetyProfile || "", 60) || null;
   return {
-    name: clean(packed.name || packed.queryName || targetDisplayName(packed) || "staged target", 240),
+    name,
     pdb_id: pdbId || null,
     title: clean(packed.title, 240),
     family: caps.family || "unknown",
@@ -73,6 +118,8 @@ function compactTargetForAdversarial(raw) {
       residueCount: packed.pocket.residueCount,
       hydrophobicity: packed.pocket.hydrophobicity,
     } : null,
+    paralogs,
+    safetyProfile,
     dataGaps: Array.isArray(packed.dataGaps) ? packed.dataGaps.slice(0, 6) : [],
   };
 }
@@ -124,7 +171,14 @@ function buildAdversarialPrompt(candidate, target) {
     ? `${target.name} (PDB ID: ${target.pdb_id}, family: ${target.family || "unspecified"})`
     : target.name || "Target";
 
-  const user = `You previously reasoned that this compound is a strong candidate for this target. Now argue the opposite case as rigorously as possible. Identify genuine weaknesses, risks, and reasons this candidate might fail — consider selectivity risk (could it hit unintended targets), synthetic accessibility concerns, known failure patterns for similar compound classes or targets, weak or missing evidence in the original reasoning, and any red flags a careful reviewer would raise. Do not simply restate PAINS alerts already shown elsewhere — go deeper into genuine scientific/practical concerns. Be honest — if you truly cannot find a substantive case against it, say so rather than inventing weak objections.
+  const paralogList = Array.isArray(target?.paralogs) ? target.paralogs : [];
+  const paralogNote = paralogList.length
+    ? `\nParalog Selectivity Context: This target has close human paralogs with >65% sequence identity (${paralogList
+        .map((p) => `${p.symbol} ${p.identityPct}%`)
+        .join(", ")}). Explicitly evaluate off-target family selectivity risks against these paralogs in your Case Against.`
+    : "";
+
+  const user = `You previously reasoned that this compound is a strong candidate for this target. Now argue the opposite case as rigorously as possible. Identify genuine weaknesses, risks, and reasons this candidate might fail — consider selectivity risk (could it hit unintended targets), synthetic accessibility concerns, known failure patterns for similar compound classes or targets, weak or missing evidence in the original reasoning, and any red flags a careful reviewer would raise. Do not simply restate PAINS alerts already shown elsewhere — go deeper into genuine scientific/practical concerns. Be honest — if you truly cannot find a substantive case against it, say so rather than inventing weak objections.${paralogNote}
 
 Target Context (${targetDesc}):
 ${JSON.stringify(target, null, 2)}
@@ -175,6 +229,22 @@ function generateHeuristicCritique(candidate, target) {
   const rotBonds = candidate.rotatableBonds;
   const tpsa = candidate.tpsa;
   const fam = String(target?.family || "").toLowerCase();
+  const paralogs = Array.isArray(target?.paralogs) ? target.paralogs : [];
+
+  if (paralogs.length > 0) {
+    const paralogSummary = paralogs.map((p) => `${p.symbol} (${p.identityPct}% identity)`).join(", ");
+    concerns.push({
+      issue: "Human paralog cross-reactivity and selectivity risk",
+      detail: `Close human paralogs share high sequence conservation with ${target.name || "this target"} — specifically ${paralogSummary}. Orthosteric inhibitors risk off-target engagement across these family members, requiring counter-screening to avoid dose-limiting toxicity.`,
+    });
+  }
+
+  if (target?.safetyProfile === "Pan-Essential Warning") {
+    concerns.push({
+      issue: "Pan-essential target therapeutic index constraint",
+      detail: `${target.name || "This target"} exhibits pan-essentiality across DepMap/gnomAD profiles and broad vital-organ expression, narrowing the systemic therapeutic window and increasing on-target toxicity risk.`,
+    });
+  }
 
   if (fam.includes("kinase")) {
     concerns.push({

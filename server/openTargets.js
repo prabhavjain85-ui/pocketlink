@@ -1,4 +1,4 @@
-import { scoreAssociatedRows } from "./noveltyScore.js";
+import { scoreAssociatedRows, normalizeCustomWeights } from "./noveltyScore.js";
 import { getCachedTargets, rememberTargets } from "./targetDiscoveryCache.js";
 
 export const OT_GQL = "https://api.platform.opentargets.org/api/v4/graphql";
@@ -16,7 +16,7 @@ query DiseaseSearch($q: String!, $size: Int!) {
 }
 `;
 
-const ASSOCIATED_QUERY = `
+export const ASSOCIATED_QUERY = `
 query DiseaseAssociatedTargets($efoId: String!, $size: Int!) {
   disease(efoId: $efoId) {
     id
@@ -33,6 +33,49 @@ query DiseaseAssociatedTargets($efoId: String!, $size: Int!) {
           approvedName
           biotype
           functionDescriptions
+          isEssential
+          depMapEssentiality {
+            tissueName
+            screens {
+              depMapId
+              cellLineName
+              geneEffect
+            }
+          }
+          geneticConstraint {
+            constraintType
+            exp
+            obs
+            score
+            oe
+            oeLower
+            oeUpper
+          }
+          expressions {
+            tissue {
+              id
+              label
+              anatomicalSystems
+              organs
+            }
+            rna {
+              value
+              unit
+              level
+            }
+            protein {
+              level
+            }
+          }
+          homologues {
+            speciesId
+            speciesName
+            homologyType
+            targetGeneId
+            targetGeneSymbol
+            queryPercentageIdentity
+            targetPercentageIdentity
+          }
           drugAndClinicalCandidates { count }
           tractability {
             label
@@ -127,10 +170,15 @@ export async function fetchAssociatedTargets(efoId, { size = ASSOCIATION_PAGE_SI
 
 export async function runTargetDiscovery(
   queryString,
-  { skipCache = false, diseaseHint = null, profile = "novel_discovery", signal } = {}
+  { skipCache = false, diseaseHint = null, profile = "novel_discovery", customWeights = null, signal } = {}
 ) {
   const q = String(queryString || "").trim();
-  const profileKey = profile === "repurposing" ? "repurposing" : "novel_discovery";
+  const normalizedCustom = normalizeCustomWeights(customWeights);
+  const profileKey = normalizedCustom
+    ? "custom"
+    : profile === "repurposing"
+      ? "repurposing"
+      : "novel_discovery";
   let disease = diseaseHint && diseaseHint.id ? diseaseHint : null;
   if (!disease) {
     if (!q) {
@@ -152,7 +200,13 @@ export async function runTargetDiscovery(
     disease = pickDiseaseHit(hits, q);
   }
 
-  const cacheKey = profileKey === "novel_discovery" ? disease.id : `${disease.id}:${profileKey}`;
+  const customSuffix = normalizedCustom
+    ? `:${Object.values(normalizedCustom)
+        .map((v) => v.toFixed(2))
+        .join(",")}`
+    : "";
+  const cacheKey =
+    profileKey === "novel_discovery" ? disease.id : `${disease.id}:${profileKey}${customSuffix}`;
   if (!skipCache) {
     const cached = getCachedTargets(cacheKey);
     if (cached) {
@@ -161,7 +215,10 @@ export async function runTargetDiscovery(
   }
 
   const raw = await fetchAssociatedTargets(disease.id, { signal });
-  const scored = scoreAssociatedRows(raw.rows, { profile: profileKey });
+  const scored = scoreAssociatedRows(raw.rows, {
+    profile: profileKey === "repurposing" ? "repurposing" : "novel_discovery",
+    customWeights: normalizedCustom,
+  });
   const payload = {
     disease: {
       id: raw.id,
@@ -173,10 +230,11 @@ export async function runTargetDiscovery(
     all: scored.all,
     novelty: scored.novelty,
     established: scored.established,
-    evidenceProfile: profileKey,
+    evidenceProfile: scored.evidenceProfile,
     fromCache: false,
     error: "",
   };
   rememberTargets(cacheKey, payload);
   return payload;
 }
+

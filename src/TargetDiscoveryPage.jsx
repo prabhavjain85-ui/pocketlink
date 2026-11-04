@@ -10,6 +10,32 @@ import {
 } from "./historyService";
 import ReportExportButtons from "./ReportExportButtons";
 import { buildTargetDiscoveryReportMarkdown, defaultReportFilename } from "./reportExport";
+import TargetTriageMatrix from "./TargetTriageMatrix";
+import TargetPocketPreview from "./TargetPocketPreview";
+
+const DEFAULT_CUSTOM_WEIGHTS = {
+  genetic_association: 0.9,
+  somatic_mutation: 0.65,
+  rna_expression: 0.25,
+  crispr_screen: 0.55,
+  known_drug: 0.15,
+};
+
+const CUSTOM_SLIDER_DEFS = [
+  { key: "genetic_association", label: "Genetic Association (GWAS / Rare Variant)" },
+  { key: "somatic_mutation", label: "Somatic Driver Mutations (COSMIC / IntOGen)" },
+  { key: "crispr_screen", label: "CRISPR Screen & Affected Pathway" },
+  { key: "rna_expression", label: "RNA Expression Differential" },
+  { key: "known_drug", label: "Clinical Precedence (Known Drugs)" },
+];
+
+const TDL_FILTERS = [
+  { id: "ALL", label: "All TDLs" },
+  { id: "Tclin", label: "Tclin (Approved Drug)" },
+  { id: "Tchem", label: "Tchem (Tool Compound)" },
+  { id: "Tbio", label: "Tbio (Biological Only)" },
+  { id: "Tdark", label: "Tdark (Unexplored)" },
+];
 
 function compareDiscoveryField(a, b, key) {
   if (key === "symbol" || key === "geneticLabel" || key === "evidenceSummary") {
@@ -43,7 +69,7 @@ function NoveltyInfoTip() {
             <code>drugAndClinicalCandidates</code> (replaces the older <code>knownDrugs</code> field).
           </li>
           <li>
-            <b>Floor:</b> literature- or clinical-only rows are dropped so novelty is not the same as “random”.
+            <b>Safety &amp; Essentiality:</b> pan-essential genes (DepMap / gnomAD pLI &gt; 0.9 with broad vital-organ expression) incur a toxicity penalty.
           </li>
         </ul>
       </span>
@@ -51,7 +77,15 @@ function NoveltyInfoTip() {
   );
 }
 
-function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
+function DiscoveryTable({
+  rows,
+  sortKey,
+  sortDir,
+  onSort,
+  onFindStructures,
+  selectedPreviewSymbol,
+  onInspectPocket,
+}) {
   const [expandedExpression, setExpandedExpression] = useState({});
   const [expressionProfiles, setExpressionProfiles] = useState({});
 
@@ -114,6 +148,7 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
           {sorted.map((r) => {
             const isExpanded = Boolean(expandedExpression[r.symbol]);
             const expProfile = isExpanded ? expressionProfiles[r.symbol] : null;
+            const isPreviewing = selectedPreviewSymbol === r.symbol;
 
             return (
               <React.Fragment key={r.ensemblId || r.symbol}>
@@ -121,31 +156,92 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
                   <td>
                     <div className="result-id">{r.symbol}</div>
                     <div className="score-title">{r.name}</div>
-                    {r.highNovelty ? <span className="novelty-badge undrugged">🆕 Undrugged target</span> : null}
-                    {r.wellEstablished && !r.highNovelty ? (
-                      <span className="novelty-badge established">Well-established</span>
-                    ) : null}
-                    {r.expectedMoA ? (
-                      <span
-                        className="novelty-badge"
-                        title={`Directionality of effect: ${r.directionOfEffect || "context-dependent"} → ${r.expectedMoALabel || r.expectedMoA}`}
-                        style={{
-                          marginLeft: 4,
-                          background: r.expectedMoA === "activator" ? "rgba(245, 158, 11, 0.14)" : "rgba(56, 189, 248, 0.14)",
-                          color: r.expectedMoA === "activator" ? "#fbbf24" : "#38bdf8",
-                          border: "1px solid currentColor",
-                        }}
-                      >
-                        {r.expectedMoA === "activator"
-                          ? "⚡ Activator / LoF target"
-                          : r.expectedMoA === "inhibitor"
-                            ? "🛡️ Inhibitor / GoF target"
-                            : "⚖️ Modulator"}
-                      </span>
-                    ) : null}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                      {r.tdl ? (
+                        <span
+                          className="novelty-badge"
+                          title={r.tdlDescription || r.tdlLabel || r.tdl}
+                          style={{
+                            background:
+                              r.tdl === "Tclin"
+                                ? "rgba(34, 197, 94, 0.14)"
+                                : r.tdl === "Tchem"
+                                  ? "rgba(56, 189, 248, 0.14)"
+                                  : r.tdl === "Tbio"
+                                    ? "rgba(168, 85, 247, 0.14)"
+                                    : "rgba(148, 163, 184, 0.14)",
+                            color:
+                              r.tdl === "Tclin"
+                                ? "#4ade80"
+                                : r.tdl === "Tchem"
+                                  ? "#38bdf8"
+                                  : r.tdl === "Tbio"
+                                    ? "#c084fc"
+                                    : "#cbd5e1",
+                            border: "1px solid currentColor",
+                          }}
+                        >
+                          {r.tdl}
+                        </span>
+                      ) : null}
+                      {r.highNovelty ? <span className="novelty-badge undrugged">🆕 Undrugged target</span> : null}
+                      {r.wellEstablished && !r.highNovelty ? (
+                        <span className="novelty-badge established">Well-established</span>
+                      ) : null}
+                      {r.expectedMoA ? (
+                        <span
+                          className="novelty-badge"
+                          title={`Directionality of effect: ${r.directionOfEffect || "context-dependent"} → ${r.expectedMoALabel || r.expectedMoA}`}
+                          style={{
+                            background: r.expectedMoA === "activator" ? "rgba(245, 158, 11, 0.14)" : "rgba(56, 189, 248, 0.14)",
+                            color: r.expectedMoA === "activator" ? "#fbbf24" : "#38bdf8",
+                            border: "1px solid currentColor",
+                          }}
+                        >
+                          {r.expectedMoA === "activator"
+                            ? "⚡ Activator / LoF target"
+                            : r.expectedMoA === "inhibitor"
+                              ? "🛡️ Inhibitor / GoF target"
+                              : "⚖️ Modulator"}
+                        </span>
+                      ) : null}
+                      {r.safetyProfile ? (
+                        <span
+                          className="novelty-badge"
+                          style={{
+                            background:
+                              r.safetyProfile === "Pan-Essential Warning"
+                                ? "rgba(239, 68, 68, 0.16)"
+                                : r.safetyProfile === "Tissue-Specific"
+                                  ? "rgba(34, 197, 94, 0.14)"
+                                  : "rgba(148, 163, 184, 0.12)",
+                            color:
+                              r.safetyProfile === "Pan-Essential Warning"
+                                ? "#f87171"
+                                : r.safetyProfile === "Tissue-Specific"
+                                  ? "#4ade80"
+                                  : "#94a3b8",
+                            border: "1px solid currentColor",
+                          }}
+                        >
+                          {r.safetyProfile === "Pan-Essential Warning"
+                            ? "⚠️ Pan-Essential Warning"
+                            : r.safetyProfile}
+                        </span>
+                      ) : null}
+                    </div>
                     {r.tractability?.topModality ? (
                       <div className="score-title" style={{ marginTop: 4 }}>
                         Tractability: {r.tractability.topModality}
+                      </div>
+                    ) : null}
+                    {Array.isArray(r.paralogs) && r.paralogs.length > 0 ? (
+                      <div className="score-title" style={{ marginTop: 2, color: "#cbd5e1" }}>
+                        Homologous paralogs (&gt;65%):{" "}
+                        {r.paralogs
+                          .slice(0, 3)
+                          .map((p) => `${p.symbol} (${p.identityPct}%)`)
+                          .join(", ")}
                       </div>
                     ) : null}
                     {r.safety?.hasKnownSafetyFlags ? (
@@ -154,7 +250,7 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
                         {r.safety.topOrgans?.length ? ` (${r.safety.topOrgans.join(", ")})` : ""}
                       </div>
                     ) : null}
-                    <div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
                       <button
                         type="button"
                         className={"btn-expression-toggle" + (isExpanded ? " active" : "")}
@@ -165,6 +261,16 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
                         <span>🧬 Tissue Expression</span>
                         <span>{isExpanded ? "▲" : "▼"}</span>
                       </button>
+                      {onInspectPocket ? (
+                        <button
+                          type="button"
+                          className={"btn-expression-toggle" + (isPreviewing ? " active" : "")}
+                          onClick={() => onInspectPocket(r)}
+                          title="Inspect 3D binding pocket and conformation in-place"
+                        >
+                          <span>🔬 3D Pocket Preview</span>
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                   <td className="mono score-num">
@@ -218,32 +324,32 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
                         </div>
 
                         {expProfile.available && (
-                        <div className="expression-chart-wrap">
-                          <div className="expression-chart-header">
-                            <span>Tissue / Anatomical System</span>
-                            <span>Baseline RNA (TPM)</span>
-                          </div>
-                          <div className="expression-bar-list">
-                            {expProfile.tissues.slice(0, 8).map((tissue) => (
-                              <div key={tissue.id} className="expression-bar-row">
-                                <div className="expression-tissue-meta">
-                                  <span className="expression-tissue-name">{tissue.name}</span>
-                                  <span className="expression-tissue-system">{tissue.organSystem}</span>
+                          <div className="expression-chart-wrap">
+                            <div className="expression-chart-header">
+                              <span>Tissue / Anatomical System</span>
+                              <span>Baseline RNA (TPM)</span>
+                            </div>
+                            <div className="expression-bar-list">
+                              {expProfile.tissues.slice(0, 8).map((tissue) => (
+                                <div key={tissue.id} className="expression-bar-row">
+                                  <div className="expression-tissue-meta">
+                                    <span className="expression-tissue-name">{tissue.name}</span>
+                                    <span className="expression-tissue-system">{tissue.organSystem}</span>
+                                  </div>
+                                  <div className="expression-bar-track" title={`${tissue.name}: ${tissue.tpm} TPM`}>
+                                    <div
+                                      className={
+                                        "expression-bar-fill" +
+                                        (tissue.id === expProfile.tissues[0].id ? " primary-tissue" : "")
+                                      }
+                                      style={{ width: `${tissue.relativePercent}%` }}
+                                    />
+                                  </div>
+                                  <div className="expression-bar-val mono">{tissue.tpm} TPM</div>
                                 </div>
-                                <div className="expression-bar-track" title={`${tissue.name}: ${tissue.tpm} TPM`}>
-                                  <div
-                                    className={
-                                      "expression-bar-fill" +
-                                      (tissue.id === expProfile.tissues[0].id ? " primary-tissue" : "")
-                                    }
-                                    style={{ width: `${tissue.relativePercent}%` }}
-                                  />
-                                </div>
-                                <div className="expression-bar-val mono">{tissue.tpm} TPM</div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
                         )}
 
                         <div className="expression-limit-note">
@@ -282,6 +388,11 @@ export default function TargetDiscoveryPage() {
   const savedActive = useMemo(() => getActiveState(ACTIVE_STATE_KEYS.TARGET_DISCOVERY), []);
   const [query, setQuery] = useState(() => savedActive?.query || "");
   const [profile, setProfile] = useState(() => savedActive?.profile || "novel_discovery");
+  const [customSlidersOpen, setCustomSlidersOpen] = useState(() => Boolean(savedActive?.customSlidersOpen));
+  const [customWeights, setCustomWeights] = useState(() => savedActive?.customWeights || DEFAULT_CUSTOM_WEIGHTS);
+  const [useCustomWeights, setUseCustomWeights] = useState(() => Boolean(savedActive?.useCustomWeights));
+  const [tdlFilter, setTdlFilter] = useState(() => savedActive?.tdlFilter || "ALL");
+  const [previewTarget, setPreviewTarget] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -294,8 +405,18 @@ export default function TargetDiscoveryPage() {
   const suggestReq = useRef(0);
 
   useEffect(() => {
-    setActiveState(ACTIVE_STATE_KEYS.TARGET_DISCOVERY, { query, profile, result, view, sort });
-  }, [query, profile, result, view, sort]);
+    setActiveState(ACTIVE_STATE_KEYS.TARGET_DISCOVERY, {
+      query,
+      profile,
+      customSlidersOpen,
+      customWeights,
+      useCustomWeights,
+      tdlFilter,
+      result,
+      view,
+      sort,
+    });
+  }, [query, profile, customSlidersOpen, customWeights, useCustomWeights, tdlFilter, result, view, sort]);
 
   useEffect(() => {
     const q = query.trim();
@@ -322,19 +443,35 @@ export default function TargetDiscoveryPage() {
     return () => clearTimeout(handle);
   }, [query]);
 
-  const runSearch = async (raw, diseaseHint = null, profileOverride = null) => {
+  const runSearch = async (
+    raw,
+    diseaseHint = null,
+    profileOverride = null,
+    customWeightsOverride = undefined
+  ) => {
     const q = String(raw || query).trim();
     const activeProfile = profileOverride || profile;
+    const activeCustomWeights =
+      customWeightsOverride !== undefined
+        ? customWeightsOverride
+        : useCustomWeights
+          ? customWeights
+          : null;
     if (!q && !diseaseHint) return;
     const myReq = ++reqId.current;
     setLoading(true);
     setError("");
     setResult(null);
+    setPreviewTarget(null);
     setSuggestOpen(false);
     setView(activeProfile === "repurposing" ? "established" : "novelty");
     setSort({ key: "noveltyScore", dir: "desc" });
     try {
-      const data = await runTargetDiscovery(q, { diseaseHint, profile: activeProfile });
+      const callOpts = { diseaseHint, profile: activeProfile };
+      if (activeCustomWeights) {
+        callOpts.customWeights = activeCustomWeights;
+      }
+      const data = await runTargetDiscovery(q, callOpts);
       if (reqId.current !== myReq) return;
       if (data.error) {
         setError(data.error);
@@ -343,7 +480,7 @@ export default function TargetDiscoveryPage() {
       setResult(data);
 
       const diseaseLabel = data?.disease?.name || q;
-      const targetsList = data?.targets || [];
+      const targetsList = data?.novelty || data?.targets || [];
       const topTarget = targetsList[0];
       const summaryText = topTarget
         ? `${targetsList.length} targets identified · Top lead: ${topTarget.symbol} (score ${(topTarget.profileScore ?? topTarget.noveltyScore)?.toFixed(1) ?? "n/a"})`
@@ -355,7 +492,7 @@ export default function TargetDiscoveryPage() {
         summary: summaryText,
         inputs: {
           query: q,
-          profile: activeProfile,
+          profile: activeCustomWeights ? "custom" : activeProfile,
           diseaseName: diseaseLabel,
           diseaseId: data?.disease?.id || null,
         },
@@ -376,8 +513,30 @@ export default function TargetDiscoveryPage() {
 
   const onProfileChange = (nextProfile) => {
     setProfile(nextProfile);
+    setUseCustomWeights(false);
     if (query.trim() || result?.disease) {
-      runSearch(query || result?.disease?.name, result?.disease || null, nextProfile);
+      runSearch(query || result?.disease?.name, result?.disease || null, nextProfile, null);
+    }
+  };
+
+  const handleSliderChange = (key, val) => {
+    const next = { ...customWeights, [key]: Number(val) };
+    setCustomWeights(next);
+    setUseCustomWeights(true);
+  };
+
+  const applyCustomWeights = () => {
+    setUseCustomWeights(true);
+    if (query.trim() || result?.disease) {
+      runSearch(query || result?.disease?.name, result?.disease || null, profile, customWeights);
+    }
+  };
+
+  const resetCustomWeights = () => {
+    setCustomWeights(DEFAULT_CUSTOM_WEIGHTS);
+    setUseCustomWeights(false);
+    if (query.trim() || result?.disease) {
+      runSearch(query || result?.disease?.name, result?.disease || null, profile, null);
     }
   };
 
@@ -397,6 +556,38 @@ export default function TargetDiscoveryPage() {
     });
     if (row?.expectedMoA) params.set("moa", row.expectedMoA);
     if (row?.uniprotId) params.set("uniprot", row.uniprotId);
+    navigate(`/?${params.toString()}`);
+  };
+
+  const onInspectPocket = (row) => {
+    setPreviewTarget((prev) => (prev?.symbol === row?.symbol ? null : row));
+  };
+
+  const onCommitTargetAndPocket = (targetRow, structureRow) => {
+    const symbol = targetRow?.symbol || "";
+    const stagedProtein = {
+      ...structureRow,
+      queryName: symbol || structureRow?.id,
+      symbol,
+      expectedMoA: targetRow?.expectedMoA,
+      uniprotId: targetRow?.uniprotId || structureRow?.uniprotId,
+      tdl: targetRow?.tdl,
+      safetyProfile: targetRow?.safetyProfile,
+      paralogs: targetRow?.paralogs || [],
+    };
+    const existingBench = getActiveState(ACTIVE_STATE_KEYS.BENCH) || {};
+    setActiveState(ACTIVE_STATE_KEYS.BENCH, {
+      ...existingBench,
+      protein: stagedProtein,
+      aiResult: null,
+    });
+    const params = new URLSearchParams({
+      q: symbol || structureRow?.id || "",
+      from: "target-discovery",
+      committed: "1",
+    });
+    if (targetRow?.expectedMoA) params.set("moa", targetRow.expectedMoA);
+    if (targetRow?.uniprotId) params.set("uniprot", targetRow.uniprotId);
     navigate(`/?${params.toString()}`);
   };
 
@@ -428,7 +619,12 @@ export default function TargetDiscoveryPage() {
     }
   };
 
-  const rows = view === "established" ? result?.established || [] : result?.novelty || [];
+  const rows = useMemo(() => {
+    const baseRows = view === "established" ? result?.established || [] : result?.novelty || [];
+    if (tdlFilter === "ALL") return baseRows;
+    return baseRows.filter((r) => (r.tdl || "Tbio") === tdlFilter);
+  }, [view, result, tdlFilter]);
+
   const headline = (result?.novelty || []).filter((r) => r.highNovelty).slice(0, 8);
   const diseaseName = result?.disease?.name || "";
 
@@ -450,27 +646,118 @@ export default function TargetDiscoveryPage() {
             <div className="hint" style={{ marginBottom: 6, fontWeight: 600 }}>
               Evidence Weighting Profile:
             </div>
-            <div className="view-toggle" role="radiogroup" aria-label="Evidence weighting profile">
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 8,
+                alignItems: "center",
+              }}
+            >
+              <div className="view-toggle" role="radiogroup" aria-label="Evidence weighting profile">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={profile === "novel_discovery" && !useCustomWeights}
+                  className={"chip" + (profile === "novel_discovery" && !useCustomWeights ? " active" : "")}
+                  onClick={() => onProfileChange("novel_discovery")}
+                >
+                  Novel Discovery (Genetics &amp; CRISPR weighted)
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={profile === "repurposing" && !useCustomWeights}
+                  className={"chip" + (profile === "repurposing" && !useCustomWeights ? " active" : "")}
+                  onClick={() => onProfileChange("repurposing")}
+                >
+                  Repurposing (Clinical Precedence &amp; Tractability)
+                </button>
+              </div>
               <button
                 type="button"
-                role="radio"
-                aria-checked={profile === "novel_discovery"}
-                className={"chip" + (profile === "novel_discovery" ? " active" : "")}
-                onClick={() => onProfileChange("novel_discovery")}
+                className={"chip" + (customSlidersOpen || useCustomWeights ? " active" : "")}
+                aria-expanded={customSlidersOpen}
+                onClick={() => setCustomSlidersOpen((o) => !o)}
               >
-                Novel Discovery (Genetics &amp; CRISPR weighted)
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={profile === "repurposing"}
-                className={"chip" + (profile === "repurposing" ? " active" : "")}
-                onClick={() => onProfileChange("repurposing")}
-              >
-                Repurposing (Clinical Precedence &amp; Tractability)
+                {useCustomWeights ? "⚙️ Custom Evidence Weights (Active)" : "⚙️ Custom Evidence Weights"}
               </button>
             </div>
+
+            {customSlidersOpen && (
+              <div
+                data-testid="custom-evidence-weights-panel"
+                style={{
+                  marginTop: 10,
+                  padding: 12,
+                  borderRadius: 8,
+                  background: "rgba(15, 23, 42, 0.65)",
+                  border: "1px solid rgba(148, 163, 184, 0.24)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 8,
+                    flexWrap: "wrap",
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0" }}>
+                    Custom Datatype Pillar Weights (0.0 – 1.0)
+                  </span>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button type="button" className="chip active" onClick={applyCustomWeights}>
+                      Apply Custom Weights
+                    </button>
+                    <button type="button" className="chip" onClick={resetCustomWeights}>
+                      Reset to Preset
+                    </button>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: 10,
+                  }}
+                >
+                  {CUSTOM_SLIDER_DEFS.map((slider) => {
+                    const val = Number(customWeights[slider.key] ?? 0.5);
+                    return (
+                      <label
+                        key={slider.key}
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 4,
+                          fontSize: 12,
+                          color: "#cbd5e1",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>{slider.label}</span>
+                          <span className="mono">{val.toFixed(2)}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.05"
+                          aria-label={slider.label}
+                          value={val}
+                          onChange={(e) => handleSliderChange(slider.key, e.target.value)}
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
+
           <div className="search-row discovery-search-row">
             <div className="search-autocomplete" role="combobox" aria-expanded={suggestOpen} aria-controls="disease-suggest" aria-haspopup="listbox">
               <input
@@ -566,7 +853,7 @@ export default function TargetDiscoveryPage() {
               </div>
             )}
 
-            <div className="discovery-toolbar">
+            <div className="discovery-toolbar" style={{ flexWrap: "wrap", gap: 8 }}>
               <div className="view-toggle" role="tablist" aria-label="Result view">
                 <button
                   type="button"
@@ -604,6 +891,34 @@ export default function TargetDiscoveryPage() {
               />
             </div>
 
+            <div
+              className="tdl-filter-bar"
+              role="group"
+              aria-label="Filter targets by Pharos Target Development Level"
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 6,
+                alignItems: "center",
+                marginTop: 8,
+                marginBottom: 10,
+              }}
+            >
+              <span className="hint" style={{ margin: 0, marginRight: 4 }}>
+                Pharos TDL Filter:
+              </span>
+              {TDL_FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  className={"chip" + (tdlFilter === f.id ? " active" : "")}
+                  onClick={() => setTdlFilter(f.id)}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
             {view === "established" && (
               <div className="hint">
                 High overall association and three or more existing approved or investigational drugs. These are
@@ -611,11 +926,28 @@ export default function TargetDiscoveryPage() {
               </div>
             )}
 
+            <TargetTriageMatrix
+              rows={rows}
+              selectedPreviewSymbol={previewTarget?.symbol || null}
+              onInspectPocket={onInspectPocket}
+              onFindStructures={onFindStructures}
+            />
+
+            {previewTarget && (
+              <TargetPocketPreview
+                target={previewTarget}
+                onCommitToBench={onCommitTargetAndPocket}
+                onClose={() => setPreviewTarget(null)}
+              />
+            )}
+
             {rows.length === 0 ? (
               <div className="empty-state">
-                {view === "established"
-                  ? "No well-established (high association, many existing drugs) targets in this result set."
-                  : "No targets passed the evidence threshold for this disease. Novelty is not the same as a random gene list."}
+                {tdlFilter !== "ALL"
+                  ? `No targets in this view matched Pharos TDL filter "${tdlFilter}".`
+                  : view === "established"
+                    ? "No well-established (high association, many existing drugs) targets in this result set."
+                    : "No targets passed the evidence threshold for this disease. Novelty is not the same as a random gene list."}
               </div>
             ) : (
               <DiscoveryTable
@@ -624,6 +956,8 @@ export default function TargetDiscoveryPage() {
                 sortDir={sort.dir}
                 onSort={onSort}
                 onFindStructures={onFindStructures}
+                selectedPreviewSymbol={previewTarget?.symbol || null}
+                onInspectPocket={onInspectPocket}
               />
             )}
 
@@ -641,3 +975,4 @@ export default function TargetDiscoveryPage() {
     </>
   );
 }
+

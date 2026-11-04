@@ -238,6 +238,16 @@ export async function fetchAlphaFoldFallback(query, options = {}) {
         sizeLabel: null,
         hydrophobicityLabel: null,
       },
+      pocketClass: bindingRegionPlddt >= 70 ? "Orthosteric / Catalytic" : "Shallow / PPI Surface",
+      druggabilityTier:
+        bindingRegionPlddt >= 85
+          ? "High Druggability"
+          : bindingRegionPlddt >= 70
+            ? "Moderate Druggability"
+            : "Low / Challenging",
+      conformationTag: "Predicted Apo / AlphaFold",
+      pocketCenter: [0, 0, 0],
+      hasMissingPocketResidues: fractionVeryLow >= 0.35,
       breakdown: {
         resolution: Math.round((meanPlddt / 100) * 20),
         completeness: 25,

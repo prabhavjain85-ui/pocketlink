@@ -298,4 +298,71 @@ test("evaluates crystallographic R-free quality and penalizes poor R-free (> 0.3
   expect(poorRFree.rFreeQuality).toBe("poor");
 });
 
+test("penalizes structures with missing residues within 5 Å of the binding pocket and classifies conformation and pocket site", () => {
+  const intact = scoreTargetFeatures({
+    id: "2HYY",
+    title: "Crystal structure of c-Abl kinase domain in complex with imatinib in DFG-out conformation",
+    method: "X-RAY DIFFRACTION",
+    resolutionA: 2.1,
+    completeness: 96,
+    hasLigand: true,
+    pocket: "detected",
+    ligands: [
+      {
+        compId: "STI",
+        name: "IMATINIB",
+        formulaWeight: 493.6,
+        centroid: [12.4, -4.2, 18.9],
+        instances: [
+          {
+            rcsb_target_neighbors: [
+              { distance: 2.9, target_comp_id: "THR", target_seq_id: 315 },
+              { distance: 3.2, target_comp_id: "PHE", target_seq_id: 382 },
+              { distance: 3.5, target_comp_id: "LEU", target_seq_id: 248 },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  const gappedPocket = scoreTargetFeatures({
+    id: "2GAP",
+    title: "Crystal structure of c-Abl kinase domain in complex with imatinib in DFG-out conformation",
+    method: "X-RAY DIFFRACTION",
+    resolutionA: 2.1,
+    completeness: 96,
+    hasLigand: true,
+    pocket: "detected",
+    unobservedResidues: [{ auth_seq_id: 381 }],
+    ligands: [
+      {
+        compId: "STI",
+        name: "IMATINIB",
+        formulaWeight: 493.6,
+        centroid: [12.4, -4.2, 18.9],
+        instances: [
+          {
+            rcsb_target_neighbors: [
+              { distance: 2.9, target_comp_id: "THR", target_seq_id: 315 },
+              { distance: 3.2, target_comp_id: "PHE", target_seq_id: 382 },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  expect(intact.hasMissingPocketResidues).toBe(false);
+  expect(intact.conformationTag).toBe("Inactive / DFG-out");
+  expect(intact.pocketClass).toBe("Orthosteric / Catalytic");
+  expect(intact.druggabilityTier).toBe("High Druggability");
+  expect(intact.pocketCenter).toEqual([12.4, -4.2, 18.9]);
+
+  expect(gappedPocket.hasMissingPocketResidues).toBe(true);
+  expect(gappedPocket.score).toBe(intact.score - 12);
+  expect(gappedPocket.reasons.some((r) => /missing\/unmodeled residues within 5 Å/i.test(r))).toBe(true);
+});
+
+
 

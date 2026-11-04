@@ -283,4 +283,108 @@ test("infers expectedMoA directionality (activator for tumour suppressors/LoF vs
   expect(egfr.directionOfEffect).toMatch(/Gain-of-Function/i);
 });
 
+test("classifies Pharos Target Development Level (Tclin, Tchem, Tbio, Tdark)", () => {
+  const { classifyPharosTDL } = require("../server/noveltyScore");
+  const tclin = classifyPharosTDL(
+    {
+      approvedSymbol: "EGFR",
+      drugAndClinicalCandidates: { count: 12 },
+      tractability: [{ modality: "SM", label: "Approved Drug", value: true }],
+    },
+    { clinical: 0.85 }
+  );
+  expect(tclin.tdl).toBe("Tclin");
+
+  const tchem = classifyPharosTDL(
+    {
+      approvedSymbol: "NOVEL_KINASE",
+      drugAndClinicalCandidates: { count: 1 },
+      tractability: [{ modality: "SM", label: "ChEMBL High Quality", value: true }],
+    },
+    { genetic_association: 0.7 }
+  );
+  expect(tchem.tdl).toBe("Tchem");
+
+  const tbio = classifyPharosTDL(
+    {
+      approvedSymbol: "PALB2",
+      functionDescriptions: ["Plays a critical role in homologous recombination repair."],
+      drugAndClinicalCandidates: { count: 0 },
+    },
+    { genetic_association: 0.9 }
+  );
+  expect(tbio.tdl).toBe("Tbio");
+
+  const tdark = classifyPharosTDL(
+    {
+      approvedSymbol: "C1orf999",
+      functionDescriptions: [],
+      drugAndClinicalCandidates: { count: 0 },
+    },
+    { genetic_association: 0.05, literature: 0.02 }
+  );
+  expect(tdark.tdl).toBe("Tdark");
+});
+
+test("custom datatype slider weights override preset profiles in scoreAssociatedRows", () => {
+  const rows = [
+    row({ symbol: "SOMATIC_LEAD", overall: 0.7, genetic: 0.2, somatic: 0.95, drugs: 0 }),
+    row({ symbol: "GENETIC_LEAD", overall: 0.7, genetic: 0.95, somatic: 0.1, drugs: 0 }),
+  ];
+  const somaticWeighted = scoreAssociatedRows(rows, {
+    customWeights: {
+      genetic_association: 0.05,
+      somatic_mutation: 1.0,
+      rna_expression: 0,
+      crispr_screen: 0,
+      known_drug: 0,
+    },
+  });
+  expect(somaticWeighted.evidenceProfile).toBe("custom");
+  expect(somaticWeighted.novelty[0].symbol).toBe("SOMATIC_LEAD");
+});
+
+test("penalizes pan-essential targets (DepMap isEssential or gnomAD pLI > 0.9 + vital organs) and extracts >65% human paralogs", () => {
+  const baseRow = row({ symbol: "EGFR", overall: 0.82, genetic: 0.88, drugs: 0 });
+  const panEssentialRow = {
+    ...baseRow,
+    target: {
+      ...baseRow.target,
+      approvedSymbol: "EGFR",
+      isEssential: true,
+      geneticConstraint: [{ constraintType: "lof", score: 0.96, oe: 0.08 }],
+      expressions: [
+        { tissue: { label: "Heart", organs: ["Heart"] }, rna: { value: 42, level: 4 } },
+        { tissue: { label: "Liver", organs: ["Liver"] }, rna: { value: 38, level: 4 } },
+        { tissue: { label: "Brain", organs: ["Brain"] }, rna: { value: 31, level: 3 } },
+      ],
+      homologues: [
+        { speciesId: "9606", speciesName: "Homo sapiens", targetGeneSymbol: "ERBB2", queryPercentageIdentity: 82 },
+        { speciesId: "9606", speciesName: "Homo sapiens", targetGeneSymbol: "ERBB4", queryPercentageIdentity: 76 },
+        { speciesId: "9606", speciesName: "Homo sapiens", targetGeneSymbol: "DISTANT", queryPercentageIdentity: 41 },
+      ],
+    },
+  };
+
+  const baselineScored = scoreAssociatedRows([baseRow]).all[0];
+  const essentialScored = scoreAssociatedRows([panEssentialRow]).all[0];
+
+  expect(essentialScored.safetyProfile).toBe("Pan-Essential Warning");
+  expect(essentialScored.noveltyScore).toBeLessThan(baselineScored.noveltyScore);
+  expect(essentialScored.paralogs).toEqual([
+    { symbol: "ERBB2", identityPct: 82 },
+    { symbol: "ERBB4", identityPct: 76 },
+  ]);
+  expect(essentialScored.triageDimensions).toEqual(
+    expect.objectContaining({
+      geneticEvidence: expect.any(Number),
+      pocketDruggability: expect.any(Number),
+      structuralQuality: expect.any(Number),
+      safetySpecificity: expect.any(Number),
+      chemicalMatter: expect.any(Number),
+    })
+  );
+});
+
+
 

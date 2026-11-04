@@ -10,13 +10,12 @@
  */
 import fs from "fs";
 import path from "path";
-import { createRequire } from "module";
-import { fileURLToPath } from "url";
+import { nodeRequire } from "./nodeRequire.js";
 
-const require = createRequire(import.meta.url);
+const require = nodeRequire();
 globalThis.__tfRequire = require;
 
-const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const PROJECT_ROOT = process.cwd();
 const PUBLIC_DIR = path.join(PROJECT_ROOT, "public");
 const SERVER_DATA_DIR = path.join(PROJECT_ROOT, "server", "data");
 const API_DIR = path.join(PROJECT_ROOT, "api");

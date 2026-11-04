@@ -252,12 +252,40 @@ export async function applyCocrystalInteractionVisuals(viewer, options = {}) {
 
   const pocketRadius = Number(options.pocketRadiusAngstrom) > 0 ? Number(options.pocketRadiusAngstrom) : 5;
   const focusCenter = options.focusCenter;
+  const renderPocketSurface = Boolean(options.renderPocketSurface);
+  const isAlphaFold = Boolean(options.isAlphaFold);
 
   const structureCell = structures[0].cell;
   const parentStructure = structureCell?.obj?.data;
 
+  if (isAlphaFold) {
+    try {
+      const polymer = await plugin.builders.structure.tryCreateComponentStatic(structureCell, "polymer");
+      if (polymer) {
+        await plugin.builders.structure.representation.addRepresentation(polymer, {
+          type: "cartoon",
+          colorTheme: { name: "uncertainty", params: {} },
+        });
+      }
+    } catch {
+      /* fallback to default preset coloring */
+    }
+  }
+
   const ligand = await plugin.builders.structure.tryCreateComponentStatic(structureCell, "ligand");
-  if (!ligand) return;
+  if (!ligand) {
+    if (focusCenter && Number.isFinite(focusCenter.x)) {
+      focusCameraOnSphere(plugin, {
+        center: [focusCenter.x, focusCenter.y, focusCenter.z],
+        radius: pocketRadius + 8,
+      });
+    } else if (parentStructure) {
+      const fullSphere = boundingSphereFromStructure(parentStructure, 4);
+      if (fullSphere) focusCameraOnSphere(plugin, fullSphere);
+    }
+    scheduleCocrystalMolstarResize(viewer);
+    return;
+  }
 
   const focus = plugin.managers.structure.focus;
   if (focus?.setParams) {
@@ -277,6 +305,18 @@ export async function applyCocrystalInteractionVisuals(viewer, options = {}) {
     typeParams: { sizeFactor: 0.44, sizeAspectRatio: 1 },
     colorTheme: { name: "element-symbol", params: {} },
   });
+
+  if (renderPocketSurface) {
+    try {
+      await plugin.builders.structure.representation.addRepresentation(ligand, {
+        type: "gaussian-surface",
+        typeParams: { alpha: 0.3, radiusOffset: 1.4, smoothness: 1.2 },
+        colorTheme: { name: "hydrophobicity", params: {} },
+      });
+    } catch {
+      /* optional translucent pocket surface */
+    }
+  }
 
   await plugin.builders.structure.representation.addRepresentation(ligand, {
     type: "interactions",
@@ -347,8 +387,16 @@ export async function applyCocrystalInteractionVisuals(viewer, options = {}) {
  * Mount Mol* and load the experimental structure from RCSB BinaryCIF.
  */
 export async function mountCocrystalMolstarViewer(container, options) {
-  const { pdbId, ligandCode, ligandChainId, ligandResSeq, pocketRadiusAngstrom, focusCenter } =
-    options;
+  const {
+    pdbId,
+    ligandCode,
+    ligandChainId,
+    ligandResSeq,
+    pocketRadiusAngstrom,
+    focusCenter,
+    renderPocketSurface,
+    isAlphaFold,
+  } = options;
 
   if (!isWebGLAvailable()) {
     throw new Error(
@@ -377,13 +425,15 @@ export async function mountCocrystalMolstarViewer(container, options) {
     await loadBcifIntoViewer(
       viewer,
       pdbId,
-      `${String(pdbId).toUpperCase()} (experimental co-crystal)`
+      `${String(pdbId).toUpperCase()} (${isAlphaFold ? "AlphaFold DB model" : "experimental co-crystal"})`
     );
     try {
       await applyCocrystalInteractionVisuals(viewer, {
         pocketRadiusAngstrom: pocketRadiusAngstrom ?? 5,
         ligandCode,
         focusCenter,
+        renderPocketSurface,
+        isAlphaFold,
       });
     } catch {
       /* optional styling; structure still usable */
