@@ -551,3 +551,34 @@ test("toxicophore alerts are mentioned without dropping the compound", () => {
   expect(flaggedRow).toBeTruthy();
   expect(flaggedRow.concerns.join(" ")).toMatch(/Toxicophore alert.*Aldehyde/i);
 });
+
+test("penalizes an inhibitor when target requires activation (Loss-of-Function MoA mismatch)", () => {
+  const inhibitorCandidate = {
+    ...imatinib,
+    cid: "5291",
+    displayName: "imatinib",
+    class: "Tyrosine kinase inhibitor",
+  };
+  const gofTarget = {
+    id: "2HYY",
+    queryName: "ABL1",
+    title: "c-Abl tyrosine kinase domain",
+    expectedMoA: "inhibitor",
+  };
+  const lofTarget = {
+    id: "2HYY",
+    queryName: "ABL1",
+    title: "c-Abl tyrosine kinase domain",
+    expectedMoA: "activator",
+  };
+
+  const gofResult = rankCandidatesLocal([inhibitorCandidate, caffeine], gofTarget);
+  const lofResult = rankCandidatesLocal([inhibitorCandidate, caffeine], lofTarget);
+  const gofImatinib = gofResult.ranking.find((r) => r.cid === "5291");
+  const lofImatinib = lofResult.ranking.find((r) => r.cid === "5291");
+
+  expect(lofImatinib.score).toBeLessThan(gofImatinib.score);
+  expect(lofImatinib.concerns.join(" ")).toMatch(/Directionality mismatch/i);
+});
+
+

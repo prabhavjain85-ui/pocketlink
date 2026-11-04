@@ -1,4 +1,4 @@
-import { getRDKit } from "../rdkitLoader";
+import { getRDKit } from "../../server/rdkitLoader";
 import { computeQEDFromSmiles } from "../../server/evolution/qedFromRdkit";
 
 /**

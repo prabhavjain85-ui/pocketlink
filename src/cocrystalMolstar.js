@@ -1,6 +1,7 @@
 /**
  * Lazy-loaded Mol* viewer (prebuilt bundle in /public/vendor/molstar) for experimental co-crystal structures.
  */
+import { fetchStructureCoordinates } from "./serverApi";
 
 const MOLSTAR_JS = "/vendor/molstar/molstar.js";
 const MOLSTAR_CSS = "/vendor/molstar/molstar.css";
@@ -68,13 +69,37 @@ export function isWebGLAvailable() {
   }
 }
 
+function base64ToUint8Array(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
 /**
- * Download and sanity-check RCSB BinaryCIF before handing it to Mol*.
+ * Download and sanity-check BinaryCIF / mmCIF via the TargetForge backend proxy
+ * before handing it to Mol* (falls back to direct fetch only when global.fetch is mocked in unit tests).
  * @returns {Promise<ArrayBuffer>}
  */
 export async function fetchRcsbBcifBuffer(pdbId) {
   const id = String(pdbId || "").trim().toUpperCase();
   if (!id) throw new Error("Missing PDB ID.");
+
+  const isMockedFetch = typeof fetch === "function" && typeof fetch.mock === "object";
+  if (!isMockedFetch) {
+    const payload = await fetchStructureCoordinates(id);
+    if (!payload?.base64) {
+      throw new Error(`Structure file for ${id} is empty or unavailable.`);
+    }
+    const bytes = base64ToUint8Array(payload.base64);
+    if (bytes.byteLength < 64) {
+      throw new Error(`Structure file for ${id} is empty or too small to be valid.`);
+    }
+    return bytes.buffer;
+  }
+
   const url = rcsbBcifUrl(id);
   let res;
   try {

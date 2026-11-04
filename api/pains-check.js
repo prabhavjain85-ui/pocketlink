@@ -1,15 +1,13 @@
-const ALLOWED_ORIGIN = "*";
+const { applyCorsHeaders } = require("./_lib/security");
 
 function clean(value, max = 4000) {
   return String(value ?? "").trim().slice(0, max);
 }
 
-function json(res, status, body) {
+function json(res, status, body, req = null) {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json");
-  res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  applyCorsHeaders(req, res, "GET, POST, OPTIONS");
   res.end(JSON.stringify(body));
 }
 

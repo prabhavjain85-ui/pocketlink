@@ -47,12 +47,15 @@ export default function PdbTargetSearch({
       }
       setPResults(results);
       if (typeof onResultsChange === "function") onResultsChange(results);
+      if (results.length === 1 && results[0]?.isAlphaFold && !protein && typeof onSelect === "function") {
+        onSelect({ ...results[0], queryName: q });
+      }
     } catch (e) {
       if (reqId.current === myReq) setPError("Couldn't reach RCSB PDB. Check your connection and try again.");
     } finally {
       if (reqId.current === myReq) setPLoading(false);
     }
-  }, [onResultsChange, noStructureHint]);
+  }, [onResultsChange, noStructureHint, onSelect, protein]);
 
   const searchProtein = useCallback(() => runSearch(pQuery), [runSearch, pQuery]);
 
@@ -122,9 +125,24 @@ export default function PdbTargetSearch({
           </div>
           {recommendedTarget && (
             <div className="recommend compact">
-              <div className="recommend-label">Recommended structure</div>
-              <div className="winner">🏆 Recommended structure: {recommendedTarget.id}</div>
-              <div className="winner-score">Target selection score {recommendedTarget.score}/100</div>
+              <div className="recommend-label">
+                {recommendedTarget.isAlphaFold ? "AlphaFold DB structural fallback" : "Recommended structure"}
+              </div>
+              <div className="winner">
+                {recommendedTarget.isAlphaFold ? "🧬 AlphaFold predicted structure: " : "🏆 Recommended structure: "}
+                {recommendedTarget.id}
+              </div>
+              <div className="winner-score">
+                Target selection score {recommendedTarget.score}/100
+                {recommendedTarget.isAlphaFold && recommendedTarget.plddtTier
+                  ? ` · ${recommendedTarget.plddtTier.badge}`
+                  : ""}
+              </div>
+              {recommendedTarget.disorderWarning ? (
+                <div className="error-msg" style={{ marginTop: 6, marginBottom: 6 }}>
+                  ⚠️ {recommendedTarget.disorderWarning}
+                </div>
+              ) : null}
               <ul className="rank-bullets">
                 {(recommendedTarget.reasons || []).map((reason, i) => (
                   <li key={i}>{reason}</li>

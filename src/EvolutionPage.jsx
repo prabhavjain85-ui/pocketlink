@@ -5,6 +5,7 @@ import { Panel, PainsBadge } from "./benchUi";
 import AdversarialCritique from "./AdversarialCritique";
 import { DEFAULT_EVOLUTION_SETTINGS, clampSettings } from "./shared/evolutionSettings";
 import {
+  getEvolutionSeedPicks,
   noveltyForSmiles,
   probeReactionSupport,
   probeSaScoreSupport,
@@ -12,7 +13,6 @@ import {
   runEvolutionCampaign,
 } from "./serverApi";
 import { getHistory, saveHistoryEntry } from "./historyService";
-import { ensureApprovedDrugsLoaded, loadApprovedDrugs } from "./approvedDrugs";
 import { targetDisplayName } from "./shared/targetLabels";
 import "./evolution.css";
 
@@ -135,12 +135,10 @@ export default function EvolutionPage() {
     let cancelled = false;
     (async () => {
       try {
-        await ensureApprovedDrugsLoaded();
+        const approved = await getEvolutionSeedPicks();
         if (cancelled) return;
-        const approved = loadApprovedDrugs()
-          .filter((d) => /imatinib|dasatinib|nilotinib|gefitinib|erlotinib/i.test(d.name))
-          .map((d) => ({ smiles: d.smiles, name: d.name, source: "Approved library" }));
-        setPickList([...approved, ...historyMolecules()].slice(0, 16));
+        const list = Array.isArray(approved) ? approved : [];
+        setPickList([...list, ...historyMolecules()].slice(0, 16));
       } catch {
         // keep history-only picks
       }

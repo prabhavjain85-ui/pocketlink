@@ -1,4 +1,4 @@
-import { getRDKit } from "../rdkitLoader";
+import { getRDKit } from "../../server/rdkitLoader";
 import { getSparseMorganCountFingerprint, sparseCountsToObject } from "../../server/evolution/morganSparseCount";
 
 const CASES = {

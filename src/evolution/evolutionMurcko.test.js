@@ -1,4 +1,4 @@
-import { getRDKit } from "../rdkitLoader";
+import { getRDKit } from "../../server/rdkitLoader";
 import { murckoScaffoldSmiles, murckoScaffoldAtomIndices } from "../../server/evolution/evolutionMurcko";
 
 test("Murcko scaffold is a substructure of the parent", async () => {

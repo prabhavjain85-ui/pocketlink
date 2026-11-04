@@ -157,8 +157,8 @@ export default function HandoffStations({ b }) {
                 </Link>
               </div>
               <div className="lipinski-note" style={{ marginTop: 14 }}>
-                ADME descriptors are computed locally in-browser via RDKit WebAssembly without external server dependencies.
-                Docking poses and binding scores are not available while the in-browser engine is under validation.
+                ADME descriptors are computed on the TargetForge backend via RDKit.
+                Docking poses and binding scores are not available while the docking engine is under validation.
               </div>
             </div>
           )}

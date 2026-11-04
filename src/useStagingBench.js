@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { rankCandidates } from "./serverApi";
+import {
+  rankCandidates,
+  checkPainsBatch,
+  searchPdbTargets,
+  listCompoundLibraries,
+  screenApprovedLibrary,
+  searchPubchemCompound,
+} from "./serverApi";
 import {
   ACTIVE_STATE_KEYS,
   getActiveState,
@@ -8,9 +15,7 @@ import {
   setActiveState,
 } from "./historyService";
 import { prettyName, getCompoundSmiles } from "./benchUi";
-import { checkPainsBatch } from "./serverApi";
 import { MAX_CANDIDATES, drugLikenessChecks } from "./shared/drugLikeness";
-import { searchPdbTargets, listCompoundLibraries, screenApprovedLibrary } from "./serverApi";
 import { targetDisplayName } from "./shared/targetLabels";
 
 const EGFR_DEMO_PDB = "1M17";
@@ -23,8 +28,9 @@ const MAX_CACHED_RANKINGS = 20;
 
 function benchRankingKey(candidates, protein) {
   const pdb = String(protein?.id || protein?.pdb_id || "none").toUpperCase();
+  const moa = String(protein?.expectedMoA || "").toLowerCase();
   const cids = candidates.map((c) => String(c.CID ?? c.cid ?? "")).sort();
-  return `${pdb}|${cids.join(",")}`;
+  return `${pdb}|${moa}|${cids.join(",")}`;
 }
 
 function readBenchRankings() {
@@ -56,6 +62,8 @@ function rememberBenchRanking(candidates, protein, data) {
 export function useStagingBench() {
   const [searchParams] = useSearchParams();
   const handoffQuery = searchParams.get("q") || "";
+  const handoffMoA = searchParams.get("moa") || "";
+  const handoffUniprot = searchParams.get("uniprot") || "";
   const fromDiscovery = searchParams.get("from") === "target-discovery";
 
   const [demoTargetQuery, setDemoTargetQuery] = useState("");
@@ -67,7 +75,21 @@ export function useStagingBench() {
     return getActiveState(ACTIVE_STATE_KEYS.BENCH);
   }, [handoffQuery]);
 
-  const [protein, setProtein] = useState(() => savedActive?.protein || null);
+  const [protein, setProteinState] = useState(() => savedActive?.protein || null);
+  const setProtein = useCallback(
+    (next) => {
+      if (!next) {
+        setProteinState(null);
+        return;
+      }
+      setProteinState({
+        ...next,
+        expectedMoA: next.expectedMoA || handoffMoA || undefined,
+        uniprotId: next.uniprotId || handoffUniprot || undefined,
+      });
+    },
+    [handoffMoA, handoffUniprot]
+  );
   const [hasTargetResults, setHasTargetResults] = useState(false);
 
   const [cQuery, setCQuery] = useState("");
@@ -96,29 +118,11 @@ export function useStagingBench() {
   const fetchCompoundByName = useCallback(async (name) => {
     const q = String(name || "").trim();
     if (!q) return null;
-    const props = [
-      "MolecularFormula",
-      "MolecularWeight",
-      "CanonicalSMILES",
-      "IsomericSMILES",
-      "XLogP",
-      "HBondDonorCount",
-      "HBondAcceptorCount",
-      "RotatableBondCount",
-      "TPSA",
-      "IUPACName",
-    ].join(",");
-    const url = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(q)}/property/${props}/JSON`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error(`PubChem has no compound named "${q}". Try the common or generic drug name (e.g. "ibuprofen", "imatinib").`);
-    }
-    const data = await res.json();
-    const p = data.PropertyTable && data.PropertyTable.Properties && data.PropertyTable.Properties[0];
+    const p = await searchPubchemCompound(q);
     if (!p) {
       throw new Error(`PubChem returned no usable data for "${q}".`);
     }
-    return { ...p, displayName: prettyName(p, q) };
+    return { ...p, displayName: p.displayName || prettyName(p, q) };
   }, []);
 
   const searchCompound = useCallback(async (rawName) => {
@@ -228,7 +232,7 @@ export function useStagingBench() {
     } finally {
       setDemoLoading(false);
     }
-  }, [fetchCompoundByName, scrollToBench]);
+  }, [fetchCompoundByName, scrollToBench, setProtein]);
 
   const alreadyStaged = cResult && candidates.some((c) => c.CID === cResult.CID);
   const shortlistFull = candidates.length >= MAX_CANDIDATES && !alreadyStaged;
@@ -452,8 +456,15 @@ export function useStagingBench() {
   }, [candidates, handoffCid, recommendedCid]);
 
   const smiles = getCompoundSmiles(compound);
-  const previewChecks = cResult ? drugLikenessChecks(cResult) : [];
-  const previewPass = previewChecks.filter((c) => c.pass).length;
+  const previewChecks = cResult
+    ? Array.isArray(cResult.previewChecks)
+      ? cResult.previewChecks
+      : drugLikenessChecks(cResult)
+    : [];
+  const previewPass =
+    cResult && Number.isInteger(cResult.previewPass)
+      ? cResult.previewPass
+      : previewChecks.filter((c) => c.pass).length;
   const progress =
     (protein ? 0.25 : 0) +
     (candidates.length ? 0.25 : 0) +
@@ -473,7 +484,7 @@ export function useStagingBench() {
     cQuery, setCQuery, cLoading, cError, cResult, candidates,
     aiLoading, aiError, aiResult, handoffCid, setHandoffCid,
     aiSort, painsByCid, demoKey, demoTargetQuery, demoLoading,
-    handoffQuery, fromDiscovery,
+    handoffQuery, handoffMoA, handoffUniprot, fromDiscovery,
     benchMode, setBenchMode,
     libraries, libraryId, setLibraryId,
     libraryRunning, libraryError, libraryProgress, libraryResult,

@@ -593,8 +593,8 @@ export default function MethodologyPage() {
             <h2 className="section-title">ADME &amp; Pharmacokinetic Profiling</h2>
             <p className="section-text">
               Early attrition in drug discovery is predominantly driven by poor absorption, distribution, metabolism, and safety liabilities.
-              TargetForge includes an in-browser ADME engine powered by native <strong>RDKit WebAssembly</strong>, allowing researchers to evaluate
-              physicochemical properties and predictive pharmacokinetic filters directly on client hardware with zero server data transmission.
+              TargetForge includes a backend ADME engine powered by <strong>RDKit</strong>, allowing researchers to evaluate
+              physicochemical properties and predictive pharmacokinetic filters using deterministic cheminformatics rules.
             </p>
 
             <div className="methodology-criteria-grid">

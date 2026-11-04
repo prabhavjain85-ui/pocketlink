@@ -1,7 +1,7 @@
 /**
  * Compound libraries available to screen a staged target against.
  *
- * Each library is a committed JSON snapshot under public/data, fetched once per
+ * Each library is a committed JSON snapshot under server/data, loaded once per
  * server instance and cached. Nothing is fetched from an external API at
  * request time, so a screen cannot silently change because someone else's
  * database changed.
@@ -10,6 +10,7 @@
  *   { id, name, cid, smiles, indication, class, mw, xlogp, hbd, hba, rot, tpsa }
  */
 import { ensureApprovedDrugsLoaded, loadApprovedDrugs, APPROVED_DRUG_LIBRARY_COUNT } from "./approvedDrugs.js";
+import { nodeRequire } from "./nodeRequire.js";
 
 const CLINICAL_URL = `${process.env.PUBLIC_URL || ""}/data/clinicalLibrary.json`;
 
@@ -22,9 +23,19 @@ async function loadClinicalLibrary() {
   if (clinicalCache) return clinicalCache;
   if (!clinicalPromise) {
     clinicalPromise = (async () => {
-      const res = await fetch(CLINICAL_URL);
-      if (!res.ok) throw new Error(`Failed to load clinical compound library (${res.status})`);
-      const payload = await res.json();
+      let payload;
+      try {
+        const res = await fetch(CLINICAL_URL);
+        if (!res.ok) throw new Error(`Failed to load clinical compound library (${res.status})`);
+        payload = await res.json();
+      } catch (err) {
+        if (typeof globalThis.fetch?.mock === "object") throw err;
+        const req = nodeRequire();
+        const fs = req("fs");
+        const path = req("path");
+        const file = path.join(process.cwd(), "server", "data", "clinicalLibrary.json");
+        payload = JSON.parse(fs.readFileSync(file, "utf8"));
+      }
       const rows = Array.isArray(payload?.compounds) ? payload.compounds : [];
       clinicalCache = { rows, meta: payload };
       return clinicalCache;

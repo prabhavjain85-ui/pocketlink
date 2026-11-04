@@ -81,6 +81,118 @@ export const BIOLOGY_WEIGHTS = {
   rna_expression: 0.01,
 };
 
+export const REPURPOSING_WEIGHTS = {
+  clinical: 0.35,
+  affected_pathway: 0.18,
+  genetic_association: 0.15,
+  somatic_mutation: 0.1,
+  rna_expression: 0.08,
+  animal_model: 0.06,
+  literature: 0.08,
+};
+
+export const EVIDENCE_PROFILES = {
+  novel_discovery: {
+    id: "novel_discovery",
+    label: "Novel Discovery",
+    description:
+      "Weights human genetic associations, somatic drivers, and rare/GWAS variants heavily while discounting targets already drugged for this disease.",
+    weights: BIOLOGY_WEIGHTS,
+  },
+  repurposing: {
+    id: "repurposing",
+    label: "Repurposing & Clinical Precedence",
+    description:
+      "Weights clinical trial precedence, affected pathways, RNA expression, and small-molecule tractability for rapid translational repurposing.",
+    weights: REPURPOSING_WEIGHTS,
+  },
+};
+
+const LOSS_OF_FUNCTION_GENES = new Set([
+  "TP53",
+  "BRCA1",
+  "BRCA2",
+  "PALB2",
+  "SMAD4",
+  "PTEN",
+  "APC",
+  "RB1",
+  "VHL",
+  "STK11",
+  "NF1",
+  "NF2",
+  "ATM",
+  "ATR",
+  "CDKN2A",
+  "ARID1A",
+  "TET2",
+  "FBXW7",
+  "BAP1",
+  "GBA",
+  "GBA1",
+  "CFTR",
+  "SMN1",
+  "DMD",
+  "FXN",
+  "INS",
+  "LDLR",
+  "PKD1",
+  "TSC1",
+  "TSC2",
+]);
+
+const GAIN_OF_FUNCTION_GENES = new Set([
+  "EGFR",
+  "KRAS",
+  "NRAS",
+  "HRAS",
+  "BRAF",
+  "NRG1",
+  "ERBB2",
+  "ABL1",
+  "ALK",
+  "ROS1",
+  "MET",
+  "RET",
+  "FGFR1",
+  "FGFR2",
+  "FGFR3",
+  "PIK3CA",
+  "AKT1",
+  "MTOR",
+  "JAK1",
+  "JAK2",
+  "JAK3",
+  "BTK",
+  "BCL2",
+  "CDK4",
+  "CDK6",
+  "HDAC1",
+  "PARP1",
+  "PDE5A",
+  "HMGCR",
+  "PTGS2",
+  "DPP4",
+  "SLC5A2",
+  "ACE",
+  "AGTR1",
+  "BACE1",
+  "PCSK9",
+  "TNF",
+  "IL6",
+  "MAPK14",
+  "SRC",
+  "KDR",
+  "FLT3",
+  "KIT",
+  "PDGFRA",
+  "IDH1",
+  "IDH2",
+  "EZH2",
+  "MDM2",
+  "MYC",
+]);
+
 export function biologySignal(datatypeScores, overallScore) {
   const dt = datatypeScores || {};
   const w = BIOLOGY_WEIGHTS;
@@ -94,6 +206,150 @@ export function biologySignal(datatypeScores, overallScore) {
     w.animal_model * (dt.animal_model || 0) +
     w.rna_expression * (dt.rna_expression || 0)
   );
+}
+
+export function repurposingSignal(datatypeScores, overallScore, tractability = null, drugCount = 0) {
+  const dt = datatypeScores || {};
+  const w = REPURPOSING_WEIGHTS;
+  const clinical = dt.clinical ?? dt.known_drug ?? 0;
+  const base =
+    w.clinical * clinical +
+    w.affected_pathway * (dt.affected_pathway || 0) +
+    w.genetic_association * (dt.genetic_association || 0) +
+    w.somatic_mutation * (dt.somatic_mutation || 0) +
+    w.rna_expression * (dt.rna_expression || 0) +
+    w.animal_model * (dt.animal_model || 0) +
+    w.literature * (dt.literature || 0);
+  const globalDrugBonus = Number(drugCount) > 0 ? Math.min(0.15, Math.log1p(Number(drugCount)) * 0.035) : 0;
+  const tractBoost = tractability?.smallMolecule ? 1.12 : tractability?.clinicalPrecedence ? 1.06 : 1.0;
+  const combined = Math.min(1, (base + globalDrugBonus + 0.05 * (Number(overallScore) || 0)) * tractBoost);
+  return Math.round(combined * 1000) / 10;
+}
+
+export function summarizeTractability(tractability = []) {
+  const rows = Array.isArray(tractability) ? tractability : [];
+  const active = rows.filter((t) => t && t.value === true);
+  const sm = active.filter((t) => t.modality === "SM");
+  const ab = active.filter((t) => t.modality === "AB");
+  const pr = active.filter((t) => t.modality === "PR");
+  const labels = active.map((t) => `${t.modality}: ${t.label}`);
+
+  const clinicalPrecedence = active.some((t) =>
+    /approved drug|advanced clinical|phase [123]|clinical precedence/i.test(String(t.label || ""))
+  );
+  const highQualityPocket = sm.some((t) =>
+    /high-quality ligand|high-quality pocket|medium-quality pocket|druggable family/i.test(String(t.label || ""))
+  );
+
+  let topModality = "Uncharacterized";
+  if (sm.length > 0) topModality = "Small Molecule";
+  else if (ab.length > 0) topModality = "Antibody";
+  else if (pr.length > 0) topModality = "PROTAC";
+
+  return {
+    smallMolecule: sm.length > 0,
+    antibody: ab.length > 0,
+    protac: pr.length > 0,
+    clinicalPrecedence,
+    highQualityPocket,
+    topModality,
+    labels: labels.slice(0, 6),
+  };
+}
+
+export function summarizeSafetyLiabilities(safetyLiabilities = []) {
+  const rows = Array.isArray(safetyLiabilities) ? safetyLiabilities : [];
+  const events = [];
+  const tissues = [];
+  const seenEvents = new Set();
+  const seenTissues = new Set();
+
+  for (const item of rows) {
+    const evt = String(item?.event || "").trim();
+    if (evt && !seenEvents.has(evt.toLowerCase())) {
+      seenEvents.add(evt.toLowerCase());
+      events.push(evt);
+    }
+    for (const bio of item?.biosamples || []) {
+      const tissue = String(bio?.tissueLabel || "").trim();
+      if (tissue && !seenTissues.has(tissue.toLowerCase())) {
+        seenTissues.add(tissue.toLowerCase());
+        tissues.push(tissue);
+      }
+    }
+  }
+
+  return {
+    hasLiability: events.length > 0,
+    count: events.length,
+    events: events.slice(0, 4),
+    tissues: tissues.slice(0, 4),
+  };
+}
+
+/**
+ * Infer expected therapeutic Mechanism of Action ("inhibitor" | "activator" | "modulator")
+ * and biological directionality from target annotations and Open Targets evidence.
+ */
+export function inferExpectedMoA(target = {}, datatypeScores = {}) {
+  const symbol = String(target?.approvedSymbol || target?.symbol || "").trim().toUpperCase();
+  const name = String(target?.approvedName || target?.name || "");
+  const fnDesc = Array.isArray(target?.functionDescriptions)
+    ? target.functionDescriptions.join(" ")
+    : String(target?.functionDescriptions || "");
+  const combinedText = `${name} ${fnDesc}`;
+
+  if (LOSS_OF_FUNCTION_GENES.has(symbol)) {
+    return {
+      expectedMoA: "activator",
+      directionOfEffect: "Loss-of-Function",
+      rationale: `${symbol} acts via loss-of-function or haploinsufficiency; therapeutic strategy requires functional restoration, stabilization, or pathway activation rather than direct inhibition.`,
+    };
+  }
+
+  if (GAIN_OF_FUNCTION_GENES.has(symbol)) {
+    return {
+      expectedMoA: "inhibitor",
+      directionOfEffect: "Gain-of-Function / Overactivity",
+      rationale: `${symbol} drives pathology through enzymatic overactivity, amplification, or activating mutations; small-molecule inhibition or antagonism is the primary therapeutic strategy.`,
+    };
+  }
+
+  if (/\b(tumor suppressor|loss[- ]of[- ]function|haploinsufficien|chaperone|deficiency)\b/i.test(combinedText)) {
+    return {
+      expectedMoA: "activator",
+      directionOfEffect: "Loss-of-Function",
+      rationale: `Target annotation indicates tumor-suppressor or loss-of-function biology; direct inhibition is counter-indicated (activation or restoration preferred).`,
+    };
+  }
+
+  if (
+    /\b(kinase|protease|transferase|hydrolase|synthase|reductase|oxidase|dehydrogenase|phosphodiesterase|cyclooxygenase|esterase|polymerase|helicase|methyltransferase|deacetylase|oncogene)\b/i.test(
+      combinedText
+    )
+  ) {
+    return {
+      expectedMoA: "inhibitor",
+      directionOfEffect: "Gain-of-Function / Catalytic Target",
+      rationale: `Catalytic enzyme or oncogenic driver profile; active-site or allosteric inhibition is the standard small-molecule mechanism.`,
+    };
+  }
+
+  const somatic = Number(datatypeScores?.somatic_mutation) || 0;
+  const clinical = Number(datatypeScores?.clinical ?? datatypeScores?.known_drug) || 0;
+  if (somatic >= 0.45 && clinical >= 0.2) {
+    return {
+      expectedMoA: "inhibitor",
+      directionOfEffect: "Somatic Driver / Druggable",
+      rationale: `Strong somatic driver and clinical precedent suggest inhibition of hyperactive target signaling.`,
+    };
+  }
+
+  return {
+    expectedMoA: "modulator",
+    directionOfEffect: "Context-Dependent",
+    rationale: `Directionality depends on disease context; evaluate both positive and negative modulation before committing to an inhibitor screen.`,
+  };
 }
 
 /** Never let a maxed-out clinical score drive novelty to exactly zero. */
@@ -229,7 +485,9 @@ export function explainTarget(row) {
   return `${strength.label} genetic association (${phrase}), with early clinical activity against ${gene} already reported for this disease.`;
 }
 
-export function scoreAssociatedRows(rows) {
+export function scoreAssociatedRows(rows, options = {}) {
+  const profileId =
+    options?.profile && EVIDENCE_PROFILES[options.profile] ? options.profile : "novel_discovery";
   const scored = [];
   for (const row of rows || []) {
     const target = row?.target || {};
@@ -241,21 +499,35 @@ export function scoreAssociatedRows(rows) {
     const somaticScore = datatypeScores.somatic_mutation || 0;
     // Disease-specific: drugs in clinical development against this target for
     // the queried disease. Distinct from drugCount, which is global.
-    const clinicalScore = datatypeScores.clinical || 0;
+    const clinicalScore = datatypeScores.clinical || datatypeScores.known_drug || 0;
     const drugCount = Number(target.drugAndClinicalCandidates?.count) || 0;
     const biology = biologySignal(datatypeScores, overallScore);
     const genetic = geneticStrength(geneticScore);
+    const tractability = summarizeTractability(target.tractability);
+    const safety = summarizeSafetyLiabilities(target.safetyLiabilities);
+    const moaInfo = inferExpectedMoA(target, datatypeScores);
+    const repurposingScore = repurposingSignal(datatypeScores, overallScore, tractability, drugCount);
+    const defaultNoveltyScore = noveltyScoreValue(biology, { clinicalScore, drugCount });
+    const uniprotId =
+      (target.proteinIds || []).find((p) => p?.source === "uniprot_swissprot")?.id ||
+      (target.proteinIds || []).find((p) => /uniprot/i.test(String(p?.source || "")))?.id ||
+      null;
+
     const item = {
       ensemblId: target.id || "",
       symbol: target.approvedSymbol || "",
       name: target.approvedName || "",
+      uniprotId,
       overallScore,
       geneticScore,
       somaticScore,
       clinicalScore,
       drugCount,
       biologySignal: biology,
-      noveltyScore: noveltyScoreValue(biology, { clinicalScore, drugCount }),
+      noveltyScore: profileId === "repurposing" ? repurposingScore : defaultNoveltyScore,
+      discoveryNoveltyScore: defaultNoveltyScore,
+      repurposingScore,
+      evidenceProfile: profileId,
       // Exposed so the UI and reports can show how the score was reached.
       noveltyComponents: {
         biology,
@@ -266,12 +538,20 @@ export function scoreAssociatedRows(rows) {
       datasourceScores,
       geneticLabel: genetic.label,
       geneticLevel: genetic.level,
+      tractability,
+      safety,
+      expectedMoA: moaInfo.expectedMoA,
+      directionOfEffect: moaInfo.directionOfEffect,
+      moaRationale: moaInfo.rationale,
     };
     item.highNovelty = isHighNovelty(item);
     item.wellEstablished = isWellEstablished(item);
     item.evidenceSummary = evidenceSummary(datatypeScores);
     item.explanation = explainTarget(item);
-    item.passesFloor = passesEvidenceFloor(item);
+    item.passesFloor =
+      profileId === "repurposing"
+        ? overallScore >= MIN_OVERALL_SCORE && (clinicalScore >= 0.1 || drugCount > 0 || passesEvidenceFloor(item))
+        : passesEvidenceFloor(item);
     scored.push(item);
   }
 
@@ -293,5 +573,5 @@ export function scoreAssociatedRows(rows) {
       return String(a.symbol).localeCompare(String(b.symbol));
     });
 
-  return { all: scored, novelty, established };
+  return { all: scored, novelty, established, evidenceProfile: profileId };
 }

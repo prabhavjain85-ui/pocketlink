@@ -144,6 +144,10 @@ const remote =
 export const searchPdbTargets = remote("searchPdbTargets");
 export const checkPainsBatch = remote("checkPainsBatch");
 export const rankCandidates = remote("rankCandidates");
+export const searchPubchemCompound = remote("searchPubchemCompound");
+export const fetchPubchemPngDataUrl = remote("fetchPubchemPngDataUrl");
+export const fetchStructureCoordinates = remote("fetchStructureCoordinates");
+export const getEvolutionSeedPicks = remote("getEvolutionSeedPicks");
 
 // Target discovery
 export const searchDiseases = remote("searchDiseases");

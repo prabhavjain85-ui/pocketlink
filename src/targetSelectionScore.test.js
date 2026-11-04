@@ -267,3 +267,35 @@ test("infers functional groups from ligand names without extra fetches", () => {
   expect(inferLigandFunctionalGroups("unknown ligand", "LIG")).toEqual([]);
 });
 
+test("evaluates crystallographic R-free quality and penalizes poor R-free (> 0.30)", () => {
+  const { evaluateRFree } = require("../server/targetSelectionScore");
+  expect(evaluateRFree(0.21).quality).toBe("excellent");
+  expect(evaluateRFree(0.24).quality).toBe("good");
+  expect(evaluateRFree(0.21).penalty).toBe(0);
+  expect(evaluateRFree(0.27).quality).toBe("acceptable");
+  expect(evaluateRFree(0.34).quality).toBe("poor");
+  expect(evaluateRFree(0.34).penalty).toBe(5);
+
+  const goodRFree = scoreTargetFeatures({
+    id: "1GOOD",
+    method: "X-RAY DIFFRACTION",
+    resolutionA: 2.0,
+    rFree: 0.21,
+    completeness: 100,
+    hasLigand: true,
+    pocket: "detected",
+  });
+  const poorRFree = scoreTargetFeatures({
+    id: "1POOR",
+    method: "X-RAY DIFFRACTION",
+    resolutionA: 2.0,
+    rFree: 0.35,
+    completeness: 100,
+    hasLigand: true,
+    pocket: "detected",
+  });
+  expect(poorRFree.score).toBeLessThan(goodRFree.score);
+  expect(poorRFree.rFreeQuality).toBe("poor");
+});
+
+

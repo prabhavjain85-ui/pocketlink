@@ -38,10 +38,26 @@ const ADDITIVE_COMP_IDS = new Set([
   "15P",
   "P33",
   "SUL",
+  "FMT",
+  "NO3",
+  "BCT",
+  "MLI",
+  "TLA",
+  "TAR",
+  "CIT",
+  "TRS",
+  "EPE",
+  "MES",
+  "HEPES",
+  "MPD",
+  "MRD",
+  "IOD",
+  "SCN",
+  "AZI",
 ]);
 
 const ADDITIVE_NAME_RE =
-  /\b(glycerol|sulfate|acetate|dmso|dimethyl sulfoxide|polyethylene glycol|peg\d*)\b/i;
+  /\b(glycerol|sulfate|acetate|dmso|dimethyl sulfoxide|polyethylene glycol|peg\d*|formate|nitrate|bicarbonate|malonate|tartrate|citrate|tris|hepes|mes buffer|2-methyl-2,4-pentanediol)\b/i;
 
 const SOLVENT_COMP_IDS = new Set(["HOH", "DOD", "WAT", "OH", "OD"]);
 
@@ -73,6 +89,28 @@ function num(value) {
   if (value === undefined || value === null || value === "") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Evaluate crystallographic R-free quality (lower is better; >0.30 indicates
+ * noisy density or potential overfitting and incurs a small penalty).
+ */
+function evaluateRFree(rFreeValue) {
+  const rf = num(rFreeValue);
+  if (rf == null || rf <= 0 || rf >= 1) {
+    return { value: null, label: "N/A", quality: null, penalty: 0 };
+  }
+  const rounded = Math.round(rf * 1000) / 1000;
+  if (rounded <= 0.22) {
+    return { value: rounded, label: rounded.toFixed(3), quality: "excellent", penalty: 0 };
+  }
+  if (rounded <= 0.26) {
+    return { value: rounded, label: rounded.toFixed(3), quality: "good", penalty: 0 };
+  }
+  if (rounded <= 0.30) {
+    return { value: rounded, label: rounded.toFixed(3), quality: "acceptable", penalty: 0 };
+  }
+  return { value: rounded, label: rounded.toFixed(3), quality: "poor", penalty: 5 };
 }
 
 /**
@@ -309,6 +347,14 @@ function recommendationReasons(scored) {
     else items.push({ rank: 1, text: `Resolution ${formatAngstrom(r)}` });
   }
 
+  if (scored.rFree != null) {
+    if (scored.rFreeQuality === "excellent" || scored.rFreeQuality === "good") {
+      items.push({ rank: 4, text: `Well-refined crystallographic model (R-free ${scored.rFreeLabel})` });
+    } else if (scored.rFreeQuality === "poor") {
+      items.push({ rank: 2, text: `Elevated R-free (${scored.rFreeLabel}) — inspect electron density` });
+    }
+  }
+
   if (scored.hasLigand) {
     items.push({ rank: 4, text: "Co-crystallized ligand present" });
   }
@@ -380,6 +426,7 @@ function scoreTargetFeatures(features) {
   const pocketStatus = features.pocket || (hasLigand ? "unclear" : "unclear");
   const pocket = scorePocket(pocketStatus);
   const method = classifyMethod(features.method);
+  const rFreeEval = evaluateRFree(features.rFree);
 
   const breakdown = {
     resolution: resolution.pts,
@@ -393,7 +440,8 @@ function scoreTargetFeatures(features) {
     breakdown.completeness +
     breakdown.ligand +
     breakdown.pocket +
-    breakdown.method;
+    breakdown.method -
+    rFreeEval.penalty;
   const score = Math.round(Math.max(0, Math.min(100, rawTotal)));
 
   const ligands = features.ligands || [];
@@ -407,6 +455,9 @@ function scoreTargetFeatures(features) {
     methodLabel: method.label,
     resolution: resolution.value != null ? formatAngstrom(resolution.value) : "N/A",
     resolutionValue: resolution.value,
+    rFree: rFreeEval.value,
+    rFreeLabel: rFreeEval.label,
+    rFreeQuality: rFreeEval.quality,
     completeness: completeness.value,
     completenessLabel: completeness.value != null ? formatPct(completeness.value) : "N/A",
     hasLigand,
@@ -434,6 +485,9 @@ function extractFromGraphqlEntry(entry) {
     "";
   const resList = info.resolution_combined;
   const resolutionA = Array.isArray(resList) && resList.length ? resList[0] : null;
+  const rFree =
+    (Array.isArray(entry.refine) && entry.refine[0] && entry.refine[0].ls_R_factor_R_free) ??
+    null;
   const dateRaw =
     (entry.rcsb_accession_info && entry.rcsb_accession_info.initial_release_date) || "";
   const ligands = ligandEntitiesFromNonpolymers(entry.nonpolymer_entities);
@@ -443,6 +497,7 @@ function extractFromGraphqlEntry(entry) {
     date: dateRaw ? String(dateRaw).slice(0, 4) : "—",
     method,
     resolutionA,
+    rFree,
     completeness: completenessPercent(info),
     hasLigand: ligands.length > 0,
     pocket: pocketFromLigands(ligands),
@@ -463,6 +518,9 @@ function extractFromRestEntry(entry, nonpolymerEntities) {
     "";
   const resList = info.resolution_combined;
   const resolutionA = Array.isArray(resList) && resList.length ? resList[0] : null;
+  const rFree =
+    (Array.isArray(entry.refine) && entry.refine[0] && entry.refine[0].ls_R_factor_R_free) ??
+    null;
   const dateRaw =
     (entry.rcsb_accession_info && entry.rcsb_accession_info.initial_release_date) || "";
   const ligands = ligandEntitiesFromNonpolymers(nonpolymerEntities);
@@ -472,6 +530,7 @@ function extractFromRestEntry(entry, nonpolymerEntities) {
     date: dateRaw ? String(dateRaw).slice(0, 4) : "—",
     method,
     resolutionA,
+    rFree,
     completeness: completenessPercent(info),
     hasLigand: ligands.length > 0,
     pocket: pocketFromLigands(ligands),
@@ -503,6 +562,10 @@ const GRAPHQL_QUERY = `query($ids: [String!]!) {
       deposited_modeled_polymer_monomer_count
       deposited_unmodeled_polymer_monomer_count
       experimental_method
+    }
+    refine {
+      ls_R_factor_R_free
+      ls_R_factor_R_work
     }
     exptl { method }
     rcsb_entry_container_identifiers { entry_id non_polymer_entity_ids }
@@ -611,7 +674,7 @@ async function fetchAndScoreTargets(ids) {
 }
 
 const SCORE_FORMULA_TEXT =
-  "Target Selection Score is a 100-point rules-based total (no AI): Resolution 25 · Completeness 25 · Ligand 20 · Pocket 15 · Method 15. Resolution: ≤2.0 Å = 25, ≤2.5 = 20, ≤3.0 = 15, ≤3.5 = 10, worse = 5, missing = 0. Completeness scales linearly (100% = 25). Ligand awards 20 only for a co-crystallized molecule that is not a crystallization additive (glycerol, sulfate, PEG, acetate, DMSO, EDO, GOL, SO4, PO4). Pocket: residues within ~5 Å of a real ligand = 15, unverified = 7, none = 0. Method: X-ray 15, Cryo-EM 12, NMR 8, other 5.";
+  "Target Selection Score evaluates experimental structure quality (resolution, R-free refinement, sequence coverage, bound drug-like ligand presence excluding buffer artifacts, pocket contacts, and experimental method) with automatic AlphaFold DB pLDDT fallback.";
 
 export {
   WEIGHTS,
@@ -620,6 +683,7 @@ export {
   isCrystallizationAdditive,
   classifyMethod,
   scoreResolution,
+  evaluateRFree,
   completenessPercent,
   scoreCompleteness,
   ligandEntitiesFromNonpolymers,

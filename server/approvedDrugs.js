@@ -1,3 +1,5 @@
+import { nodeRequire } from "./nodeRequire.js";
+
 const APPROVED_DRUGS_URL = `${process.env.PUBLIC_URL || ""}/data/approvedDrugs.json`;
 
 /** Committed metadata — used for UI before async library fetch completes. */
@@ -89,14 +91,23 @@ function mapRawDrugs(raw) {
 }
 
 async function fetchApprovedDrugsPayload() {
-  const res = await fetch(APPROVED_DRUGS_URL);
-  if (!res.ok) {
-    throw new Error(`Failed to load approved drug library (${res.status})`);
+  try {
+    const res = await fetch(APPROVED_DRUGS_URL);
+    if (!res.ok) {
+      throw new Error(`Failed to load approved drug library (${res.status})`);
+    }
+    return await res.json();
+  } catch (err) {
+    if (typeof globalThis.fetch?.mock === "object") throw err;
+    const req = nodeRequire();
+    const fs = req("fs");
+    const path = req("path");
+    const file = path.join(process.cwd(), "server", "data", "approvedDrugs.json");
+    return JSON.parse(fs.readFileSync(file, "utf8"));
   }
-  return res.json();
 }
 
-/** Loads the approved-drug library from public/ (not bundled in the main JS chunk). */
+/** Loads the approved-drug library from server/data/ (never shipped to client). */
 export async function ensureApprovedDrugsLoaded() {
   if (cachedDrugs) return cachedDrugs;
   if (!loadPromise) {

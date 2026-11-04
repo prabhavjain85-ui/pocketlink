@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
-const OUT = path.join(ROOT, "public", "data", "evolution", "sa-calibration.json");
+const OUT = path.join(ROOT, "server", "data", "evolution", "sa-calibration.json");
 
 const py = `
 import json, random, sys, os
@@ -18,7 +18,7 @@ import gzip, struct
 random.seed(42)
 smiles = ["CCO","c1ccccc1","CC(=O)Oc1ccccc1C(=O)O","CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
           "CC(C)Cc1ccc(C(C)C(=O)O)cc1","C1CCCCC1","CCN(CC)CC","c1ccncc1"]
-with gzip.open(os.path.join("${ROOT}", "public/data/evolution/sa-folded-remap.bin.gz"), "rb") as f:
+with gzip.open(os.path.join("${ROOT}", "server/data/evolution/sa-folded-remap.bin.gz"), "rb") as f:
     remap = struct.unpack("<2048f", f.read())
 
 def folded_raw(mol):

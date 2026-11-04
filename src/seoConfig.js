@@ -32,7 +32,7 @@ export const ROUTE_SEO = {
   "/adme": {
     title: "ADME & Pharmacokinetic Analysis — TargetForge",
     description:
-      "Compute in-browser ADME properties, Lipinski/Veber filters, and BOILED-Egg absorption models with RDKit. Supports lead optimization and compound triage.",
+      "Compute ADME properties, Lipinski/Veber filters, and BOILED-Egg absorption models with RDKit on the TargetForge backend. Supports lead optimization and compound triage.",
     canonical: `${SITE_URL}/adme`,
   },
   "/docking": {

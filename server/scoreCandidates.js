@@ -609,9 +609,59 @@ function trap(val, minOk, idealLow, idealHigh, maxOk) {
   return 0;
 }
 
+const MOA_LOSS_OF_FUNCTION_RE =
+  /\b(TP53|P53|BRCA1|BRCA2|PALB2|SMAD4|PTEN|APC|RB1|VHL|STK11|NF1|CFTR|GBA1|SMN1|tumor suppressor|loss[- ]of[- ]function)\b/i;
+
+function inferCandidateMoA(candidate) {
+  const explicit = String(candidate?.moa || candidate?.mechanismOfAction || "").trim().toLowerCase();
+  if (explicit === "inhibitor" || explicit === "antagonist" || explicit === "blocker") return "inhibitor";
+  if (explicit === "activator" || explicit === "agonist" || explicit === "potentiator" || explicit === "restorer") {
+    return "activator";
+  }
+  if (explicit === "modulator") return "modulator";
+
+  const cName = nameOf(candidate);
+  const cClass = classOf(candidate);
+  const text = `${cName} ${cClass}`;
+
+  if (
+    /\b(activator|agonist|potentiator|chaperone|restorer|stimulator|inducer|stabilizer|ivacaftor|tezacaftor|elexacaftor|migalastat|tafamidis|riociguat|cinacalcet|eltrombopag)\b/i.test(
+      text
+    ) &&
+    !/\binverse agonist\b/i.test(text) &&
+    !/\bantagonist\b/i.test(text)
+  ) {
+    return "activator";
+  }
+
+  if (
+    /\b(inhibitor|antagonist|blocker|inverse agonist|statin|nsaid|sglt2)\b/i.test(text) ||
+    KINASE_INHIBITOR_RE.test(cName) ||
+    /\b[a-z]+(tinib|ciclib|parib|rafenib|metinib|zomib|navir|pril|sartan|olol|statin|prazole|gliptin|gliflozin|coxib)\b/i.test(
+      cName
+    )
+  ) {
+    return "inhibitor";
+  }
+
+  if (/\b(modulator|serm|allosteric)\b/i.test(text)) {
+    return "modulator";
+  }
+
+  return null;
+}
+
+function resolveExpectedTargetMoA(protein) {
+  const raw = String(protein?.expectedMoA || "").trim().toLowerCase();
+  if (raw === "inhibitor" || raw === "activator" || raw === "modulator") return raw;
+  const hay = `${protein?.queryName || ""} ${protein?.name || ""} ${protein?.title || ""}`;
+  if (MOA_LOSS_OF_FUNCTION_RE.test(hay)) return "activator";
+  return null;
+}
+
 /**
  * Score a single compound against a protein using target-specific rules,
- * co-crystal ligand matching, and Lipinski/Veber properties.
+ * co-crystal ligand matching, MoA directionality, and Lipinski/Veber properties.
  */
 function scoreOne(candidate, protein = null) {
   const checks = drugLikenessChecks(candidate);
@@ -736,7 +786,42 @@ function scoreOne(candidate, protein = null) {
     reasoning.push(`Deducted 8 pts for toxicophore alert (${alerts.toxNames.join(", ")})`);
   }
 
-  let finalScore = targetBonus + ligandBonus + druglikePts - alertPenalty;
+  // Directionality of Effect (MoA Matching)
+  const expectedMoA = resolveExpectedTargetMoA(protein);
+  const candidateMoA = inferCandidateMoA(candidate);
+  let moaPenalty = 0;
+  let moaMatchStatus = "unspecified";
+
+  if (expectedMoA && candidateMoA) {
+    if (expectedMoA === "activator" && candidateMoA === "inhibitor") {
+      moaPenalty = 18;
+      moaMatchStatus = "mismatch";
+      concerns.push(
+        "Directionality mismatch: candidate is an inhibitor/antagonist, whereas this target requires activation or functional restoration (Loss-of-Function)."
+      );
+      reasoning.push(
+        "Deducted 18 pts for MoA directionality mismatch (inhibitor staged against a Loss-of-Function / activation target)"
+      );
+    } else if (expectedMoA === "inhibitor" && candidateMoA === "activator") {
+      moaPenalty = 18;
+      moaMatchStatus = "mismatch";
+      concerns.push(
+        "Directionality mismatch: candidate is an agonist/activator, whereas this target requires inhibition (Gain-of-Function / overactivity)."
+      );
+      reasoning.push(
+        "Deducted 18 pts for MoA directionality mismatch (activator staged against a Gain-of-Function / inhibition target)"
+      );
+    } else if (expectedMoA === candidateMoA) {
+      moaMatchStatus = "aligned";
+      if (protein?.expectedMoA) {
+        reasoning.push(
+          `MoA directionality aligned: candidate mechanism (${candidateMoA}) matches target necessity (${expectedMoA})`
+        );
+      }
+    }
+  }
+
+  let finalScore = targetBonus + ligandBonus + druglikePts - alertPenalty - moaPenalty;
   finalScore = Math.min(100, Math.max(1, Math.round(finalScore)));
 
   return {
@@ -752,6 +837,10 @@ function scoreOne(candidate, protein = null) {
     ligandBonus,
     druglikePts,
     alertPenalty,
+    moaPenalty,
+    moaMatchStatus,
+    expectedMoA,
+    candidateMoA,
     structuralSimilarity: similarity,
     similarityApplied,
   };
@@ -820,7 +909,11 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
     throw new Error(`Select at least ${min} candidates.`);
   }
 
-  const ctx = protein ? buildTargetContext(protein) : null;
+  const baseCtx = protein ? buildTargetContext(protein) : null;
+  const ctx =
+    baseCtx && protein?.expectedMoA
+      ? { ...baseCtx, expectedMoA: protein.expectedMoA }
+      : baseCtx;
   const scored = list.map((candidate) => {
     const local = scoreOne(candidate, ctx || protein);
     return {
@@ -850,6 +943,9 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
       rank: index + 1,
       score: item.score,
       tiedWithPrevious: Boolean(tiedWithPrevious),
+      moaMatchStatus: item.moaMatchStatus,
+      expectedMoA: item.expectedMoA,
+      candidateMoA: item.candidateMoA,
       reasoning: (item.reasoning || []).slice(0, 6),
       strengths: item.strengths.slice(0, 3),
       concerns: item.concerns.slice(0, 3),
@@ -862,8 +958,8 @@ function rankCandidatesLocal(candidates, protein = null, options = {}) {
   const top = scored[0];
   const originalTop = list.find((c) => cidOf(c) === top.cid) || list[0];
   const target = ctx
-    ? { name: ctx.name, pdb_id: ctx.pdb_id }
-    : { name: "", pdb_id: null };
+    ? { name: ctx.name, pdb_id: ctx.pdb_id, expectedMoA: ctx.expectedMoA || resolveExpectedTargetMoA(protein) }
+    : { name: "", pdb_id: null, expectedMoA: null };
 
   return {
     target,
@@ -944,6 +1040,8 @@ export {
   targetFamily,
   scoringCapabilities,
   scoreOne,
+  inferCandidateMoA,
+  resolveExpectedTargetMoA,
   rankCandidatesLocal,
   scoreLibraryLocal,
   TARGET_RULES,

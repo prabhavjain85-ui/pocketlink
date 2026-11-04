@@ -1,15 +1,14 @@
 const { rankCandidatesLocal, drugLikenessChecks, scoringCapabilities, resolveTargetRule } = require("../server/scoreCandidates.js");
 const { TARGET_SPECIFIC_INSTRUCTION, buildTargetContext, targetDisplayName } = require("../server/targetContext.js");
+const { checkRateLimit } = require("./_lib/rateLimit");
+const { applyCorsHeaders } = require("./_lib/security");
 
-const ALLOWED_ORIGIN = "*";
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
-function json(res, status, body) {
+function json(res, status, body, req = null) {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json");
-  res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  applyCorsHeaders(req, res, "POST, OPTIONS");
   res.end(JSON.stringify(body));
 }
 
@@ -379,7 +378,9 @@ async function handler(req, res) {
     });
     const allowedCids = compact.map((c) => String(c.cid));
     const prompt = buildRankPrompt(compact, protein, heuristic);
-    logRankPrompt(prompt.system, prompt.user, protein);
+    if (process.env.NODE_ENV !== "production") {
+      logRankPrompt(prompt.system, prompt.user, protein);
+    }
 
     if (!process.env.OPENAI_API_KEY) {
       return json(res, 200, heuristic);

@@ -11,6 +11,74 @@ const lazy = (load, name) => async (...args) => (await load())[name](...args);
 
 const MAX_EVOLUTION_WORK = 1600;
 
+function prettyCompoundName(result, query) {
+  const q = String(query || "").trim();
+  if (q && q.length <= 48 && !q.includes(",") && q.split(" ").length <= 6) return q;
+  if (result?.IUPACName) {
+    return result.IUPACName.length > 52 ? `${result.IUPACName.slice(0, 50)}…` : result.IUPACName;
+  }
+  return result?.CID ? `CID ${result.CID}` : "Unknown compound";
+}
+
+function sanitizeTargetRowDto(row) {
+  if (!row || typeof row !== "object") return row;
+  const { breakdown: _breakdown, ...rest } = row;
+  return rest;
+}
+
+function sanitizeDiscoveryRowDto(row) {
+  if (!row || typeof row !== "object") return row;
+  const {
+    noveltyComponents: _noveltyComponents,
+    datasourceScores: _datasourceScores,
+    biologySignal: _biologySignal,
+    ...rest
+  } = row;
+  return rest;
+}
+
+function sanitizeRankingRowDto(row) {
+  if (!row || typeof row !== "object") return row;
+  const {
+    targetBonus: _targetBonus,
+    ligandBonus: _ligandBonus,
+    druglikePts: _druglikePts,
+    alertPenalty: _alertPenalty,
+    moaPenalty: _moaPenalty,
+    checks: _checks,
+    ...rest
+  } = row;
+  return rest;
+}
+
+export function sanitizeComputeResult(op, value) {
+  if (!value || typeof value !== "object") return value;
+  if (op === "searchPdbTargets" && Array.isArray(value.results)) {
+    return {
+      ...value,
+      results: value.results.map(sanitizeTargetRowDto),
+    };
+  }
+  if (op === "runTargetDiscovery") {
+    return {
+      ...value,
+      all: Array.isArray(value.all) ? value.all.map(sanitizeDiscoveryRowDto) : [],
+      novelty: Array.isArray(value.novelty) ? value.novelty.map(sanitizeDiscoveryRowDto) : [],
+      established: Array.isArray(value.established)
+        ? value.established.map(sanitizeDiscoveryRowDto)
+        : [],
+    };
+  }
+  if (op === "rankCandidates" || op === "screenApprovedLibrary") {
+    return {
+      ...value,
+      source: value.source === "heuristic-v2" ? "target-triage" : value.source,
+      ranking: Array.isArray(value.ranking) ? value.ranking.map(sanitizeRankingRowDto) : [],
+    };
+  }
+  return value;
+}
+
 const OPS = Object.assign(Object.create(null), {
   // Staging bench
   searchPdbTargets: lazy(() => import("./pdbSearch.js"), "searchPdbTargets"),
@@ -22,6 +90,120 @@ const OPS = Object.assign(Object.create(null), {
     // scoring, so unnamed compounds still get a target-specific signal.
     await annotateStructuralSimilarity(candidates, protein);
     return rankCandidates(candidates, protein, painsByCid);
+  },
+
+  async searchPubchemCompound(query) {
+    const q = String(query || "").trim();
+    if (!q) return null;
+    const props = [
+      "MolecularFormula",
+      "MolecularWeight",
+      "CanonicalSMILES",
+      "IsomericSMILES",
+      "XLogP",
+      "HBondDonorCount",
+      "HBondAcceptorCount",
+      "RotatableBondCount",
+      "TPSA",
+      "IUPACName",
+    ].join(",");
+    const url = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(
+      q
+    )}/property/${props}/JSON`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(
+        `PubChem has no compound named "${q}". Try the common or generic drug name (e.g. "ibuprofen", "imatinib").`
+      );
+    }
+    const data = await res.json();
+    const p = data?.PropertyTable?.Properties?.[0];
+    if (!p) {
+      throw new Error(`PubChem returned no usable data for "${q}".`);
+    }
+    const { drugLikenessChecks } = await import("./scoreCandidates.js");
+    const checks = drugLikenessChecks(p);
+    let structureSvg = null;
+    const smi = p.IsomericSMILES || p.CanonicalSMILES || p.SMILES || "";
+    if (smi) {
+      try {
+        const { getRDKit } = await import("./rdkitLoader.js");
+        const { molSvg } = await import("./evolutionTransforms.js");
+        const RDKit = await getRDKit();
+        if (RDKit) structureSvg = molSvg(RDKit, smi, 220, 160);
+      } catch {
+        /* optional SVG pre-render */
+      }
+    }
+    return {
+      ...p,
+      displayName: prettyCompoundName(p, q),
+      previewChecks: checks,
+      previewPass: checks.filter((c) => c.pass).length,
+      structureSvg,
+    };
+  },
+
+  async fetchPubchemPngDataUrl(cid) {
+    const id = String(cid ?? "").trim();
+    if (!/^\d+$/.test(id)) return null;
+    const url = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${encodeURIComponent(
+      id
+    )}/PNG`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (!buf.length) return null;
+    return `data:image/png;base64,${buf.toString("base64")}`;
+  },
+
+  async fetchStructureCoordinates(structureId) {
+    const id = String(structureId || "").trim().toUpperCase();
+    if (!id) throw new Error("Missing structure ID.");
+    const isAf = /^AF-[A-Z0-9]+-F\d+/i.test(id);
+    const urls = isAf
+      ? [
+          { url: `https://alphafold.ebi.ac.uk/files/${id}-model_v4.bcif`, isBinary: true },
+          { url: `https://alphafold.ebi.ac.uk/files/${id}-model_v4.cif`, isBinary: false },
+        ]
+      : [{ url: `https://models.rcsb.org/${id}.bcif`, isBinary: true }];
+
+    let lastStatus = 0;
+    for (const candidate of urls) {
+      let res;
+      try {
+        res = await fetch(candidate.url);
+      } catch {
+        continue;
+      }
+      lastStatus = res.status;
+      if (!res.ok) continue;
+      const contentType = String(res.headers.get("content-type") || "").toLowerCase();
+      if (contentType.includes("text/html")) {
+        throw new Error(`Structure host returned an HTML page instead of coordinate data for ${id}.`);
+      }
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (!buf || buf.byteLength < 64) {
+        continue;
+      }
+      return {
+        id,
+        base64: buf.toString("base64"),
+        format: "mmcif",
+        isBinary: candidate.isBinary,
+      };
+    }
+    throw new Error(
+      `Structure download failed for ${id}${lastStatus ? ` (HTTP ${lastStatus})` : ""}.`
+    );
+  },
+
+  async getEvolutionSeedPicks() {
+    const { ensureApprovedDrugsLoaded, loadApprovedDrugs } = await import("./approvedDrugs.js");
+    await ensureApprovedDrugsLoaded();
+    return loadApprovedDrugs()
+      .filter((d) => /imatinib|dasatinib|nilotinib|gefitinib|erlotinib/i.test(d.name))
+      .map((d) => ({ smiles: d.smiles, name: d.name, source: "Approved library" }));
   },
 
   // Target discovery
@@ -154,7 +336,8 @@ export async function runOp(op, args, { emit, signal }) {
   }
   const decoded = decodeArgs(args, emit, signal);
   try {
-    const value = await requestContext.run({ emit }, () => OPS[op](...decoded));
+    const rawValue = await requestContext.run({ emit }, () => OPS[op](...decoded));
+    const value = sanitizeComputeResult(op, rawValue);
     emit({ t: "result", value: value === undefined ? null : value });
   } catch (err) {
     console.error(`[compute] ${op} failed:`, err?.stack || err);

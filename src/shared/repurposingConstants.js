@@ -7,6 +7,8 @@ export const HIGHLIGHT_COUNT = 20;
 
 export const PAGE_SIZE = 20;
 
+export const APPROVED_DRUG_LIBRARY_COUNT = 2983;
+
 export const INSUFFICIENT_STRUCTURE_ERROR =
   "Unable to score against this target — insufficient structural data";
 

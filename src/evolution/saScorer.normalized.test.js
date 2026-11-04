@@ -1,4 +1,4 @@
-import { getRDKit } from "../rdkitLoader";
+import { getRDKit } from "../../server/rdkitLoader";
 import { calculateSaScore, normalizeMolForSa, preloadSaAssets } from "../../server/evolution/saScorer";
 
 test("SA score is unchanged after explicit hydrogens are stripped", async () => {

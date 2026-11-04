@@ -9,8 +9,8 @@
  * That is a defined, checkable set — not "all drugs" — and it is a superset of
  * the curated approved library already shipped in approvedDrugs.json.
  *
- * Writes public/data/clinicalLibrary.json. Nothing is fetched at request time;
- * the app only ever reads this committed snapshot.
+ * Writes server/data/clinicalLibrary.json. Nothing is fetched at request time;
+ * the app only ever reads this committed snapshot on the server.
  *
  * ChEMBL data is released under CC BY-SA 3.0. Keep the attribution in the
  * artifact's `license` field if you redistribute it.
@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const OUT_PATH = join(__dirname, "../public/data/clinicalLibrary.json");
+const OUT_PATH = join(__dirname, "../server/data/clinicalLibrary.json");
 
 const API = "https://www.ebi.ac.uk/chembl/api/data/molecule.json";
 const PAGE_SIZE = 1000;

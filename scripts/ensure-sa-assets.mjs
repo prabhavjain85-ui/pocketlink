@@ -7,8 +7,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
-const REMAP = path.join(ROOT, "public", "data", "evolution", "sa-folded-remap.bin.gz");
-const CALIB = path.join(ROOT, "public", "data", "evolution", "sa-calibration.json");
+const REMAP = path.join(ROOT, "server", "data", "evolution", "sa-folded-remap.bin.gz");
+const CALIB = path.join(ROOT, "server", "data", "evolution", "sa-calibration.json");
 
 function assetsPresent() {
   try {
@@ -35,7 +35,7 @@ try {
   execFileSync("npm", ["run", "build:sa-assets"], { cwd: ROOT, stdio: "inherit" });
 } catch (err) {
   console.error(
-    "[ensure-sa-assets] Rebuild failed. Commit public/data/evolution/sa-*.json|.bin.gz or run `npm run build:sa-assets` locally."
+    "[ensure-sa-assets] Rebuild failed. Commit server/data/evolution/sa-*.json|.bin.gz or run `npm run build:sa-assets` locally."
   );
   process.exit(1);
 }

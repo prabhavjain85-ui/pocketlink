@@ -6,6 +6,7 @@
  * effects as they happen, then a final {t:"result"} or {t:"error"} line.
  */
 const { checkRateLimit } = require("./_lib/rateLimit");
+const { applyCorsHeaders, validateComputePayload } = require("./_lib/security");
 
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
 
@@ -50,6 +51,18 @@ function readBody(req) {
 }
 
 async function handler(req, res) {
+  const originOk = applyCorsHeaders(req, res, "POST, OPTIONS");
+  if (req.method === "OPTIONS") {
+    res.statusCode = originOk ? 204 : 403;
+    res.end();
+    return;
+  }
+  if (!originOk) {
+    res.statusCode = 403;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ error: "Origin not permitted." }));
+    return;
+  }
   if (req.method !== "POST") {
     res.statusCode = 405;
     res.setHeader("Content-Type", "application/json");
@@ -68,10 +81,11 @@ async function handler(req, res) {
     return;
   }
 
-  if (!compute.hasOp(body?.op)) {
+  const schemaCheck = validateComputePayload(body);
+  if (!schemaCheck.valid || !compute.hasOp(body?.op)) {
     res.statusCode = 400;
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ error: "Unknown operation." }));
+    res.end(JSON.stringify({ error: schemaCheck.valid ? "Unknown operation." : schemaCheck.error }));
     return;
   }
 

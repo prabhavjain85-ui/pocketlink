@@ -255,3 +255,32 @@ test("genetic strength labels and evidence summary are human-readable", () => {
     /no drug is in clinical development against ATM/i
   );
 });
+
+test("repurposing evidence profile prioritizes clinically drugged, tractable targets over undrugged genetic leads", () => {
+  const rows = [
+    row({ symbol: "PALB2", overall: 0.78, genetic: 0.94, drugs: 0 }),
+    row({ symbol: "ABL1", overall: 0.84, genetic: 0.86, clinical: 0.95, drugs: 27 }),
+  ];
+  const novelRun = scoreAssociatedRows(rows, { profile: "novel_discovery" });
+  const repurposeRun = scoreAssociatedRows(rows, { profile: "repurposing" });
+
+  expect(novelRun.novelty[0].symbol).toBe("PALB2");
+  expect(repurposeRun.novelty[0].symbol).toBe("ABL1");
+  expect(repurposeRun.evidenceProfile).toBe("repurposing");
+  expect(repurposeRun.novelty[0].repurposingScore).toBeGreaterThan(repurposeRun.novelty[1].repurposingScore);
+});
+
+test("infers expectedMoA directionality (activator for tumour suppressors/LoF vs inhibitor for oncogenes/GoF)", () => {
+  const { all } = scoreAssociatedRows([
+    row({ symbol: "TP53", name: "tumor suppressor p53", overall: 0.8, genetic: 0.9 }),
+    row({ symbol: "EGFR", name: "epidermal growth factor receptor tyrosine kinase", overall: 0.8, genetic: 0.8 }),
+  ]);
+  const tp53 = all.find((r) => r.symbol === "TP53");
+  const egfr = all.find((r) => r.symbol === "EGFR");
+  expect(tp53.expectedMoA).toBe("activator");
+  expect(tp53.directionOfEffect).toMatch(/Loss-of-Function/i);
+  expect(egfr.expectedMoA).toBe("inhibitor");
+  expect(egfr.directionOfEffect).toMatch(/Gain-of-Function/i);
+});
+
+

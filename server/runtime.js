@@ -18,6 +18,7 @@ globalThis.__tfRequire = require;
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PUBLIC_DIR = path.join(PROJECT_ROOT, "public");
+const SERVER_DATA_DIR = path.join(PROJECT_ROOT, "server", "data");
 const API_DIR = path.join(PROJECT_ROOT, "api");
 
 const realFetch = globalThis.fetch;
@@ -102,8 +103,17 @@ async function invokeApiHandler(url, init = {}) {
   });
 }
 
-function readPublicAsset(url) {
-  const file = path.normalize(path.join(PUBLIC_DIR, decodeURIComponent(url.pathname)));
+function readLocalAsset(url) {
+  const decoded = decodeURIComponent(url.pathname);
+  if (decoded === "/data" || decoded.startsWith("/data/")) {
+    const rel = decoded.replace(/^\/data\/?/, "");
+    const serverFile = path.normalize(path.join(SERVER_DATA_DIR, rel));
+    if (serverFile.startsWith(SERVER_DATA_DIR) && fs.existsSync(serverFile) && fs.statSync(serverFile).isFile()) {
+      const type = CONTENT_TYPES[path.extname(serverFile)] || "application/octet-stream";
+      return new Response(fs.readFileSync(serverFile), { status: 200, headers: { "content-type": type } });
+    }
+  }
+  const file = path.normalize(path.join(PUBLIC_DIR, decoded));
   if (!file.startsWith(PUBLIC_DIR) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
     return new Response("Not found", { status: 404 });
   }
@@ -116,9 +126,9 @@ globalThis.fetch = async function serverFetch(input, init) {
   if (raw.startsWith("/") && !raw.startsWith("//")) {
     const url = new URL(raw, "http://internal.local");
     if (url.pathname.startsWith("/api/")) return invokeApiHandler(url, init);
-    return readPublicAsset(url);
+    return readLocalAsset(url);
   }
   return realFetch(input, init);
 };
 
-export { PROJECT_ROOT };
+export { PROJECT_ROOT, SERVER_DATA_DIR };

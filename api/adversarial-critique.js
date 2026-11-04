@@ -1,7 +1,8 @@
 const { buildTargetContext, targetDisplayName } = require("../server/targetContext.js");
 const { scoringCapabilities } = require("../server/scoreCandidates.js");
+const { checkRateLimit } = require("./_lib/rateLimit");
+const { applyCorsHeaders } = require("./_lib/security");
 
-const ALLOWED_ORIGIN = "*";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
@@ -18,12 +19,10 @@ async function getGoogleGenAI() {
   }
 }
 
-function json(res, status, body) {
+function json(res, status, body, req = null) {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json");
-  res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  applyCorsHeaders(req, res, "POST, OPTIONS");
   res.end(JSON.stringify(body));
 }
 

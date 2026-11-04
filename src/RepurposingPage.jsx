@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { approvedDrugCount } from "./approvedDrugs";
 import { Panel, PainsBadge, PainsInfoTip } from "./benchUi";
 import PdbTargetSearch from "./PdbTargetSearch";
 import {
+  APPROVED_DRUG_LIBRARY_COUNT,
   HIGHLIGHT_COUNT,
   PAGE_SIZE,
   SERVERLESS_TIMEOUT_NOTE,
@@ -318,7 +318,7 @@ function RepurposingTable({ rows, highlightCount, sortKey, sortDir, onSort, page
 }
 
 export default function RepurposingPage() {
-  const librarySize = approvedDrugCount();
+  const librarySize = APPROVED_DRUG_LIBRARY_COUNT;
 
   const savedActive = React.useMemo(() => getActiveState(ACTIVE_STATE_KEYS.REPURPOSING), []);
   const [protein, setProtein] = useState(() => savedActive?.protein || null);

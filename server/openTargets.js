@@ -32,7 +32,23 @@ query DiseaseAssociatedTargets($efoId: String!, $size: Int!) {
           approvedSymbol
           approvedName
           biotype
+          functionDescriptions
           drugAndClinicalCandidates { count }
+          tractability {
+            label
+            modality
+            value
+          }
+          safetyLiabilities {
+            event
+            biosamples {
+              tissueLabel
+            }
+          }
+          proteinIds {
+            id
+            source
+          }
         }
       }
     }
@@ -109,12 +125,16 @@ export async function fetchAssociatedTargets(efoId, { size = ASSOCIATION_PAGE_SI
   };
 }
 
-export async function runTargetDiscovery(queryString, { skipCache = false, diseaseHint = null, signal } = {}) {
+export async function runTargetDiscovery(
+  queryString,
+  { skipCache = false, diseaseHint = null, profile = "novel_discovery", signal } = {}
+) {
   const q = String(queryString || "").trim();
+  const profileKey = profile === "repurposing" ? "repurposing" : "novel_discovery";
   let disease = diseaseHint && diseaseHint.id ? diseaseHint : null;
   if (!disease) {
     if (!q) {
-      return { error: "", hits: [], disease: null, novelty: [], established: [], all: [] };
+      return { error: "", hits: [], disease: null, novelty: [], established: [], all: [], evidenceProfile: profileKey };
     }
     const hits = await searchDiseases(q, { signal });
     if (!hits.length) {
@@ -126,20 +146,22 @@ export async function runTargetDiscovery(queryString, { skipCache = false, disea
         established: [],
         all: [],
         fetchedCount: 0,
+        evidenceProfile: profileKey,
       };
     }
     disease = pickDiseaseHit(hits, q);
   }
 
+  const cacheKey = profileKey === "novel_discovery" ? disease.id : `${disease.id}:${profileKey}`;
   if (!skipCache) {
-    const cached = getCachedTargets(disease.id);
+    const cached = getCachedTargets(cacheKey);
     if (cached) {
       return { ...cached, fromCache: true, error: "" };
     }
   }
 
   const raw = await fetchAssociatedTargets(disease.id, { signal });
-  const scored = scoreAssociatedRows(raw.rows);
+  const scored = scoreAssociatedRows(raw.rows, { profile: profileKey });
   const payload = {
     disease: {
       id: raw.id,
@@ -151,9 +173,10 @@ export async function runTargetDiscovery(queryString, { skipCache = false, disea
     all: scored.all,
     novelty: scored.novelty,
     established: scored.established,
+    evidenceProfile: profileKey,
     fromCache: false,
     error: "",
   };
-  rememberTargets(raw.id, payload);
+  rememberTargets(cacheKey, payload);
   return payload;
 }

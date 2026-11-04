@@ -37,7 +37,7 @@ async function loadRemap() {
         const fs = req("fs");
         const path = req("path");
         const zlib = req("zlib");
-        const file = path.join(process.cwd(), "public/data/evolution/sa-folded-remap.bin.gz");
+        const file = path.join(process.cwd(), "server/data/evolution/sa-folded-remap.bin.gz");
         bytes = zlib.gunzipSync(fs.readFileSync(file));
       } else {
         const res = await fetch(REMAP_URL);
@@ -120,7 +120,7 @@ async function loadCalibration() {
     const fs = req("fs");
     const path = req("path");
     calibCache = JSON.parse(
-      fs.readFileSync(path.join(process.cwd(), "public/data/evolution/sa-calibration.json"), "utf8")
+      fs.readFileSync(path.join(process.cwd(), "server/data/evolution/sa-calibration.json"), "utf8")
     );
     return calibCache;
   }

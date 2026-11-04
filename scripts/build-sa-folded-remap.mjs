@@ -5,7 +5,7 @@ import path from "node:path";
 import zlib from "node:zlib";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
-const OUT = path.join(ROOT, "public", "data", "evolution", "sa-folded-remap.bin.gz");
+const OUT = path.join(ROOT, "server", "data", "evolution", "sa-folded-remap.bin.gz");
 
 const py = `
 import gzip, pickle, struct, os, sys

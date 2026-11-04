@@ -1,19 +1,69 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { renderMolSvg } from "./serverApi";
+import { fetchPubchemPngDataUrl, renderMolSvg } from "./serverApi";
 import { SCORE_FORMULA_TEXT } from "./shared/targetSelectionText";
 
 const structureSvgCache = new Map();
+const pubchemDataUrlCache = new Map();
 
-/** PubChem 2D PNG via PUG-REST (works in cross-site <img>; legacy imgsrv.fcgi blocks with 403). */
+/** PubChem 2D PNG via PUG-REST (helper retained for reference/tests; runtime proxies via backend). */
 export function pubchemStructureImageUrl(cid) {
   const id = String(cid ?? "").trim();
-  // Only numeric PubChem CIDs resolve here. Library compounds are keyed by
-  // ChEMBL id, which returns 400 — those are drawn from SMILES by RDKit instead.
   if (!/^\d+$/.test(id)) return null;
   return `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${encodeURIComponent(id)}/PNG`;
 }
 
-function RdkitStructureFallback({ smiles, compact, cid }) {
+function ProxiedPubChemFallback({ cid, compact }) {
+  const [dataUrl, setDataUrl] = useState(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const id = String(cid ?? "").trim();
+    if (!/^\d+$/.test(id)) {
+      setFailed(true);
+      return undefined;
+    }
+    if (pubchemDataUrlCache.has(id)) {
+      const cached = pubchemDataUrlCache.get(id);
+      if (cached) setDataUrl(cached);
+      else setFailed(true);
+      return undefined;
+    }
+    (async () => {
+      try {
+        const url = await fetchPubchemPngDataUrl(id);
+        if (cancelled) return;
+        pubchemDataUrlCache.set(id, url || "");
+        if (url) setDataUrl(url);
+        else setFailed(true);
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cid]);
+
+  if (failed || !dataUrl) {
+    return (
+      <div className={"pubchem-structure-fallback" + (compact ? " compact" : "")}>
+        Structure image unavailable
+      </div>
+    );
+  }
+
+  return (
+    <img
+      className={"pubchem-structure-image" + (compact ? " compact" : "")}
+      src={dataUrl}
+      alt={cid ? `2D structure for CID ${cid}` : "2D molecular structure"}
+      title={cid ? `2D structure for CID ${cid}` : "2D molecular structure"}
+    />
+  );
+}
+
+function RdkitStructureView({ smiles, compact, cid }) {
   const [svg, setSvg] = useState(null);
   const [failed, setFailed] = useState(false);
 
@@ -58,10 +108,21 @@ function RdkitStructureFallback({ smiles, compact, cid }) {
     };
   }, [smiles, compact]);
 
-  if (failed || !svg) {
+  if (failed) {
+    if (cid && /^\d+$/.test(String(cid).trim())) {
+      return <ProxiedPubChemFallback cid={cid} compact={compact} />;
+    }
     return (
       <div className={"pubchem-structure-fallback" + (compact ? " compact" : "")}>
         Structure image unavailable
+      </div>
+    );
+  }
+
+  if (!svg) {
+    return (
+      <div className={"pubchem-structure-fallback" + (compact ? " compact" : "")}>
+        Rendering 2D structure…
       </div>
     );
   }
@@ -77,61 +138,20 @@ function RdkitStructureFallback({ smiles, compact, cid }) {
 }
 
 export function PubChemStructureImage({ cid, smiles, compact }) {
-  const [useRdkit, setUseRdkit] = useState(false);
-  const [pubchemFailed, setPubchemFailed] = useState(false);
-
   const resolvedSmiles = useMemo(() => String(smiles || "").trim(), [smiles]);
-  const imageUrl = useMemo(() => pubchemStructureImageUrl(cid), [cid]);
 
-  useEffect(() => {
-    setUseRdkit(false);
-    setPubchemFailed(false);
-  }, [cid, imageUrl]);
-
-  if (!cid && !resolvedSmiles) {
-    return (
-      <div className={"pubchem-structure-fallback" + (compact ? " compact" : "")}>
-        Structure image unavailable
-      </div>
-    );
+  if (resolvedSmiles) {
+    return <RdkitStructureView smiles={resolvedSmiles} compact={compact} cid={cid} />;
   }
 
-  if (pubchemFailed) {
-    return (
-      <div className={"pubchem-structure-fallback" + (compact ? " compact" : "")}>
-        Structure image unavailable
-      </div>
-    );
+  if (cid && /^\d+$/.test(String(cid).trim())) {
+    return <ProxiedPubChemFallback cid={cid} compact={compact} />;
   }
-
-  if (useRdkit && resolvedSmiles) {
-    return <RdkitStructureFallback smiles={resolvedSmiles} compact={compact} cid={cid} />;
-  }
-
-  if (!imageUrl) {
-    if (resolvedSmiles) {
-      return <RdkitStructureFallback smiles={resolvedSmiles} compact={compact} cid={cid} />;
-    }
-    return (
-      <div className={"pubchem-structure-fallback" + (compact ? " compact" : "")}>
-        Structure image unavailable
-      </div>
-    );
-  }
-
-  const handleImgError = () => {
-    if (resolvedSmiles) setUseRdkit(true);
-    else setPubchemFailed(true);
-  };
 
   return (
-    <img
-      className={"pubchem-structure-image" + (compact ? " compact" : "")}
-      src={imageUrl}
-      alt={cid ? `PubChem structure for CID ${cid}` : "PubChem 2D structure"}
-      title={cid ? `PubChem structure for CID ${cid}` : "PubChem 2D structure"}
-      onError={handleImgError}
-    />
+    <div className={"pubchem-structure-fallback" + (compact ? " compact" : "")}>
+      Structure image unavailable
+    </div>
   );
 }
 
@@ -417,8 +437,39 @@ export function TargetScoreTable({ results, selectedId, recommendedId, sortKey, 
                 <td>
                   <div className="result-id">{r.id}</div>
                   <div className="score-title" title={r.title}>{r.title}</div>
+                  {r.isAlphaFold && r.plddtTier ? (
+                    <div
+                      className="score-title"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        marginTop: 4,
+                        padding: "2px 8px",
+                        borderRadius: 4,
+                        background: "rgba(15, 23, 42, 0.65)",
+                        border: `1px solid ${r.plddtTier.color || "#65CBF3"}`,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          background: r.plddtTier.color || "#65CBF3",
+                          display: "inline-block",
+                        }}
+                      />
+                      <span>{r.plddtTier.badge}</span>
+                    </div>
+                  ) : null}
                 </td>
-                <td className="mono">{r.resolution || "N/A"}</td>
+                <td className="mono">
+                  <div>{r.resolution || "N/A"}</div>
+                  {r.rFreeLabel && r.rFreeLabel !== "N/A" ? (
+                    <div className="score-title">R-free {r.rFreeLabel}</div>
+                  ) : null}
+                </td>
                 <td className="score-icon-cell">{r.ligandLabel || "❌"}</td>
                 <td className="mono">{r.completenessLabel || "N/A"}</td>
                 <td className="score-icon-cell">{r.pocketLabel || "?"}</td>

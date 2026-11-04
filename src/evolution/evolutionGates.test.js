@@ -1,4 +1,4 @@
-import { getRDKit } from "../rdkitLoader";
+import { getRDKit } from "../../server/rdkitLoader";
 import { checkPainsFast } from "../../server/painsCheck";
 import { structuralAlerts, elementSymbolsFromSmiles } from "../../server/evolution/evolutionGates";
 

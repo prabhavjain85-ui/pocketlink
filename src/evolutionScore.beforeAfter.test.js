@@ -1,4 +1,4 @@
-import { getRDKit } from "./rdkitLoader";
+import { getRDKit } from "../server/rdkitLoader";
 import { scoreEvolvedMolecule } from "../server/evolutionScore";
 import { runEvolutionGeneration, seedParent } from "../server/evolutionEngine";
 import { mulberry32 } from "../server/evolution/evolutionRng";

@@ -121,9 +121,38 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
                   <td>
                     <div className="result-id">{r.symbol}</div>
                     <div className="score-title">{r.name}</div>
-                    {r.highNovelty ? <span className="novelty-badge undrugged">\ud83c\udd95 Undrugged target</span> : null}
+                    {r.highNovelty ? <span className="novelty-badge undrugged">🆕 Undrugged target</span> : null}
                     {r.wellEstablished && !r.highNovelty ? (
                       <span className="novelty-badge established">Well-established</span>
+                    ) : null}
+                    {r.expectedMoA ? (
+                      <span
+                        className="novelty-badge"
+                        title={`Directionality of effect: ${r.directionOfEffect || "context-dependent"} → ${r.expectedMoALabel || r.expectedMoA}`}
+                        style={{
+                          marginLeft: 4,
+                          background: r.expectedMoA === "activator" ? "rgba(245, 158, 11, 0.14)" : "rgba(56, 189, 248, 0.14)",
+                          color: r.expectedMoA === "activator" ? "#fbbf24" : "#38bdf8",
+                          border: "1px solid currentColor",
+                        }}
+                      >
+                        {r.expectedMoA === "activator"
+                          ? "⚡ Activator / LoF target"
+                          : r.expectedMoA === "inhibitor"
+                            ? "🛡️ Inhibitor / GoF target"
+                            : "⚖️ Modulator"}
+                      </span>
+                    ) : null}
+                    {r.tractability?.topModality ? (
+                      <div className="score-title" style={{ marginTop: 4 }}>
+                        Tractability: {r.tractability.topModality}
+                      </div>
+                    ) : null}
+                    {r.safety?.hasKnownSafetyFlags ? (
+                      <div className="score-title" style={{ color: "#f87171", marginTop: 2 }}>
+                        ⚠️ {r.safety.badge}
+                        {r.safety.topOrgans?.length ? ` (${r.safety.topOrgans.join(", ")})` : ""}
+                      </div>
                     ) : null}
                     <div>
                       <button
@@ -133,12 +162,17 @@ function DiscoveryTable({ rows, sortKey, sortDir, onSort, onFindStructures }) {
                         aria-expanded={isExpanded}
                         title="View tissue expression distribution across human organs"
                       >
-                        <span>\ud83e\uddec Tissue Expression</span>
-                        <span>{isExpanded ? "\u25b2" : "\u25bc"}</span>
+                        <span>🧬 Tissue Expression</span>
+                        <span>{isExpanded ? "▲" : "▼"}</span>
                       </button>
                     </div>
                   </td>
-                  <td className="mono score-num">{r.noveltyScore.toFixed(1)}</td>
+                  <td className="mono score-num">
+                    {(r.profileScore ?? r.noveltyScore ?? 0).toFixed(1)}
+                    {r.repurposingScore != null && r.evidenceProfile === "repurposing" ? (
+                      <div className="score-title">novelty {r.noveltyScore.toFixed(1)}</div>
+                    ) : null}
+                  </td>
                   <td>
                     <div className={"genetic-strength " + r.geneticLevel}>{r.geneticLabel}</div>
                     <div className="score-title">{(r.geneticScore * 100).toFixed(0)} genetic score</div>
@@ -247,6 +281,7 @@ export default function TargetDiscoveryPage() {
 
   const savedActive = useMemo(() => getActiveState(ACTIVE_STATE_KEYS.TARGET_DISCOVERY), []);
   const [query, setQuery] = useState(() => savedActive?.query || "");
+  const [profile, setProfile] = useState(() => savedActive?.profile || "novel_discovery");
   const [suggestions, setSuggestions] = useState([]);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -259,8 +294,8 @@ export default function TargetDiscoveryPage() {
   const suggestReq = useRef(0);
 
   useEffect(() => {
-    setActiveState(ACTIVE_STATE_KEYS.TARGET_DISCOVERY, { query, result, view, sort });
-  }, [query, result, view, sort]);
+    setActiveState(ACTIVE_STATE_KEYS.TARGET_DISCOVERY, { query, profile, result, view, sort });
+  }, [query, profile, result, view, sort]);
 
   useEffect(() => {
     const q = query.trim();
@@ -287,18 +322,19 @@ export default function TargetDiscoveryPage() {
     return () => clearTimeout(handle);
   }, [query]);
 
-  const runSearch = async (raw, diseaseHint = null) => {
+  const runSearch = async (raw, diseaseHint = null, profileOverride = null) => {
     const q = String(raw || query).trim();
+    const activeProfile = profileOverride || profile;
     if (!q && !diseaseHint) return;
     const myReq = ++reqId.current;
     setLoading(true);
     setError("");
     setResult(null);
     setSuggestOpen(false);
-    setView("novelty");
+    setView(activeProfile === "repurposing" ? "established" : "novelty");
     setSort({ key: "noveltyScore", dir: "desc" });
     try {
-      const data = await runTargetDiscovery(q, { diseaseHint });
+      const data = await runTargetDiscovery(q, { diseaseHint, profile: activeProfile });
       if (reqId.current !== myReq) return;
       if (data.error) {
         setError(data.error);
@@ -310,7 +346,7 @@ export default function TargetDiscoveryPage() {
       const targetsList = data?.targets || [];
       const topTarget = targetsList[0];
       const summaryText = topTarget
-        ? `${targetsList.length} targets identified \u00b7 Top lead: ${topTarget.symbol} (novelty ${topTarget.noveltyScore?.toFixed(1) ?? "n/a"})`
+        ? `${targetsList.length} targets identified · Top lead: ${topTarget.symbol} (score ${(topTarget.profileScore ?? topTarget.noveltyScore)?.toFixed(1) ?? "n/a"})`
         : `${targetsList.length} candidate targets identified for ${diseaseLabel}`;
 
       saveHistoryEntry({
@@ -319,13 +355,15 @@ export default function TargetDiscoveryPage() {
         summary: summaryText,
         inputs: {
           query: q,
+          profile: activeProfile,
           diseaseName: diseaseLabel,
           diseaseId: data?.disease?.id || null,
         },
         snapshot: {
           result: data,
           query: q,
-          view: "novelty",
+          profile: activeProfile,
+          view: activeProfile === "repurposing" ? "established" : "novelty",
           sort: { key: "noveltyScore", dir: "desc" },
         },
       });
@@ -333,6 +371,13 @@ export default function TargetDiscoveryPage() {
       if (reqId.current === myReq) setError(e.message || "Target discovery failed.");
     } finally {
       if (reqId.current === myReq) setLoading(false);
+    }
+  };
+
+  const onProfileChange = (nextProfile) => {
+    setProfile(nextProfile);
+    if (query.trim() || result?.disease) {
+      runSearch(query || result?.disease?.name, result?.disease || null, nextProfile);
     }
   };
 
@@ -346,7 +391,13 @@ export default function TargetDiscoveryPage() {
   const onFindStructures = (row) => {
     const symbol = row?.symbol || "";
     if (!symbol) return;
-    navigate(`/?q=${encodeURIComponent(symbol)}&from=target-discovery`);
+    const params = new URLSearchParams({
+      q: symbol,
+      from: "target-discovery",
+    });
+    if (row?.expectedMoA) params.set("moa", row.expectedMoA);
+    if (row?.uniprotId) params.set("uniprot", row.uniprotId);
+    navigate(`/?${params.toString()}`);
   };
 
   const onKeyDown = (e) => {
@@ -395,6 +446,31 @@ export default function TargetDiscoveryPage() {
 
       <div className="grid with-scores">
         <Panel eyebrow="Open Targets Platform" title="Search a disease" kind="target">
+          <div className="discovery-profile-bar" style={{ marginBottom: 12 }}>
+            <div className="hint" style={{ marginBottom: 6, fontWeight: 600 }}>
+              Evidence Weighting Profile:
+            </div>
+            <div className="view-toggle" role="radiogroup" aria-label="Evidence weighting profile">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={profile === "novel_discovery"}
+                className={"chip" + (profile === "novel_discovery" ? " active" : "")}
+                onClick={() => onProfileChange("novel_discovery")}
+              >
+                Novel Discovery (Genetics &amp; CRISPR weighted)
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={profile === "repurposing"}
+                className={"chip" + (profile === "repurposing" ? " active" : "")}
+                onClick={() => onProfileChange("repurposing")}
+              >
+                Repurposing (Clinical Precedence &amp; Tractability)
+              </button>
+            </div>
+          </div>
           <div className="search-row discovery-search-row">
             <div className="search-autocomplete" role="combobox" aria-expanded={suggestOpen} aria-controls="disease-suggest" aria-haspopup="listbox">
               <input

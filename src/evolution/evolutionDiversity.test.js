@@ -1,4 +1,4 @@
-import { getRDKit } from "../rdkitLoader";
+import { getRDKit } from "../../server/rdkitLoader";
 import { maxMinPick } from "../../server/evolution/evolutionDiversity";
 
 test("maxMin pick returns diverse smiles", async () => {
