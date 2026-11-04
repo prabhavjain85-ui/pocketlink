@@ -9,7 +9,6 @@ export const ACTIVE_STATE_KEYS = {
   BENCH: "pocketlink_active_bench_v1",
   TARGET_DISCOVERY: "pocketlink_active_discovery_v1",
   REPURPOSING: "pocketlink_active_repurpose_v1",
-  AGENT: "pocketlink_active_agent_v1",
 };
 
 export function saveHistoryEntry(entry) {

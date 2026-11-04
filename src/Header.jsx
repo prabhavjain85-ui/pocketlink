@@ -9,7 +9,6 @@ const TOOL_LINKS = [
   { to: "/adme", label: "ADME" },
   { to: "/docking", label: "Docking" },
   { to: "/evolution", label: "Local mol. search" },
-  { to: "/agent", label: "Research Agent" },
 ];
 
 const TOOL_PATHS = new Set(TOOL_LINKS.map((item) => item.to));

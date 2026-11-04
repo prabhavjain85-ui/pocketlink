@@ -41,9 +41,6 @@ const OPS = Object.assign(Object.create(null), {
   },
   getTrialSuccessContext: lazy(() => import("./trialSuccessContext.js"), "getTrialSuccessContext"),
 
-  // Research agent
-  runResearchAgent: lazy(() => import("./agentPipeline.js"), "runResearchAgent"),
-
   // ADME
   calculateAdmeProperties: lazy(() => import("./admeCalculator.js"), "calculateAdmeProperties"),
 

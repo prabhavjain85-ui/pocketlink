@@ -9,7 +9,6 @@ import Layout from "./Layout";
 import MethodologyPage from "./MethodologyPage";
 import RepurposingPage from "./RepurposingPage";
 import TargetDiscoveryPage from "./TargetDiscoveryPage";
-import AgentPage from "./AgentPage";
 import AdmePage from "./AdmePage";
 import HypothesisPage from "./HypothesisPage";
 import EvolutionPage from "./EvolutionPage";
@@ -39,7 +38,6 @@ root.render(
             }
           />
           <Route path="/evolution" element={<EvolutionPage />} />
-          <Route path="/agent" element={<AgentPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/methodology" element={<MethodologyPage />} />

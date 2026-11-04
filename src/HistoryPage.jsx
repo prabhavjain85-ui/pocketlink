@@ -59,13 +59,6 @@ const TYPE_CONFIG = {
     targetRoute: "/repurposing",
     actionLabel: "Open Screen",
   },
-  "agent-run": {
-    label: "Autonomous Agent",
-    badgeClass: "badge-agent",
-    icon: "🤖",
-    targetRoute: "/agent",
-    actionLabel: "Open Report",
-  },
 };
 
 export default function HistoryPage() {
@@ -125,11 +118,6 @@ export default function HistoryPage() {
         },
       });
       navigate("/repurposing");
-    } else if (item.type === "agent-run") {
-      if (item.snapshot?.report) {
-        setActiveState(ACTIVE_STATE_KEYS.AGENT, item.snapshot.report);
-      }
-      navigate("/agent");
     }
   };
 
@@ -168,7 +156,6 @@ export default function HistoryPage() {
             { id: "target-discovery", label: "Target Discovery" },
             { id: "pdb-search", label: "PDB Targets" },
             { id: "repurposing-run", label: "Repurposing" },
-            { id: "agent-run", label: "Research Agent" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -462,42 +449,6 @@ export default function HistoryPage() {
                             </table>
                           </div>
                         )}
-                      </div>
-                    )}
-
-                    {/* Agent Run Snapshot */}
-                    {item.type === "agent-run" && item.snapshot?.report && (
-                      <div className="snapshot-content">
-                        <div className="snapshot-section">
-                          <span className="snapshot-label">Research Goal:</span>
-                          <span className="snapshot-val">"{item.inputs?.goal}"</span>
-                        </div>
-                        {item.snapshot.report.executiveSummary && (
-                          <div className="snapshot-section">
-                            <span className="snapshot-label">Agent Findings:</span>
-                            <span className="snapshot-val">
-                              {item.snapshot.report.executiveSummary.verdict}
-                            </span>
-                          </div>
-                        )}
-                        <div className="snapshot-section" style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginTop: "8px" }}>
-                          <div>
-                            <span className="snapshot-label">Target:</span>{" "}
-                            <strong>{item.snapshot.report.executiveSummary?.targetSymbol || item.inputs?.target || "—"}</strong>
-                          </div>
-                          <div>
-                            <span className="snapshot-label">PDB:</span>{" "}
-                            <span className="mono">{item.snapshot.report.executiveSummary?.pdbId || "—"}</span>
-                          </div>
-                          <div>
-                            <span className="snapshot-label">Lead Drug:</span>{" "}
-                            <strong>{item.snapshot.report.executiveSummary?.leadDrugName || "—"}</strong>
-                          </div>
-                          <div>
-                            <span className="snapshot-label">Repurposing Score:</span>{" "}
-                            <span className="mono">{item.snapshot.report.executiveSummary?.repurposingScore != null ? `${item.snapshot.report.executiveSummary.repurposingScore}/100` : "—"}</span>
-                          </div>
-                        </div>
                       </div>
                     )}
 

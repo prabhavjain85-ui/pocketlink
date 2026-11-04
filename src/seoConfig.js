@@ -41,12 +41,6 @@ export const ROUTE_SEO = {
       "Molecular docking module — under validation and currently unavailable. No binding scores or poses are shown until co-crystal redocking passes.",
     canonical: `${SITE_URL}/docking`,
   },
-  "/agent": {
-    title: "Autonomous Research Agent — TargetForge",
-    description:
-      "Automated workflow combining target discovery, PDB selection, approved-drug ranking, and adversarial critique. Computational research support only.",
-    canonical: `${SITE_URL}/agent`,
-  },
   "/methodology": {
     title: "Scientific Methodology & Validation — TargetForge",
     description:
@@ -61,7 +55,7 @@ export const ROUTE_SEO = {
   },
   "/history": {
     title: "Session History — TargetForge",
-    description: "Review past TargetForge staging, screening, and agent sessions saved in your browser.",
+    description: "Review past TargetForge staging and screening sessions saved in your browser.",
     canonical: `${SITE_URL}/history`,
     noindex: true,
   },
@@ -84,7 +78,6 @@ export const INDEXABLE_ROUTES = [
   "/repurposing",
   "/adme",
   "/docking",
-  "/agent",
   "/methodology",
   "/contact",
 ];
@@ -95,7 +88,6 @@ const WORKFLOW_LINKS = [
   { path: "/docking", label: "Molecular docking" },
   { path: "/adme", label: "ADME analysis" },
   { path: "/hypothesis", label: "Hypothesis testing" },
-  { path: "/agent", label: "Research agent" },
   { path: "/methodology", label: "Methodology" },
   { path: "/contact", label: "Contact" },
 ];
@@ -121,7 +113,7 @@ export const STATIC_ROUTE_CONTENT = {
       {
         h2: "More workflows",
         text:
-          "Target discovery, drug repurposing, molecular docking, ADME profiling, hypothesis testing, and the autonomous research agent are available from the Tools menu. Scoring rules and limitations are on Methodology",
+          "Target discovery, drug repurposing, molecular docking, ADME profiling, and hypothesis testing are available from the Tools menu. Scoring rules and limitations are on Methodology",
         path: "/methodology",
         linkLabel: "read methodology and disclaimers",
       },
@@ -166,13 +158,6 @@ export const STATIC_ROUTE_CONTENT = {
     intro:
       "Docking is under validation and currently unavailable. The in-browser engine is disabled until co-crystal redocking passes; no binding scores or poses are shown.",
     breadcrumbLabel: "Molecular docking",
-  },
-  "/agent": {
-    eyebrow: "TargetForge · autonomous research agent",
-    h1: "Autonomous Research Agent",
-    intro:
-      "Runs TargetForge's target discovery, PDB selection, approved-drug ranking, and adversarial critique in sequence. Supports automated research triage — computational outputs only.",
-    breadcrumbLabel: "Research agent",
   },
   "/methodology": {
     eyebrow: "Scientific methodology & validation transparency",

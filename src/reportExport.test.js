@@ -1,5 +1,4 @@
 import {
-  buildAgentReportMarkdown,
   buildBenchReportMarkdown,
   buildDockingReportMarkdown,
   buildHistoryEntryReportMarkdown,
@@ -30,66 +29,6 @@ describe("reportExport", () => {
     expect(markdown).toContain("Gefitinib");
     expect(markdown).toContain("72/100");
     expect(markdown).toContain("knowledge-based triage score");
-  });
-
-  test("buildAgentReportMarkdown includes pipeline steps and critique", () => {
-    const markdown = buildAgentReportMarkdown({
-      goal: "Find repurposing candidates for pancreatic cancer",
-      status: "completed",
-      diseaseResolved: { id: "EFO_0002618", name: "pancreatic carcinoma" },
-      executiveSummary: {
-        disease: "pancreatic carcinoma",
-        diseaseId: "EFO_0002618",
-        targetSymbol: "KRAS",
-        targetOneLineWhy: "Strong genetic association",
-        pdbId: "4OBE",
-        pdbResolution: "2.0 Å",
-        leadDrugName: "Sotorasib",
-        leadDrugCid: 123,
-        repurposingScore: 81,
-        primaryIndication: "NSCLC",
-        critiqueSummary: "Dosing and selectivity remain uncertain.",
-        verdict: "Promising computational lead — validate experimentally.",
-      },
-      steps: {
-        1: {
-          narration: "Resolved disease to pancreatic carcinoma.",
-          data: {
-            primaryTarget: { symbol: "KRAS", name: "KRAS proto-oncogene", noveltyScore: 62, geneticScore: 0.44, drugCount: 1 },
-            noveltyTargets: [{ symbol: "KRAS", noveltyScore: 62, overallScore: 0.71, geneticScore: 0.44, drugCount: 1 }],
-          },
-        },
-        2: {
-          narration: "Selected PDB 4OBE.",
-          data: { selectedStructure: { id: "4OBE", resolution: "2.0 Å", score: 84 } },
-        },
-        3: {
-          narration: "Ranked approved drugs.",
-          data: {
-            librarySize: 2983,
-            scoredCount: 120,
-            top5: [{ name: "Sotorasib", cid: 123, score: 81, indication: "NSCLC", reasoning: ["On-target"] }],
-          },
-        },
-        4: {
-          narration: "Adversarial critique complete.",
-          data: {
-            candidate: { name: "Sotorasib", score: 81 },
-            critique: {
-              case_against: {
-                overall_assessment: "Repurposing regimen may exceed approved exposure.",
-                concerns: [{ issue: "Dose", detail: "Approved dose may not reach tumor concentrations." }],
-              },
-            },
-          },
-        },
-      },
-    });
-
-    expect(markdown).toContain("Autonomous Research Agent Report");
-    expect(markdown).toContain("The Case Against");
-    expect(markdown).toContain("Sotorasib");
-    expect(markdown).toContain("Dose");
   });
 
   test("buildDockingReportMarkdown includes pose metrics and residues", () => {

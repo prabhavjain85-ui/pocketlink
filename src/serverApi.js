@@ -158,9 +158,6 @@ export const screenApprovedLibrary = remote("screenApprovedLibrary");
 export const getDrugSafetyProfiles = remote("getDrugSafetyProfiles");
 export const getTrialSuccessContext = remote("getTrialSuccessContext");
 
-// Research agent
-export const runResearchAgent = remote("runResearchAgent");
-
 // ADME
 export const calculateAdmeProperties = remote("calculateAdmeProperties");
 

@@ -10,7 +10,7 @@ const WINDOW_MS = 60_000;
 const MAX_REQUESTS_PER_WINDOW = 30;
 // Long jobs (library screens, evolution campaigns) are capped harder because each
 // one can hold a function for minutes.
-const HEAVY_OPS = new Set(["screenApprovedLibrary", "runEvolutionCampaign", "runResearchAgent", "runMolecularDocking"]);
+const HEAVY_OPS = new Set(["screenApprovedLibrary", "runEvolutionCampaign", "runMolecularDocking"]);
 const MAX_HEAVY_PER_WINDOW = 5;
 const MAX_TRACKED_CLIENTS = 5000;
 

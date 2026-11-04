@@ -1,12 +1,12 @@
 # TargetForge
 
-**TargetForge** is a computational drug discovery and repurposing workbench. It integrates genetic target identification, crystallographic structure selection, knowledge-based triage scoring (`heuristic-v2`), in-browser ADME profiling, an in-browser docking module (currently disabled pending validation), and an autonomous research agent into a unified workflow.
+**TargetForge** is a computational drug discovery and repurposing workbench. It integrates genetic target identification, crystallographic structure selection, knowledge-based triage scoring (`heuristic-v2`), in-browser ADME profiling, and an in-browser docking module (currently disabled pending validation) into a unified workflow.
 
 ---
 
 ## Application Navigation & Modules
 
-TargetForge is structured across nine dedicated routes:
+TargetForge is structured across dedicated routes:
 
 | Route | Module | Core Functionality |
 | --- | --- | --- |
@@ -15,8 +15,7 @@ TargetForge is structured across nine dedicated routes:
 | `/repurposing` | **Drug Repurposing Screen** | Screen a target against a library of 2,983 approved small-molecule drugs using knowledge-based triage rules and Lipinski/Veber filters (not a validated activity predictor). |
 | `/adme` | **In-Browser ADME Profiling** | Calculate physicochemical descriptors, BOILED-Egg gastrointestinal and BBB permeation, ESOL aqueous solubility, Lipinski/Veber/Ghose rules, and organ toxicity alerts using client-side RDKit WASM. |
 | `/docking` | **Molecular Docking (paused)** | In-browser docking is under validation and currently unavailable in the UI. Engine code remains in-repo behind `DOCKING_ENGINE_ENABLED`. |
-| `/agent` | **Autonomous Research Agent** | Orchestrate an automated 4-step pipeline: Target Discovery $\rightarrow$ PDB Selection $\rightarrow$ Repurposing Screen $\rightarrow$ Adversarial Critique ("The Case Against"). |
-| `/history` | **Session History** | Track and review past staging sessions, target discoveries, screening runs, agent investigations, and docking logs saved in persistent browser storage. |
+| `/history` | **Session History** | Track and review past staging sessions, target discoveries, screening runs, and docking logs saved in persistent browser storage. |
 | `/methodology` | **Scientific Methodology** | Detailed documentation of scoring equations, rule tables, heuristic bands, algorithmic thresholds, and literature citations. |
 | `/contact` | **Contact & Inquiries** | Support and feedback form with multi-tier resilient delivery (Resend, Formspree, FormSubmit, and dry-run mode). |
 
@@ -114,21 +113,9 @@ The in-browser docking engine (`src/dockingEngine.js`) is **disabled in the UI**
 
 ---
 
-## 6. Autonomous Research Agent (`/agent`)
+## 6. History & Methodology
 
-The Autonomous Research Agent automates multi-stage hypothesis exploration from a single research goal:
-
-1. **Step 1 — Target Discovery:** Translates natural-language disease queries into Open Targets ontology records, evaluates biological association scores, and ranks genes by Novelty Score.
-2. **Step 2 — Crystallographic Structure Selection:** Searches RCSB PDB for experimental structures matching the lead gene. Validates authentic drug-like small-molecule ligands and binding pockets, rejecting DNA/RNA complexes, crystal additives, and unliganded structures.
-   - *Honest Dead-End Handling:* If the top target lacks a suitable structural pocket, the agent articulates the dead-end and pivots to the next candidate rather than fabricating false confidence.
-3. **Step 3 — Target-Aware Repurposing Screen:** Scores a targeted shortlist of approved drugs against the resolved binding site using `heuristic-v2`.
-4. **Step 4 — Adversarial Critique ("The Case Against"):** Invokes Gemini AI (or OpenAI/heuristic fallback) to act as a devil's advocate against the top lead, probing for off-target liabilities, metabolic instability, resistance mutations, and formulation roadblocks.
-
----
-
-## 7. History & Methodology
-
-- **Session History (`/history`):** Maintains unified local storage of staging bench sessions, target discovery runs, repurposing results, docking simulations, and autonomous agent reports for auditability and session resumption.
+- **Session History (`/history`):** Maintains unified local storage of staging bench sessions, target discovery runs, repurposing results, and docking simulations for auditability and session resumption.
 - **Scientific Methodology (`/methodology`):** Detailed reference documenting scoring formulas, empirical constants, rule-table mappings, validation data, and scientific limitations across every subsystem.
 
 ---

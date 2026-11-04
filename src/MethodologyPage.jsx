@@ -15,7 +15,6 @@ export default function MethodologyPage() {
         "repurposing-screen",
         "validation-benchmark",
         "adme-profiling",
-        "research-agent",
         "molecule-local-search",
         "clinical-disclaimer",
       ];
@@ -128,14 +127,6 @@ export default function MethodologyPage() {
                 onClick={() => scrollToSection("adme-profiling")}
               >
                 <span className="sidebar-num">08</span> ADME &amp; PK Profiling
-              </button>
-              <button
-                type="button"
-                id="toc-link-agent"
-                className={`sidebar-link ${activeSection === "research-agent" ? "active" : ""}`}
-                onClick={() => scrollToSection("research-agent")}
-              >
-                <span className="sidebar-num">09</span> Research Agent
               </button>
               <button
                 type="button"
@@ -507,12 +498,10 @@ export default function MethodologyPage() {
 
             <div style={{ marginTop: "16px", marginBottom: "16px" }}>
               <h4 style={{ fontSize: "14.5px", fontWeight: 600, color: "var(--text)", marginBottom: "6px" }}>
-                Screening Library Scope vs. Autonomous Agent Shortlist
+                Screening Library Scope
               </h4>
               <p className="section-text">
                 The dedicated Repurposing bench systematically evaluates an exhaustive library of over 2,900 approved small molecules.
-                By contrast, the Autonomous Research Agent uses a curated shortlist (~25 prioritized compounds) during automated multi-step
-                discovery runs to satisfy real-time latency and triaging constraints.
               </p>
             </div>
 
@@ -538,8 +527,7 @@ export default function MethodologyPage() {
               </div>
               <p className="limitation-body">
                 Adverse event reports from public registries (FDA FAERS) are voluntary, spontaneous, and <strong>do not establish clinical causation</strong>.
-                Reporting frequency correlates with commercial prescription volume and underlying disease severity. Furthermore, agent shortlist
-                screens do not substitute for comprehensive chemical library screens.
+                Reporting frequency correlates with commercial prescription volume and underlying disease severity.
               </p>
             </div>
           </section>
@@ -692,92 +680,6 @@ export default function MethodologyPage() {
                 In-browser ADME descriptors are calculated directly from 2D molecular graphs. They do not simulate active influx/efflux transporters,
                 phase I/II hepatic clearance, plasma protein binding, or clinical pharmacokinetics. All computed values are intended strictly for
                 preliminary compound triage.
-              </p>
-            </div>
-          </section>
-
-          {/* Section 9: Autonomous Research Agent */}
-          <section className="methodology-section" id="research-agent">
-            <div className="section-eyebrow">Criterion 09</div>
-            <h2 className="section-title">Autonomous Research Agent</h2>
-            <p className="section-text">
-              The Autonomous Research Agent executes an end-to-end computational investigation for a given disease indication by orchestrating
-              four discrete, reproducible stages:
-            </p>
-
-            <div className="scoring-tiers-grid">
-              <div className="scoring-tier-box" id="agent-stage-1">
-                <div className="scoring-tier-num">Stage 1</div>
-                <h3 className="scoring-tier-title">Disease Resolution &amp; Target Identification</h3>
-                <p className="scoring-tier-desc">
-                  Sanitizes input disease terms, maps them to the Open Targets ontology, queries causal genetic and clinical evidence, and
-                  scores novelty and tractability across associated targets.
-                </p>
-              </div>
-
-              <div className="scoring-tier-box" id="agent-stage-2">
-                <div className="scoring-tier-num">Stage 2</div>
-                <h3 className="scoring-tier-title">Target &amp; PDB Structure Selection</h3>
-                <p className="scoring-tier-desc">
-                  Searches RCSB PDB for high-resolution crystallographic coordinates. Prioritizes established/drugged targets with verified
-                  hetero small-molecule co-crystal ligands and pocket geometry. The novelty list is not automatically chosen as the docking target.
-                </p>
-              </div>
-
-              <div className="scoring-tier-box" id="agent-stage-3">
-                <div className="scoring-tier-num">Stage 3</div>
-                <h3 className="scoring-tier-title">Target-Aware Repurposing Screen</h3>
-                <p className="scoring-tier-desc">
-                  Screens candidate molecules against the resolved PDB and target rules using <code>heuristic-v2</code>. Ranks candidates
-                  based on target-specific pharmacophores and oral drug-likeness.
-                </p>
-              </div>
-
-              <div className="scoring-tier-box" id="agent-stage-4">
-                <div className="scoring-tier-num">Stage 4</div>
-                <h3 className="scoring-tier-title">Adversarial Scientific Critique</h3>
-                <p className="scoring-tier-desc">
-                  Subjects prioritized leads to rigorous counter-argumentation: safety liabilities, target expression specificity, potential
-                  off-target liabilities, and structural limitations.
-                </p>
-              </div>
-            </div>
-
-            <div style={{ marginTop: "20px", marginBottom: "16px" }}>
-              <h4 style={{ fontSize: "14.5px", fontWeight: 600, color: "var(--text)", marginBottom: "6px" }}>
-                Target Selection Strategy, Honest Halts &amp; Narration Adjectives
-              </h4>
-              <ul className="methodology-bullet-list">
-                <li>
-                  <strong>Target Selection Priority:</strong> The agent intentionally prefers well-established targets (high Open Targets score,
-                  drugCount ≥ 1) with high-quality ligand-bound PDB structures for repurposing screens. Novel targets lacking experimental
-                  structures or druggable pockets are documented in the novelty portfolio rather than forced into docking.
-                </li>
-                <li>
-                  <strong>Explicit Fail-Safe Halts:</strong> The agent is not an ungrounded literature summarizer. It immediately halts if the
-                  disease cannot be resolved, if Open Targets returns 0 associations, if no ligand-bound PDB structure with a detectable binding
-                  pocket exists, or if top repurposing scores fail to meet minimum discrimination thresholds (&lt; 15/100).
-                </li>
-                <li>
-                  <strong>Numeric Adjective Consistency:</strong> Agent narration adjectives strictly reflect calculated metrics:
-                  novelty is &quot;high&quot; (≥ 50), &quot;moderate&quot; (20–49), or &quot;low&quot; (&lt; 20); genetic association is &quot;strong&quot;
-                  (≥ 40%), &quot;moderate&quot; (15–39%), or &quot;weak / none&quot; (&lt; 15%); drug coverage is &quot;no approved drugs (underexplored)&quot;
-                  (0), &quot;few drugs&quot; (1–2), or &quot;already has N approved/pipeline drugs (not underexplored)&quot; (≥ 3).
-                </li>
-              </ul>
-            </div>
-
-            {/* Limitation Callout */}
-            <div className="limitation-callout" id="limitation-agent">
-              <div className="limitation-header">
-                <svg className="limitation-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                <span className="limitation-badge">Methodology Note &amp; Limitations</span>
-              </div>
-              <p className="limitation-body">
-                The Autonomous Research Agent generates structured computational hypotheses grounded in public databases. It does not perform
-                wet-lab validation, synthetic accessibility synthesis planning, or customized multi-target pharmacokinetic optimization.
               </p>
             </div>
           </section>

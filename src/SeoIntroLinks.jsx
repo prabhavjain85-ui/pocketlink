@@ -7,7 +7,6 @@ const WORKFLOW_LINKS = [
   { to: "/adme", label: "ADME analysis" },
   { to: "/evolution", label: "Molecule evolution" },
   { to: "/hypothesis", label: "Hypothesis testing" },
-  { to: "/agent", label: "Research agent" },
   { to: "/methodology", label: "Methodology" },
 ];
 

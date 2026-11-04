@@ -26,10 +26,6 @@ function formatReportTimestamp(timestamp) {
   }
 }
 
-function stripMarkdownBold(text) {
-  return String(text || "").replace(/\*\*(.*?)\*\*/g, "$1").replace(/\*(.*?)\*/g, "$1");
-}
-
 function joinLines(lines) {
   return lines.filter((line) => line != null && line !== "").join("\n");
 }
@@ -94,140 +90,6 @@ function formatReasoning(row) {
   if (Array.isArray(row?.reasoning) && row.reasoning.length) return row.reasoning.slice(0, 3).join("; ");
   const merged = [...(row?.strengths || []), ...(row?.concerns || [])];
   return merged.slice(0, 3).join("; ") || "—";
-}
-
-export function buildAgentReportMarkdown(report, meta = {}) {
-  if (!report) return "";
-
-  const exec = report.executiveSummary;
-  const step1 = report.steps?.[1];
-  const step2 = report.steps?.[2];
-  const step3 = report.steps?.[3];
-  const step4 = report.steps?.[4];
-  const topCandidates =
-    (Array.isArray(step3?.data?.top5) && step3.data.top5.length ? step3.data.top5 : null) ||
-    (Array.isArray(step3?.data?.ranking) ? step3.data.ranking.slice(0, 5) : []);
-
-  const lines = [
-    reportHeader("PocketLink Autonomous Research Agent Report", {
-      timestamp: meta.timestamp || report.completedAt || Date.now(),
-      module: "Autonomous Research Agent",
-      sessionTitle: report.goal || meta.title,
-    }),
-    section("Executive Summary", [
-      `- **Objective:** ${report.goal || "—"}`,
-      `- **Disease:** ${exec?.disease || report.diseaseResolved?.name || "—"} (${exec?.diseaseId || report.diseaseResolved?.id || "N/A"})`,
-      `- **Target:** ${exec?.targetSymbol || "—"} — ${exec?.targetOneLineWhy || "Validated disease association"}`,
-      exec?.pivotedFrom ? `- **Pivot note:** Switched from ${exec.pivotedFrom}` : null,
-      `- **PDB structure:** ${exec?.pdbId || "—"} (${exec?.pdbResolution || "Experimental"}) · selection score ${exec?.targetSelectionScore ?? "—"}/100`,
-      `- **Lead approved drug:** ${exec?.leadDrugName || "—"} (CID ${exec?.leadDrugCid || "N/A"}, knowledge-based triage score ${exec?.repurposingScore ?? "—"}/100)`,
-      `- **Primary indication:** ${exec?.primaryIndication || "N/A"}`,
-      `- **Verdict:** ${exec?.verdict || "Computational assessment complete"}`,
-      `- **Pipeline status:** ${report.status || "—"}${report.haltReason ? ` — ${stripMarkdownBold(report.haltReason)}` : ""}`,
-      report.totalDurationMs ? `- **Duration:** ${Math.round(report.totalDurationMs / 1000)}s` : null,
-    ]),
-  ];
-
-  if (step1) {
-    lines.push(
-      section("Step 1 — Target Discovery", [
-        step1.narration ? stripMarkdownBold(step1.narration) : null,
-        step1.data?.primaryTarget
-          ? `- **Primary target:** ${step1.data.primaryTarget.symbol} (${step1.data.primaryTarget.name || "—"}) · novelty ${step1.data.primaryTarget.noveltyScore ?? "N/A"}/100 · genetic ${step1.data.primaryTarget.geneticScore != null ? `${(step1.data.primaryTarget.geneticScore * 100).toFixed(0)}%` : "N/A"} · approved drugs ${step1.data.primaryTarget.drugCount ?? 0}`
-          : null,
-        step1.data?.backupTarget
-          ? `- **Backup target:** ${step1.data.backupTarget.symbol} (${step1.data.backupTarget.name || "—"})`
-          : null,
-        Array.isArray(step1.data?.noveltyTargets) && step1.data.noveltyTargets.length
-          ? "### Evaluated targets\n\n" +
-              table(
-                ["Rank", "Gene", "Novelty", "Overall", "Genetic", "Drugs"],
-                step1.data.noveltyTargets.slice(0, 25).map((row, idx) => [
-                  idx + 1,
-                  row.symbol || "—",
-                  row.noveltyScore != null ? row.noveltyScore.toFixed(1) : "—",
-                  row.overallScore != null ? row.overallScore.toFixed(2) : "—",
-                  row.geneticScore != null ? `${(row.geneticScore * 100).toFixed(0)}%` : "—",
-                  row.drugCount ?? 0,
-                ])
-              )
-          : null,
-      ])
-    );
-  }
-
-  if (step2) {
-    const pdb = step2.data?.selectedStructure;
-    lines.push(
-      section("Step 2 — PDB Selection", [
-        step2.narration ? stripMarkdownBold(step2.narration) : null,
-        pdb
-          ? `- **Selected PDB:** ${pdb.id || pdb.pdb_id || "—"} · resolution ${pdb.resolution || "N/A"} · score ${pdb.score ?? pdb.targetSelectionScore ?? "—"}/100`
-          : null,
-        pdb?.ligand?.name || pdb?.ligands?.[0]?.name
-          ? `- **Co-crystal ligand:** ${pdb.ligand?.name || pdb.ligands?.[0]?.name}`
-          : null,
-        step2.data?.pivoted ? `- **Pivot:** ${stripMarkdownBold(step2.data.pivotReason || "Used backup target after primary structure failed viability checks.")}` : null,
-      ])
-    );
-  }
-
-  if (step3) {
-    lines.push(
-      section("Step 3 — Repurposing Screen", [
-        step3.narration ? stripMarkdownBold(step3.narration) : null,
-        step3.data?.librarySize ? `- **Library screened:** ${step3.data.librarySize.toLocaleString()} approved drugs` : null,
-        step3.data?.scoredCount ? `- **Shortlist scored:** ${step3.data.scoredCount}` : null,
-        topCandidates.length
-          ? "### Top candidates\n\n" +
-              table(
-                ["Rank", "Drug", "CID", "Triage score", "Indication", "Reasoning"],
-                topCandidates.map((row, idx) => [
-                  idx + 1,
-                  row.name || "—",
-                  row.cid || "—",
-                  `${row.score ?? "—"}/100`,
-                  row.indication || "—",
-                  formatReasoning(row),
-                ])
-              )
-          : "_No ranking recorded._",
-      ])
-    );
-  }
-
-  if (step4) {
-    const candidate = step4.data?.candidate;
-    const critique = step4.data?.critique;
-    const concerns = critique?.case_against?.concerns;
-    lines.push(
-      section("Step 4 — Adversarial Critique (The Case Against)", [
-        step4.narration ? stripMarkdownBold(step4.narration) : null,
-        candidate ? `- **Lead evaluated:** ${candidate.name} (${candidate.score ?? "—"}/100)` : null,
-        exec?.critiqueSummary ? `- **Critique summary:** ${exec.critiqueSummary}` : null,
-        exec?.keyConcern ? `- **Primary concern:** ${exec.keyConcern}${exec.keyConcernDetail ? ` — ${exec.keyConcernDetail}` : ""}` : null,
-        Array.isArray(concerns) && concerns.length
-          ? "### Itemized concerns\n\n" +
-              concerns.map((item) => `- **${item.issue}:** ${item.detail}`).join("\n")
-          : null,
-        critique?.case_against?.overall_assessment
-          ? `- **Overall assessment:** ${critique.case_against.overall_assessment}`
-          : null,
-      ])
-    );
-  }
-
-  lines.push(
-    section("Methodology & Limitations", [
-      "- Agent pipeline uses Open Targets associations, RCSB PDB structure filters, knowledge-based triage scores (heuristic-v2), and optional LLM adversarial critique.",
-      "- Triage scores reflect curated target rules, pocket/ligand context, and drug-likeness heuristics — not validated binding or clinical activity.",
-      "- Adversarial critique highlights plausible liabilities; it is not a substitute for experimental orthogonal assays.",
-      `- ${REPORT_DISCLAIMER}`,
-    ]),
-    reportFooter()
-  );
-
-  return joinLines(lines);
 }
 
 export function buildDockingReportMarkdown({
@@ -479,11 +341,6 @@ export function buildHistoryEntryReportMarkdown(item) {
   if (!item?.type) return "";
 
   switch (item.type) {
-    case "agent-run":
-      return buildAgentReportMarkdown(item.snapshot?.report, {
-        timestamp: item.timestamp,
-        title: item.title,
-      });
     case "staging-bench":
       return buildBenchReportMarkdown({
         protein: item.snapshot?.protein,
