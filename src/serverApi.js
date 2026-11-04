@@ -150,7 +150,10 @@ export const searchDiseases = remote("searchDiseases");
 export const runTargetDiscovery = remote("runTargetDiscovery");
 export const getTargetExpressionProfile = remote("getTargetExpressionProfile");
 
-// Repurposing
+// Compound libraries
+export const listCompoundLibraries = remote("listCompoundLibraries");
+
+// Repurposing / library screening
 export const screenApprovedLibrary = remote("screenApprovedLibrary");
 export const getDrugSafetyProfiles = remote("getDrugSafetyProfiles");
 export const getTrialSuccessContext = remote("getTrialSuccessContext");

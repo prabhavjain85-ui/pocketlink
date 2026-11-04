@@ -10,6 +10,7 @@ import PdbTargetSearch from "./PdbTargetSearch";
 import HomepageIntro from "./HomepageIntro";
 import { CandidateRow } from "./CandidateViews";
 import HandoffStations from "./HandoffStations";
+import LibraryScreenPanel from "./LibraryScreenPanel";
 
 export default function StagingBenchView(b) {
   const {
@@ -20,6 +21,10 @@ export default function StagingBenchView(b) {
     handoffQuery, fromDiscovery,
     searchCompound, addOrRemovePreview, removeCandidate,
     loadEgfrCompareDemo, startBlankScreen,
+    benchMode, setBenchMode,
+    libraries, libraryId, setLibraryId,
+    libraryRunning, libraryError, libraryProgress, libraryResult,
+    runLibraryScreen, cancelLibraryScreen, promoteTopHits,
     alreadyStaged, shortlistFull, recommendedCid,
     compound, previewChecks, previewPass, progress, aiResult,
   } = b;
@@ -61,7 +66,48 @@ export default function StagingBenchView(b) {
           }
         />
 
-        <Panel eyebrow="Station 2 — PubChem" title="Build a 5-molecule shortlist" kind="candidate">
+        <Panel
+          eyebrow={benchMode === "library" ? "Station 2 — Compound library" : "Station 2 — PubChem"}
+          title={benchMode === "library" ? "Screen a compound library" : "Build a 5-molecule shortlist"}
+          kind="candidate"
+        >
+          <div className="bench-mode-switch" role="tablist" aria-label="How to choose compounds">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={benchMode === "manual"}
+              className={"bench-mode-btn" + (benchMode === "manual" ? " active" : "")}
+              onClick={() => setBenchMode("manual")}
+            >
+              Add my own (up to 5)
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={benchMode === "library"}
+              className={"bench-mode-btn" + (benchMode === "library" ? " active" : "")}
+              onClick={() => setBenchMode("library")}
+            >
+              Screen a library
+            </button>
+          </div>
+
+          {benchMode === "library" ? (
+            <LibraryScreenPanel
+              protein={protein}
+              libraries={libraries}
+              libraryId={libraryId}
+              setLibraryId={setLibraryId}
+              running={libraryRunning}
+              error={libraryError}
+              progress={libraryProgress}
+              result={libraryResult}
+              onRun={runLibraryScreen}
+              onCancel={cancelLibraryScreen}
+              onPromote={promoteTopHits}
+            />
+          ) : (
+          <>
           <div className="search-row">
             <input
               placeholder="Compound name (e.g. imatinib, caffeine)"
@@ -166,6 +212,8 @@ export default function StagingBenchView(b) {
                 ))}
               </div>
             </>
+          )}
+          </>
           )}
         </Panel>
       </div>

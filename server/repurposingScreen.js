@@ -1,5 +1,6 @@
 import { rankCandidatesBatch, scoreLibraryLocal } from "./aiCandidateRanking.js";
 import { drugToCandidate, ensureApprovedDrugsLoaded, loadApprovedDrugs } from "./approvedDrugs.js";
+import { DEFAULT_LIBRARY_ID, loadCompoundLibrary, resolveLibraryId } from "./compoundLibraries.js";
 import { checkPainsFast } from "./painsCheck.js";
 import { annotateStructuralSimilarity } from "./structuralSimilarity.js";
 import { getCachedScore, pdbIdOf, rememberScores } from "./rankingCache.js";
@@ -61,18 +62,24 @@ function writeDailyMap(map) {
   }
 }
 
-export function getDailyScreen(pdbId) {
+/** Cache key: the same target screened against two libraries is two results. */
+function dailyKey(pdbId, libraryId = DEFAULT_LIBRARY_ID) {
+  return `${String(pdbId || "").toUpperCase()}::${resolveLibraryId(libraryId)}`;
+}
+
+export function getDailyScreen(pdbId, libraryId = DEFAULT_LIBRARY_ID) {
   const pdb = String(pdbId || "").toUpperCase();
   if (!pdb) return null;
-  const entry = readDailyMap()[pdb];
+  const entry = readDailyMap()[dailyKey(pdb, libraryId)];
   if (!entry || !entry.at) return null;
   if (Date.now() - Number(entry.at) > DAILY_SCREEN_MS) return null;
   return entry;
 }
 
-export function rememberDailyScreen(pdbId, payload) {
+export function rememberDailyScreen(pdbId, payload, libraryId = DEFAULT_LIBRARY_ID) {
   const pdb = String(pdbId || "").toUpperCase();
   if (!pdb || !payload) return;
+  const cacheKey = dailyKey(pdb, libraryId);
   const map = { ...readDailyMap() };
   const compactRanking = (payload.ranking || []).map((r) => ({
     cid: String(r.cid),
@@ -83,7 +90,7 @@ export function rememberDailyScreen(pdbId, payload) {
     class: r.class,
     smiles: r.smiles,
   }));
-  map[pdb] = { ...payload, ranking: compactRanking, pdbId: pdb, at: Date.now() };
+  map[cacheKey] = { ...payload, ranking: compactRanking, pdbId: pdb, libraryId: resolveLibraryId(libraryId), at: Date.now() };
   writeDailyMap(map);
 }
 
@@ -139,6 +146,19 @@ function compactRow(drug, ranked, pains) {
     indication: drug.indication,
     class: drug.class,
     smiles: drug.smiles,
+    // Physicochemical properties, so a row promoted into the shortlist shows
+    // real values instead of NaN and its drug-likeness checks mean something.
+    mw: drug.mw ?? null,
+    xlogp: drug.xlogp ?? null,
+    hbd: drug.hbd ?? null,
+    hba: drug.hba ?? null,
+    rot: drug.rot ?? null,
+    tpsa: drug.tpsa ?? null,
+    // Set by server/structuralSimilarity.js; carried so the UI can show and
+    // sort by resemblance to the co-crystal ligand.
+    structuralSimilarity: drug.structuralSimilarity ?? null,
+    structuralSimilarityRef: drug.structuralSimilarityRef ?? null,
+    maxPhase: drug.maxPhase ?? null,
     pains: pains || { status: "pending" },
     cacheKey: null,
   };
@@ -159,6 +179,7 @@ function assembleResult({
   fromDailyCache,
   usedLlm,
   librarySize,
+  library = null,
   scoredCount,
   aiError,
 }) {
@@ -179,6 +200,7 @@ function assembleResult({
   }
   return {
     target: { name: targetName, pdb_id: pdb },
+    library,
     ranking: withBlurbs,
     recommended: withBlurbs[0]
       ? { cid: withBlurbs[0].cid, score: withBlurbs[0].score, name: withBlurbs[0].name }
@@ -521,10 +543,11 @@ export async function screenApprovedLibrary(
     shortlistOnly = false,
     activeTarget = null,
     signal = null,
+    libraryId = DEFAULT_LIBRARY_ID,
   } = {}
 ) {
-  await ensureApprovedDrugsLoaded();
-  const drugs = loadApprovedDrugs();
+  const library = await loadCompoundLibrary(libraryId);
+  const drugs = library.rows;
   const pdb = pdbIdOf(protein);
   const targetName = targetDisplayName(protein) || pdb;
   const structural = summarizeTargetData(protein);
@@ -594,6 +617,7 @@ export async function screenApprovedLibrary(
       target: { name: fullContext.name, pdb_id: fullContext.pdb_id },
       summary: `Screened canonical on-target, same-family, and approved sample shortlist (${rankedRows.length} compounds) against ${fullContext.name} (${fullContext.pdb_id}) using heuristic-v2`,
       librarySize: drugs.length,
+    library: { id: library.id, label: library.label, source: library.source, generatedAt: library.generatedAt },
       scoredCount: rankedRows.length,
       shortlistSize: rankedRows.length,
       recommended: rankedRows[0] || null,
@@ -615,7 +639,7 @@ export async function screenApprovedLibrary(
         percent: pct,
         message:
           partial.message ||
-          `Screening ${drugs.length} approved drugs against ${targetName}... ${pct}% complete`,
+          `Screening ${drugs.length} compounds from ${library.label} against ${targetName}... ${pct}% complete`,
       });
     }
   };
@@ -624,11 +648,11 @@ export async function screenApprovedLibrary(
     phase: "prefilter",
     done: 0,
     total: drugs.length,
-    message: `Filtering ${drugs.length} approved drugs by Lipinski compliance, PAINS & pocket geometry...`,
+    message: `Filtering ${drugs.length} compounds from ${library.label} by Lipinski compliance, PAINS & pocket geometry...`,
   });
 
   if (!force) {
-    const daily = getDailyScreen(pdb);
+    const daily = getDailyScreen(pdb, libraryId);
     if (daily?.ranking?.length) {
       report({
         phase: "cache",
@@ -800,6 +824,7 @@ export async function screenApprovedLibrary(
     fromDailyCache: false,
     usedLlm,
     librarySize: drugs.length,
+    library: { id: library.id, label: library.label, source: library.source, generatedAt: library.generatedAt },
     scoredCount: allRows.length,
     aiError,
   });
@@ -833,7 +858,7 @@ export async function screenApprovedLibrary(
   }
 
   // 5. Cache snapshots
-  rememberDailyScreen(pdb, assembled);
+  rememberDailyScreen(pdb, assembled, libraryId);
   rememberScores(pdb, assembled.ranking);
 
   report({

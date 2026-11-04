@@ -506,7 +506,10 @@ function matchesCoCrystalLigand(candidate, protein) {
   // Mention in PDB title (e.g. "complex with imatinib", "in complex with dabrafenib", "with STI-571")
   const words = cName.split(/[\s-]+/).filter((w) => w.length > 3);
   for (const w of words) {
-    if (new RegExp(`\\b${w}\\b`, "i").test(title)) {
+    // Systematic chemical names contain regex metacharacters: "(pyridin-2-yl)"
+    // produced an invalid pattern and threw before this was escaped.
+    const safe = w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (new RegExp(`\\b${safe}\\b`, "i").test(title)) {
       return true;
     }
   }

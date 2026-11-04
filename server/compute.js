@@ -29,7 +29,11 @@ const OPS = Object.assign(Object.create(null), {
   runTargetDiscovery: lazy(() => import("./openTargets.js"), "runTargetDiscovery"),
   getTargetExpressionProfile: lazy(() => import("./geneExpression.js"), "getTargetExpressionProfile"),
 
-  // Repurposing
+  // Compound libraries
+  listCompoundLibraries: lazy(() => import("./compoundLibraries.js"), "listCompoundLibraries"),
+
+  // Repurposing / library screening. The staging bench and the repurposing
+  // page share this op; they differ only in which library they pass.
   screenApprovedLibrary: lazy(() => import("./repurposingScreen.js"), "screenApprovedLibrary"),
   async getDrugSafetyProfiles(drugs) {
     const { getDrugSafetyProfile } = await import("./safetyProfiles.js");

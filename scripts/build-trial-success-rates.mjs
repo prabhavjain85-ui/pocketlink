@@ -8,7 +8,7 @@
  *
  * Fetches interventional drug trials via API v2, aggregates completion rates
  * by phase for configured target/compound-class search terms, and writes
- * src/data/trialSuccessRates.json (committed artifact — not fetched at runtime).
+ * server/data/trialSuccessRates.json (committed artifact — not fetched at runtime).
  *
  * Metric: completion_rate = COMPLETED / (COMPLETED + TERMINATED + WITHDRAWN + SUSPENDED)
  * Excludes RECRUITING, ACTIVE_NOT_RECRUITING, UNKNOWN, etc. from the denominator.
@@ -22,7 +22,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const OUT_PATH = join(__dirname, "../src/data/trialSuccessRates.json");
+const OUT_PATH = join(__dirname, "../server/data/trialSuccessRates.json");
 
 const API_BASE = "https://clinicaltrials.gov/api/v2/studies";
 const PAGE_SIZE = 100;

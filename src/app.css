@@ -7051,3 +7051,51 @@ textarea.field-input {
   color: #92400e;
   border: 1px solid #fde68a;
 }
+
+/* Station 2 mode switch and library screen */
+.bench-mode-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  margin-bottom: 10px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+.bench-mode-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-muted, #64748b);
+  cursor: pointer;
+}
+.bench-mode-btn.active {
+  background: var(--surface, #fff);
+  color: var(--primary);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+.library-progress { margin: 10px 0; }
+.library-progress .progress-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-subtle);
+  overflow: hidden;
+}
+.library-progress .progress-fill {
+  height: 100%;
+  background: var(--primary);
+  transition: width 240ms ease;
+}
+.library-summary {
+  margin: 12px 0 8px;
+  font-size: 13px;
+}
+.library-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}

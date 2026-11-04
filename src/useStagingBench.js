@@ -10,7 +10,7 @@ import {
 import { prettyName, getCompoundSmiles } from "./benchUi";
 import { checkPainsBatch } from "./serverApi";
 import { MAX_CANDIDATES, drugLikenessChecks } from "./shared/drugLikeness";
-import { searchPdbTargets } from "./serverApi";
+import { searchPdbTargets, listCompoundLibraries, screenApprovedLibrary } from "./serverApi";
 import { targetDisplayName } from "./shared/targetLabels";
 
 const EGFR_DEMO_PDB = "1M17";
@@ -283,6 +283,110 @@ export function useStagingBench() {
     if (cached?.recommended?.cid) setHandoffCid(cached.recommended.cid);
   }, [protein, candidates]);
 
+  // ---- Library screening mode -------------------------------------------
+  // "manual" keeps the original up-to-5 shortlist. "library" screens a whole
+  // committed compound set against the staged structure on the server.
+  const [benchMode, setBenchMode] = useState("manual");
+  const [libraries, setLibraries] = useState([]);
+  const [libraryId, setLibraryId] = useState("clinical");
+  const [libraryRunning, setLibraryRunning] = useState(false);
+  const [libraryError, setLibraryError] = useState("");
+  const [libraryProgress, setLibraryProgress] = useState(null);
+  const [libraryResult, setLibraryResult] = useState(null);
+  const [libraryAbort, setLibraryAbort] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    listCompoundLibraries()
+      .then((rows) => {
+        if (!cancelled) setLibraries(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // A screen is only meaningful for the structure it ran against.
+  useEffect(() => {
+    setLibraryResult(null);
+    setLibraryError("");
+  }, [protein?.id, libraryId]);
+
+  const runLibraryScreen = async ({ force = false } = {}) => {
+    if (!protein) {
+      setLibraryError("Stage a target structure first.");
+      return;
+    }
+    const controller = new AbortController();
+    setLibraryAbort(controller);
+    setLibraryRunning(true);
+    setLibraryError("");
+    setLibraryResult(null);
+    setLibraryProgress({ percent: 0, message: "Starting screen…" });
+    try {
+      const data = await screenApprovedLibrary(protein, {
+        libraryId,
+        force,
+        signal: controller.signal,
+        onProgress: (p) => setLibraryProgress(p),
+      });
+      setLibraryResult(data);
+      const label = data?.library?.label || "library";
+      saveHistoryEntry({
+        type: "library-screen",
+        title: `Library screen: ${targetDisplayName(protein) || protein.id} × ${label}`,
+        summary: `${data?.ranking?.length ?? 0} of ${data?.librarySize ?? 0} compounds scored; lead ${data?.ranking?.[0]?.name ?? "n/a"} (${data?.ranking?.[0]?.score ?? "n/a"}/100)`,
+        inputs: { pdbId: protein.id, libraryId, librarySize: data?.librarySize },
+        snapshot: { protein, top: (data?.ranking || []).slice(0, 25) },
+      });
+    } catch (err) {
+      if (err?.name === "AbortError") setLibraryError("Screen cancelled.");
+      else setLibraryError(err?.message || "Library screen failed.");
+    } finally {
+      setLibraryRunning(false);
+      setLibraryProgress(null);
+      setLibraryAbort(null);
+    }
+  };
+
+  const cancelLibraryScreen = () => {
+    if (libraryAbort) libraryAbort.abort();
+  };
+
+  /** Move the top hits into the manual shortlist so Station 3 can compare them. */
+  const promoteTopHits = (count = MAX_CANDIDATES) => {
+    const rows = (libraryResult?.ranking || []).slice(0, count);
+    if (!rows.length) return;
+    setCandidates(
+      rows.map((row) => ({
+        CID: row.cid,
+        cid: String(row.cid),
+        name: row.name,
+        displayName: row.name,
+        IsomericSMILES: row.smiles,
+        CanonicalSMILES: row.smiles,
+        SMILES: row.smiles,
+        MolecularWeight: row.mw,
+        XLogP: row.xlogp,
+        HBondDonorCount: row.hbd,
+        HBondAcceptorCount: row.hba,
+        RotatableBondCount: row.rot,
+        TPSA: row.tpsa,
+        indication: row.indication,
+        drugClass: row.class,
+        structuralSimilarity: row.structuralSimilarity,
+      }))
+    );
+    setBenchMode("manual");
+    setAiResult(null);
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => {
+        document.getElementById("staging-bench")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 60);
+    }
+  };
+
   const analyze = async () => {
     if (candidates.length < 2) return;
     setAiLoading(true);
@@ -370,6 +474,10 @@ export function useStagingBench() {
     aiLoading, aiError, aiResult, handoffCid, setHandoffCid,
     aiSort, painsByCid, demoKey, demoTargetQuery, demoLoading,
     handoffQuery, fromDiscovery,
+    benchMode, setBenchMode,
+    libraries, libraryId, setLibraryId,
+    libraryRunning, libraryError, libraryProgress, libraryResult,
+    runLibraryScreen, cancelLibraryScreen, promoteTopHits,
     searchCompound, addOrRemovePreview, removeCandidate, analyze, toggleAiSort,
     loadEgfrCompareDemo, startBlankScreen,
     alreadyStaged, shortlistFull, recommendedCid, rankingRows,

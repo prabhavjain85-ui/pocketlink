@@ -5,7 +5,9 @@ import { SCORE_FORMULA_TEXT } from "./shared/targetSelectionText";
 /** PubChem 2D PNG via PUG-REST (works in cross-site <img>; legacy imgsrv.fcgi blocks with 403). */
 export function pubchemStructureImageUrl(cid) {
   const id = String(cid ?? "").trim();
-  if (!id) return null;
+  // Only numeric PubChem CIDs resolve here. Library compounds are keyed by
+  // ChEMBL id, which returns 400 — those are drawn from SMILES by RDKit instead.
+  if (!/^\d+$/.test(id)) return null;
   return `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${encodeURIComponent(id)}/PNG`;
 }
 

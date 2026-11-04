@@ -178,6 +178,27 @@ The curated target rules in `server/scoreCandidates.js` recognise compounds by *
 
 Equally scored compounds now share a rank (`tiedWithPrevious`) instead of being ordered by the alphabetical accident of their compound id.
 
+### Compound Libraries
+
+Station 2 of the staging bench works two ways: add up to five compounds by name from PubChem, or screen a whole committed library against the staged structure.
+
+| Library | Contents | Size |
+|---|---|---|
+| `approved` | Curated marketed small-molecule drugs | ~2,983 |
+| `clinical` | ChEMBL small molecules that reached Phase 2 or beyond, one entry per base drug name | ~9,409 |
+
+Both are committed JSON snapshots under `public/data`; nothing is fetched from an external API at request time, so a screen cannot change because someone else's database changed. Rebuild the clinical set with:
+
+```bash
+node scripts/build-clinical-library.mjs
+```
+
+The screen is the same code path as the Repurposing page, parameterised by `libraryId`, and the daily cache is keyed per target **and** library. A 9.4k screen takes about 12 seconds server-side; 2.9k takes about 4. Roughly 10k is the practical ceiling for loading a library into memory per request — past that, move the compounds and precomputed fingerprints into a database.
+
+Library screening is where structural similarity earns its place. Screening the clinical set against EGFR (1M17) surfaces Icotinib (Tanimoto 0.55) and Theliatinib (0.51) at ranks 8 and 9. Neither is in the approved library, and neither is named in any target rule — the name-based rules report "no established relevance" for both. Only the fingerprint comparison to the bound ligand finds them.
+
+ChEMBL data is released under CC BY-SA 3.0; keep the attribution if you redistribute the snapshot.
+
 ### Auditing the Target Selection Score
 
 ```bash
