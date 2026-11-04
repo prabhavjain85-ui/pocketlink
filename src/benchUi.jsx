@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { getRDKit } from "./rdkitLoader";
+import { renderMolSvg } from "./serverApi";
 import { SCORE_FORMULA_TEXT } from "./shared/targetSelectionText";
+
+const structureSvgCache = new Map();
 
 /** PubChem 2D PNG via PUG-REST (works in cross-site <img>; legacy imgsrv.fcgi blocks with 403). */
 export function pubchemStructureImageUrl(cid) {
@@ -25,31 +27,29 @@ function RdkitStructureFallback({ smiles, compact, cid }) {
       return undefined;
     }
 
+    const w = compact ? 120 : 220;
+    const h = compact ? 80 : 160;
+    const cacheKey = `${raw}|${w}x${h}`;
+
+    if (structureSvgCache.has(cacheKey)) {
+      const cached = structureSvgCache.get(cacheKey);
+      if (cached) setSvg(cached);
+      else setFailed(true);
+      return undefined;
+    }
+
     (async () => {
-      const RDKit = await getRDKit();
-      if (cancelled) return;
-      if (!RDKit) {
-        setFailed(true);
-        return;
-      }
-      let mol = null;
       try {
-        mol = RDKit.get_mol(raw);
-        if (!mol) {
+        const rendered = await renderMolSvg(raw, w, h);
+        if (cancelled) return;
+        structureSvgCache.set(cacheKey, rendered || "");
+        if (rendered) {
+          setSvg(rendered);
+        } else {
           setFailed(true);
-          return;
         }
-        const w = compact ? 120 : 220;
-        const h = compact ? 80 : 160;
-        setSvg(mol.get_svg(w, h));
       } catch {
-        setFailed(true);
-      } finally {
-        try {
-          mol?.delete?.();
-        } catch {
-          // ignore
-        }
+        if (!cancelled) setFailed(true);
       }
     })();
 

@@ -1,6 +1,6 @@
 /**
- * RDKit WebAssembly loader for the server (Node / Jest).
- * The browser keeps its own copy in src/rdkitLoader.js for structure drawing.
+ * RDKit WebAssembly loader for the server (Node / Vercel / Jest).
+ * All RDKit calculations and 2D structure depictions run exclusively on the server.
  */
 import { nodeRequire } from "./nodeRequire.js";
 
@@ -13,8 +13,19 @@ export async function getRDKit() {
 
   rdkitInitPromise = (async () => {
     try {
-      const initNode = nodeRequire()("@rdkit/rdkit/dist/RDKit_minimal.js");
-      rdkitInstance = await initNode();
+      const req = nodeRequire();
+      const initNode = req("@rdkit/rdkit/dist/RDKit_minimal.js");
+      let wasmPath = null;
+      try {
+        wasmPath = req.resolve("@rdkit/rdkit/dist/RDKit_minimal.wasm");
+      } catch {
+        wasmPath = null;
+      }
+      rdkitInstance = await initNode(
+        wasmPath
+          ? { locateFile: (file, dir) => (file.endsWith(".wasm") ? wasmPath : (dir || "") + file) }
+          : undefined
+      );
       return rdkitInstance;
     } catch (err) {
       console.warn("[rdkit] Node init error:", err?.message || err);

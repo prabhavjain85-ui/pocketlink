@@ -63,6 +63,32 @@ const OPS = Object.assign(Object.create(null), {
     return runEvolutionCampaign({ ...params, settings: cfg });
   },
   probeSaScoreSupport: lazy(() => import("./evolution/saScorer.js"), "probeSaScoreSupport"),
+  async probeReactionSupport() {
+    const { getRDKit } = await import("./rdkitLoader.js");
+    const { detectReactionSupport } = await import("./evolutionTransforms.js");
+    const RDKit = await getRDKit();
+    return detectReactionSupport(RDKit);
+  },
+  async renderMolSvg(smiles, width = 220, height = 160) {
+    const { getRDKit } = await import("./rdkitLoader.js");
+    const { molSvg } = await import("./evolutionTransforms.js");
+    const RDKit = await getRDKit();
+    return molSvg(RDKit, smiles, width, height);
+  },
+  async renderMolSvgs(smilesList, width = 220, height = 160) {
+    const { getRDKit } = await import("./rdkitLoader.js");
+    const { molSvg } = await import("./evolutionTransforms.js");
+    const RDKit = await getRDKit();
+    const out = {};
+    if (!RDKit) return out;
+    const list = Array.isArray(smilesList) ? smilesList.slice(0, 64) : [];
+    for (const smi of list) {
+      const key = String(smi || "").trim();
+      if (!key || out[key] !== undefined) continue;
+      out[key] = molSvg(RDKit, key, width, height);
+    }
+    return out;
+  },
   async noveltyForSmiles(smiles) {
     const { ensureApprovedDrugsLoaded } = await import("./approvedDrugs.js");
     const { lookupPubChemExact, noveltyBadge } = await import("./evolutionScore.js");

@@ -164,9 +164,12 @@ export const runResearchAgent = remote("runResearchAgent");
 // ADME
 export const calculateAdmeProperties = remote("calculateAdmeProperties");
 
-// Evolution
+// Evolution & structure depiction
 export const runEvolutionCampaign = remote("runEvolutionCampaign");
 export const probeSaScoreSupport = remote("probeSaScoreSupport");
+export const probeReactionSupport = remote("probeReactionSupport");
+export const renderMolSvg = remote("renderMolSvg");
+export const renderMolSvgs = remote("renderMolSvgs");
 export const noveltyForSmiles = remote("noveltyForSmiles");
 
 // Docking & co-crystal analysis

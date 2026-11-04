@@ -2,7 +2,6 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { calculateAdmeProperties } from "./serverApi";
 import { ADME_EXAMPLE_COMPOUNDS } from "./shared/admeDisplay";
-import { getRDKit } from "./rdkitLoader";
 import BoiledEggPlot from "./BoiledEggPlot";
 import OrganToxicityPanel from "./OrganToxicityPanel";
 import { getActiveState, ACTIVE_STATE_KEYS } from "./historyService";
@@ -17,7 +16,6 @@ export default function AdmePage() {
   const [cidInput, setCidInput] = useState(searchParams.get("cid") || "5291");
 
   const [loading, setLoading] = useState(false);
-  const [rdkitReady, setRdkitReady] = useState(false);
   const [error, setError] = useState(null);
   const [admeData, setAdmeData] = useState(null);
   const [copiedSmiles, setCopiedSmiles] = useState(false);
@@ -64,14 +62,8 @@ export default function AdmePage() {
     }
   };
 
-  // Initialize RDKit readiness and run prediction
+  // Run initial prediction
   useEffect(() => {
-    getRDKit()
-      .then((r) => {
-        if (r) setRdkitReady(true);
-      })
-      .catch(() => {});
-
     const paramSmiles = searchParams.get("smiles");
     const paramName = searchParams.get("name");
     const paramCid = searchParams.get("cid");
@@ -195,7 +187,7 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
             Native Cheminformatics
           </span>
           <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-            In-Browser RDKit WebAssembly Engine
+            Server-Side RDKit Cheminformatics Engine
           </span>
         </div>
         <h1
@@ -291,18 +283,18 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
               type="button"
               className="btn btn-primary"
               onClick={() => runPrediction(smilesInput, compoundNameInput, cidInput)}
-              disabled={loading || !smilesInput.trim() || !rdkitReady}
+              disabled={loading || !smilesInput.trim()}
               style={{
                 padding: "9px 20px",
                 fontWeight: 600,
-                background: !smilesInput.trim() || !rdkitReady ? "var(--surface-muted)" : "var(--primary)",
-                borderColor: !smilesInput.trim() || !rdkitReady ? "var(--border)" : "var(--primary)",
-                color: !smilesInput.trim() || !rdkitReady ? "var(--text-muted)" : "#FFFFFF",
-                cursor: !smilesInput.trim() || !rdkitReady || loading ? "not-allowed" : "pointer",
-                boxShadow: !smilesInput.trim() || !rdkitReady ? "none" : "0 1px 2px rgba(15, 118, 110, 0.18)",
+                background: !smilesInput.trim() ? "var(--surface-muted)" : "var(--primary)",
+                borderColor: !smilesInput.trim() ? "var(--border)" : "var(--primary)",
+                color: !smilesInput.trim() ? "var(--text-muted)" : "#FFFFFF",
+                cursor: !smilesInput.trim() || loading ? "not-allowed" : "pointer",
+                boxShadow: !smilesInput.trim() ? "none" : "0 1px 2px rgba(15, 118, 110, 0.18)",
               }}
             >
-              {!rdkitReady ? "RDKit loading…" : loading ? "Calculating..." : "Predict ADME"}
+              {loading ? "Calculating..." : "Predict ADME"}
             </button>
           </div>
         </div>
@@ -385,7 +377,7 @@ Methods: RDKit WASM, Lipinski (2001), Veber (2002), Ghose (1999), Daina & Zoete 
           }}
         >
           <div style={{ fontSize: "14px", fontWeight: 600, marginBottom: "6px" }}>
-            Processing Molecular Graph in RDKit WebAssembly...
+            Processing Molecular Graph on Server via RDKit...
           </div>
           <div style={{ fontSize: "12px" }}>
             Computing 3D descriptors, topological polar surface area, and semi-empirical solubility.

@@ -3,10 +3,14 @@ import { Link } from "react-router-dom";
 import PdbTargetSearch from "./PdbTargetSearch";
 import { Panel, PainsBadge } from "./benchUi";
 import AdversarialCritique from "./AdversarialCritique";
-import { getRDKit } from "./rdkitLoader";
-import { molSvg, detectReactionSupport } from "./shared/molDrawing";
 import { DEFAULT_EVOLUTION_SETTINGS, clampSettings } from "./shared/evolutionSettings";
-import { noveltyForSmiles, probeSaScoreSupport, runEvolutionCampaign } from "./serverApi";
+import {
+  noveltyForSmiles,
+  probeReactionSupport,
+  probeSaScoreSupport,
+  renderMolSvgs,
+  runEvolutionCampaign,
+} from "./serverApi";
 import { getHistory, saveHistoryEntry } from "./historyService";
 import { ensureApprovedDrugsLoaded, loadApprovedDrugs } from "./approvedDrugs";
 import { targetDisplayName } from "./shared/targetLabels";
@@ -149,10 +153,23 @@ export default function EvolutionPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const RDKit = await getRDKit();
-      if (cancelled || !RDKit) return;
-      setReactionSupport(detectReactionSupport(RDKit));
-      setSaSupport(await probeSaScoreSupport());
+      try {
+        const [rxn, sa] = await Promise.all([
+          probeReactionSupport().catch((err) => ({
+            reactions: false,
+            reason: err?.message || "Server RDKit check failed",
+          })),
+          probeSaScoreSupport().catch((err) => ({
+            saScore: false,
+            reason: err?.message || "Server SA check failed",
+          })),
+        ]);
+        if (cancelled) return;
+        setReactionSupport(rxn);
+        setSaSupport(sa);
+      } catch {
+        // ignore
+      }
     })();
     return () => {
       cancelled = true;
@@ -160,10 +177,24 @@ export default function EvolutionPage() {
   }, []);
 
   const renderSvgs = async (rows) => {
-    const RDKit = await getRDKit();
-    if (!RDKit) return;
     const next = {};
-    for (const row of rows) next[row.smiles] = molSvg(RDKit, row.smiles);
+    const missing = [];
+    for (const row of rows) {
+      if (!row?.smiles) continue;
+      if (row.svg) {
+        next[row.smiles] = row.svg;
+      } else {
+        missing.push(row.smiles);
+      }
+    }
+    if (missing.length) {
+      try {
+        const rendered = await renderMolSvgs(missing);
+        Object.assign(next, rendered);
+      } catch {
+        // ignore
+      }
+    }
     setSvgs((prev) => ({ ...prev, ...next }));
   };
 
