@@ -7,11 +7,11 @@
  * retry storms; a shared store (Upstash/Redis) is the upgrade if abuse appears.
  */
 const WINDOW_MS = 60_000;
-const MAX_REQUESTS_PER_WINDOW = 30;
+const MAX_REQUESTS_PER_WINDOW = 120;
 // Long jobs (library screens, evolution campaigns) are capped harder because each
 // one can hold a function for minutes.
 const HEAVY_OPS = new Set(["screenApprovedLibrary", "runEvolutionCampaign", "runMolecularDocking"]);
-const MAX_HEAVY_PER_WINDOW = 5;
+const MAX_HEAVY_PER_WINDOW = 15;
 const MAX_TRACKED_CLIENTS = 5000;
 
 const hits = new Map();

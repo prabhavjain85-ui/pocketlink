@@ -34,14 +34,6 @@ query DiseaseAssociatedTargets($efoId: String!, $size: Int!) {
           biotype
           functionDescriptions
           isEssential
-          depMapEssentiality {
-            tissueName
-            screens {
-              depMapId
-              cellLineName
-              geneEffect
-            }
-          }
           geneticConstraint {
             constraintType
             exp
@@ -50,22 +42,6 @@ query DiseaseAssociatedTargets($efoId: String!, $size: Int!) {
             oe
             oeLower
             oeUpper
-          }
-          expressions {
-            tissue {
-              id
-              label
-              anatomicalSystems
-              organs
-            }
-            rna {
-              value
-              unit
-              level
-            }
-            protein {
-              level
-            }
           }
           homologues {
             speciesId
@@ -99,35 +75,97 @@ query DiseaseAssociatedTargets($efoId: String!, $size: Int!) {
 }
 `;
 
-export async function otGraphql(query, variables, { signal } = {}) {
-  let res;
-  try {
-    res = await fetch(OT_GQL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, variables }),
-      signal,
-    });
-  } catch (err) {
-    if (err?.name === "AbortError") throw err;
-    const error = new Error(DOWNTIME_MSG);
-    error.cause = err;
-    throw error;
+export const ASSOCIATED_QUERY_CORE = `
+query DiseaseAssociatedTargetsCore($efoId: String!, $size: Int!) {
+  disease(efoId: $efoId) {
+    id
+    name
+    associatedTargets(page: { index: 0, size: $size }, orderByScore: "score desc") {
+      count
+      rows {
+        score
+        datatypeScores { id score }
+        datasourceScores { id score }
+        target {
+          id
+          approvedSymbol
+          approvedName
+          biotype
+          isEssential
+          drugAndClinicalCandidates { count }
+          tractability {
+            label
+            modality
+            value
+          }
+          safetyLiabilities {
+            event
+            biosamples {
+              tissueLabel
+            }
+          }
+          proteinIds {
+            id
+            source
+          }
+        }
+      }
+    }
   }
-  if (!res.ok) {
-    throw new Error(DOWNTIME_MSG);
+}
+`;
+
+export async function otGraphql(query, variables, { signal, retries = 1 } = {}) {
+  let lastErr = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    let res;
+    try {
+      res = await fetch(OT_GQL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "User-Agent": "TargetForge/1.0",
+        },
+        body: JSON.stringify({ query, variables }),
+        signal,
+      });
+    } catch (err) {
+      if (err?.name === "AbortError") throw err;
+      lastErr = err;
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 80));
+        continue;
+      }
+      const error = new Error(DOWNTIME_MSG);
+      error.cause = err;
+      throw error;
+    }
+
+    let body = null;
+    if (typeof res.json === "function") {
+      try {
+        body = await res.json();
+      } catch {
+        body = null;
+      }
+    }
+    if (body?.errors?.length) {
+      const msg = body.errors.map((e) => e.message).filter(Boolean).join("; ");
+      throw new Error(msg || DOWNTIME_MSG);
+    }
+    if (!res.ok || !body) {
+      if (attempt < retries && (res?.status >= 500 || res?.status === 429)) {
+        await new Promise((r) => setTimeout(r, 80));
+        continue;
+      }
+      throw new Error(DOWNTIME_MSG);
+    }
+    return body?.data;
   }
-  let body;
-  try {
-    body = await res.json();
-  } catch {
-    throw new Error(DOWNTIME_MSG);
-  }
-  if (body?.errors?.length) {
-    const msg = body.errors.map((e) => e.message).filter(Boolean).join("; ");
-    throw new Error(msg || DOWNTIME_MSG);
-  }
-  return body?.data;
+  const error = new Error(DOWNTIME_MSG);
+  if (lastErr) error.cause = lastErr;
+  throw error;
 }
 
 export function noDiseaseMatchMessage(query) {
@@ -141,7 +179,15 @@ export function pickDiseaseHit(hits, query) {
   if (!q) return list[0];
   const exact = list.find((h) => String(h.name || "").toLowerCase() === q);
   if (exact) return exact;
-  const starts = list.find((h) => String(h.name || "").toLowerCase().startsWith(q));
+  const starts = list.find((h) => {
+    const name = String(h.name || "").toLowerCase();
+    if (!name.startsWith(q)) return false;
+    const suffix = name.slice(q.length).trim();
+    if (suffix.startsWith(",") || (!q.includes("susceptibility") && name.includes("susceptibility"))) {
+      return false;
+    }
+    return true;
+  });
   return starts || list[0];
 }
 
@@ -155,7 +201,13 @@ export async function searchDiseases(queryString, { size = SEARCH_PAGE_SIZE, sig
 export async function fetchAssociatedTargets(efoId, { size = ASSOCIATION_PAGE_SIZE, signal } = {}) {
   const id = String(efoId || "").trim();
   if (!id) throw new Error("Missing disease ID.");
-  const data = await otGraphql(ASSOCIATED_QUERY, { efoId: id, size }, { signal });
+  let data;
+  try {
+    data = await otGraphql(ASSOCIATED_QUERY, { efoId: id, size }, { signal });
+  } catch (err) {
+    if (err?.name === "AbortError" || err?.message === DOWNTIME_MSG) throw err;
+    data = await otGraphql(ASSOCIATED_QUERY_CORE, { efoId: id, size }, { signal });
+  }
   const disease = data?.disease;
   if (!disease) {
     throw new Error(`Open Targets has no disease with ID "${id}".`);

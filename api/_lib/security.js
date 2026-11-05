@@ -19,7 +19,7 @@ function getAllowedOrigins() {
 }
 
 function isOriginAllowed(origin) {
-  if (!origin) return true; // Same-origin or server-to-server/test invocation without Origin header
+  if (!origin || origin === "null") return true; // Same-origin, sandboxed iframe, or server-to-server invocation
   const allowed = getAllowedOrigins();
   if (allowed.has(origin)) return true;
   try {
@@ -29,6 +29,9 @@ function isOriginAllowed(origin) {
       parsed.hostname.endsWith(".vercel.app") ||
       parsed.hostname.endsWith(".ai.studio") ||
       parsed.hostname.endsWith(".run.app") ||
+      parsed.hostname.endsWith(".googleusercontent.com") ||
+      parsed.hostname.endsWith(".usercontent.goog") ||
+      parsed.hostname.endsWith(".google.com") ||
       parsed.hostname === "localhost" ||
       parsed.hostname === "127.0.0.1"
     ) {
