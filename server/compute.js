@@ -215,6 +215,8 @@ const OPS = Object.assign(Object.create(null), {
   searchDiseases: lazy(() => import("./openTargets.js"), "searchDiseases"),
   runTargetDiscovery: lazy(() => import("./openTargets.js"), "runTargetDiscovery"),
   getTargetExpressionProfile: lazy(() => import("./geneExpression.js"), "getTargetExpressionProfile"),
+  // Clinical history for one target, fetched lazily when a row is expanded.
+  fetchTargetClinicalActivity: lazy(() => import("./clinicalActivity.js"), "fetchTargetClinicalActivity"),
 
   // Compound libraries
   listCompoundLibraries: lazy(() => import("./compoundLibraries.js"), "listCompoundLibraries"),

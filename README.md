@@ -186,6 +186,25 @@ Library screening is where structural similarity earns its place. Screening the 
 
 ChEMBL data is released under CC BY-SA 3.0; keep the attribution if you redistribute the snapshot.
 
+### Clinical Activity
+
+Expanding a row in Target Discovery fetches that target's clinical history from Open Targets, scoped to the disease you searched. Three states:
+
+| State | Meaning |
+| --- | --- |
+| No clinical programme | Nobody has taken this target into the clinic for this disease |
+| Trials ongoing | Active programmes, with the highest phase reached |
+| Stopped: efficacy or safety | A programme was tested and stopped for a scientific reason |
+
+Two measurements shaped the design:
+
+- **Coverage is low by construction.** Of the top 25 discovered targets, 28% (pancreatic) and 16% (ALS) have any clinical candidate, because the novelty score selects for undrugged targets. A signal absent from ~75% of rows cannot be a ranking weight without distorting it, so this is shown alongside the score and never folded in.
+- **Most stopped trials did not fail scientifically.** Recorded stop reasons across pancreatic targets: Insufficient_Enrollment 730, Business_Administrative 527, against Negative 189. Only `Negative` and `Safety_Sideeffects` are counted as setbacks; the rest are reported separately.
+
+Candidate counts from Open Targets are global across indications, so they are filtered by ontology id before display — TUBA4A reports 85 candidates overall but only one for ALS. The counts are trials of drugs that list the target, not trials of the target alone, so a broadly used drug inflates them; the panel says so.
+
+Fetched lazily per row: the heaviest target measured pulled 1.55 MB of trial records.
+
 ### Auditing the Target Selection Score
 
 ```bash

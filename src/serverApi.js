@@ -153,6 +153,7 @@ export const getEvolutionSeedPicks = remote("getEvolutionSeedPicks");
 export const searchDiseases = remote("searchDiseases");
 export const runTargetDiscovery = remote("runTargetDiscovery");
 export const getTargetExpressionProfile = remote("getTargetExpressionProfile");
+export const fetchTargetClinicalActivity = remote("fetchTargetClinicalActivity");
 
 // Compound libraries
 export const listCompoundLibraries = remote("listCompoundLibraries");
