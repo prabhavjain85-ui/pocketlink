@@ -1,7 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Panel } from "./benchUi";
-import { getTargetExpressionProfile, runTargetDiscovery, searchDiseases } from "./serverApi";
+import {
+  fetchTargetClinicalActivity,
+  getTargetExpressionProfile,
+  runTargetDiscovery,
+  searchDiseases,
+} from "./serverApi";
+import ClinicalActivityPanel from "./ClinicalActivityPanel";
 import {
   ACTIVE_STATE_KEYS,
   getActiveState,
@@ -85,9 +91,14 @@ function DiscoveryTable({
   onFindStructures,
   selectedPreviewSymbol,
   onInspectPocket,
+  disease,
 }) {
   const [expandedExpression, setExpandedExpression] = useState({});
   const [expressionProfiles, setExpressionProfiles] = useState({});
+  // Fetched only when a row opens: the heaviest target measured pulled 1.55 MB
+  // of trial records, and about 75% of rows have no clinical history at all.
+  const [clinicalActivity, setClinicalActivity] = useState({});
+  const [clinicalLoading, setClinicalLoading] = useState({});
 
   const sorted = useMemo(() => {
     const mul = sortDir === "asc" ? 1 : -1;
@@ -116,6 +127,16 @@ function DiscoveryTable({
       getTargetExpressionProfile(symbol, { ensemblId })
         .then((profile) => setExpressionProfiles((prev) => ({ ...prev, [symbol]: profile })))
         .catch(() => setExpressionProfiles((prev) => ({ ...prev, [symbol]: null })));
+    }
+    if (opening && !(symbol in clinicalActivity)) {
+      setClinicalLoading((prev) => ({ ...prev, [symbol]: true }));
+      fetchTargetClinicalActivity(ensemblId, {
+        diseaseId: disease?.id || "",
+        diseaseName: disease?.name || "",
+      })
+        .then((activity) => setClinicalActivity((prev) => ({ ...prev, [symbol]: activity })))
+        .catch(() => setClinicalActivity((prev) => ({ ...prev, [symbol]: null })))
+        .finally(() => setClinicalLoading((prev) => ({ ...prev, [symbol]: false })));
     }
   };
 
@@ -351,6 +372,12 @@ function DiscoveryTable({
                             </div>
                           </div>
                         )}
+
+                        <ClinicalActivityPanel
+                          symbol={r.symbol}
+                          activity={clinicalActivity[r.symbol]}
+                          loading={Boolean(clinicalLoading[r.symbol])}
+                        />
 
                         <div className="expression-limit-note">
                           <strong>Methodology note:</strong>{" "}
@@ -958,6 +985,7 @@ export default function TargetDiscoveryPage() {
                 onFindStructures={onFindStructures}
                 selectedPreviewSymbol={previewTarget?.symbol || null}
                 onInspectPocket={onInspectPocket}
+                disease={result?.disease || null}
               />
             )}
 
