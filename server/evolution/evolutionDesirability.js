@@ -70,7 +70,7 @@ export function computeNovelty({ maxTanSeed = 0, maxTanPopulation = 0 }) {
   return 0.55 * dSeed + 0.45 * dPop;
 }
 
-export function desirabilityBundle(raw, { targetFree } = {}) {
+export function desirabilityBundle(raw, { targetFree, failureMode = "standard", dRemediation = null } = {}) {
   const qed = raw.qed ?? computeQED(raw);
   const sa = raw.sa ?? 5;
   const novRaw = raw.novelty ?? computeNovelty({
@@ -89,17 +89,43 @@ export function desirabilityBundle(raw, { targetFree } = {}) {
 
   const mw = raw.mw ?? 0;
   const logp = raw.logp ?? 0;
-  const dMw = dWin(mw, 380, 180, 550);
-  const dLogp = dWin(logp, 2.8, -0.5, 5.0);
-  const dTpsa = dWin(raw.tpsa ?? 0, 80, 20, 140);
-  const dFsp3 = dHi(raw.fsp3 ?? 0, 0.15, 0.45, 1);
+  const tpsa = raw.tpsa ?? 0;
+  const fsp3 = raw.fsp3 ?? 0;
+
+  const dMw =
+    failureMode === "solubility_pk"
+      ? dLo(mw, 370, 460, 1.3)
+      : failureMode === "cardiotoxicity"
+        ? dLo(mw, 410, 490, 1.2)
+        : dWin(mw, 380, 180, 550);
+  const dLogp =
+    failureMode === "hepatotoxicity"
+      ? dLo(logp, 2.2, 3.5, 1.4)
+      : failureMode === "cardiotoxicity"
+        ? dWin(logp, 1.8, 0.2, 3.0)
+        : failureMode === "cns_sparing" || failureMode === "solubility_pk"
+          ? dLo(logp, 2.4, 3.7, 1.3)
+          : dWin(logp, 2.8, -0.5, 5.0);
+  const dTpsa =
+    failureMode === "cns_sparing"
+      ? dWin(tpsa, 110, 82, 142)
+      : failureMode === "cardiotoxicity"
+        ? dHi(tpsa, 55, 85, 1.2)
+        : dWin(tpsa, 80, 20, 140);
+  const dFsp3 =
+    failureMode === "hepatotoxicity"
+      ? dHi(fsp3, 0.18, 0.38, 1.2)
+      : dHi(fsp3, 0.15, 0.45, 1);
   const dProps = Math.pow(
     Math.max(dMw, 0.03) * Math.max(dLogp, 0.03) * Math.max(dTpsa, 0.03) * Math.max(dFsp3, 0.03),
     0.25
   );
 
   const dSize = dWin(mw, 380, 220, 520);
-  const dLipo = dWin(logp, 2.5, 0.5, 4.5);
+  const dLipo =
+    failureMode === "hepatotoxicity" || failureMode === "cardiotoxicity"
+      ? dWin(logp, 1.9, 0.3, 3.2)
+      : dWin(logp, 2.5, 0.5, 4.5);
   const dLeadMw = dHi(mw, 280, 420, 1.2);
 
   let dAff = null;
@@ -122,6 +148,9 @@ export function desirabilityBundle(raw, { targetFree } = {}) {
   terms.push({ key: "d_lipo", w: weights.lipo, d: dLipo, raw: logp });
   if (targetFree) terms.push({ key: "d_lead_mw", w: weights.leadMw ?? 3, d: dLeadMw, raw: mw });
   terms.push({ key: "d_alerts", w: 0.5, d: dAlerts, raw: brenk });
+  if (failureMode && failureMode !== "standard" && dRemediation != null && Number.isFinite(dRemediation)) {
+    terms.push({ key: "d_remediation", w: 2.6, d: dRemediation, raw: dRemediation });
+  }
 
   const wSum = terms.reduce((s, t) => s + t.w, 0);
   let logSum = 0;
@@ -156,11 +185,16 @@ export function desirabilityBundle(raw, { targetFree } = {}) {
       d_lipo: dLipo,
       d_lead_mw: targetFree ? dLeadMw : null,
       d_alerts: dAlerts,
+      d_remediation: dRemediation,
     },
     targetFree,
+    failureMode: failureMode || "standard",
     paretoRank: raw.paretoRank ?? null,
-    formula: targetFree
-      ? "Chemistry-quality filter (not potency): Pareto rank on (−QED, SA, −novelty, props); display score is secondary."
-      : "Target-aware score: affinity (LE) dominates; display score is secondary to Pareto rank.",
+    formula:
+      failureMode && failureMode !== "standard"
+        ? `Clinical failure remediation (${failureMode}): Pareto rank + d_remediation (w=2.6) enforce failure-correction windows.`
+        : targetFree
+          ? "Chemistry-quality filter (not potency): Pareto rank on (−QED, SA, −novelty, props); display score is secondary."
+          : "Target-aware score: affinity (LE) dominates; display score is secondary to Pareto rank.",
   };
 }

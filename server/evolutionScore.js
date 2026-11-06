@@ -15,6 +15,7 @@ import {
 } from "./evolution/evolutionDocking.js";
 import { OnlineSurrogate, featurizeRow } from "./evolution/evolutionSurrogate.js";
 import { morganUint8 } from "./evolution/evolutionFingerprint.js";
+import { computeFailureRemediationDesirability, normalizeFailureMode } from "./failureRedesign.js";
 
 const MEMORY = new Map();
 const STORAGE_KEY = "pocketlink-evo-score-v5";
@@ -62,8 +63,10 @@ export function noveltyBadge({ smiles, pubchem }) {
   return { kind: "novel", label: "Novel", detail: "Not in the local approved-drug library" };
 }
 
-export function evolutionCacheKey(pdbId, smiles) {
-  return `${String(pdbId || "NONE").toUpperCase()}_${String(smiles || "").trim()}`;
+export function evolutionCacheKey(pdbId, smiles, failureMode = "standard") {
+  const mode = normalizeFailureMode(failureMode);
+  const prefix = mode === "standard" ? "" : `${mode}_`;
+  return `${prefix}${String(pdbId || "NONE").toUpperCase()}_${String(smiles || "").trim()}`;
 }
 
 function ensureLoaded() {
@@ -131,12 +134,14 @@ export async function scoreEvolvedMolecule({
   affinityRow = null,
   seedSimilarityFloor = 0.4,
   protectedQuery = null,
+  failureMode = "standard",
 }) {
   const canon = String(smiles || "").trim();
   if (!canon) return { ok: false, error: "Empty SMILES" };
   const pdb = pdbIdOf(protein);
   const targetFree = !protein?.id;
-  const key = evolutionCacheKey(pdb, canon);
+  const activeFailureMode = normalizeFailureMode(failureMode);
+  const key = evolutionCacheKey(pdb, canon, activeFailureMode);
   ensureLoaded();
   if (MEMORY.has(key) && !affinityRow) {
     return { ok: true, cached: true, ...MEMORY.get(key) };
@@ -239,6 +244,20 @@ export async function scoreEvolvedMolecule({
     affinityProvenance = pred.trained ? "Surrogate (unvalidated)" : "Surrogate cold-start";
   }
 
+  const fsp3Val = props.fractionCsp3 ?? props.fsp3 ?? props.fractionCSP3 ?? 0;
+  const dRemediation = computeFailureRemediationDesirability(
+    {
+      mw: props.mw,
+      logp: props.logp,
+      tpsa: props.tpsa,
+      fsp3: fsp3Val,
+      hbd: props.hbd,
+      rotb: props.rotb,
+      brenkCount: alerts.brenk,
+    },
+    activeFailureMode
+  );
+
   const fitness = desirabilityBundle(
     {
       qed,
@@ -249,12 +268,12 @@ export async function scoreEvolvedMolecule({
       mw: props.mw,
       logp: props.logp,
       tpsa: props.tpsa,
-      fsp3: props.fractionCsp3 ?? props.fsp3 ?? props.fractionCSP3,
+      fsp3: fsp3Val,
       painsCount: alerts.pains,
       brenkCount: alerts.brenk,
       le,
     },
-    { targetFree }
+    { targetFree, failureMode: activeFailureMode, dRemediation }
   );
 
   const payload = {

@@ -107,3 +107,73 @@
   padding-top: 8px;
   margin-top: 8px;
 }
+
+.clinical-autopsy-box {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  background: rgba(244, 63, 94, 0.06);
+}
+
+.clinical-autopsy-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.clinical-autopsy-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #e11d48;
+}
+
+.clinical-autopsy-badge {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 5px;
+  background: rgba(225, 29, 72, 0.14);
+  color: #be123c;
+  border: 1px solid rgba(225, 29, 72, 0.3);
+}
+
+.clinical-autopsy-row {
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin-bottom: 5px;
+}
+
+.clinical-autopsy-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.clinical-autopsy-target-pill {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface, #ffffff);
+}
+
+.clinical-autopsy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.clinical-autopsy-btn {
+  font-size: 12px;
+  padding: 6px 12px;
+}

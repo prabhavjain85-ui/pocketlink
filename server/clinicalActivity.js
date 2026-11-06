@@ -20,6 +20,7 @@
  * classification here filters their labels rather than parsing free text.
  */
 import { otGraphql } from "./openTargets.js";
+import { deriveFailureRedesignProfile } from "./failureRedesign.js";
 
 export const CLINICAL_ACTIVITY_QUERY = `
 query TargetClinicalActivity($ensemblId: String!) {
@@ -234,10 +235,27 @@ export async function fetchTargetClinicalActivity(ensemblId, options = {}) {
   const anyIndication = {
     candidates: all.length,
     maxStage: topStage(all),
+    drugs: all
+      .map((c) => ({ id: c?.drug?.id || "", name: c?.drug?.name || "", stage: c?.maxClinicalStage || null }))
+      .filter((d) => d.name)
+      .slice(0, 8),
     ...summarizeReports(all),
   };
 
   const state = deriveState(forThisDisease);
+  const redesignSource =
+    forThisDisease.stoppedScientific > 0 || forThisDisease.candidates > 0
+      ? forThisDisease
+      : anyIndication;
+  const redesignPrescription = deriveFailureRedesignProfile({
+    whyStopped: redesignSource.whyStopped || [],
+    stopCategories: redesignSource.stopCategories || {},
+    safetyOrgans: options.safetyOrgans || [],
+    state: forThisDisease.stoppedScientific > 0 ? state : deriveState(anyIndication),
+    diseaseName,
+    drugs: forThisDisease.drugs?.length ? forThisDisease.drugs : anyIndication.drugs || [],
+  });
+
   const result = {
     available: true,
     reason: "",
@@ -249,6 +267,7 @@ export async function fetchTargetClinicalActivity(ensemblId, options = {}) {
     stateLabel: STATE_LABELS[state],
     forThisDisease,
     anyIndication,
+    redesignPrescription,
     note:
       "Open Targets candidate counts are global across indications; the first block is filtered to the disease you searched. Stop reason categories come from Open Targets.",
   };

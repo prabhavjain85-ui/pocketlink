@@ -92,6 +92,7 @@ function DiscoveryTable({
   selectedPreviewSymbol,
   onInspectPocket,
   disease,
+  onRedesignFailedDrug,
 }) {
   const [expandedExpression, setExpandedExpression] = useState({});
   const [expressionProfiles, setExpressionProfiles] = useState({});
@@ -117,7 +118,7 @@ function DiscoveryTable({
     { key: "evidenceSummary", label: "Key evidence summary", sortable: false },
   ];
 
-  const toggleExpression = (symbol, ensemblId) => {
+  const toggleExpression = (symbol, ensemblId, safetyOrgans = []) => {
     const opening = !expandedExpression[symbol];
     setExpandedExpression((prev) => ({
       ...prev,
@@ -133,6 +134,7 @@ function DiscoveryTable({
       fetchTargetClinicalActivity(ensemblId, {
         diseaseId: disease?.id || "",
         diseaseName: disease?.name || "",
+        safetyOrgans,
       })
         .then((activity) => setClinicalActivity((prev) => ({ ...prev, [symbol]: activity })))
         .catch(() => setClinicalActivity((prev) => ({ ...prev, [symbol]: null })))
@@ -275,11 +277,11 @@ function DiscoveryTable({
                       <button
                         type="button"
                         className={"btn-expression-toggle" + (isExpanded ? " active" : "")}
-                        onClick={() => toggleExpression(r.symbol, r.ensemblId)}
+                        onClick={() => toggleExpression(r.symbol, r.ensemblId, r.safety?.topOrgans || [])}
                         aria-expanded={isExpanded}
-                        title="View tissue expression distribution across human organs"
+                        title="View tissue expression distribution and clinical trial history"
                       >
-                        <span>🧬 Tissue Expression</span>
+                        <span>🧬 Tissue Expression &amp; Clinical Trials</span>
                         <span>{isExpanded ? "▲" : "▼"}</span>
                       </button>
                       {onInspectPocket ? (
@@ -377,6 +379,7 @@ function DiscoveryTable({
                           symbol={r.symbol}
                           activity={clinicalActivity[r.symbol]}
                           loading={Boolean(clinicalLoading[r.symbol])}
+                          onRedesignFailedDrug={onRedesignFailedDrug}
                         />
 
                         <div className="expression-limit-note">
@@ -588,6 +591,15 @@ export default function TargetDiscoveryPage() {
 
   const onInspectPocket = (row) => {
     setPreviewTarget((prev) => (prev?.symbol === row?.symbol ? null : row));
+  };
+
+  const onRedesignFailedDrug = ({ symbol, drugName, mode, reason }) => {
+    const params = new URLSearchParams();
+    if (drugName) params.set("drug", drugName);
+    if (mode) params.set("mode", mode);
+    if (symbol) params.set("target", symbol);
+    if (reason) params.set("reason", reason);
+    navigate(`/evolution?${params.toString()}`);
   };
 
   const onCommitTargetAndPocket = (targetRow, structureRow) => {
@@ -986,6 +998,7 @@ export default function TargetDiscoveryPage() {
                 selectedPreviewSymbol={previewTarget?.symbol || null}
                 onInspectPocket={onInspectPocket}
                 disease={result?.disease || null}
+                onRedesignFailedDrug={onRedesignFailedDrug}
               />
             )}
 

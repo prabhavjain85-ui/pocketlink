@@ -1,9 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import PdbTargetSearch from "./PdbTargetSearch";
 import { Panel, PainsBadge } from "./benchUi";
 import AdversarialCritique from "./AdversarialCritique";
-import { DEFAULT_EVOLUTION_SETTINGS, clampSettings } from "./shared/evolutionSettings";
+import {
+  DEFAULT_EVOLUTION_SETTINGS,
+  FAILURE_REDESIGN_MODES,
+  clampSettings,
+} from "./shared/evolutionSettings";
 import {
   getEvolutionSeedPicks,
   noveltyForSmiles,
@@ -11,6 +15,8 @@ import {
   probeSaScoreSupport,
   renderMolSvgs,
   runEvolutionCampaign,
+  searchPdbTargets,
+  searchPubchemCompound,
 } from "./serverApi";
 import { getHistory, saveHistoryEntry } from "./historyService";
 import { targetDisplayName } from "./shared/targetLabels";
@@ -44,6 +50,40 @@ function ScoreBreakdown({ fitness, saScore, qed, provenance }) {
         ))}
       </ul>
       <div className="hint">SA {saScore ?? "n/a"} · QED {qed != null ? Number(qed).toFixed(2) : "n/a"} · composite {fitness.displayScore}/100</div>
+    </div>
+  );
+}
+
+function RemediationCard({ remediation }) {
+  if (!remediation || !Array.isArray(remediation.checks) || !remediation.checks.length) return null;
+  const isRemediated = remediation.status === "remediated";
+  return (
+    <div
+      className="evo-remediation-card"
+      data-testid="remediation-delta-card"
+      style={{
+        marginTop: 8,
+        padding: "8px 10px",
+        borderRadius: 6,
+        border: isRemediated ? "1px solid rgba(34, 197, 94, 0.4)" : "1px solid rgba(245, 158, 11, 0.4)",
+        background: isRemediated ? "rgba(34, 197, 94, 0.08)" : "rgba(245, 158, 11, 0.08)",
+        fontSize: 12,
+      }}
+    >
+      <div style={{ fontWeight: 700, marginBottom: 4, color: isRemediated ? "#15803d" : "#b45309" }}>
+        {isRemediated ? "✓ " : "⚡ "}
+        {remediation.statusLabel}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        {remediation.checks.map((c) => (
+          <div key={c.label} className="mono" style={{ fontSize: 11.5 }}>
+            <b>{c.label}:</b> {c.before} → <b>{c.after}</b>{" "}
+            <span style={{ color: c.pass ? "#15803d" : c.improved ? "#0284c7" : "#64748b" }}>
+              {c.pass ? "(Pass)" : c.improved ? "(Improved)" : "(Unmet)"}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -106,10 +146,19 @@ function historyMolecules() {
 }
 
 export default function EvolutionPage() {
+  const [searchParams] = useSearchParams();
   const [protein, setProtein] = useState(null);
   const [smiles, setSmiles] = useState(IMATINIB);
   const [name, setName] = useState("Imatinib");
-  const [settings, setSettings] = useState(DEFAULT_EVOLUTION_SETTINGS);
+  const [settings, setSettings] = useState(() => {
+    const modeParam = searchParams.get("mode");
+    return clampSettings({
+      ...DEFAULT_EVOLUTION_SETTINGS,
+      failureMode: modeParam || "standard",
+      seedSimilarityFloor: modeParam === "potency_rescue" ? 0.5 : DEFAULT_EVOLUTION_SETTINGS.seedSimilarityFloor,
+    });
+  });
+  const [clinicalHandoff, setClinicalHandoff] = useState(null);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
@@ -130,6 +179,65 @@ export default function EvolutionPage() {
   const [pickList, setPickList] = useState(() =>
     historyMolecules().slice(0, 16).map((m) => ({ ...m, source: m.source || "History" }))
   );
+
+  useEffect(() => {
+    const drugParam = searchParams.get("drug") || "";
+    const modeParam = searchParams.get("mode") || "";
+    const targetParam = searchParams.get("target") || "";
+    const reasonParam = searchParams.get("reason") || "";
+    const smilesParam = searchParams.get("smiles") || "";
+
+    if (!drugParam && !modeParam && !targetParam && !smilesParam) return undefined;
+
+    let cancelled = false;
+    if (modeParam) {
+      setSettings((prev) =>
+        clampSettings({
+          ...prev,
+          failureMode: modeParam,
+          seedSimilarityFloor: modeParam === "potency_rescue" ? 0.5 : prev.seedSimilarityFloor,
+        })
+      );
+    }
+    if (drugParam || targetParam || reasonParam) {
+      setClinicalHandoff({
+        drug: drugParam,
+        target: targetParam,
+        reason: reasonParam,
+        mode: modeParam || "standard",
+      });
+    }
+    if (smilesParam) {
+      setSmiles(smilesParam);
+      if (drugParam) setName(drugParam);
+    } else if (drugParam) {
+      setName(drugParam);
+      searchPubchemCompound(drugParam)
+        .then((res) => {
+          if (cancelled || !res) return;
+          const resolvedSmiles = res.IsomericSMILES || res.CanonicalSMILES || res.SMILES || "";
+          if (resolvedSmiles) setSmiles(resolvedSmiles);
+          if (res.displayName) setName(res.displayName);
+        })
+        .catch(() => {
+          /* keep default SMILES if PubChem lookup fails */
+        });
+    }
+    if (targetParam) {
+      searchPdbTargets(targetParam)
+        .then((res) => {
+          if (cancelled) return;
+          const top = res?.results?.[0];
+          if (top) setProtein(top);
+        })
+        .catch(() => {
+          /* optional target staging */
+        });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -286,6 +394,9 @@ export default function EvolutionPage() {
   };
 
   const best = finals[0] || seed;
+  const activeModeMeta =
+    FAILURE_REDESIGN_MODES.find((m) => m.id === (settings.failureMode || "standard")) ||
+    FAILURE_REDESIGN_MODES[0];
 
   return (
     <div className="evo-page">
@@ -311,6 +422,79 @@ export default function EvolutionPage() {
           AiZynthFinder) on the final top 5 is a possible later step but is too heavy for the live app.
         </p>
       </div>
+
+      <Panel
+        eyebrow="Clinical Failure Remediation"
+        title="Failure-Guided Redesign Mode"
+        kind="target"
+      >
+        {clinicalHandoff && (
+          <div
+            data-testid="clinical-handoff-banner"
+            style={{
+              marginBottom: 12,
+              padding: "10px 12px",
+              borderRadius: 8,
+              border: "1px solid rgba(225, 29, 72, 0.35)",
+              background: "rgba(244, 63, 94, 0.08)",
+              fontSize: 13,
+            }}
+          >
+            <strong>Clinical Failure Handoff:</strong>{" "}
+            {clinicalHandoff.drug ? <span>Redesigning <b>{clinicalHandoff.drug}</b></span> : "Redesign session"}{" "}
+            {clinicalHandoff.target ? <span>against target <b>{clinicalHandoff.target}</b></span> : null}
+            {clinicalHandoff.reason ? <span> — Diagnosed setback: <i>{clinicalHandoff.reason}</i></span> : null}
+          </div>
+        )}
+        <div className="hint" style={{ marginBottom: 8 }}>
+          Translate clinical trial setbacks (hepatotoxicity, unwanted CNS penetration, cardiac hERG risk, PK/solubility, or negative efficacy) into explicit Derringer–Suich desirability windows and NSGA-II Pareto objectives:
+        </div>
+        <div
+          role="radiogroup"
+          aria-label="Failure-Guided Redesign Mode"
+          style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}
+        >
+          {FAILURE_REDESIGN_MODES.map((m) => {
+            const active = (settings.failureMode || "standard") === m.id;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                className={"chip" + (active ? " active" : "")}
+                onClick={() =>
+                  setSettings((prev) =>
+                    clampSettings({
+                      ...prev,
+                      failureMode: m.id,
+                      seedSimilarityFloor: m.id === "potency_rescue" ? 0.5 : prev.seedSimilarityFloor,
+                    })
+                  )
+                }
+              >
+                {m.shortLabel}
+              </button>
+            );
+          })}
+        </div>
+        <div
+          data-testid="active-redesign-prescription"
+          style={{
+            padding: "10px 12px",
+            borderRadius: 8,
+            border: "1px solid var(--border)",
+            background: "var(--surface-subtle)",
+            fontSize: 12.5,
+          }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: 3 }}>{activeModeMeta.label}</div>
+          <div className="hint" style={{ margin: "0 0 4px 0" }}>{activeModeMeta.description}</div>
+          <div className="mono" style={{ fontSize: 11.5 }}>
+            <b>Active Prescription:</b> {activeModeMeta.prescription}
+          </div>
+        </div>
+      </Panel>
 
       <div className="evo-grid">
         <PdbTargetSearch
@@ -423,6 +607,7 @@ export default function EvolutionPage() {
                 <div className="evo-svg" dangerouslySetInnerHTML={{ __html: svgs[row.smiles] || "" }} />
                 <div className="mono">{row.smiles}</div>
                 <div>{row.score}/100 {row.delta >= 0 ? `+${Number(row.delta).toFixed(1)}` : Number(row.delta).toFixed(1)}</div>
+                <RemediationCard remediation={row.remediation} />
               </div>
             ))}
           </div>
@@ -488,6 +673,7 @@ export default function EvolutionPage() {
                     <td>
                       Lipinski {row.admeFlags?.lipinskiPass ? "pass" : "flag"} · Veber {row.admeFlags?.veberPass ? "pass" : "flag"}
                       {row.organFlags?.length ? ` · organ: ${row.organFlags.join(", ")}` : " · no organ flags"}
+                      <RemediationCard remediation={row.remediation} />
                     </td>
                     <td><PainsBadge result={row.pains} tipId={`evo-pains-${row.smiles.slice(0, 12)}`} /></td>
                     <td>

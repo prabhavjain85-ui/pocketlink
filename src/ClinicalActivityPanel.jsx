@@ -27,7 +27,7 @@ function stopBreakdown(categories = {}) {
  * discovered targets have any clinical record, so folding it into the ranking
  * would move rows for a reason that is absent from most of them.
  */
-export default function ClinicalActivityPanel({ activity, loading, symbol }) {
+export default function ClinicalActivityPanel({ activity, loading, symbol, onRedesignFailedDrug }) {
   if (loading) {
     return <div className="clinical-activity loading">Checking clinical history for {symbol}…</div>;
   }
@@ -45,6 +45,76 @@ export default function ClinicalActivityPanel({ activity, loading, symbol }) {
   const here = activity.forThisDisease || {};
   const global = activity.anyIndication || {};
   const hasHistoryElsewhere = (global.candidates || 0) > 0;
+  const prescription = activity.redesignPrescription || null;
+
+  const renderRedesignAutopsy = () => {
+    if (!prescription || !prescription.active) return null;
+    const drugs = (prescription.candidateDrugs || []).slice(0, 4);
+    return (
+      <div className="clinical-autopsy-box" data-testid="clinical-failure-autopsy">
+        <div className="clinical-autopsy-header">
+          <span className="clinical-autopsy-eyebrow">Clinical Failure Autopsy → Molecule Redesign</span>
+          <span className="clinical-autopsy-badge">{prescription.label}</span>
+        </div>
+        <div className="clinical-autopsy-row">
+          <strong>Diagnosed Setback:</strong> {prescription.detectedReason}
+        </div>
+        <div className="clinical-autopsy-row">
+          <strong>Biological Mechanism:</strong> {prescription.biologicalMechanism}
+        </div>
+        <div className="clinical-autopsy-row">
+          <strong>Medicinal-Chemistry Prescription:</strong> {prescription.prescriptionSummary}
+        </div>
+        {Array.isArray(prescription.targets) && prescription.targets.length > 0 && (
+          <div className="clinical-autopsy-targets">
+            {prescription.targets.map((t) => (
+              <span key={t.key} className="clinical-autopsy-target-pill">
+                <b>{t.label}:</b> {t.targetText}
+              </span>
+            ))}
+          </div>
+        )}
+        {onRedesignFailedDrug && (
+          <div className="clinical-autopsy-actions">
+            {drugs.length > 0 ? (
+              drugs.map((d) => (
+                <button
+                  key={d.id || d.name}
+                  type="button"
+                  className="btn btn-target clinical-autopsy-btn"
+                  onClick={() =>
+                    onRedesignFailedDrug({
+                      symbol: activity.symbol || symbol,
+                      drugName: d.name,
+                      mode: prescription.mode,
+                      reason: prescription.detectedReason,
+                    })
+                  }
+                >
+                  🧬 Redesign {d.name} in {prescription.shortLabel} Mode →
+                </button>
+              ))
+            ) : (
+              <button
+                type="button"
+                className="btn btn-target clinical-autopsy-btn"
+                onClick={() =>
+                  onRedesignFailedDrug({
+                    symbol: activity.symbol || symbol,
+                    drugName: "",
+                    mode: prescription.mode,
+                    reason: prescription.detectedReason,
+                  })
+                }
+              >
+                🧬 Launch {prescription.shortLabel} Mode in Lead Evolution →
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (activity.state === "none") {
     return (
@@ -57,6 +127,7 @@ export default function ClinicalActivityPanel({ activity, loading, symbol }) {
             ? ` ${global.candidates} candidate${global.candidates === 1 ? "" : "s"} exist for other indications, which may be a starting point for repurposing.`
             : " No candidates in any indication either."}
         </div>
+        {renderRedesignAutopsy()}
       </div>
     );
   }
@@ -113,6 +184,8 @@ export default function ClinicalActivityPanel({ activity, loading, symbol }) {
       ) : null}
 
       {stops ? <div className="hint">All stop categories: {stops}</div> : null}
+
+      {renderRedesignAutopsy()}
 
       <div className="clinical-activity-note">
         Counts are trials of drugs that list this target, filtered to the disease you searched — not

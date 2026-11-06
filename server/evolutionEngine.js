@@ -15,6 +15,11 @@ import { pdbIdOf } from "./rankingCache.js";
 import { morganUint8 } from "./evolution/evolutionFingerprint.js";
 import { pickDiverseSurvivors } from "./evolution/evolutionDiversity.js";
 import { resolveProtectedQuery } from "./evolution/evolutionProtected.js";
+import {
+  evaluateRemediationDelta,
+  getFailureModeSpec,
+  normalizeFailureMode,
+} from "./failureRedesign.js";
 
 export const DEFAULT_EVOLUTION_SETTINGS = {
   generations: 5,
@@ -50,7 +55,7 @@ export function clampSettings(raw = {}) {
   const protectedAtomIndices = Array.isArray(raw.protectedAtomIndices)
     ? raw.protectedAtomIndices.map((n) => Number(n)).filter((n) => Number.isFinite(n))
     : [];
-  return {
+  const out = {
     generations,
     variantsPerGeneration,
     survivors,
@@ -62,21 +67,27 @@ export function clampSettings(raw = {}) {
     protectedSmarts,
     protectedAtomIndices,
   };
+  if (raw.failureMode !== undefined) {
+    out.failureMode = normalizeFailureMode(raw.failureMode);
+  }
+  return out;
 }
 
-function objectiveVector(row, targetFree) {
+function objectiveVector(row, targetFree, failureMode = "standard") {
   const qed = row.qed ?? 0;
   const sa = row.saScore ?? 5;
   const nov = row.novelty ?? 0;
   const alerts = (row.fitness?.desirabilities?.d_alerts ?? 1) < 0.5 ? 2 : 0;
+  const rem = row.fitness?.desirabilities?.d_remediation;
+  const hasRem = failureMode !== "standard" && rem != null && Number.isFinite(rem);
   if (targetFree) {
-    return [-qed, sa, alerts, -nov];
+    return hasRem ? [-rem, -qed, sa, alerts, -nov] : [-qed, sa, alerts, -nov];
   }
   const le = row.le;
   if (le == null || !Number.isFinite(le)) {
-    return [-qed, sa, alerts, -nov];
+    return hasRem ? [-rem, -qed, sa, alerts, -nov] : [-qed, sa, alerts, -nov];
   }
-  return [-le, -qed, sa, alerts, -nov];
+  return hasRem ? [-le, -rem, -qed, sa, alerts, -nov] : [-le, -qed, sa, alerts, -nov];
 }
 
 async function scoreOffspring(variants, ctx) {
@@ -120,6 +131,7 @@ export async function runEvolutionGeneration({
   protectedQuery = null,
   diversityMethod = "maxmin",
   globalScaffoldArchive = null,
+  failureMode = "standard",
 }) {
   const started = typeof performance !== "undefined" ? performance.now() : Date.now();
   const RDKit = await getRDKit();
@@ -127,6 +139,7 @@ export async function runEvolutionGeneration({
     return { ok: false, error: "RDKit WASM did not load. Evolution cannot generate valid structures without it.", ms: 0 };
   }
 
+  const activeFailureMode = normalizeFailureMode(failureMode);
   const rng = mulberry32((rngSeed || 42) + generationIndex * 997);
   const targetFree = !protein?.id;
   const discarded = { parseFail: 0, duplicate: 0, gated: 0 };
@@ -145,6 +158,7 @@ export async function runEvolutionGeneration({
     RDKit,
     seedSimilarityFloor,
     protectedQuery,
+    failureMode: activeFailureMode,
   };
 
   const scoredRows = await scoreOffspring(produced.variants, scoreCtx);
@@ -220,6 +234,7 @@ export async function runEvolutionGeneration({
         affinityRow: aff,
         seedSimilarityFloor,
         protectedQuery,
+        failureMode: activeFailureMode,
       });
       const idx = pool.findIndex((p) => p.smiles === row.smiles);
       if (idx >= 0 && rescored.ok) pool[idx] = { ...pool[idx], ...rescored };
@@ -229,7 +244,7 @@ export async function runEvolutionGeneration({
   }
 
   const combined = [...parents, ...pool];
-  const objectives = combined.map((row) => objectiveVector(row, targetFree));
+  const objectives = combined.map((row) => objectiveVector(row, targetFree, activeFailureMode));
   let ranked = selectSurvivorsMuPlusLambda(combined, objectives, combined.length);
   ranked = applyScaffoldQuota(ranked, Math.max(survivors * 3, survivors), 0.25);
   ranked = pickDiverseSurvivors(RDKit, ranked, survivors, {
@@ -295,6 +310,7 @@ export async function seedParent({
   rngSeed = 42,
   seedSimilarityFloor = 0.4,
   protectedQuery = null,
+  failureMode = "standard",
 }) {
   const RDKit = await getRDKit();
   const canon = canonicalizeSmiles(RDKit, smiles);
@@ -312,6 +328,7 @@ export async function seedParent({
     editId: "seed",
     seedSimilarityFloor,
     protectedQuery,
+    failureMode,
   });
   if (!scored.ok) return scored;
   const keys = murckoKeys(RDKit, canon);
@@ -414,6 +431,7 @@ export async function runEvolutionCampaign({
       rngSeed: runSeed,
       seedSimilarityFloor: cfg.seedSimilarityFloor,
       protectedQuery,
+      failureMode: cfg.failureMode,
     });
     if (!seeded.ok) return seeded;
 
@@ -456,6 +474,7 @@ export async function runEvolutionCampaign({
         protectedQuery,
         diversityMethod: cfg.diversityMethod,
         globalScaffoldArchive,
+        failureMode: cfg.failureMode,
       });
       if (!result.ok) return result;
       history.push(result.historyPoint);
@@ -475,6 +494,7 @@ export async function runEvolutionCampaign({
       .map((row) => ({
         ...row,
         svg: row.svg || molSvg(RDKit, row.smiles),
+        remediation: evaluateRemediationDelta(seeded.parent, row, cfg.failureMode),
       }));
 
     runSummaries.push({
@@ -491,6 +511,7 @@ export async function runEvolutionCampaign({
   return {
     ok: true,
     settings: cfg,
+    failureProfile: getFailureModeSpec(cfg.failureMode),
     protectedQuery,
     runs: runSummaries,
     repeats,
