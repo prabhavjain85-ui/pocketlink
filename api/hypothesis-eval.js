@@ -27,6 +27,14 @@ function clean(value, max = 5000) {
   return String(value ?? "").slice(0, max);
 }
 
+function withTimeout(promise, ms, label = "Request") {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 function extractJson(text) {
   const cleaned = String(text || "")
     .replace(/^```json\s*/i, "")
@@ -1072,11 +1080,18 @@ Return strictly valid JSON only:
   "potentialRisks": string,
   "patientPopulation": string
 }`;
-        const response = await ai.models.generateContent({
-          model: GEMINI_MODEL,
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          config: { responseMimeType: "application/json", temperature: 0.1 }
-        });
+        const response = await withTimeout(
+          ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            config: {
+              responseMimeType: "application/json",
+              thinkingConfig: { thinkingLevel: "LOW" },
+            }
+          }),
+          5000,
+          "Gemini hypothesis parse"
+        );
         const parsed = extractJson(response?.text);
         if (parsed && parsed.disease && parsed.target) {
           return parsed;
@@ -1088,10 +1103,18 @@ Return strictly valid JSON only:
   }
 
   // Deterministic rule-based extraction fallback
-  let disease = fields.disease || "";
-  let target = fields.target || "";
-  let drug = fields.drug || "";
-  let mechanism = fields.mechanism || "";
+  const extractLabel = (val) => {
+    if (!val) return "";
+    if (typeof val === "string") return val.trim();
+    if (typeof val === "object") {
+      return String(val.name || val.symbol || val.approvedSymbol || val.title || val.id || "").trim();
+    }
+    return String(val).trim();
+  };
+  let disease = extractLabel(fields.disease);
+  let target = extractLabel(fields.target);
+  let drug = extractLabel(fields.drug);
+  let mechanism = extractLabel(fields.mechanism);
 
   const lower = cleanText.toLowerCase();
   
@@ -1125,13 +1148,13 @@ Return strictly valid JSON only:
   return {
     disease: disease || "Specified Disease",
     target: target || "Specified Target",
-    targetGene: (target || "TARGET").toUpperCase().replace(/[^A-Z0-9]/g, ""),
+    targetGene: String(target || "TARGET").toUpperCase().replace(/[^A-Z0-9]/g, ""),
     drug: drug || "Small molecule / Biologic modality",
     intervention: target ? `${target} targeted modulation` : cleanText.slice(0, 80),
     proposedMechanism: mechanism || `Modulation of ${target || "the biological target"} alters critical downstream signaling nodes to mitigate disease phenotype.`,
     expectedOutcome: `Amelioration of ${disease || "disease activity"} and restoration of biological homeostasis.`,
     potentialRisks: "Off-target interactions, compensatory signaling pathway activation, immune perturbation, and organ toxicity.",
-    patientPopulation: fields.patientPopulation || `Patients diagnosed with ${disease || "the indicated disorder"}.`
+    patientPopulation: extractLabel(fields.patientPopulation) || `Patients diagnosed with ${disease || "the indicated disorder"}.`
   };
 }
 
@@ -1139,12 +1162,14 @@ Return strictly valid JSON only:
  * Dynamic Hypothesis Evaluator
  */
 async function evaluateHypothesis(parsed) {
-  const textQuery = `${parsed.disease} ${parsed.target || parsed.targetGene || ""}`.trim();
+  const targetStr = typeof parsed?.target === "string" ? parsed.target : String(parsed?.target?.name || parsed?.target || "");
+  const diseaseStr = typeof parsed?.disease === "string" ? parsed.disease : String(parsed?.disease?.name || parsed?.disease || "");
+  const textQuery = `${diseaseStr} ${targetStr || parsed?.targetGene || ""}`.trim();
   
   // Check curated benchmark first
   for (const key of Object.keys(CURATED_HYPOTHESIS_BENCHMARKS)) {
     const item = CURATED_HYPOTHESIS_BENCHMARKS[key];
-    if (item.matches(textQuery) || item.matches(parsed.target || "") || item.matches(parsed.disease || "")) {
+    if (item.matches(textQuery) || item.matches(targetStr) || item.matches(diseaseStr)) {
       const evalData = JSON.parse(JSON.stringify(item.evaluation));
       const graph = buildEvidenceGraph(parsed, evalData);
       return {
@@ -1315,11 +1340,18 @@ Return strictly valid JSON only matching this exact schema:
   ]
 }`;
 
-        const response = await ai.models.generateContent({
-          model: GEMINI_MODEL,
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          config: { responseMimeType: "application/json", temperature: 0.2 }
-        });
+        const response = await withTimeout(
+          ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            config: {
+              responseMimeType: "application/json",
+              thinkingConfig: { thinkingLevel: "LOW" },
+            }
+          }),
+          8000,
+          "Gemini hypothesis evaluation"
+        );
 
         const rawParsed = extractJson(response?.text);
         if (rawParsed && rawParsed.biologicalPlausibility && rawParsed.decisionScore) {
@@ -1582,25 +1614,21 @@ Return strictly valid JSON only matching this exact schema:
 
 module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") {
-    res.statusCode = 204;
-    res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    return res.end();
+    return json(res, 204, {}, req);
   }
 
   if (req.method !== "POST") {
-    return json(res, 405, { error: "Method not allowed. Use POST." });
+    return json(res, 405, { error: "Method not allowed. Use POST." }, req);
   }
 
   try {
-    const body = req.body || {};
+    const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
     const action = body.action || "evaluate";
 
     if (action === "parse") {
       const text = body.hypothesis || "";
       if (!text.trim()) {
-        return json(res, 400, { error: "Hypothesis text is required." });
+        return json(res, 400, { error: "Hypothesis text is required." }, req);
       }
       const parsed = await parseHypothesis(text, {
         disease: body.disease,
@@ -1609,18 +1637,18 @@ module.exports = async function handler(req, res) {
         mechanism: body.mechanism,
         patientPopulation: body.patientPopulation
       });
-      return json(res, 200, { ok: true, parsed });
+      return json(res, 200, { ok: true, parsed }, req);
     }
 
     if (action === "evaluate") {
       const parsed = body.parsed || (await parseHypothesis(body.hypothesis || "", body));
       const evaluation = await evaluateHypothesis(parsed);
-      return json(res, 200, { ok: true, evaluation });
+      return json(res, 200, { ok: true, evaluation }, req);
     }
 
-    return json(res, 400, { error: `Unrecognized action "${action}". Expected "parse" or "evaluate".` });
+    return json(res, 400, { error: `Unrecognized action "${action}". Expected "parse" or "evaluate".` }, req);
   } catch (err) {
     console.error("[hypothesis-eval] Handler error:", err);
-    return json(res, 500, { error: "Hypothesis evaluation failed: " + err.message });
+    return json(res, 500, { error: "Hypothesis evaluation failed: " + err.message }, req);
   }
 };

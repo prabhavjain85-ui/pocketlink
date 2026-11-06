@@ -314,6 +314,14 @@ function generateHeuristicCritique(candidate, target) {
   };
 }
 
+function withTimeout(promise, ms, label = "Request") {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 async function critiqueWithGemini(prompt, expectedCid) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
@@ -325,59 +333,28 @@ async function critiqueWithGemini(prompt, expectedCid) {
       httpOptions: { headers: { "User-Agent": "aistudio-build" } },
     });
 
-    let lastError = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const response = await ai.models.generateContent({
+    try {
+      const response = await withTimeout(
+        ai.models.generateContent({
           model: GEMINI_MODEL,
           contents: [
             { role: "user", parts: [{ text: `${prompt.system}\n\n${prompt.user}` }] },
           ],
           config: {
             responseMimeType: "application/json",
-            temperature: 0.3,
+            thinkingConfig: { thinkingLevel: "LOW" },
           },
-        });
+        }),
+        8000,
+        "Gemini critique"
+      );
 
-        const parsed = extractJson(response?.text);
-        const normalized = normalizeCritique(parsed, expectedCid);
-        if (normalized) return normalized;
-      } catch (err) {
-        lastError = err;
-        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
-      }
-    }
-    if (lastError) console.warn("[adversarial-critique] Gemini SDK request error:", lastError.message);
-  }
-
-  // REST fallback if SDK failed or could not be loaded
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": "aistudio-build",
-      },
-      body: JSON.stringify({
-        contents: [
-          { role: "user", parts: [{ text: `${prompt.system}\n\n${prompt.user}` }] },
-        ],
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.3,
-        },
-      }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const parsed = extractJson(rawText);
+      const parsed = extractJson(response?.text);
       const normalized = normalizeCritique(parsed, expectedCid);
       if (normalized) return normalized;
+    } catch (err) {
+      console.warn("[adversarial-critique] Gemini SDK request error:", err.message);
     }
-  } catch (restErr) {
-    console.warn("[adversarial-critique] Gemini REST fallback failed:", restErr.message);
   }
 
   return null;

@@ -46,10 +46,13 @@ function isOriginAllowed(origin) {
 function resolveAllowedOriginHeader(req) {
   const origin = req?.headers?.origin;
   if (!origin) return DEFAULT_ALLOWED_ORIGINS[0];
+  if (origin === "null") return "*";
   return isOriginAllowed(origin) ? origin : "null";
 }
 
 function applyCorsHeaders(req, res, methods = "POST, OPTIONS") {
+  const origin = req?.headers?.origin;
+  const allowed = isOriginAllowed(origin);
   const allowOrigin = resolveAllowedOriginHeader(req);
   if (typeof res.setHeader === "function") {
     res.setHeader("Access-Control-Allow-Origin", allowOrigin);
@@ -57,7 +60,7 @@ function applyCorsHeaders(req, res, methods = "POST, OPTIONS") {
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     res.setHeader("Access-Control-Allow-Methods", methods);
   }
-  return allowOrigin !== "null";
+  return allowed;
 }
 
 function validateComputePayload(body) {
