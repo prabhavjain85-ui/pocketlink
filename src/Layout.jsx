@@ -3,7 +3,6 @@ import { Outlet } from "react-router-dom";
 import Header from "./Header";
 import SeoHead from "./SeoHead";
 import AnalyticsTracker from "./AnalyticsTracker";
-import SiteDisclaimer from "./SiteDisclaimer";
 
 export default function Layout() {
   return (
@@ -12,7 +11,6 @@ export default function Layout() {
       <AnalyticsTracker />
       <Header />
       <Outlet />
-      <SiteDisclaimer />
       <div className="footer-note">
         Structures from the <a href="https://www.rcsb.org" target="_blank" rel="noreferrer">RCSB Protein Data Bank</a>.
         Disease–target associations from the <a href="https://platform.opentargets.org" target="_blank" rel="noreferrer">Open Targets Platform</a>.
